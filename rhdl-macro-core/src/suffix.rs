@@ -63,7 +63,7 @@ mod tests {
         //println!("{:#?}", item);
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
-        println!("{}", result);
+        println!("{result}");
     }
 
     #[test]
@@ -110,9 +110,9 @@ mod tests {
         };
         let mut item = syn::parse2::<syn::ItemFn>(test_code).unwrap();
         CustomSuffix.visit_item_fn_mut(&mut item);
-        println!("{:#?}", item);
+        println!("{item:#?}");
         let new_code = quote! {#item};
         let result = prettyplease::unparse(&syn::parse2::<syn::File>(new_code).unwrap());
-        println!("{}", result);
+        println!("{result}");
     }
 }

@@ -56,7 +56,7 @@
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::core::{dff::DFF, option::unpack};
+use crate::core::dff::DFF;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
 /// The FilterMap Core

@@ -120,7 +120,7 @@ mod tests {
         let tb = uut.run(stream)?.collect::<TestBench<_, _>>();
         let hdl = tb.rtl(&uut, &TestBenchOptions::default().skip(10))?;
         hdl.run_iverilog()?;
-        let fg = tb.flow_graph(&uut, &TestBenchOptions::default().skip(10))?;
+        let fg = tb.ntl(&uut, &TestBenchOptions::default().skip(10))?;
         fg.run_iverilog()?;
         Ok(())
     }

@@ -1,8 +1,8 @@
 use crate::rhdl_core::{
     error::RHDLError,
     rhif::{
-        spec::{Assign, OpCode},
         Object,
+        spec::{Assign, OpCode},
     },
 };
 
@@ -18,8 +18,8 @@ impl Pass for RemoveUnneededMuxesPass {
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         for lop in input.ops.iter_mut() {
             if let OpCode::Select(select) = lop.op.clone() {
-                if let Ok(literal) = select.cond.as_literal() {
-                    let val = &input.literals[&literal];
+                if let Some(literal) = select.cond.lit() {
+                    let val = &input.symtab[literal];
                     if val.as_bool()? {
                         lop.op = OpCode::Assign(Assign {
                             lhs: select.lhs,

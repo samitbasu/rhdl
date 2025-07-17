@@ -240,6 +240,12 @@ mod tests {
     use crate::rng::xorshift::XorShift128;
 
     use super::*;
+    #[test]
+    fn test_no_combinatorial_paths() -> miette::Result<()> {
+        let uut = Carloni::<b4>::default();
+        drc::no_combinatorial_paths(&uut)?;
+        Ok(())
+    }
 
     #[test]
     fn test_carloni_buffer() {

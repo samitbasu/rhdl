@@ -1,13 +1,30 @@
 use crate::rhdl_core::{
-    bitx::{bitx_string, BitX},
-    rtl::object::RegisterKind,
     Kind, RHDLError, TypedBits,
+    bitx::{BitX, bitx_string},
 };
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum BitString {
     Signed(Vec<BitX>),
     Unsigned(Vec<BitX>),
+}
+
+impl From<&BitString> for Kind {
+    fn from(value: &BitString) -> Self {
+        match value {
+            BitString::Signed(x) => Kind::Signed(x.len()),
+            BitString::Unsigned(x) => Kind::Bits(x.len()),
+        }
+    }
+}
+
+impl From<BitString> for Kind {
+    fn from(value: BitString) -> Self {
+        match value {
+            BitString::Signed(x) => Kind::Signed(x.len()),
+            BitString::Unsigned(x) => Kind::Bits(x.len()),
+        }
+    }
 }
 
 impl BitString {
@@ -80,14 +97,11 @@ impl BitString {
             }
         }
     }
-    pub(crate) fn dont_care_from_kind(kind: RegisterKind) -> BitString {
-        match kind {
-            RegisterKind::Unsigned(len) => {
-                BitString::Unsigned(std::iter::repeat_n(BitX::X, len).collect())
-            }
-            RegisterKind::Signed(len) => {
-                BitString::Signed(std::iter::repeat_n(BitX::X, len).collect())
-            }
+    pub(crate) fn dont_care_from_kind(kind: Kind) -> BitString {
+        if kind.is_signed() {
+            BitString::Signed(std::iter::repeat_n(BitX::X, kind.bits()).collect())
+        } else {
+            BitString::Unsigned(std::iter::repeat_n(BitX::X, kind.bits()).collect())
         }
     }
 }

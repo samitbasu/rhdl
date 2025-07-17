@@ -190,10 +190,6 @@ fn test_latte_match() -> miette::Result<()> {
             MyEnum::C { x, y: _, z: _ } => x,
         }
     }
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Debug)
-        .is_test(true)
-        .init();
     // Get the RHIF implementation of the kernel
     let obj = compile_design_stage1::<do_stuff>(CompilationMode::Synchronous)?;
     Ok(())

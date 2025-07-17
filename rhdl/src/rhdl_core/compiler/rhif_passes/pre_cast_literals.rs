@@ -1,11 +1,12 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
 use crate::rhdl_core::{
+    common::symtab::LiteralId,
     error::RHDLError,
     rhif::{
-        remap::remap_slots,
-        spec::{LiteralId, OpCode, Slot},
         Object,
+        spec::{OpCode, Slot, SlotKind},
+        visit::visit_slots,
     },
 };
 
@@ -16,7 +17,7 @@ pub struct PreCastLiterals {}
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 struct CastCandidate {
-    id: LiteralId,
+    id: LiteralId<SlotKind>,
     len: usize,
     signed: bool,
 }
@@ -33,7 +34,7 @@ impl Pass for PreCastLiterals {
             match &lop.op {
                 OpCode::AsBits(cast) => {
                     if let Some(len) = cast.len {
-                        if let Ok(id) = cast.arg.as_literal() {
+                        if let Some(id) = cast.arg.lit() {
                             candidates.insert(CastCandidate {
                                 id,
                                 len,
@@ -44,7 +45,7 @@ impl Pass for PreCastLiterals {
                 }
                 OpCode::AsSigned(cast) => {
                     if let Some(len) = cast.len {
-                        if let Ok(id) = cast.arg.as_literal() {
+                        if let Some(id) = cast.arg.lit() {
                             candidates.insert(CastCandidate {
                                 id,
                                 len,
@@ -55,34 +56,28 @@ impl Pass for PreCastLiterals {
                 }
                 _ => {}
             }
-            remap_slots(lop.op.clone(), |slot| {
-                *use_count.entry(slot).or_default() += 1;
-                slot
+            visit_slots(&lop.op, |sense, slot| {
+                if sense.is_read() {
+                    *use_count.entry(*slot).or_default() += 1;
+                }
             });
         }
         // Check that each candidate is referenced exactly once
-        let candidates: HashMap<LiteralId, CastCandidate> = candidates
+        let candidates: HashMap<LiteralId<_>, CastCandidate> = candidates
             .into_iter()
             .filter(|candidate| use_count.get(&Slot::Literal(candidate.id)) == Some(&1))
             .map(|candidate| (candidate.id, candidate))
             .collect();
         // Because each literal is used exactly once, we can safely cast them
-        input.literals = input
-            .literals
-            .into_iter()
-            .map(|(slot, v)| {
-                if let Some(candidate) = candidates.get(&slot) {
-                    if candidate.signed {
-                        v.signed_cast(candidate.len)
-                    } else {
-                        v.unsigned_cast(candidate.len)
-                    }
+        for (slot, (value, _loc)) in input.symtab.iter_lit_mut() {
+            if let Some(candidate) = candidates.get(&slot) {
+                if candidate.signed {
+                    *value = value.signed_cast(candidate.len)?;
                 } else {
-                    Ok(v)
+                    *value = value.unsigned_cast(candidate.len)?;
                 }
-                .map(|res| (slot, res))
-            })
-            .collect::<Result<BTreeMap<_, _>, _>>()?;
+            }
+        }
         Ok(input)
     }
 }

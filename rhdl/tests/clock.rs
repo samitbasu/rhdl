@@ -183,6 +183,7 @@ fn test_signal_coherence_in_splice_operation() -> miette::Result<()> {
 fn test_signal_coherence_in_dynamic_indexing() -> miette::Result<()> {
     #[kernel]
     fn add<C: Domain, D: Domain>(x: Signal<[b8; 8], C>, y: Signal<b3, D>) -> Signal<b8, C> {
+        let x = x.val();
         let z = x[y.val()];
         signal(z)
     }
@@ -330,6 +331,7 @@ fn test_signal_cross_clock_shifting_fails() -> anyhow::Result<()> {
 fn test_signal_cross_clock_indexing_fails() -> anyhow::Result<()> {
     #[kernel]
     fn add<C: Domain, D: Domain>(x: Signal<[b8; 8], C>, y: Signal<b3, D>) -> Signal<b8, C> {
+        let x = x.val();
         let z = x[y.val()];
         signal(z)
     }

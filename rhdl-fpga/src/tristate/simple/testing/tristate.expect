@@ -25,86 +25,86 @@ module inner_inner(input wire [1:0] clock_reset, input wire [25:0] i, output wir
     assign od = kernel_trizsnd(clock_reset, i, q);
     assign d = od[37:27];
     function [37:0] kernel_trizsnd(input reg [1:0] arg_0, input reg [25:0] arg_1, input reg [10:0] arg_2);
-        reg [7:0] r0;
-        reg [10:0] r1;
-        reg [10:0] r2;
-        reg [2:0] r3;
-        reg [9:0] r5;
-        reg [25:0] r6;
-        reg [0:0] r7;
-        reg [8:0] r8;
-        reg [0:0] r10;
-        reg [7:0] r11;
-        reg [10:0] r13;
-        reg [10:0] r14;
-        reg [2:0] r15;
-        reg [10:0] r16;
-        reg [2:0] r17;
-        reg [7:0] r18;
-        reg [26:0] r19;
-        reg [26:0] r20;
-        reg [26:0] r21;
-        reg [15:0] r22;
-        reg [7:0] r23;
-        reg [10:0] r24;
-        reg [7:0] r25;
-        reg [8:0] r26;
-        reg [7:0] r27;
-        reg [26:0] r28;
-        reg [10:0] r29;
-        reg [26:0] r30;
-        reg [2:0] r31;
-        reg [15:0] r32;
-        reg [7:0] r33;
-        reg [15:0] r34;
-        reg [7:0] r35;
-        reg [7:0] r36;
-        reg [26:0] r37;
-        reg [15:0] r38;
-        reg [7:0] r39;
-        reg [15:0] r40;
-        reg [7:0] r41;
-        reg [15:0] r42;
-        reg [7:0] r43;
-        reg [7:0] r44;
-        reg [7:0] r45;
-        reg [26:0] r46;
-        reg [10:0] r47;
-        reg [37:0] r48;
-        reg [1:0] r49;
-        localparam l0 = 11'bxxxxxxxxxxx;
-        localparam l1 = 1'b0;
-        localparam l2 = 1'b1;
-        localparam l3 = 3'b001;
-        localparam l4 = 3'b010;
-        localparam l5 = 1'b1;
-        localparam l6 = 27'b000000000000000000000000000;
-        localparam l7 = 8'b11111111;
-        localparam l8 = 2'b10;
-        localparam l9 = 1'b1;
-        localparam l10 = 3'b000;
-        localparam l11 = 3'b001;
-        localparam l12 = 3'b010;
-        localparam l13 = 3'b011;
-        localparam l14 = 3'b100;
-        localparam l15 = 27'b000000000110000000000000000;
-        localparam l16 = 3'b000;
-        localparam l17 = 3'b011;
-        localparam l18 = 3'b100;
-        localparam l19 = 3'b000;
+        reg [7:0] or0;
+        reg [10:0] or1;
+        reg [10:0] or2;  // d
+        reg [2:0] or3;
+        reg [9:0] or4;
+        reg [25:0] or5;
+        reg [0:0] or6;
+        reg [8:0] or7;
+        reg [0:0] or8;
+        reg [7:0] or9;
+        reg [10:0] or10;  // d
+        reg [10:0] or11;  // d
+        reg [2:0] or12;  // state
+        reg [10:0] or13;  // d
+        reg [2:0] or14;  // state
+        reg [7:0] or15;
+        reg [26:0] or16;  // o
+        reg [26:0] or17;  // o
+        reg [26:0] or18;  // o
+        reg [15:0] or19;
+        reg [7:0] or20;
+        reg [10:0] or21;  // d
+        reg [7:0] or22;
+        reg [8:0] or23;
+        reg [7:0] or24;
+        reg [26:0] or25;  // o
+        reg [10:0] or26;  // d
+        reg [26:0] or27;  // o
+        reg [2:0] or28;  // state
+        reg [15:0] or29;
+        reg [7:0] or30;
+        reg [15:0] or31;
+        reg [7:0] or32;
+        reg [7:0] or33;
+        reg [26:0] or34;  // o
+        reg [15:0] or35;
+        reg [7:0] or36;
+        reg [15:0] or37;
+        reg [7:0] or38;
+        reg [15:0] or39;
+        reg [7:0] or40;
+        reg [7:0] or41;
+        reg [7:0] or42;
+        reg [26:0] or43;  // o
+        reg [10:0] or44;  // d
+        reg [37:0] or45;
+        reg [1:0] or46;
+        localparam ol0 = 11'bxxxxxxxxxxx;
+        localparam ol1 = 1'b0;
+        localparam ol2 = 1'b1;
+        localparam ol3 = 3'b001;
+        localparam ol4 = 3'b010;
+        localparam ol5 = 1'b1;
+        localparam ol6 = 27'b000000000000000000000000000;
+        localparam ol7 = 8'b11111111;
+        localparam ol8 = 2'b10;
+        localparam ol9 = 1'b1;
+        localparam ol10 = 3'b000;
+        localparam ol11 = 3'b001;
+        localparam ol12 = 3'b010;
+        localparam ol13 = 3'b011;
+        localparam ol14 = 3'b100;
+        localparam ol15 = 27'b000000000110000000000000000;
+        localparam ol16 = 3'b000;
+        localparam ol17 = 3'b011;
+        localparam ol18 = 3'b100;
+        localparam ol19 = 3'b000;
         begin
-            r49 = arg_0;
-            r6 = arg_1;
-            r1 = arg_2;
+            or46 = arg_0;
+            or5 = arg_1;
+            or1 = arg_2;
             // let d = D::dont_care();
             //
             // d.reg = q.reg;
             //
-            r0 = r1[10:3];
-            r2 = l0; r2[10:3] = r0;
+            or0 = or1[10:3];
+            or2 = ol0; or2[10:3] = or0;
             // let state = q.state;
             //
-            r3 = r1[2:0];
+            or3 = or1[2:0];
             // let o = O::default();
             //
             // match state {
@@ -164,9 +164,9 @@ module inner_inner(input wire [1:0] clock_reset, input wire [25:0] i, output wir
             // }
             //
             //
-            r5 = r6[25:16];
-            r7 = r5[9];
-            r8 = r5[8:0];
+            or4 = or5[25:16];
+            or6 = or4[9];
+            or7 = or4[8:0];
             // match cmd {
             //    Cmd::Write(data, )#false => {
             //       state = State :: Write;
@@ -179,41 +179,41 @@ module inner_inner(input wire [1:0] clock_reset, input wire [25:0] i, output wir
             //    ,
             // }
             //
-            r10 = r8[8];
-            r11 = r8[7:0];
+            or8 = or7[8];
+            or9 = or7[7:0];
             // state = State :: Write;
             //
             // d.reg = data;
             //
-            r13 = r2; r13[10:3] = r11;
+            or10 = or2; or10[10:3] = or9;
             // state = State :: ReadReq;
             //
-            case (r10)
-                1'b0: r14 = r13;
-                1'b1: r14 = r2;
+            case (or8)
+                1'b0: or11 = or10;
+                1'b1: or11 = or2;
             endcase
-            case (r10)
-                1'b0: r15 = l3;
-                1'b1: r15 = l4;
+            case (or8)
+                1'b0: or12 = ol3;
+                1'b1: or12 = ol4;
             endcase
-            case (r7)
-                1'b1: r16 = r14;
-                default: r16 = r2;
+            case (or6)
+                1'b1: or13 = or11;
+                default: or13 = or2;
             endcase
-            case (r7)
-                1'b1: r17 = r15;
-                default: r17 = r3;
+            case (or6)
+                1'b1: or14 = or12;
+                default: or14 = or3;
             endcase
             // o.bitz.value = q.reg;
             //
-            r18 = r1[10:3];
-            r19 = l6; r19[7:0] = r18;
+            or15 = or1[10:3];
+            or16 = ol6; or16[7:0] = or15;
             // o.bitz.mask = bits(0xff);
             //
-            r20 = r19; r20[15:8] = l7;
+            or17 = or16; or17[15:8] = ol7;
             // o.control = Some(LineState :: Write);
             //
-            r21 = r20; r21[17:16] = l8;
+            or18 = or17; or18[17:16] = ol8;
             // state = State :: Idle;
             //
             // o.control = Some(LineState :: Read);
@@ -222,66 +222,66 @@ module inner_inner(input wire [1:0] clock_reset, input wire [25:0] i, output wir
             //
             // d.reg = i.bitz.value;
             //
-            r22 = r6[15:0];
-            r23 = r22[7:0];
-            r24 = r2; r24[10:3] = r23;
+            or19 = or5[15:0];
+            or20 = or19[7:0];
+            or21 = or2; or21[10:3] = or20;
             // state = State :: ValueEmit;
             //
             // state = State :: Idle;
             //
             // o.data = Some(q.reg);
             //
-            r25 = r1[10:3];
-            r27 = r25[7:0];
-            r26 = { l9, r27 };
-            r28 = l6; r28[26:18] = r26;
-            case (r3)
-                3'b000: r29 = r16;
-                3'b001: r29 = r2;
-                3'b010: r29 = r2;
-                3'b011: r29 = r24;
-                3'b100: r29 = r2;
+            or22 = or1[10:3];
+            or24 = or22[7:0];
+            or23 = { ol9, or24 };
+            or25 = ol6; or25[26:18] = or23;
+            case (or3)
+                3'b000: or26 = or13;
+                3'b001: or26 = or2;
+                3'b010: or26 = or2;
+                3'b011: or26 = or21;
+                3'b100: or26 = or2;
             endcase
-            case (r3)
-                3'b000: r30 = l6;
-                3'b001: r30 = r21;
-                3'b010: r30 = l15;
-                3'b011: r30 = l6;
-                3'b100: r30 = r28;
+            case (or3)
+                3'b000: or27 = ol6;
+                3'b001: or27 = or18;
+                3'b010: or27 = ol15;
+                3'b011: or27 = ol6;
+                3'b100: or27 = or25;
             endcase
-            case (r3)
-                3'b000: r31 = r17;
-                3'b001: r31 = l16;
-                3'b010: r31 = l17;
-                3'b011: r31 = l18;
-                3'b100: r31 = l19;
+            case (or3)
+                3'b000: or28 = or14;
+                3'b001: or28 = ol16;
+                3'b010: or28 = ol17;
+                3'b011: or28 = ol18;
+                3'b100: or28 = ol19;
             endcase
             // o.bitz.mask |= i.bitz.mask;
             //
-            r32 = r30[15:0];
-            r33 = r32[15:8];
-            r34 = r6[15:0];
-            r35 = r34[15:8];
-            r36 = r33 | r35;
-            r37 = r30; r37[15:8] = r36;
+            or29 = or27[15:0];
+            or30 = or29[15:8];
+            or31 = or5[15:0];
+            or32 = or31[15:8];
+            or33 = or30 | or32;
+            or34 = or27; or34[15:8] = or33;
             // o.bitz.value |= i.bitz.value & i.bitz.mask;
             //
-            r38 = r37[15:0];
-            r39 = r38[7:0];
-            r40 = r6[15:0];
-            r41 = r40[7:0];
-            r42 = r6[15:0];
-            r43 = r42[15:8];
-            r44 = r41 & r43;
-            r45 = r39 | r44;
-            r46 = r37; r46[7:0] = r45;
+            or35 = or34[15:0];
+            or36 = or35[7:0];
+            or37 = or5[15:0];
+            or38 = or37[7:0];
+            or39 = or5[15:0];
+            or40 = or39[15:8];
+            or41 = or38 & or40;
+            or42 = or36 | or41;
+            or43 = or34; or43[7:0] = or42;
             // d.state = state;
             //
-            r47 = r29; r47[2:0] = r31;
+            or44 = or26; or44[2:0] = or28;
             // (o, d, )
             //
-            r48 = { r47, r46 };
-            kernel_trizsnd = r48;
+            or45 = { or44, or43 };
+            kernel_trizsnd = or45;
         end
     endfunction
 endmodule

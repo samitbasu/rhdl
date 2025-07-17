@@ -1,11 +1,11 @@
 use super::{circuit_impl::Circuit, hdl_backend::maybe_decl_wire};
 use crate::{
     prelude::{
-        bit_range, BitX, CircuitIO, Digital, Direction, HDLKind, Kind, Module, Path, RHDLError,
-        Timed,
+        BitX, CircuitIO, Digital, Direction, HDLKind, Kind, Module, Path, RHDLError, Timed,
+        bit_range,
     },
     rhdl_core::{
-        hdl::ast::{component_instance, connection, id, Port, SignedWidth, Statement},
+        hdl::ast::{Port, SignedWidth, Statement, component_instance, connection, id},
         types::path::leaf_paths,
     },
 };
@@ -290,7 +290,7 @@ fn build_coverage_error(kind: Kind, coverage: &[bool]) -> String {
         let (bits, _) = bit_range(kind, &path).unwrap();
         let covered = coverage[bits].iter().all(|b| *b);
         if !covered {
-            details.push_str(&format!("Path {:?} is not covered\n", path));
+            details.push_str(&format!("Path {path:?} is not covered\n"));
         }
     }
     details

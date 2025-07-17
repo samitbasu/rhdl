@@ -1,6 +1,9 @@
-use crate::prelude::{
-    CircuitDescriptor, ClockReset, Digital, FlowGraph, HDLDescriptor, Kind, Module, NoKernel3,
-    RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
+use crate::{
+    prelude::{
+        CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, Module, NoKernel3, RHDLError,
+        Synchronous, SynchronousDQ, SynchronousIO,
+    },
+    rhdl_core::ntl,
 };
 
 impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
@@ -21,20 +24,21 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
     }
 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        let flow_graph = FlowGraph {
-            output: vec![],
-            inputs: vec![vec![], vec![]],
-            ..Default::default()
-        };
+        let ntl = ntl::Builder::new(name);
+        // It's not exactly clear what the build mode of the NetList Builder
+        // should be.  We do not know if the phantom is in a synchronous or
+        // asynchronous context, and ideally it shouldn't matter.  So we use
+        // the synchronous mode so that the inputs have at least place holders
+        // for the clock reset and input vecs (both empty)
         Ok(CircuitDescriptor {
             unique_name: format!("{name}_phantom"),
             input_kind: Kind::Empty,
             output_kind: Kind::Empty,
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            flow_graph,
             children: Default::default(),
             rtl: None,
+            ntl: ntl.build(ntl::builder::BuilderMode::Synchronous)?,
         })
     }
 

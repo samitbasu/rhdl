@@ -1,6 +1,10 @@
-use crate::rhdl_core::{
-    bitx::BitX, rtl::object::RegisterKind, rtl::spec::AluBinary, rtl::spec::AluUnary,
-    types::bit_string::BitString,
+use crate::{
+    prelude::Kind,
+    rhdl_core::{
+        bitx::BitX,
+        rtl::spec::{AluBinary, AluUnary},
+        types::bit_string::BitString,
+    },
 };
 
 use super::formatter;
@@ -80,11 +84,22 @@ impl SignedWidth {
     }
 }
 
-impl From<RegisterKind> for SignedWidth {
-    fn from(kind: RegisterKind) -> Self {
-        match kind {
-            RegisterKind::Signed(len) => SignedWidth::Signed(len),
-            RegisterKind::Unsigned(len) => SignedWidth::Unsigned(len),
+impl From<Kind> for SignedWidth {
+    fn from(kind: Kind) -> Self {
+        if kind.is_signed() {
+            SignedWidth::Signed(kind.bits())
+        } else {
+            SignedWidth::Unsigned(kind.bits())
+        }
+    }
+}
+
+impl From<&Kind> for SignedWidth {
+    fn from(kind: &Kind) -> Self {
+        if kind.is_signed() {
+            SignedWidth::Signed(kind.bits())
+        } else {
+            SignedWidth::Unsigned(kind.bits())
         }
     }
 }
@@ -362,11 +377,11 @@ pub struct Assert {
 }
 
 pub fn dump_file(name: &str) -> Statement {
-    Statement::Custom(format!("$dumpfile(\"{}\");", name))
+    Statement::Custom(format!("$dumpfile(\"{name}\");"))
 }
 
 pub fn dump_vars(time: usize) -> Statement {
-    Statement::Custom(format!("$dumpvars({});", time))
+    Statement::Custom(format!("$dumpvars({time});"))
 }
 
 pub fn assert(left: Expression, right: Expression, cause: &str) -> Statement {

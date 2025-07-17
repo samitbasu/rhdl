@@ -1,7 +1,10 @@
 // RHDL Intermediate Form (RHIF).
-use anyhow::Result;
-
-use crate::rhdl_core::{ast::ast_impl::WrapOp, types::path::Path, Color, Kind, TypedBits};
+use crate::rhdl_core::{
+    Color, Kind, TypedBits,
+    ast::ast_impl::WrapOp,
+    common::symtab::{Symbol, SymbolKind},
+    types::path::Path,
+};
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum OpCode {
@@ -43,6 +46,33 @@ pub enum OpCode {
     // x <- wrap(a), where wrap is either Result::Ok, Result::Err, Option::Some, Option::None
     Wrap(Wrap),
     Comment(String),
+}
+
+impl OpCode {
+    pub fn lhs(&self) -> Option<Slot> {
+        match self {
+            OpCode::Noop => None,
+            OpCode::Binary(Binary { lhs, .. })
+            | OpCode::Unary(Unary { lhs, .. })
+            | OpCode::Select(Select { lhs, .. })
+            | OpCode::Index(Index { lhs, .. })
+            | OpCode::Assign(Assign { lhs, .. })
+            | OpCode::Splice(Splice { lhs, .. })
+            | OpCode::Repeat(Repeat { lhs, .. })
+            | OpCode::Struct(Struct { lhs, .. })
+            | OpCode::Tuple(Tuple { lhs, .. })
+            | OpCode::Case(Case { lhs, .. })
+            | OpCode::Exec(Exec { lhs, .. })
+            | OpCode::Array(Array { lhs, .. })
+            | OpCode::Enum(Enum { lhs, .. })
+            | OpCode::AsBits(Cast { lhs, .. })
+            | OpCode::AsSigned(Cast { lhs, .. })
+            | OpCode::Resize(Cast { lhs, .. })
+            | OpCode::Retime(Retime { lhs, .. })
+            | OpCode::Wrap(Wrap { lhs, .. }) => Some(*lhs),
+            OpCode::Comment(_) => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Hash)]
@@ -206,92 +236,14 @@ pub enum AluUnary {
     XSgn,
 }
 
-#[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub enum Slot {
-    Literal(LiteralId),
-    Register(RegisterId),
-    Empty,
+#[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Copy, Clone, Default)]
+pub struct SlotKind {}
+
+impl SymbolKind for SlotKind {
+    const NAME: &'static str = "s";
 }
 
-#[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct LiteralId(pub usize);
-
-impl From<LiteralId> for Slot {
-    fn from(val: LiteralId) -> Self {
-        Slot::Literal(val)
-    }
-}
-
-impl std::fmt::Debug for LiteralId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "l{}", self.0)
-    }
-}
-
-#[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct RegisterId(pub usize);
-
-impl From<RegisterId> for Slot {
-    fn from(val: RegisterId) -> Self {
-        Slot::Register(val)
-    }
-}
-
-impl std::fmt::Debug for RegisterId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "r{}", self.0)
-    }
-}
-
-impl std::fmt::Debug for Slot {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Slot::Literal(l) => write!(f, "{:?}", l),
-            Slot::Register(r) => write!(f, "{:?}", r),
-            Slot::Empty => write!(f, "()"),
-        }
-    }
-}
-
-impl Slot {
-    pub fn reg(&self) -> Result<RegisterId> {
-        match self {
-            Slot::Register(r) => Ok(*r),
-            _ => Err(anyhow::anyhow!("Not a register")),
-        }
-    }
-    pub fn as_literal(self) -> Result<LiteralId> {
-        match self {
-            Slot::Literal(l) => Ok(l),
-            _ => Err(anyhow::anyhow!("Not a literal")),
-        }
-    }
-    pub fn as_reg(self) -> Result<RegisterId> {
-        match self {
-            Slot::Register(r) => Ok(r),
-            _ => Err(anyhow::anyhow!("Not a register")),
-        }
-    }
-    pub fn is_literal(&self) -> bool {
-        matches!(self, Slot::Literal(_))
-    }
-
-    pub fn is_empty(&self) -> bool {
-        matches!(self, Slot::Empty)
-    }
-
-    pub(crate) fn is_reg(&self) -> bool {
-        matches!(self, Slot::Register(_))
-    }
-
-    pub(crate) fn rename(&self, old: Slot, new: Slot) -> Slot {
-        if *self == old {
-            new
-        } else {
-            *self
-        }
-    }
-}
+pub type Slot = Symbol<SlotKind>;
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum Member {

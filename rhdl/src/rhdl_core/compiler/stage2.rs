@@ -1,4 +1,5 @@
 use crate::rhdl_core::{
+    RHDLError,
     compiler::{
         lower_rhif_to_rtl::compile_to_rtl,
         rtl_passes::{
@@ -19,7 +20,7 @@ use crate::rhdl_core::{
             symbol_table_is_complete::SymbolTableIsComplete,
         },
     },
-    rtl, RHDLError,
+    rtl,
 };
 use log::{debug, info};
 

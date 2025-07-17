@@ -33,6 +33,7 @@ use rhdl::{
             bit_string, continuous_assignment, port, signed_width, unsigned_width, Direction,
             Module,
         },
+        ntl::builder::constant,
         types::bit_string::BitString,
     },
     prelude::*,
@@ -83,22 +84,15 @@ impl<T: Digital> Synchronous for Constant<T> {
     }
 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        let mut flow_graph = FlowGraph::default();
-        let my_val = &self.value.typed_bits().bits;
-        let driver = my_val.iter().map(|b| {
-            flow_graph.new_component_with_optional_location(ComponentKind::Constant(*b), 1, None)
-        });
-        flow_graph.output = driver.collect();
-        flow_graph.inputs = vec![vec![], vec![]];
         Ok(CircuitDescriptor {
             unique_name: format!("{name}_const_{:?}", self.value.typed_bits()),
             input_kind: Kind::Empty,
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            flow_graph,
             children: Default::default(),
             rtl: None,
+            ntl: constant(&self.value, name)?,
         })
     }
 }

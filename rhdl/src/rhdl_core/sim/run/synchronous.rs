@@ -87,7 +87,6 @@ where
         RHDLError,
     > {
         self.yosys_check()?;
-        let _ = self.flow_graph("name")?;
         Ok(run_synchronous(self, iter.into_iter()))
     }
 }

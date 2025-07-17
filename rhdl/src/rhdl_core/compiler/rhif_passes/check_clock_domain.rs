@@ -2,18 +2,18 @@ use log::debug;
 use std::collections::{BTreeMap, HashSet};
 
 use crate::rhdl_core::{
+    Color, Kind,
     ast::source::source_location::SourceLocation,
     compiler::mir::{
         error::{ClockError, RHDLClockDomainViolation},
-        ty::{make_variant_tag, AppTypeKind, Const, TypeId, TypeKind, UnifyContext},
+        ty::{AppTypeKind, Const, TypeId, TypeKind, UnifyContext, make_variant_tag},
     },
     error::RHDLError,
     rhif::{
-        spec::{AluUnary, CaseArgument, OpCode, Slot},
         Object,
+        spec::{AluUnary, CaseArgument, OpCode, Slot},
     },
     types::path::{Path, PathElement},
-    Color, Kind,
 };
 
 use super::pass::Pass;
@@ -36,22 +36,22 @@ struct ClockDomainContext<'a> {
     slot_map: BTreeMap<Slot, TypeId>,
 }
 
-impl ClockDomainContext<'_> {
-    fn collect_clock_domains(&mut self, ty: TypeId) -> Vec<TypeId> {
-        match self.ctx.ty(ty) {
-            TypeKind::Var(_) => vec![ty],
-            TypeKind::App(app) => app
-                .sub_types()
-                .into_iter()
-                .flat_map(|arg| self.collect_clock_domains(arg))
-                .collect(),
-            TypeKind::Const(Const::Clock(_)) => vec![ty],
-            _ => vec![],
-        }
+fn collect_clock_domains(ty: TypeId) -> Vec<TypeId> {
+    match (*ty.kind).clone() {
+        TypeKind::Var(_) => vec![ty],
+        TypeKind::App(app) => app
+            .sub_types()
+            .into_iter()
+            .flat_map(collect_clock_domains)
+            .collect(),
+        TypeKind::Const(Const::Clock(_)) => vec![ty],
+        _ => vec![],
     }
+}
+
+impl ClockDomainContext<'_> {
     fn clock_domain_for_error(&mut self, ty: TypeId) -> &'static str {
-        let domains = self
-            .collect_clock_domains(ty)
+        let domains = collect_clock_domains(ty)
             .into_iter()
             .map(|ty| {
                 if let Ok(clock) = self.ctx.cast_ty_as_clock(ty) {
@@ -98,10 +98,7 @@ impl ClockDomainContext<'_> {
                         "Expression belongs to {} clock domain",
                         self.clock_domain_for_error(ty)
                     ),
-                    self.obj
-                        .symbols
-                        .best_span_for_slot_in_expression(slot, containing_id)
-                        .into(),
+                    self.obj.symbols.span(containing_id).into(),
                 )
             })
             .collect();
@@ -205,16 +202,14 @@ impl ClockDomainContext<'_> {
         }
     }
     fn import_literals(&mut self) {
-        for &lit_id in self.obj.literals.keys() {
-            let id = self.obj.symbols.slot_map[&lit_id.into()];
-            let ty = self.ctx.ty_unclocked(id);
+        for (lit_id, (_tb, det)) in self.obj.symtab.iter_lit() {
+            let ty = self.ctx.ty_unclocked(det.location);
             self.slot_map.insert(lit_id.into(), ty);
         }
     }
     fn import_registers(&mut self) {
-        for (&reg_id, kind) in &self.obj.kind {
-            let id = self.obj.symbols.slot_map[&reg_id.into()];
-            let ty = self.import_kind_with_unknown_domains(id, kind);
+        for (reg_id, (kind, det)) in self.obj.symtab.iter_reg() {
+            let ty = self.import_kind_with_unknown_domains(det.location, &kind);
             self.slot_map.insert(reg_id.into(), ty);
         }
     }
@@ -227,11 +222,11 @@ impl ClockDomainContext<'_> {
         debug!("unify clocks {:?}", slots);
         let ty_clock = self.ctx.ty_var(cause_id);
         for slot in slots {
-            if !slot.is_empty() {
-                let ty_slot = self.slot_type(slot);
-                if self.ctx.unify(ty_slot, ty_clock).is_err() {
-                    return Err(self.raise_clock_domain_error(cause_id, slots, cause).into());
-                }
+            // TODO - Does this need to be replaced?
+            // Had a guard about slot.is_empty()
+            let ty_slot = self.slot_type(slot);
+            if self.ctx.unify(ty_slot, ty_clock).is_err() {
+                return Err(self.raise_clock_domain_error(cause_id, slots, cause).into());
             }
         }
         Ok(())
@@ -247,10 +242,10 @@ impl ClockDomainContext<'_> {
         cause: ClockError,
     ) -> Result<(), RHDLError> {
         let lhs_ty = self.slot_type(&lhs);
-        let lhs_domains = self.collect_clock_domains(lhs_ty);
+        let lhs_domains = collect_clock_domains(lhs_ty);
         for lhs_domain in lhs_domains {
             let rhs_ty = self.slot_type(&rhs);
-            let rhs_domains = self.collect_clock_domains(rhs_ty);
+            let rhs_domains = collect_clock_domains(rhs_ty);
             for domain in rhs_domains {
                 if self.ctx.unify(lhs_domain, domain).is_err() {
                     return Err(self
@@ -305,8 +300,8 @@ impl ClockDomainContext<'_> {
                     }
                     // First, index the argument type to get a base type
                     arg = self.ctx.ty_index(arg, 0)?;
-                    let slot_domains = self.collect_clock_domains(slot_ty);
-                    let arg_domains = self.collect_clock_domains(arg);
+                    let slot_domains = collect_clock_domains(slot_ty);
+                    let arg_domains = collect_clock_domains(arg);
                     for arg_domain in arg_domains {
                         for slot_domain in &slot_domains {
                             if self.ctx.unify(arg_domain, *slot_domain).is_err() {
@@ -341,19 +336,11 @@ impl ClockDomainContext<'_> {
             .collect::<Vec<_>>();
         for ty in &resolved_map {
             let desc = self.ctx.desc(ty.1);
-            debug!("Slot {:?} has type {:?}", ty.0, desc);
+            debug!("Slot {} has type {:?}", ty.0, desc);
         }
     }
     fn slot_type(&mut self, slot: &Slot) -> TypeId {
-        // If the slot is a literal or empty, just make up a new
-        // variable and return it.
-        match slot {
-            Slot::Empty => {
-                let id = self.obj.symbols.slot_map[slot];
-                self.ctx.ty_unclocked(id)
-            }
-            Slot::Register(_) | Slot::Literal(_) => self.slot_map[slot],
-        }
+        self.slot_map[slot]
     }
     fn check(&mut self) -> Result<(), RHDLError> {
         debug!("Code before clock check: {:?}", self.obj);

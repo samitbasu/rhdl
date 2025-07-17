@@ -109,7 +109,10 @@ use badascii_doc::{badascii, badascii_formal};
 use crate::{
     axi4lite::{
         stream::{axi_to_rhdl::Axi2Rhdl, rhdl_to_axi::Rhdl2Axi},
-        types::{response_codes, AXI4Error, ReadMISO, ReadMOSI, ReadResponse, ReadResult},
+        types::{
+            response_codes, AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI, ReadResponse,
+            ReadResult,
+        },
     },
     stream::{map::Map, Ready},
 };
@@ -122,7 +125,7 @@ use rhdl::prelude::*;
 /// source of read addresses, and a RHDL stream sink of
 /// read results.  
 pub struct ReadEndpoint {
-    inbuf: Axi2Rhdl<b32>,
+    inbuf: Axi2Rhdl<AxilData>,
     map: Map<ReadResult, ReadResponse>,
     outbuf: Rhdl2Axi<ReadResponse>,
 }
@@ -164,7 +167,7 @@ pub struct In {
     /// AXI signals for core
     pub axi: ReadMOSI,
     /// Request stream ready signal from core
-    pub req_ready: Ready<b32>,
+    pub req_ready: Ready<AxilAddr>,
     /// Response data stream from core
     pub resp_data: Option<ReadResult>,
 }
@@ -175,7 +178,7 @@ pub struct Out {
     /// AXI signals for core
     pub axi: ReadMISO,
     /// Request data to the core
-    pub req_data: Option<b32>,
+    pub req_data: Option<AxilAddr>,
     /// Response ready signal to core
     pub resp_ready: Ready<ReadResult>,
 }

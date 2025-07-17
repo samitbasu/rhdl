@@ -1,94 +1,62 @@
+use std::collections::HashMap;
+
 use super::pass::Pass;
 use crate::rhdl_core::{
+    common::{symtab::RegisterId, unify_key::EnaKey},
     error::RHDLError,
     rhif::{
-        object::LocatedOpCode,
-        remap::rename_read_register,
-        spec::{Assign, OpCode},
         Object,
+        spec::{Assign, OpCode, Slot},
+        visit::visit_object_slots_mut,
     },
 };
-use log::debug;
+use ena::unify::InPlaceUnificationTable;
 
 #[derive(Default, Debug, Clone)]
 pub struct RemoveExtraRegistersPass {}
-
-fn find_assign_op(ops: &[LocatedOpCode]) -> Option<usize> {
-    ops.iter()
-        .position(|lop| matches!(lop.op, OpCode::Assign(_)))
-}
 
 impl Pass for RemoveExtraRegistersPass {
     fn description() -> &'static str {
         "Remove extra registers"
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
-        while let Some(op_ndx) = find_assign_op(&input.ops) {
-            let lop = input.ops[op_ndx].clone();
-            let op = &lop.op;
-            if let OpCode::Assign(assign) = op {
-                input.ops = input
-                    .ops
-                    .into_iter()
-                    .map(|lop| {
-                        let LocatedOpCode { op, loc } = lop;
-                        let old = assign.lhs;
-                        let new = assign.rhs;
-                        match op {
-                            OpCode::Assign(Assign { lhs, rhs }) => {
-                                let new_rhs = if rhs == old { new } else { rhs };
-                                if new_rhs == lhs {
-                                    (OpCode::Noop, loc).into()
-                                } else {
-                                    (OpCode::Assign(Assign { lhs, rhs: new_rhs }), loc).into()
-                                }
-                            }
-                            _ => (rename_read_register(op, old, new), loc).into(),
-                        }
-                    })
-                    .map(|lop| {
-                        let LocatedOpCode { op, loc } = lop;
-                        match op {
-                            OpCode::Assign(Assign { lhs, rhs: _ }) => {
-                                if lhs != assign.lhs {
-                                    (op, loc).into()
-                                } else {
-                                    (OpCode::Noop, loc).into()
-                                }
-                            }
-                            _ => (op, loc).into(),
-                        }
-                    })
-                    .collect();
-                // Merge the names of the registers
-                let lhs_name = input.symbols.slot_names.get(&assign.lhs);
-                let rhs_name = input.symbols.slot_names.get(&assign.rhs);
-                if let Some(merged_name) = merge_names(lhs_name, rhs_name) {
-                    input.symbols.slot_names.insert(assign.rhs, merged_name);
+        // Create a union table
+        let mut table = InPlaceUnificationTable::<EnaKey>::new();
+        // Map each register ID to a EnaKey
+        let reg_map: HashMap<RegisterId<_>, EnaKey> = input
+            .symtab
+            .iter_reg()
+            .map(|(reg, _)| (reg, table.new_key(())))
+            .collect();
+        let inv_map: HashMap<EnaKey, RegisterId<_>> =
+            reg_map.iter().map(|(&op, &key)| (key, op)).collect();
+        // Loop over the assignments in the opcodes. And for each assignment,
+        // union the arguments in the table.
+        for lop in &input.ops {
+            if let OpCode::Assign(assign) = &lop.op {
+                if let (Some(lhs_reg), Some(rhs_reg)) = (assign.lhs.reg(), assign.rhs.reg()) {
+                    let lhs_key = reg_map[&lhs_reg];
+                    let rhs_key = reg_map[&rhs_reg];
+                    table.union(lhs_key, rhs_key);
                 }
-                // Delete the register from the register map
-                //input.symbols.slot_map.remove(&assign.lhs);
-                debug!("Removing register {:?}", assign.lhs);
-                if assign.lhs.is_reg() {
-                    input.kind.remove(&assign.lhs.as_reg().unwrap());
-                }
-                // Check the output register
-                input.return_slot = input.return_slot.rename(assign.lhs, assign.rhs);
-                // Record the alias in the symbol table
-                // This is used to find equivalent expressions when emitting error messages
-                input.symbols.alias(assign.rhs, assign.lhs);
             }
         }
+        // Next, rewrite the ops, where for each operand, we take the root of the unify tree
+        visit_object_slots_mut(&mut input, |_sense, slot| {
+            if let Some(reg) = slot.reg() {
+                let key = reg_map[&reg];
+                let root = table.find(key);
+                let replacement = Slot::Register(inv_map[&root]);
+                *slot = replacement;
+            }
+        });
+        input.ops.retain(|lop| {
+            if let OpCode::Assign(Assign { lhs, rhs }) = lop.op {
+                lhs != rhs
+            } else {
+                true
+            }
+        });
         Ok(input)
-    }
-}
-
-fn merge_names(a: Option<&String>, b: Option<&String>) -> Option<String> {
-    match (a, b) {
-        (None, None) => None,
-        (Some(a), None) => Some(a.clone()),
-        (None, Some(b)) => Some(b.clone()),
-        (Some(a), Some(b)) if a == b => Some(a.clone()),
-        (Some(a), Some(b)) => Some(format!("{}_then_{}", b, a)),
     }
 }

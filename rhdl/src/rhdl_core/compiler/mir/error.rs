@@ -4,12 +4,13 @@ use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 use crate::rhdl_core::{
+    Kind, RHDLError, SourcePool, TypedBits,
     ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
     builder::BinOp,
-    rhif::spec::{AluBinary, AluUnary, OpCode, Slot},
-    rtl::spec::Operand,
-    types::{bit_string::BitString, path::Path},
-    Kind, RHDLError, SourcePool, TypedBits,
+    common::symtab::{LiteralId, RegisterId},
+    rhif::spec::{AluBinary, AluUnary, OpCode, Slot, SlotKind},
+    rtl::spec::{Operand, OperandKind},
+    types::path::Path,
 };
 
 use super::{compiler::ScopeIndex, ty::SignFlag};
@@ -46,7 +47,9 @@ pub enum TypeCheck {
     PathMismatchInTypeInference,
     #[error("Cannot determine the sign of this value")]
     ExpectedSignFlag,
-    #[error("Expression causes an overflow in bit widths (currently a maximum of 128 bits is supported)")]
+    #[error(
+        "Expression causes an overflow in bit widths (currently a maximum of 128 bits is supported)"
+    )]
     BitWidthOverflow,
 }
 
@@ -107,13 +110,9 @@ pub enum ICE {
     #[error("Slot {slot:?} is read before being written")]
     SlotIsReadBeforeBeingWritten { slot: Slot },
     #[error("Cannot write to a literal {ndx:?}")]
-    CannotWriteToRHIFLiteral {
-        ndx: crate::rhdl_core::rhif::spec::LiteralId,
-    },
+    CannotWriteToRHIFLiteral { ndx: LiteralId<SlotKind> },
     #[error("Cannot write to a RTL literal {ndx:?}")]
-    CannotWriteToRTLLiteral {
-        ndx: crate::rhdl_core::rtl::spec::LiteralId,
-    },
+    CannotWriteToRTLLiteral { ndx: LiteralId<OperandKind> },
     #[error("Slot {slot:?} is written twice")]
     SlotIsWrittenTwice { slot: Slot },
     #[error("Mismatch in data types (clock domain ignored) {lhs:?} and {rhs:?}")]
@@ -150,6 +149,8 @@ pub enum ICE {
     VariantNotFoundInType { variant: i64, ty: Kind },
     #[error("Symbol table has no entry for slot {slot:?}")]
     SymbolTableIsIncomplete { slot: Slot },
+    #[error("Symbol table has no entry for operand {operand:?}")]
+    SymbolTableIsIncompleteForRTL { operand: Operand },
     #[error("Unable to infer clock domain for retime operation {op:?}")]
     UnableToInferClockDomainForRetime { op: OpCode },
     #[error("Empty slot passed to code generator in RTL")]
@@ -165,13 +166,9 @@ pub enum ICE {
     #[error("Malformed RTL flow graph returned")]
     MalformedRTLFlowGraph,
     #[error("VM encountered an uninitialized RHIF register {r:?}")]
-    UninitializedRegister {
-        r: crate::rhdl_core::rhif::spec::RegisterId,
-    },
+    UninitializedRegister { r: RegisterId<SlotKind> },
     #[error("VM encountered an uninitialized RTL register {r:?}")]
-    UninitializedRTLRegister {
-        r: crate::rhdl_core::rtl::spec::RegisterId,
-    },
+    UninitializedRTLRegister { r: RegisterId<OperandKind> },
     #[error("VM cannot write a non-empty value to an empty slot")]
     CannotWriteNonEmptyValueToEmptySlot,
     #[error("VM encountered a discriminant {discriminant:?} with no matching arm")]
@@ -203,7 +200,7 @@ pub enum ICE {
     #[error("Wrap opcode requires an option kind, not {kind:?}")]
     WrapRequiresOptionKind { kind: Kind },
     #[error("Attempted to select based on an uninitialized value")]
-    SelectOnUninitializedValue { value: BitString },
+    SelectOnUninitializedValue { value: TypedBits },
     #[error("Invalid arguments to Xops operation {a:?} and {b:?}")]
     InvalidXopsKind { a: Kind, b: Kind },
     #[error("Result of an Xops (xadd, xsub, xmul) cannot be assigned to a literal")]
@@ -212,6 +209,20 @@ pub enum ICE {
     InvalidPadKind { a: Kind },
     #[error("Argument of cut operation must be either a Bits or SignedBits value, not {a:?}")]
     InvalidCutKind { a: Kind },
+    #[error("Dynamic index in path {path:?} is a literal value")]
+    DynamicIndexHasLiteral { path: Path },
+    #[error("Multiple writes to a single register {op:?}")]
+    MultipleWritesToRegister {
+        op: crate::rhdl_core::ntl::spec::Wire,
+    },
+    #[error("Symbol table is incomplete")]
+    IncompleteSymbolTable,
+    #[error("Loop Isolation Algorithm Failed")]
+    LoopIsolationAlgorithmFailed,
+    #[error("Netlist contains an incomplete symbol table")]
+    IncompleteSymbolTableInNetList,
+    #[error("Cannot coerce empty to an integer")]
+    CannotCoerceEmptyToInteger,
 }
 
 #[derive(Error, Debug, Diagnostic)]
@@ -249,13 +260,19 @@ pub enum Syntax {
     #[diagnostic(help("Use a path without generic arguments here, if possible"))]
     UnsupportedPathWithArguments,
     #[error("RHDL does not support the use of unary operators on this type")]
-    #[diagnostic(help("You cannot roll your own {op:?} operator in RHDL.  You should write a kernel and call it as a regular function."))]
+    #[diagnostic(help(
+        "You cannot roll your own {op:?} operator in RHDL.  You should write a kernel and call it as a regular function."
+    ))]
     RollYourOwnUnary { op: AluUnary },
     #[error("RHDL does not support the use of binary operators on this type")]
-    #[diagnostic(help("You cannot roll your own binary operator in RHDL.  You should write a kernel and call it as a regular function."))]
+    #[diagnostic(help(
+        "You cannot roll your own binary operator in RHDL.  You should write a kernel and call it as a regular function."
+    ))]
     RollYourOwnBinary,
     #[error("RHDL does not support functions with empty return types")]
-    #[diagnostic(help("You cannot have a function with an empty return type in RHDL.  You should return a value or a tuple of values."))]
+    #[diagnostic(help(
+        "You cannot have a function with an empty return type in RHDL.  You should return a value or a tuple of values."
+    ))]
     EmptyReturnForFunction,
     #[error("RHDL cannot infer the number of bits in an xext/xshl/xshr operation")]
     #[diagnostic(help(
@@ -283,25 +300,37 @@ pub enum ClockError {
     #[diagnostic(help("You cannot cast signals from different clock domains"))]
     CastClockMismatch,
     #[error("Clock domain mismatch in retime operation")]
-    #[diagnostic(help("You cannot retime signals from different clock domains.  You may need a clock domain crosser in your design."))]
+    #[diagnostic(help(
+        "You cannot retime signals from different clock domains.  You may need a clock domain crosser in your design."
+    ))]
     RetimeClockMismatch,
     #[error("Clock domain mismatch in select operation")]
-    #[diagnostic(help("A select operation (if) requires the selection signal and both branches to be in the same clock domain"))]
+    #[diagnostic(help(
+        "A select operation (if) requires the selection signal and both branches to be in the same clock domain"
+    ))]
     SelectClockMismatch,
     #[error("Clock domain mismatch in index operation")]
     #[diagnostic(help("You cannot index signals from different clock domains"))]
     IndexClockMismatch,
     #[error("Clock domain analysis failed to resolve the clock domain for this signal")]
-    #[diagnostic(help("You need to provide a clock domain for this expression - rhdl cannot determine what clock domain it belongs to.  This usually indicates that the value is ultimately unused."))]
+    #[diagnostic(help(
+        "You need to provide a clock domain for this expression - rhdl cannot determine what clock domain it belongs to.  This usually indicates that the value is ultimately unused."
+    ))]
     UnresolvedClock,
     #[error("Clock domain mismatch in tuple operation")]
-    #[diagnostic(help("This tuple operation is mapping signals from one clock domain to another, which is not allowed.  You can have multiple clock domains in a tuple."))]
+    #[diagnostic(help(
+        "This tuple operation is mapping signals from one clock domain to another, which is not allowed.  You can have multiple clock domains in a tuple."
+    ))]
     TupleClockMismatch,
     #[error("Clock domain mismatch in array operation")]
-    #[diagnostic(help("All elements of an array must be in a single clock domain.  Use a tuple if you want to hold multiple clock domains."))]
+    #[diagnostic(help(
+        "All elements of an array must be in a single clock domain.  Use a tuple if you want to hold multiple clock domains."
+    ))]
     ArrayClockMismatch,
     #[error("Clock domain mismatch in match statement")]
-    #[diagnostic(help("All branches of a match statement, the discriminant, and the result must be in the same clock domain"))]
+    #[diagnostic(help(
+        "All branches of a match statement, the discriminant, and the result must be in the same clock domain"
+    ))]
     CaseClockMismatch,
     #[error("Clock domain mismatch in enum operation")]
     #[diagnostic(help("All fields of an enum must be in the same clock domain"))]
@@ -312,10 +341,14 @@ pub enum ClockError {
     ))]
     StructClockMismatch,
     #[error("Clock domain mismatch in splice operation")]
-    #[diagnostic(help("In a splice, the original and resulting values must have matching clock domain structures, and the spliced data and the replaced data must also have matching clock domain structures"))]
+    #[diagnostic(help(
+        "In a splice, the original and resulting values must have matching clock domain structures, and the spliced data and the replaced data must also have matching clock domain structures"
+    ))]
     SpliceClockMismatch,
     #[error("Clock domain mismatch in call to external function")]
-    #[diagnostic(help("The clock domain of the input and output signals must match the clock domains of the inputs for the function"))]
+    #[diagnostic(help(
+        "The clock domain of the input and output signals must match the clock domains of the inputs for the function"
+    ))]
     ExternalClockMismatch,
     #[error("Clock domain mismatch in wrap operation")]
     #[diagnostic(help(

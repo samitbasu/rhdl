@@ -22,12 +22,6 @@ impl Pass for LowerEmptySpliceToCopy {
                         rhs: splice.orig,
                     })
                 }
-                OpCode::DynamicSplice(splice) if splice.len == 0 => {
-                    lop.op = OpCode::Assign(Assign {
-                        lhs: splice.lhs,
-                        rhs: splice.arg,
-                    })
-                }
                 _ => {}
             }
         }

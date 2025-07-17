@@ -183,16 +183,12 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
         let module = uut.hdl("uut")?.as_module();
         self.build_test_module(&module, options)
     }
-    pub fn flow_graph<T>(
-        &self,
-        uut: &T,
-        options: &TestBenchOptions,
-    ) -> Result<TestModule, RHDLError>
+    pub fn ntl<T>(&self, uut: &T, options: &TestBenchOptions) -> Result<TestModule, RHDLError>
     where
         T: Synchronous,
         T: SynchronousIO<I = I, O = O>,
     {
-        let module = uut.flow_graph("uut")?.hdl("dut")?;
+        let module = crate::rhdl_core::ntl::hdl::generate_hdl("dut", &uut.descriptor("uut")?.ntl)?;
         self.build_test_module(&module, options)
     }
 }

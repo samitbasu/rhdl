@@ -159,11 +159,7 @@ impl<T: Digital> Synchronous for DFF<T> {
     }
 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        let mut flow_graph = FlowGraph::default();
-        let module = self.hdl(name)?;
-        let (clock_reset, d, q) = flow_graph.synchronous_black_box::<Self>(module);
-        flow_graph.inputs = vec![clock_reset, d];
-        flow_graph.output = q;
+        let ntl = rhdl::core::ntl::builder::synchronous_black_box(self, name)?;
         Ok(CircuitDescriptor {
             unique_name: name.to_string(),
             input_kind: Self::I::static_kind(),
@@ -171,7 +167,7 @@ impl<T: Digital> Synchronous for DFF<T> {
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             children: Default::default(),
-            flow_graph,
+            ntl,
             rtl: None,
         })
     }

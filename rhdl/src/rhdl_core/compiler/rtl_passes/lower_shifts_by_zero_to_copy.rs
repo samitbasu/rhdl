@@ -1,11 +1,11 @@
 use crate::rhdl_core::{
+    RHDLError,
     rtl::spec::AluBinary,
     rtl::{
+        Object,
         object::LocatedOpCode,
         spec::{Assign, Binary, OpCode, Operand},
-        Object,
     },
-    RHDLError,
 };
 
 use super::pass::Pass;
@@ -21,7 +21,7 @@ fn replace_shift_by_zero(input: &Object, lop: LocatedOpCode) -> LocatedOpCode {
         arg2: Operand::Literal(lit),
     }) = lop.op
     {
-        if input.literals[&lit].is_zero() {
+        if input.symtab[&lit].is_zero() {
             return LocatedOpCode {
                 op: OpCode::Assign(Assign { lhs, rhs: arg1 }),
                 loc: lop.loc,

@@ -1,9 +1,8 @@
 use rhdl::prelude::*;
 use rhdl_fpga::axi4lite::{
-    core::switch::read::{Command, ReadSwitch},
+    core::switch::read::Command,
     types::{AXI4Error, AxilAddr},
 };
-use simplelog::SimpleLogger;
 
 const ROM0_BASE: AxilAddr = bits(0x4_000_000);
 const ROM1_BASE: AxilAddr = bits(0x6_000_000);
@@ -20,11 +19,12 @@ pub fn decode_addr(_cr: ClockReset, req: AxilAddr) -> Command {
     }
 }
 
+use rhdl_fpga::axi4lite::core::switch::read::kernel;
+
 #[test]
 fn test_loop_test() -> miette::Result<()> {
-    SimpleLogger::init(log::LevelFilter::Debug, simplelog::Config::default()).unwrap();
-    let switch: ReadSwitch<2> = ReadSwitch::try_new::<decode_addr>()?;
-    //    switch.yosys_check()?;
-    drc::no_combinatorial_paths(&switch)?;
+    
+    let obj = compile_design::<kernel<2>>(CompilationMode::Synchronous)?;
+    //    drc::no_combinatorial_paths(&switch)?;
     Ok(())
 }

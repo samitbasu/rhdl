@@ -1,9 +1,9 @@
 use crate::rhdl_core::{
     error::RHDLError,
     rhif::{
+        Object,
         object::LocatedOpCode,
         spec::{OpCode, Slot},
-        Object,
     },
     types::path::{Path, PathElement},
 };
@@ -16,7 +16,7 @@ fn simplify_path(path: Path, obj: &Object) -> Path {
     path.elements()
         .map(|x| {
             if let PathElement::DynamicIndex(Slot::Literal(x)) = x {
-                let literal_value = obj.literals[&x].as_i64().unwrap();
+                let literal_value = obj.symtab[x].as_i64().unwrap();
                 let literal_value: usize = literal_value.try_into().unwrap();
                 PathElement::Index(literal_value)
             } else {

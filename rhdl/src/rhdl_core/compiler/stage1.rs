@@ -15,7 +15,7 @@ use crate::rhdl_core::{
             pre_cast_literals::PreCastLiterals,
             precast_integer_literals_in_binops::PrecastIntegerLiteralsInBinops,
             precompute_discriminants::PrecomputeDiscriminantPass,
-            remove_empty_cases::RemoveEmptyCasesPass,
+            propagate_literals::PropagateLiteralsPass, remove_empty_cases::RemoveEmptyCasesPass,
             remove_extra_registers::RemoveExtraRegistersPass,
             remove_unneeded_muxes::RemoveUnneededMuxesPass,
             remove_unused_literals::RemoveUnusedLiterals,
@@ -34,6 +34,7 @@ type Result<T> = std::result::Result<T, RHDLError>;
 fn wrap_pass<P: Pass>(obj: Object) -> Result<Object> {
     info!("Running Stage 1 Compiler Pass {}", P::description());
     let obj = P::run(obj)?;
+    info!("Pass complete - checking symbol table");
     let obj = SymbolTableIsComplete::run(obj)?;
     Ok(obj)
 }
@@ -57,6 +58,7 @@ pub(crate) fn compile(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
         obj = wrap_pass::<RemoveUselessCastsPass>(obj)?;
         obj = wrap_pass::<RemoveEmptyCasesPass>(obj)?;
         obj = wrap_pass::<RemoveUnusedRegistersPass>(obj)?;
+        obj = wrap_pass::<PropagateLiteralsPass>(obj)?;
         obj = wrap_pass::<DeadCodeEliminationPass>(obj)?;
         let new_hash = obj.hash_value();
         if new_hash == hash {
@@ -73,6 +75,7 @@ pub(crate) fn compile(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
     }
     let mut hash = obj.hash_value();
     loop {
+        obj = wrap_pass::<PropagateLiteralsPass>(obj)?;
         obj = wrap_pass::<RemoveUnneededMuxesPass>(obj)?;
         obj = wrap_pass::<RemoveExtraRegistersPass>(obj)?;
         obj = wrap_pass::<RemoveUnusedLiterals>(obj)?;

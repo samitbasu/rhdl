@@ -1,29 +1,20 @@
 use crate::rhdl_core::{
+    RHDLError, TypedBits,
     ast::source::source_location::SourceLocation,
-    compiler::mir::error::{RHDLCompileError, ICE},
+    common::symtab::LiteralId,
+    compiler::mir::error::{ICE, RHDLCompileError},
     error::rhdl_error,
     rtl::{
-        object::{LocatedOpCode, RegisterKind},
-        spec::{
-            Assign, Binary, Case, CaseArgument, Cast, CastKind, Concat, DynamicIndex,
-            DynamicSplice, Index, LiteralId, OpCode, Operand, Select, Splice, Unary,
-        },
         Object,
+        object::LocatedOpCode,
+        spec::{
+            Assign, Binary, Case, CaseArgument, Cast, CastKind, Concat, Index, OpCode, Operand,
+            Select, Splice, Unary,
+        },
     },
-    types::bit_string::BitString,
-    RHDLError, TypedBits,
 };
 
 use super::pass::Pass;
-
-fn assign_literal(loc: SourceLocation, value: BitString, obj: &mut Object) -> Operand {
-    let literal = obj.literal_max_index().next();
-    obj.literals.insert(literal, value);
-    obj.symbols
-        .operand_map
-        .insert(Operand::Literal(literal), loc);
-    Operand::Literal(literal)
-}
 
 fn propagate_binary(
     loc: SourceLocation,
@@ -37,15 +28,13 @@ fn propagate_binary(
         arg2,
     } = params;
     if let (Operand::Literal(arg1), Operand::Literal(arg2)) = (arg1, arg2) {
-        let arg1_val: TypedBits = obj.literals[&arg1].clone().into();
-        let arg2_val: TypedBits = obj.literals[&arg2].clone().into();
-        let result: BitString =
-            crate::rhdl_core::rtl::runtime_ops::binary(op, arg1_val, arg2_val)?.into();
+        let arg1_val = obj.symtab[&arg1].clone();
+        let arg2_val = obj.symtab[&arg2].clone();
+        let result: TypedBits = crate::rhdl_core::rtl::runtime_ops::binary(op, arg1_val, arg2_val)?;
+        let details = obj.symtab[&lhs].clone();
+        let result = obj.symtab.lit(result, details);
         Ok(LocatedOpCode {
-            op: OpCode::Assign(Assign {
-                lhs,
-                rhs: assign_literal(loc, result, obj),
-            }),
+            op: OpCode::Assign(Assign { lhs, rhs: result }),
             loc,
         })
     } else {
@@ -68,13 +57,12 @@ fn propagate_unary(
 ) -> Result<LocatedOpCode, RHDLError> {
     let Unary { lhs, op, arg1 } = params;
     if let Operand::Literal(arg1) = arg1 {
-        let arg_val: TypedBits = obj.literals[&arg1].clone().into();
-        let result: BitString = crate::rhdl_core::rtl::runtime_ops::unary(op, arg_val)?.into();
+        let arg_val = obj.symtab[&arg1].clone();
+        let result = crate::rhdl_core::rtl::runtime_ops::unary(op, arg_val)?;
+        let details = obj.symtab[&lhs].clone();
+        let result = obj.symtab.lit(result, details);
         Ok(LocatedOpCode {
-            op: OpCode::Assign(Assign {
-                lhs,
-                rhs: assign_literal(loc, result, obj),
-            }),
+            op: OpCode::Assign(Assign { lhs, rhs: result }),
             loc,
         })
     } else {
@@ -97,21 +85,15 @@ fn propagate_concat(
             Operand::Literal(lit) => Some(*lit),
             _ => None,
         })
-        .collect::<Option<Vec<LiteralId>>>();
+        .collect::<Option<Vec<LiteralId<_>>>>();
     if let Some(literals) = all_literals {
-        let bits = literals
-            .iter()
-            .flat_map(|lit| obj.literals[lit].bits())
-            .copied()
-            .collect::<Vec<_>>();
-        let arg = match obj.kind(concat.lhs) {
-            RegisterKind::Signed(_) => BitString::Signed(bits),
-            RegisterKind::Unsigned(_) => BitString::Unsigned(bits),
-        };
+        let result: TypedBits = literals.iter().map(|lit| obj.symtab[lit].clone()).collect();
+        let details = obj.symtab[&concat.lhs].clone();
+        let result = obj.symtab.lit(result, details);
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs: concat.lhs,
-                rhs: assign_literal(loc, arg, obj),
+                rhs: result,
             }),
             loc,
         })
@@ -134,11 +116,11 @@ fn propagate_case(
         table,
     } = &case;
     if let Operand::Literal(disc) = discriminant {
-        let discriminant_val = obj.literals[disc].clone();
+        let discriminant_val = &obj.symtab[disc];
         let rhs = table
             .iter()
             .find(|(case_arg, _)| match case_arg {
-                CaseArgument::Literal(lit) => obj.literals[lit] == discriminant_val,
+                CaseArgument::Literal(lit) => &obj.symtab[lit] == discriminant_val,
                 CaseArgument::Wild => true,
             })
             .unwrap()
@@ -167,58 +149,24 @@ fn propagate_cast(
         kind,
     } = &cast;
     if let Operand::Literal(arg) = arg {
-        let arg = obj.literals[arg].clone();
+        let arg = obj.symtab[arg].clone();
         let result = match kind {
             CastKind::Signed => arg.signed_cast(*len),
             CastKind::Unsigned => arg.unsigned_cast(*len),
             CastKind::Resize => arg.resize(*len),
         }?;
+        let details = obj.symtab[lhs].clone();
+        let result = obj.symtab.lit(result, details);
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs: *lhs,
-                rhs: assign_literal(loc, result, obj),
+                rhs: result,
             }),
             loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Cast(cast),
-            loc,
-        })
-    }
-}
-
-fn propagate_dynamic_index(
-    loc: SourceLocation,
-    dynamic_index: crate::rhdl_core::rtl::spec::DynamicIndex,
-    obj: &mut Object,
-) -> Result<LocatedOpCode, RHDLError> {
-    let DynamicIndex {
-        lhs,
-        arg,
-        offset,
-        len,
-    } = &dynamic_index;
-    if let (Operand::Literal(arg), Operand::Literal(offset)) = (arg, offset) {
-        let arg = obj.literals[arg].clone();
-        let offset = obj.literals[offset].clone();
-        let offset: TypedBits = offset.into();
-        let offset = offset.as_i64()? as usize;
-        let slice = arg.bits()[offset..(offset + *len)].to_vec();
-        let result = match obj.kind(*lhs) {
-            RegisterKind::Signed(_) => BitString::Signed(slice),
-            RegisterKind::Unsigned(_) => BitString::Unsigned(slice),
-        };
-        Ok(LocatedOpCode {
-            op: OpCode::Assign(Assign {
-                lhs: *lhs,
-                rhs: assign_literal(loc, result, obj),
-            }),
-            loc,
-        })
-    } else {
-        Ok(LocatedOpCode {
-            op: OpCode::DynamicIndex(dynamic_index),
             loc,
         })
     }
@@ -236,10 +184,12 @@ fn propagate_select(
         false_value,
     } = &select;
     if let Operand::Literal(cond) = cond {
-        let cond = obj.literals[cond].clone();
-        let tb = cond.bits()[0].to_bool().ok_or_else(|| {
+        let cond = &obj.symtab[cond];
+        let tb = cond.bits[0].to_bool().ok_or_else(|| {
             rhdl_error(RHDLCompileError {
-                cause: ICE::SelectOnUninitializedValue { value: cond },
+                cause: ICE::SelectOnUninitializedValue {
+                    value: cond.clone(),
+                },
                 src: obj.symbols.source(),
                 err_span: obj.symbols.span(loc).into(),
             })
@@ -267,68 +217,27 @@ fn propagate_splice(
         orig,
         bit_range,
         value,
+        path: _,
     } = &splice;
     if let (Operand::Literal(orig), Operand::Literal(value)) = (orig, value) {
-        let orig = obj.literals[orig].clone();
-        let value = obj.literals[value].clone();
-        let mut bits = orig.bits().to_vec();
-        bits.splice(bit_range.clone(), value.bits().iter().copied());
-        let result = match obj.kind(*lhs) {
-            RegisterKind::Signed(_) => BitString::Signed(bits),
-            RegisterKind::Unsigned(_) => BitString::Unsigned(bits),
-        };
+        let orig = obj.symtab[orig].clone();
+        let value = obj.symtab[value].clone();
+        let mut bits = orig.bits.to_vec();
+        bits.splice(bit_range.clone(), value.bits.iter().copied());
+        let details = obj.symtab[lhs].clone();
+        let kind = obj.kind(*lhs);
+        let result = TypedBits { kind, bits };
+        let result = obj.symtab.lit(result, details);
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs: *lhs,
-                rhs: assign_literal(loc, result, obj),
+                rhs: result,
             }),
             loc,
         })
     } else {
         Ok(LocatedOpCode {
             op: OpCode::Splice(splice),
-            loc,
-        })
-    }
-}
-
-fn propagate_dynamic_splice(
-    loc: SourceLocation,
-    dynamic_splice: DynamicSplice,
-    obj: &mut Object,
-) -> Result<LocatedOpCode, RHDLError> {
-    let DynamicSplice {
-        lhs,
-        arg,
-        offset,
-        len,
-        value,
-    } = &dynamic_splice;
-    if let (Operand::Literal(arg), Operand::Literal(offset), Operand::Literal(value)) =
-        (arg, offset, value)
-    {
-        let arg = obj.literals[arg].clone();
-        let offset = obj.literals[offset].clone();
-        let value = obj.literals[value].clone();
-        let offset: TypedBits = offset.into();
-        let offset = offset.as_i64()? as usize;
-        let value = value.bits().to_vec();
-        let mut bits = arg.bits().to_vec();
-        bits.splice(offset..(offset + *len), value);
-        let result = match obj.kind(*lhs) {
-            RegisterKind::Signed(_) => BitString::Signed(bits),
-            RegisterKind::Unsigned(_) => BitString::Unsigned(bits),
-        };
-        Ok(LocatedOpCode {
-            op: OpCode::Assign(Assign {
-                lhs: *lhs,
-                rhs: assign_literal(loc, result, obj),
-            }),
-            loc,
-        })
-    } else {
-        Ok(LocatedOpCode {
-            op: OpCode::DynamicSplice(dynamic_splice),
             loc,
         })
     }
@@ -343,18 +252,19 @@ fn propagate_index(
         lhs,
         arg,
         bit_range,
+        path: _,
     } = &index;
     if let Operand::Literal(arg) = arg {
-        let arg = obj.literals[arg].clone();
-        let slice = arg.bits()[bit_range.clone()].to_vec();
-        let result = match obj.kind(*lhs) {
-            RegisterKind::Signed(_) => BitString::Signed(slice),
-            RegisterKind::Unsigned(_) => BitString::Unsigned(slice),
-        };
+        let arg = obj.symtab[arg].clone();
+        let bits = arg.bits[bit_range.clone()].to_vec();
+        let details = obj.symtab[lhs].clone();
+        let kind = obj.kind(*lhs);
+        let result = TypedBits { kind, bits };
+        let result = obj.symtab.lit(result, details);
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
                 lhs: *lhs,
-                rhs: assign_literal(loc, result, obj),
+                rhs: result,
             }),
             loc,
         })
@@ -380,12 +290,8 @@ impl Pass for ConstantPropagationPass {
                 OpCode::Concat(inner) => propagate_concat(lop.loc, inner, &mut input),
                 OpCode::Case(inner) => propagate_case(lop.loc, inner, &mut input),
                 OpCode::Cast(inner) => propagate_cast(lop.loc, inner, &mut input),
-                OpCode::DynamicIndex(inner) => propagate_dynamic_index(lop.loc, inner, &mut input),
                 OpCode::Select(inner) => propagate_select(lop.loc, inner, &mut input),
                 OpCode::Splice(inner) => propagate_splice(lop.loc, inner, &mut input),
-                OpCode::DynamicSplice(inner) => {
-                    propagate_dynamic_splice(lop.loc, inner, &mut input)
-                }
                 OpCode::Index(inner) => propagate_index(lop.loc, inner, &mut input),
                 OpCode::Assign(_) | OpCode::Comment(_) | OpCode::Noop => Ok(lop),
             })

@@ -121,12 +121,6 @@ fn test_xmul_signed() -> miette::Result<()> {
             .into_iter()
             .map(move |a2| (red(a1), red(a2)))
     });
-
-    env_logger::builder()
-        .is_test(true)
-        .filter_level(log::LevelFilter::Debug)
-        .init();
-
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, args)?;
     Ok(())
 }

@@ -95,7 +95,10 @@ write.enable   +-------+       +-----------------------+
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 use rhdl::{
-    core::hdl::ast::{index, memory_index, unsigned_wire_decl, Declaration},
+    core::{
+        hdl::ast::{index, memory_index, unsigned_wire_decl, Declaration},
+        ntl::builder::circuit_black_box,
+    },
     prelude::*,
 };
 
@@ -241,20 +244,15 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> Circuit for AsyncBRAM<T, W, 
     }
 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        let mut flow_graph = FlowGraph::default();
-        let hdl = self.hdl(&format!("{name}_inner"))?;
-        let (input, output) = flow_graph.circuit_black_box::<Self>(hdl);
-        flow_graph.inputs = vec![input];
-        flow_graph.output = output;
         Ok(CircuitDescriptor {
             unique_name: name.to_string(),
-            flow_graph,
             input_kind: <Self::I as Timed>::static_kind(),
             output_kind: <Self::O as Timed>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             children: Default::default(),
             rtl: None,
+            ntl: circuit_black_box(self, name)?,
         })
     }
 
@@ -387,14 +385,13 @@ mod tests {
     }
 
     #[test]
-    fn test_ram_flow_graph() -> miette::Result<()> {
+    fn test_ram_netlist() -> miette::Result<()> {
         let uut = AsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
         );
-        let fg = uut.flow_graph("uut")?;
-        let hdl = fg.hdl("top")?;
+        let hdl = uut.netlist_hdl("uut")?;
         let expect = expect_file!["ram_fg.v.expect"];
         expect.assert_eq(&hdl.to_string());
         Ok(())

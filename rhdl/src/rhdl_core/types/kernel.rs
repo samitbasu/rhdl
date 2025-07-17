@@ -46,21 +46,21 @@ impl std::fmt::Debug for KernelFnKind {
                 )
             }
             KernelFnKind::TupleStructConstructor(tb) => {
-                write!(f, "tuple struct constructor {:?}", tb)
+                write!(f, "tuple struct constructor {tb:?}")
             }
-            KernelFnKind::BitConstructor(width) => write!(f, "bit constructor {}", width),
+            KernelFnKind::BitConstructor(width) => write!(f, "bit constructor {width}"),
             KernelFnKind::SignedBitsConstructor(width) => {
-                write!(f, "signed bits constructor {}", width)
+                write!(f, "signed bits constructor {width}")
             }
             KernelFnKind::EnumTupleStructConstructor(tb) => {
-                write!(f, "enum tuple struct constructor {:?}", tb)
+                write!(f, "enum tuple struct constructor {tb:?}")
             }
             KernelFnKind::SignalConstructor(color) => {
-                write!(f, "signal constructor {:?}", color)
+                write!(f, "signal constructor {color:?}")
             }
-            KernelFnKind::BitCast(width) => write!(f, "bit cast {}", width),
-            KernelFnKind::SignedCast(width) => write!(f, "signed cast {}", width),
-            KernelFnKind::Wrap(op) => write!(f, "wrap {:?}", op),
+            KernelFnKind::BitCast(width) => write!(f, "bit cast {width}"),
+            KernelFnKind::SignedCast(width) => write!(f, "signed cast {width}"),
+            KernelFnKind::Wrap(op) => write!(f, "wrap {op:?}"),
         }
     }
 }

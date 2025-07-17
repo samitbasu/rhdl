@@ -1,8 +1,7 @@
 use crate::rhdl_core::{rtl::spec::CastKind, util::splice};
 
 use super::spec::{
-    AluBinary, AluUnary, Assign, Binary, Case, Cast, Concat, DynamicIndex, DynamicSplice, Index,
-    OpCode, Select, Splice, Unary,
+    AluBinary, AluUnary, Assign, Binary, Case, Cast, Concat, Index, OpCode, Select, Splice, Unary,
 };
 
 impl std::fmt::Debug for AluBinary {
@@ -52,7 +51,7 @@ impl std::fmt::Debug for OpCode {
                 write!(f, "Noop")
             }
             OpCode::Assign(Assign { lhs, rhs }) => {
-                write!(f, " {:?} <- {:?}", lhs, rhs)
+                write!(f, " {lhs} <- {rhs}")
             }
             OpCode::Binary(Binary {
                 op,
@@ -60,16 +59,16 @@ impl std::fmt::Debug for OpCode {
                 arg1,
                 arg2,
             }) => {
-                write!(f, " {:?} <- {:?} {:?} {:?}", lhs, arg1, op, arg2)
+                write!(f, " {lhs} <- {arg1} {op:?} {arg2}")
             }
             OpCode::Case(Case {
                 lhs,
                 discriminant,
                 table,
             }) => {
-                writeln!(f, " {:?} <- case {:?} {{", lhs, discriminant)?;
+                writeln!(f, " {lhs} <- case {discriminant} {{")?;
                 for (cond, val) in table {
-                    writeln!(f, "         {:?} => {:?}", cond, val)?;
+                    writeln!(f, "         {cond:?} => {val}")?;
                 }
                 write!(f, "}}")
             }
@@ -81,7 +80,7 @@ impl std::fmt::Debug for OpCode {
             }) => {
                 write!(
                     f,
-                    " {:?} <- {:?} as {}{}",
+                    " {} <- {} as {}{}",
                     lhs,
                     arg,
                     match kind {
@@ -93,37 +92,21 @@ impl std::fmt::Debug for OpCode {
                 )
             }
             OpCode::Comment(comment) => {
-                write!(f, "// {}", comment)
+                for line in comment.lines() {
+                    writeln!(f, "// {line}")?;
+                }
+                Ok(())
             }
             OpCode::Concat(Concat { lhs, args }) => {
-                write!(f, " {:?} <- {{ {} }}", lhs, splice(args, ", "))
-            }
-            OpCode::DynamicIndex(DynamicIndex {
-                lhs,
-                arg,
-                offset,
-                len,
-            }) => {
-                write!(f, " {:?} <- {:?}[{:?} +: {:?}]", lhs, arg, offset, len)
-            }
-            OpCode::DynamicSplice(DynamicSplice {
-                lhs,
-                arg,
-                offset,
-                len,
-                value,
-            }) => {
-                write!(
-                    f,
-                    " {lhs:?} <- {arg:?}; {lhs:?}[{offset:?} +: {len}] <- {value:?}"
-                )
+                write!(f, " {} <- {{ {} }}", lhs, splice(args, ", "))
             }
             OpCode::Index(Index {
                 lhs,
                 arg,
                 bit_range,
+                path,
             }) => {
-                write!(f, " {:?} <- {:?}[{:?}]", lhs, arg, bit_range)
+                write!(f, " {lhs} <- {arg}[{bit_range:?}] // [{path:?}]")
             }
             OpCode::Select(Select {
                 lhs,
@@ -131,22 +114,19 @@ impl std::fmt::Debug for OpCode {
                 true_value,
                 false_value,
             }) => {
-                write!(
-                    f,
-                    " {:?} <- {:?} ? {:?} : {:?}",
-                    lhs, cond, true_value, false_value
-                )
+                write!(f, " {lhs} <- {cond} ? {true_value} : {false_value}")
             }
             OpCode::Splice(Splice {
                 lhs,
                 orig,
                 bit_range,
                 value,
+                path,
             }) => {
-                write!(f, " {:?} <- {:?}/{:?}/{:?}", lhs, orig, bit_range, value)
+                write!(f, " {lhs} <- {orig}/{bit_range:?}/{value} // [{path:?}]")
             }
             OpCode::Unary(Unary { op, lhs, arg1 }) => {
-                write!(f, " {:?} <- {:?}{:?}", lhs, op, arg1)
+                write!(f, " {lhs} <- {op:?}{arg1}")
             }
         }
     }

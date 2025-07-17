@@ -1,7 +1,7 @@
 [package]
 name = "rhdl"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 description = "Write firmware for FPGAs in Rust (formerly rust-hdl)"
 homepage = "https://rhdl.org"
@@ -37,7 +37,7 @@ num-bigint = "0.4.6"
 rhdl-trace-type = { version = "0.1.0", path = "../rhdl-trace-type" }
 array-init = "2.1.0"
 thiserror = "2.0.11"
-internment = "0.8.6"
+internment = { version = "0.8.6", features = ["arc", "arena"] }
 ron = "0.8.1"
 tempfile = "3.15.0"
 sha2 = "0.10.8"
@@ -46,6 +46,8 @@ vcd = "0.7.0"
 tinytemplate = "1.2.1"
 serde = { version = "1.0.218", features = ["derive"], default-features = false }
 regex = "1.11.1"
+ena = "0.14.3"
+rand = "0.9.1"
 
 [features]
 default = ["iverilog"]
@@ -54,7 +56,7 @@ exhaustive-tests = []
 
 [dev-dependencies]
 itertools = "0.12.0"
-rand = "0.8.5"
+rand = "0.9.1"
 env_logger = "0.11.5"
 log = "0.4.22"
 expect-test = "1.5.0"

@@ -141,22 +141,21 @@ impl Iterator for XorShift128 {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
     fn test_xorshift_seq() {
         let rng = XorShift128::default();
         for value in rng.take(10) {
-            eprintln!("{:x}", value);
+            eprintln!("{value:x}");
         }
     }
 
     #[test]
     fn test_uut() -> miette::Result<()> {
         let uut = XorShift::default();
-        let input = std::iter::repeat(true)
-            .with_reset(1)
-            .clock_pos_edge(100);
+        let input = std::iter::repeat(true).with_reset(1).clock_pos_edge(100);
         let values = uut
             .run(input)?
             .synchronous_sample()

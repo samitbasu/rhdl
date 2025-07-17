@@ -1,18 +1,22 @@
 use log::debug;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::{
+    collections::{BTreeMap, HashMap, HashSet},
+    ops::Range,
+};
 
 use crate::rhdl_core::{
+    Kind,
     ast::{
+        KernelFlags,
         ast_impl::{ExprLit, FunctionId},
         source::source_location::SourceLocation,
-        KernelFlags,
     },
+    common::symtab::SymbolTable,
     rhif::{
-        object::{LocatedOpCode, SymbolMap},
-        spec::{FuncId, OpCode, Slot},
         Object,
+        object::{LocatedOpCode, SymbolMap},
+        spec::{FuncId, OpCode, Slot, SlotKind},
     },
-    Kind,
 };
 
 #[derive(Clone, Debug, PartialEq, Hash, Eq)]
@@ -25,7 +29,7 @@ pub struct TypeEquivalence {
 pub struct Mir {
     pub symbols: SymbolMap,
     pub ops: Vec<LocatedOpCode>,
-    pub literals: BTreeMap<Slot, ExprLit>,
+    pub symtab: SymbolTable<ExprLit, Option<String>, SourceLocation, SlotKind>,
     pub ty: BTreeMap<Slot, Kind>,
     pub ty_equate: HashSet<TypeEquivalence>,
     pub stash: BTreeMap<FuncId, Box<Object>>,
@@ -49,18 +53,19 @@ impl Mir {
             })
             .collect()
     }
+    pub fn slot_span(&self, slot: Slot) -> Range<usize> {
+        self.symbols.span(self.symtab[slot])
+    }
     pub fn find_root_for_slot(&self, context: SourceLocation, slot: Slot) -> Slot {
         let context_span = self.symbols.span(context);
         debug!("Context span: {:?}", context_span);
         let eq_map = self.build_slot_equivalence_map();
         let mut slot = slot;
         debug!("Initial slot: {:?}", slot);
-        debug!("Initial span: {:?}", self.symbols.slot_span(slot));
+        debug!("Initial span: {:?}", self.slot_span(slot));
         while let Some(&next) = eq_map.get(&slot) {
             debug!("Next slot: {:?}", next);
-            let Some(next_span) = self.symbols.slot_span(next) else {
-                break;
-            };
+            let next_span = self.slot_span(next);
             debug!("Next span: {:?}", next_span);
             if context_span.contains(&next_span.start)
                 && context_span.contains(&next_span.end.saturating_sub(1))

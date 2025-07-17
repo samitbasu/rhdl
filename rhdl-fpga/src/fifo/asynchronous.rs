@@ -223,7 +223,7 @@ mod tests {
         let test_bench = uut.run(input)?.collect::<TestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
-        let tm = test_bench.flow_graph(&uut, &TestBenchOptions::default())?;
+        let tm = test_bench.ntl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
         Ok(())
     }

@@ -1,30 +1,30 @@
-use std::collections::BTreeMap;
-
 use crate::rhdl_core::{
+    RHDLError, TypedBits,
     ast::source::source_location::SourceLocation,
     bitx::BitX,
-    compiler::mir::error::{RHDLCompileError, ICE},
+    common::slot_vec::SlotKey,
+    compiler::mir::error::{ICE, RHDLCompileError},
     error::rhdl_error,
+    rhif::object::SourceDetails,
     rtl::spec::{
-        AluBinary, AluUnary, Case, CaseArgument, Cast, CastKind, Concat, DynamicIndex,
-        DynamicSplice, Index, Select, Splice, Unary,
+        AluBinary, AluUnary, Case, CaseArgument, Cast, CastKind, Concat, Index, Select, Splice,
+        Unary,
     },
     types::bit_string::BitString,
-    RHDLError, TypedBits,
 };
 
 use super::{
-    object::{LocatedOpCode, RegisterKind},
-    runtime_ops::{binary, unary},
-    spec::{Assign, Binary, LiteralId, OpCode, Operand},
     Object,
+    object::LocatedOpCode,
+    runtime_ops::{binary, unary},
+    spec::{Assign, Binary, OpCode, Operand},
 };
 
 type Result<T> = core::result::Result<T, RHDLError>;
 
 struct VMState<'a> {
     reg_stack: &'a mut [Option<BitString>],
-    literals: &'a BTreeMap<LiteralId, BitString>,
+    literals: &'a [(TypedBits, SourceDetails)],
     obj: &'a Object,
 }
 
@@ -61,8 +61,8 @@ impl VMState<'_> {
     }
     fn read(&self, operand: Operand, loc: SourceLocation) -> Result<BitString> {
         match operand {
-            Operand::Literal(l) => Ok(self.literals[&l].clone()),
-            Operand::Register(r) => self.reg_stack[r.raw()]
+            Operand::Literal(l) => Ok((&self.literals[l.index()].0).into()),
+            Operand::Register(r) => self.reg_stack[r.index()]
                 .clone()
                 .ok_or(self.raise_ice(ICE::UninitializedRTLRegister { r }, loc)),
         }
@@ -71,7 +71,7 @@ impl VMState<'_> {
         match operand {
             Operand::Literal(ndx) => Err(self.raise_ice(ICE::CannotWriteToRTLLiteral { ndx }, loc)),
             Operand::Register(r) => {
-                self.reg_stack[r.raw()] = Some(value);
+                self.reg_stack[r.index()] = Some(value);
                 Ok(())
             }
         }
@@ -110,7 +110,9 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let arm = table
                     .iter()
                     .find(|(disc, _)| match disc {
-                        CaseArgument::Literal(l) => discriminant == state.literals[l],
+                        CaseArgument::Literal(l) => {
+                            discriminant == (&state.literals[l.index()].0).into()
+                        }
                         CaseArgument::Wild => true,
                     })
                     .map(|x| x.1);
@@ -146,73 +148,24 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                     .flat_map(|x| x.bits())
                     .copied()
                     .collect::<Vec<BitX>>();
-                match state.obj.kind(*lhs) {
-                    RegisterKind::Signed(_) => {
-                        state.write(*lhs, BitString::Signed(combined), loc)?;
-                    }
-                    RegisterKind::Unsigned(_) => {
-                        state.write(*lhs, BitString::Unsigned(combined), loc)?;
-                    }
-                }
-            }
-            OpCode::DynamicIndex(DynamicIndex {
-                lhs,
-                arg,
-                offset,
-                len,
-            }) => {
-                let arg = state.read(*arg, loc)?;
-                let offset = state.read(*offset, loc)?;
-                let offset: TypedBits = offset.into();
-                let offset = offset.as_i64()? as usize;
-                let slice = arg.bits()[offset..(offset + *len)].to_vec();
-                match state.obj.kind(*lhs) {
-                    RegisterKind::Signed(_) => {
-                        state.write(*lhs, BitString::Signed(slice), loc)?;
-                    }
-                    RegisterKind::Unsigned(_) => {
-                        state.write(*lhs, BitString::Unsigned(slice), loc)?;
-                    }
-                }
-            }
-            OpCode::DynamicSplice(DynamicSplice {
-                lhs,
-                arg,
-                offset,
-                len,
-                value,
-            }) => {
-                let arg = state.read(*arg, loc)?;
-                let value = state.read(*value, loc)?;
-                let offset = state.read(*offset, loc)?;
-                let offset: TypedBits = offset.into();
-                let offset = offset.as_i64()? as usize;
-                let mut arg = arg.bits().to_vec();
-                let value = value.bits();
-                arg.splice(offset..(offset + len), value.iter().copied());
-                match state.obj.kind(*lhs) {
-                    RegisterKind::Signed(_) => {
-                        state.write(*lhs, BitString::Signed(arg), loc)?;
-                    }
-                    RegisterKind::Unsigned(_) => {
-                        state.write(*lhs, BitString::Unsigned(arg), loc)?;
-                    }
+                if state.obj.kind(*lhs).is_signed() {
+                    state.write(*lhs, BitString::Signed(combined), loc)?;
+                } else {
+                    state.write(*lhs, BitString::Unsigned(combined), loc)?;
                 }
             }
             OpCode::Index(Index {
                 lhs,
                 arg,
                 bit_range,
+                path: _,
             }) => {
                 let arg = state.read(*arg, loc)?;
                 let slice = arg.bits()[bit_range.clone()].to_vec();
-                match state.obj.kind(*lhs) {
-                    RegisterKind::Signed(_) => {
-                        state.write(*lhs, BitString::Signed(slice), loc)?;
-                    }
-                    RegisterKind::Unsigned(_) => {
-                        state.write(*lhs, BitString::Unsigned(slice), loc)?;
-                    }
+                if state.obj.kind(*lhs).is_signed() {
+                    state.write(*lhs, BitString::Signed(slice), loc)?;
+                } else {
+                    state.write(*lhs, BitString::Unsigned(slice), loc)?;
                 }
             }
             OpCode::Select(Select {
@@ -235,19 +188,17 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 orig,
                 value,
                 bit_range,
+                path: _,
             }) => {
                 let orig = state.read(*orig, loc)?;
                 let value = state.read(*value, loc)?;
                 let mut orig = orig.bits().to_vec();
                 let value = value.bits();
                 orig.splice(bit_range.clone(), value.iter().copied());
-                match state.obj.kind(*lhs) {
-                    RegisterKind::Signed(_) => {
-                        state.write(*lhs, BitString::Signed(orig), loc)?;
-                    }
-                    RegisterKind::Unsigned(_) => {
-                        state.write(*lhs, BitString::Unsigned(orig), loc)?;
-                    }
+                if state.obj.kind(*lhs).is_signed() {
+                    state.write(*lhs, BitString::Signed(orig), loc)?;
+                } else {
+                    state.write(*lhs, BitString::Unsigned(orig), loc)?;
                 }
             }
             OpCode::Unary(Unary { op, lhs, arg1 }) => {
@@ -281,28 +232,28 @@ pub fn execute(obj: &Object, arguments: Vec<BitString>) -> Result<BitString> {
         }
     }
     // Allocate registers for the function call.
-    let max_reg = obj.reg_max_index().next();
-    let mut reg_stack = vec![None; max_reg.raw() + 1];
+    let max_reg = obj.symtab.reg_vec().len();
+    let mut reg_stack = vec![None; max_reg];
     // Copy the arguments into the appropriate registers
     for (ndx, arg) in arguments.into_iter().enumerate() {
         if let Some(r) = obj.arguments[ndx] {
-            reg_stack[r.raw()] = Some(arg);
+            reg_stack[r.index()] = Some(arg);
         }
     }
     let mut state = VMState {
         reg_stack: &mut reg_stack,
-        literals: &obj.literals,
+        literals: obj.symtab.lit_vec(),
         obj,
     };
     execute_block(&obj.ops, &mut state)?;
     match obj.return_register {
         Operand::Register(r) => reg_stack
-            .get(r.raw())
+            .get(r.index())
             .cloned()
             .ok_or(RHDLError::RHDLInternalCompilerError(Box::new(
                 RHDLCompileError {
                     cause: ICE::ReturnSlotNotFound {
-                        name: format!("{:?}", r),
+                        name: format!("{r:?}"),
                     },
                     src: symbols.source(),
                     err_span: symbols.span(loc).into(),
@@ -315,6 +266,6 @@ pub fn execute(obj: &Object, arguments: Vec<BitString>) -> Result<BitString> {
                     err_span: symbols.span(loc).into(),
                 },
             ))),
-        Operand::Literal(ndx) => Ok(obj.literals[&ndx].clone()),
+        Operand::Literal(ndx) => Ok((&obj.symtab[ndx]).into()),
     }
 }

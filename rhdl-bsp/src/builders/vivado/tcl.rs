@@ -144,7 +144,7 @@ impl std::fmt::Display for AddFiles {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "add_files {} {{", self.kind)?;
         for path in &self.paths {
-            write!(f, "{} ", path)?;
+            write!(f, "{path} ")?;
         }
         write!(f, "}}")
     }
@@ -301,9 +301,9 @@ pub enum Reference {
 impl std::fmt::Display for Reference {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Reference::Cell(cell) => write!(f, "[get_bd_cells {}]", cell),
+            Reference::Cell(cell) => write!(f, "[get_bd_cells {cell}]"),
             Reference::Interface(cell, interface) => {
-                write!(f, "[get_bd_intf_pins {}/{}]", cell, interface)
+                write!(f, "[get_bd_intf_pins {cell}/{interface}]")
             }
         }
     }
@@ -393,8 +393,8 @@ pub enum PortOrPin {
 impl std::fmt::Display for PortOrPin {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PortOrPin::Port(port) => write!(f, "[get_bd_ports {}]", port),
-            PortOrPin::Pin(cell, port) => write!(f, "[get_bd_pins {}/{}]", cell, port),
+            PortOrPin::Port(port) => write!(f, "[get_bd_ports {port}]"),
+            PortOrPin::Pin(cell, port) => write!(f, "[get_bd_pins {cell}/{port}]"),
         }
     }
 }
@@ -407,7 +407,7 @@ impl std::fmt::Display for ConnectBlockDesignNet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "connect_bd_net")?;
         for item in &self.items {
-            write!(f, " {}", item)?;
+            write!(f, " {item}")?;
         }
         Ok(())
     }
@@ -476,6 +476,6 @@ pub struct Script {
 
 impl Script {
     pub fn add<T: std::fmt::Display>(&mut self, command: T) {
-        self.commands.push(format!("{}", command));
+        self.commands.push(format!("{command}"));
     }
 }

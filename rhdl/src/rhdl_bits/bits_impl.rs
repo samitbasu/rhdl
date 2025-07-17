@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
 use std::ops::{Add, Sub};
 
-use super::{dyn_bits::DynBits, signed, signed_bits_impl::SignedBits, BitWidth};
+use super::{BitWidth, dyn_bits::DynBits, signed, signed_bits_impl::SignedBits};
 use crate::rhdl_bits::bitwidth::*;
 use seq_macro::seq;
 /// The [Bits] type is a fixed-sized bit vector.  It is meant to
@@ -287,14 +287,14 @@ mod tests {
     #[test]
     fn test_binary_format() {
         let bits: Bits<U8> = 0b1101_1010.into();
-        assert_eq!(format!("{:b}", bits), "8'b11011010");
+        assert_eq!(format!("{bits:b}"), "8'b11011010");
     }
 
     #[test]
     fn test_hex_format() {
         let bits: Bits<U8> = 0b1101_1010.into();
-        assert_eq!(format!("{:x}", bits), "8'hda");
-        assert_eq!(format!("{:X}", bits), "8'HDA");
+        assert_eq!(format!("{bits:x}"), "8'hda");
+        assert_eq!(format!("{bits:X}"), "8'HDA");
     }
 
     #[test]

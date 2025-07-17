@@ -13,50 +13,43 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::iter::once;
 
+use crate::rhdl_core::KernelFnKind;
+use crate::rhdl_core::Kind;
+use crate::rhdl_core::TypedBits;
 use crate::rhdl_core::ast::ast_impl;
-use crate::rhdl_core::ast::ast_impl::BitsKind;
-use crate::rhdl_core::ast::ast_impl::ExprBits;
-use crate::rhdl_core::ast::ast_impl::ExprBlock;
-use crate::rhdl_core::ast::ast_impl::ExprCast;
-use crate::rhdl_core::ast::ast_impl::ExprIfLet;
-use crate::rhdl_core::ast::ast_impl::ExprTry;
-use crate::rhdl_core::ast::ast_impl::ExprTypedBits;
-use crate::rhdl_core::ast::ast_impl::NodeId;
-use crate::rhdl_core::ast::ast_impl::WrapOp;
 use crate::rhdl_core::ast::ast_impl::{
-    Arm, ArmKind, Block, ExprArray, ExprAssign, ExprBinary, ExprCall, ExprField, ExprForLoop,
-    ExprIf, ExprIndex, ExprMatch, ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct,
-    ExprTuple, ExprUnary, FieldValue, Local, Pat, PatKind, Stmt, StmtKind,
+    Arm, ArmKind, BitsKind, Block, ExprArray, ExprAssign, ExprBinary, ExprBits, ExprBlock,
+    ExprCall, ExprCast, ExprField, ExprForLoop, ExprIf, ExprIfLet, ExprIndex, ExprMatch,
+    ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct, ExprTry, ExprTuple, ExprTypedBits,
+    ExprUnary, FieldValue, Local, NodeId, Pat, PatKind, Stmt, StmtKind, WrapOp,
 };
 use crate::rhdl_core::ast::source::builder::build_spanned_source_for_kernel;
 use crate::rhdl_core::ast::source::spanned_source::SpannedSource;
 use crate::rhdl_core::ast::visit::Visitor;
 use crate::rhdl_core::builder::BinOp;
 use crate::rhdl_core::builder::UnOp;
+use crate::rhdl_core::common::symtab::LiteralId;
+use crate::rhdl_core::common::symtab::SymbolTable;
 use crate::rhdl_core::compiler::ascii;
 use crate::rhdl_core::compiler::display_ast::pretty_print_statement;
-use crate::rhdl_core::compiler::stage1::compile;
 use crate::rhdl_core::compiler::stage1::CompilationMode;
+use crate::rhdl_core::compiler::stage1::compile;
 use crate::rhdl_core::error::RHDLError;
 use crate::rhdl_core::kernel::Kernel;
 use crate::rhdl_core::rhif;
+use crate::rhdl_core::rhif::Object;
 use crate::rhdl_core::rhif::object::LocatedOpCode;
 use crate::rhdl_core::rhif::object::SymbolMap;
-use crate::rhdl_core::rhif::rhif_builder::op_as_bits_inferred;
-use crate::rhdl_core::rhif::rhif_builder::op_as_signed_inferred;
-use crate::rhdl_core::rhif::rhif_builder::op_cast;
-use crate::rhdl_core::rhif::rhif_builder::op_resize;
-use crate::rhdl_core::rhif::rhif_builder::op_resize_inferred;
-use crate::rhdl_core::rhif::rhif_builder::op_retime;
-use crate::rhdl_core::rhif::rhif_builder::op_wrap;
+use crate::rhdl_core::rhif::rhif_builder::{
+    op_as_bits_inferred, op_as_signed_inferred, op_cast, op_resize, op_resize_inferred, op_retime,
+    op_wrap,
+};
 use crate::rhdl_core::rhif::spec::AluUnary;
 use crate::rhdl_core::rhif::spec::CaseArgument;
+use crate::rhdl_core::rhif::spec::FuncId;
 use crate::rhdl_core::rhif::spec::Member;
-use crate::rhdl_core::rhif::spec::RegisterId;
-use crate::rhdl_core::rhif::spec::{FuncId, LiteralId};
-use crate::rhdl_core::rhif::Object;
+use crate::rhdl_core::rhif::spec::SlotKind;
 use crate::rhdl_core::rhif::{
     rhif_builder::{
         op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
@@ -65,20 +58,15 @@ use crate::rhdl_core::rhif::{
     spec::AluBinary,
 };
 use crate::rhdl_core::types::path::Path;
-use crate::rhdl_core::KernelFnKind;
-use crate::rhdl_core::Kind;
-use crate::rhdl_core::TypedBits;
 use crate::rhdl_core::{
     ast::ast_impl::{Expr, ExprKind, ExprLit, FunctionId},
     rhif::spec::{OpCode, Slot},
 };
 
+use super::error::ICE;
 use super::error::RHDLCompileError;
 use super::error::RHDLSyntaxError;
 use super::error::Syntax;
-use super::error::ICE;
-use super::interner::Intern;
-use super::interner::InternKey;
 use super::mir_impl::Mir;
 use super::mir_impl::TypeEquivalence;
 
@@ -133,16 +121,6 @@ fn path_as_ident(path: &ast_impl::Path) -> Option<&'static str> {
     }
 }
 
-fn coerce_literal_to_i32(val: &ExprLit) -> Result<i32> {
-    match val {
-        ExprLit::Int(i) => i.parse::<i32>().map_err(|err| err.into()),
-        ExprLit::Bool(b) => Ok(if *b { 1 } else { 0 }),
-        ExprLit::TypedBits(tb) => tb.value.as_i64().map(|x| x as i32),
-    }
-}
-
-type KindKey = InternKey<Kind>;
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ScopeIndex {
     scope: ScopeId,
@@ -161,7 +139,7 @@ impl std::fmt::Debug for Scope {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Scope {{")?;
         for (name, id) in &self.names {
-            writeln!(f, "  {} -> {:?}", name, id)?;
+            writeln!(f, "  {name} -> {id:?}")?;
         }
         writeln!(f, "}}")
     }
@@ -172,17 +150,13 @@ const EARLY_RETURN_FLAG_NAME: &str = "__$early_return_flag";
 type Result<T> = std::result::Result<T, RHDLError>;
 
 pub struct MirContext<'a> {
-    kinds: Intern<Kind>,
     scopes: Vec<Scope>,
     ops: Vec<LocatedOpCode>,
-    reg_count: usize,
-    literals: BTreeMap<Slot, ExprLit>,
-    reg_source_map: BTreeMap<Slot, NodeId>,
-    ty: BTreeMap<Slot, KindKey>,
+    symtab: SymbolTable<ExprLit, Option<String>, NodeId, SlotKind>,
+    ty: BTreeMap<Slot, Kind>,
     ty_equate: HashSet<TypeEquivalence>,
     stash: BTreeMap<FuncId, Box<Object>>,
-    slot_names: BTreeMap<Slot, String>,
-    return_slot: Slot,
+    return_slot: Option<Slot>,
     arguments: Vec<Slot>,
     fn_id: FunctionId,
     name: &'static str,
@@ -205,13 +179,13 @@ impl std::fmt::Debug for MirContext<'_> {
             self.name, arguments, self.return_slot, self.fn_id
         )?;
         for (slot, kind) in &self.ty {
-            writeln!(f, "{:?} : {:?}", slot, self.kinds[kind])?;
+            writeln!(f, "{slot:?} : {kind:?}")?;
         }
-        for (lit, expr) in &self.literals {
-            writeln!(f, "{:?} -> {:?}", lit, expr)?;
+        for (lit, (expr, _)) in self.symtab.iter_lit() {
+            writeln!(f, "{lit:?} -> {expr:?}")?;
         }
         for (id, func) in self.stash.iter() {
-            writeln!(f, "Function f{:?} {:?}", id, func)?;
+            writeln!(f, "Function f{id:?} {func:?}")?;
         }
         for op in &self.ops {
             writeln!(f, "{:?}", op.op)?;
@@ -223,30 +197,25 @@ impl std::fmt::Debug for MirContext<'_> {
 impl<'a> MirContext<'a> {
     fn new(spanned_source: &'a SpannedSource, mode: CompilationMode, fn_id: FunctionId) -> Self {
         MirContext {
-            kinds: Intern::default(),
             scopes: vec![Scope {
                 names: HashMap::new(),
                 children: vec![],
                 parent: ROOT_SCOPE,
             }],
             ops: vec![],
-            reg_count: 0,
-            literals: BTreeMap::new(),
-            reg_source_map: BTreeMap::new(),
+            symtab: SymbolTable::default(),
             ty: BTreeMap::new(),
             ty_equate: Default::default(),
             stash: Default::default(),
-            return_slot: Slot::Empty,
+            return_slot: None,
             arguments: vec![],
             fn_id,
             name: "",
             active_scope: ROOT_SCOPE,
-            slot_names: BTreeMap::new(),
             spanned_source,
             mode,
         }
     }
-
     fn new_scope(&mut self) -> ScopeId {
         let id = ScopeId(self.scopes.len());
         self.scopes.push(Scope {
@@ -261,9 +230,8 @@ impl<'a> MirContext<'a> {
     fn end_scope(&mut self) {
         self.active_scope = self.scopes[self.active_scope.0].parent;
     }
-    fn bind_slot_to_type(&mut self, slot: Slot, kind: &Kind) {
-        let key = self.kinds.intern(kind);
-        self.ty.insert(slot, key);
+    fn bind_slot_to_type(&mut self, slot: Slot, kind: Kind) {
+        self.ty.insert(slot, kind);
     }
     // Walk the scope hierarchy, and return a list of all local variables
     // visible from the current scope.  Some of these may not be accessible
@@ -310,7 +278,7 @@ impl<'a> MirContext<'a> {
                     .raise_ice(ICE::UnsupportedArgumentPattern { arg: arg.clone() }, id)
                     .into());
             };
-            self.bind_slot_to_type(slot, &ty.kind);
+            self.bind_slot_to_type(slot, ty.kind);
             self.arguments.push(slot);
         }
         Ok(())
@@ -318,9 +286,8 @@ impl<'a> MirContext<'a> {
     // Create a local variable binding to the given name, and return the
     // resulting register.
     fn bind(&mut self, name: &'static str, id: NodeId) {
-        let reg = self.reg(id);
+        let reg = self.reg_named(id, name);
         debug!("Binding {}#{:?} to {:?}", name, id, reg);
-        self.slot_names.insert(reg, name.to_string());
         self.scopes[self.active_scope.0].names.insert(name, reg);
     }
     // Rebind a local variable to a new slot.  We need
@@ -331,7 +298,7 @@ impl<'a> MirContext<'a> {
     //  let a = 6; //<-- rebind of "a" to new slot
     //```
     fn rebind(&mut self, name: &'static str, id: NodeId) -> Result<Rebind> {
-        let reg = self.reg(id);
+        let reg = self.reg_named(id, name);
         let Some((prev, scope)) = self.lookup_name(name) else {
             return Err(self
                 .raise_ice(
@@ -342,7 +309,6 @@ impl<'a> MirContext<'a> {
                 )
                 .into());
         };
-        self.slot_names.insert(reg, name.to_string());
         self.scopes[scope.0].names.insert(name, reg);
         debug!("Rebound {} from {:?} to {:?}", name, prev, reg);
         Ok(Rebind {
@@ -351,18 +317,13 @@ impl<'a> MirContext<'a> {
         })
     }
     fn reg(&mut self, id: NodeId) -> Slot {
-        let reg = Slot::Register(RegisterId(self.reg_count));
-        self.reg_source_map.insert(reg, id);
-        self.reg_count += 1;
-        reg
+        self.symtab.reg(None, id)
+    }
+    fn reg_named(&mut self, id: NodeId, name: &str) -> Slot {
+        self.symtab.reg(Some(name.into()), id)
     }
     fn lit(&mut self, id: NodeId, lit: ExprLit) -> Slot {
-        let ndx = self.literals.len();
-        let slot = Slot::Literal(LiteralId(ndx));
-        debug!("Allocate literal {:?} for {:?} -> {:?}", lit, id, slot);
-        self.literals.insert(slot, lit);
-        self.reg_source_map.insert(slot, id);
-        slot
+        self.symtab.lit(lit, id)
     }
     fn literal_int(&mut self, id: NodeId, val: i32) -> Slot {
         self.lit(id, ExprLit::Int(val.to_string()))
@@ -380,6 +341,9 @@ impl<'a> MirContext<'a> {
             }),
         )
     }
+    fn lit_empty(&mut self, id: NodeId) -> Slot {
+        self.lit(id, ExprLit::Empty)
+    }
     fn lookup_name(&self, path: &str) -> Option<(Slot, ScopeId)> {
         let mut scope = self.active_scope;
         loop {
@@ -393,13 +357,9 @@ impl<'a> MirContext<'a> {
         }
         None
     }
-    fn slot_to_index(&self, slot: Slot, id: NodeId) -> Result<usize> {
-        let Some(value) = self.literals.get(&slot) else {
-            return Err(self
-                .raise_ice(ICE::SlotToIndexNonLiteralSlot { slot }, id)
-                .into());
-        };
-        let ndx = coerce_literal_to_i32(value)? as usize;
+    fn slot_to_index(&self, lid: LiteralId<SlotKind>, id: NodeId) -> Result<usize> {
+        let value = &self.symtab[lid];
+        let ndx = self.coerce_literal_to_i32(value, id)? as usize;
         Ok(ndx)
     }
     fn initialize_local(&mut self, pat: &Pat, rhs: Slot) -> Result<()> {
@@ -526,6 +486,14 @@ impl<'a> MirContext<'a> {
             err_span: source_span.into(),
         })
     }
+    fn coerce_literal_to_i32(&self, val: &ExprLit, loc: NodeId) -> Result<i32> {
+        match val {
+            ExprLit::Int(i) => i.parse::<i32>().map_err(|err| err.into()),
+            ExprLit::Bool(b) => Ok(if *b { 1 } else { 0 }),
+            ExprLit::TypedBits(tb) => tb.value.as_i64().map(|x| x as i32),
+            ExprLit::Empty => Err(self.raise_ice(ICE::CannotCoerceEmptyToInteger, loc).into()),
+        }
+    }
     fn raise_ice(&self, cause: ICE, loc: NodeId) -> Box<RHDLCompileError> {
         let source_span = self.spanned_source.span(loc);
         Box::new(RHDLCompileError {
@@ -633,14 +601,14 @@ impl<'a> MirContext<'a> {
         } else {
             self.op(op_splice(rebind.to, rebind.from, path, rhs), id);
         }
-        Ok(Slot::Empty)
+        Ok(self.lit_empty(id))
     }
     fn assign_binop(&mut self, id: NodeId, bin: &ExprBinary) -> Result<Slot> {
         let lhs = self.expr(&bin.lhs)?;
         let rhs = self.expr(&bin.rhs)?;
         let (dest, path) = self.expr_lhs(&bin.lhs)?;
         let temp = self.reg(bin.lhs.id);
-        let result = Slot::Empty;
+        let result = self.lit_empty(id);
         let op = &bin.op;
         if !op.is_self_assign() {
             return Err(self
@@ -660,7 +628,7 @@ impl<'a> MirContext<'a> {
             _ => {
                 return Err(self
                     .raise_ice(ICE::UnexpectedBinopInSelfAssign { op: *op }, id)
-                    .into())
+                    .into());
             }
         };
         self.ty_equate.insert(TypeEquivalence {
@@ -683,7 +651,8 @@ impl<'a> MirContext<'a> {
         let statement_count = block.stmts.len();
         self.new_scope();
         if block.stmts.is_empty() {
-            self.op(op_assign(block_result, Slot::Empty), block.id);
+            let empty = self.lit_empty(block.id);
+            self.op(op_assign(block_result, empty), block.id);
         } else {
             for (ndx, statement) in block.stmts.iter().enumerate() {
                 let is_last = ndx == statement_count - 1;
@@ -720,7 +689,7 @@ impl<'a> MirContext<'a> {
         self.op(op_binary(alu, result, lhs, rhs), id);
         Ok(result)
     }
-    fn type_pattern(&mut self, pattern: &Pat, kind: &Kind) -> Result<()> {
+    fn type_pattern(&mut self, pattern: &Pat, kind: Kind) -> Result<()> {
         debug!("Type pattern {:?} {:?}", pattern, kind);
         match &pattern.kind {
             PatKind::Ident(ident) => {
@@ -738,25 +707,25 @@ impl<'a> MirContext<'a> {
             }
             PatKind::Tuple(tuple) => {
                 for (ndx, element) in tuple.elements.iter().enumerate() {
-                    self.type_pattern(element, &kind.get_tuple_kind(ndx)?)?;
+                    self.type_pattern(element, kind.get_tuple_kind(ndx)?)?;
                 }
                 Ok(())
             }
             PatKind::Struct(struct_pat) => {
                 for field in &struct_pat.fields {
-                    self.type_pattern(&field.pat, &kind.get_field_kind(&field.member)?)?;
+                    self.type_pattern(&field.pat, kind.get_field_kind(&field.member)?)?;
                 }
                 Ok(())
             }
             PatKind::TupleStruct(tuple_struct) => {
                 for (ndx, field) in tuple_struct.elems.iter().enumerate() {
-                    self.type_pattern(field, &kind.get_field_kind(&Member::Unnamed(ndx as u32))?)?;
+                    self.type_pattern(field, kind.get_field_kind(&Member::Unnamed(ndx as u32))?)?;
                 }
                 Ok(())
             }
             PatKind::Slice(slice) => {
                 for element in &slice.elems {
-                    self.type_pattern(element, &kind.get_base_kind()?)?;
+                    self.type_pattern(element, kind.get_base_kind()?)?;
                 }
                 Ok(())
             }
@@ -786,7 +755,7 @@ impl<'a> MirContext<'a> {
             }
             PatKind::Type(type_pat) => {
                 self.bind_pattern(&type_pat.pat)?;
-                self.type_pattern(&type_pat.pat, &type_pat.kind)
+                self.type_pattern(&type_pat.pat, type_pat.kind)
             }
             PatKind::Struct(struct_pat) => {
                 for field in &struct_pat.fields {
@@ -847,7 +816,7 @@ impl<'a> MirContext<'a> {
         match code {
             KernelFnKind::BitConstructor(len) => self.op(op_as_bits(lhs, args[0], *len), id),
             KernelFnKind::SignedBitsConstructor(len) => {
-                self.bind_slot_to_type(args[0], &Kind::make_signed(128));
+                self.bind_slot_to_type(args[0], Kind::make_signed(128));
                 self.op(op_as_signed(lhs, args[0], *len), id)
             }
             KernelFnKind::TupleStructConstructor(tb) => {
@@ -886,8 +855,9 @@ impl<'a> MirContext<'a> {
                 self.op(op_as_signed(lhs, args[0], *to), id);
             }
             KernelFnKind::Wrap(wrap_op) => {
+                let empty = self.lit_empty(id);
                 match wrap_op {
-                    WrapOp::None => self.op(op_wrap(lhs, Slot::Empty, *wrap_op), id),
+                    WrapOp::None => self.op(op_wrap(lhs, empty, *wrap_op), id),
                     _ => self.op(op_wrap(lhs, args[0], *wrap_op), id),
                 };
             }
@@ -930,7 +900,10 @@ impl<'a> MirContext<'a> {
             ExprKind::Repeat(repeat) => self.repeat(expr.id, repeat),
             ExprKind::Call(call) => self.call(expr.id, call),
             ExprKind::MethodCall(method) => self.method_call(expr.id, method),
-            ExprKind::Type(_) => Ok(Slot::Empty),
+            ExprKind::Type(_) => {
+                let empty = self.lit_empty(expr.id);
+                Ok(empty)
+            }
             ExprKind::Bits(bits) => self.bits(expr.id, bits),
             ExprKind::Try(tri) => self.try_expr(expr.id, tri),
             ExprKind::IfLet(if_let) => self.if_let_expr(expr.id, if_let),
@@ -976,8 +949,8 @@ impl<'a> MirContext<'a> {
             ExprKind::Index(index) => {
                 let (rebind, path) = self.expr_lhs(&index.expr)?;
                 let index = self.expr(&index.index)?;
-                if index.is_literal() {
-                    let ndx = self.slot_to_index(index, expr.id)?;
+                if let Some(lid) = index.lit() {
+                    let ndx = self.slot_to_index(lid, expr.id)?;
                     Ok((rebind, path.index(ndx)))
                 } else {
                     Ok((rebind, path.dynamic(index)))
@@ -1042,16 +1015,18 @@ impl<'a> MirContext<'a> {
                 .raise_syntax_error(Syntax::ForLoopNonIntegerEndValue, end.id)
                 .into());
         };
-        let start_lit = coerce_literal_to_i32(start_expr)?;
-        let end_lit = coerce_literal_to_i32(end_expr)?;
+        let start_lit = self.coerce_literal_to_i32(start_expr, start.id)?;
+        let end_lit = self.coerce_literal_to_i32(end_expr, end.id)?;
         for ndx in start_lit..end_lit {
             let value = self.literal_int(for_loop.pat.id, ndx);
             self.rebind(loop_var.name, for_loop.pat.id)?;
             self.initialize_local(&for_loop.pat, value)?;
-            self.block(Slot::Empty, &for_loop.body)?;
+            let result = self.reg(for_loop.body.id);
+            self.block(result, &for_loop.body)?;
         }
         self.end_scope();
-        Ok(Slot::Empty)
+        let empty = self.lit_empty(for_loop.body.id);
+        Ok(empty)
     }
     fn if_let_expr(&mut self, id: NodeId, if_let_expr: &ExprIfLet) -> Result<Slot> {
         // Try a rewrite of if let -> match
@@ -1101,7 +1076,8 @@ impl<'a> MirContext<'a> {
         if let Some(expr) = if_expr.else_branch.as_ref() {
             self.wrap_expr_in_block(else_result, expr)?;
         } else {
-            self.op(op_assign(else_result, Slot::Empty), id);
+            let empty = self.lit_empty(id);
+            self.op(op_assign(else_result, empty), id);
         }
         let locals_after_else_branch = self.locals();
         self.set_locals(&locals_prior_to_branch, id)?;
@@ -1296,7 +1272,7 @@ impl<'a> MirContext<'a> {
             _ => {
                 return Err(self
                     .raise_syntax_error(Syntax::UnsupportedMethodCall, id)
-                    .into())
+                    .into());
             }
         };
         self.op(op_unary(op, lhs, arg), id);
@@ -1423,10 +1399,11 @@ impl<'a> MirContext<'a> {
         let early_return_flag = self.rebind(EARLY_RETURN_FLAG_NAME, id)?;
         let name = self.name;
         let return_slot = self.rebind(name, id)?;
+        let empty = self.lit_empty(id);
         let early_return_expr = if let Some(return_expr) = &return_expr.expr {
             self.expr(return_expr)?
         } else {
-            Slot::Empty
+            empty
         };
         // Next, we need to code the following:
         //  if early_return_flag.from {
@@ -1457,7 +1434,7 @@ impl<'a> MirContext<'a> {
             ),
             id,
         );
-        Ok(Slot::Empty)
+        Ok(self.lit_empty(id))
     }
     fn stmt(&mut self, statement: &Stmt) -> Result<Slot> {
         let statement_text = pretty_print_statement(statement)?;
@@ -1465,12 +1442,12 @@ impl<'a> MirContext<'a> {
         match &statement.kind {
             StmtKind::Local(local) => {
                 self.local(local)?;
-                Ok(Slot::Empty)
+                Ok(self.lit_empty(local.id))
             }
             StmtKind::Expr(expr) => self.expr(expr),
             StmtKind::Semi(expr) => {
                 self.expr(expr)?;
-                Ok(Slot::Empty)
+                Ok(self.lit_empty(expr.id))
             }
         }
     }
@@ -1526,12 +1503,14 @@ impl Visitor for MirContext<'_> {
     fn visit_kernel_fn(&mut self, node: &ast_impl::KernelFn) -> Result<()> {
         self.unpack_arguments(&node.inputs, node.id)?;
         let block_result = self.reg(node.id);
-        if block_result.is_empty() {
-            return Err(self
-                .raise_syntax_error(Syntax::EmptyReturnForFunction, node.id)
-                .into());
-        }
-        self.return_slot = block_result;
+        // TODO - Not sure what this does?
+        /*         if block_result.is_empty() {
+                   return Err(self
+                       .raise_syntax_error(Syntax::EmptyReturnForFunction, node.id)
+                       .into());
+               }
+        */
+        self.return_slot = Some(block_result);
         // We create 2 bindings (local vars) inside the function
         //   - the early return flag - a flag of type bool that we initialize to false
         //   - the return slot - a register of type ret<fn>, that we initialize to the default
@@ -1566,17 +1545,18 @@ impl Visitor for MirContext<'_> {
         self.ops
             .insert(1, (init_return_slot, (self.fn_id, node.id).into()).into());
         self.insert_implicit_return(node.body.id, block_result, node.name)?;
-        self.return_slot = self
-            .lookup_name(node.name)
-            .ok_or_else(|| {
-                self.raise_ice(
-                    ICE::ReturnSlotNotFound {
-                        name: node.name.to_owned(),
-                    },
-                    node.id,
-                )
-            })?
-            .0;
+        self.return_slot = Some(
+            self.lookup_name(node.name)
+                .ok_or_else(|| {
+                    self.raise_ice(
+                        ICE::ReturnSlotNotFound {
+                            name: node.name.to_owned(),
+                        },
+                        node.id,
+                    )
+                })?
+                .0,
+        );
         self.fn_id = node.fn_id;
         Ok(())
     }
@@ -1588,19 +1568,19 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
         let node = NodeId::new(id);
         if !source.span_map.contains_key(&node) {
             debug!("AST: {}", ascii::render_ast_to_string(&func)?);
-            panic!("Missing span for node {:?}", node);
+            panic!("Missing span for node {node:?}");
         }
     }
     let copy_source = source.clone();
     let mut compiler = MirContext::new(&source, mode, func.inner().fn_id);
     compiler.visit_kernel_fn(func.inner())?;
-    compiler.bind_slot_to_type(compiler.return_slot, &func.inner().ret);
-    let ty: BTreeMap<Slot, Kind> = compiler
-        .ty
-        .iter()
-        .map(|(k, v)| (*k, compiler.kinds[v].to_owned()))
-        .collect();
-    if let Some(kind) = ty.get(&compiler.return_slot) {
+    let Some(return_slot) = compiler.return_slot else {
+        return Err(compiler
+            .raise_ice(ICE::ReturnSlotNotInitialized, func.inner().id)
+            .into());
+    };
+    compiler.bind_slot_to_type(return_slot, func.inner().ret);
+    if let Some(kind) = compiler.ty.get(&return_slot) {
         if kind.is_empty() {
             return Err(compiler
                 .raise_syntax_error(Syntax::EmptyReturnForFunction, func.inner().id)
@@ -1608,25 +1588,19 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
         }
     }
     let fn_id = compiler.fn_id;
-    let slot_map = compiler
-        .reg_source_map
-        .into_iter()
-        .chain(once((Slot::Empty, func.inner().id)))
-        .map(|(slot, node)| (slot, (fn_id, node).into()))
-        .collect();
+    let symtab = compiler
+        .symtab
+        .transmute(|_, node_id| (compiler.fn_id, node_id).into());
     Ok(Mir {
         symbols: SymbolMap {
-            slot_map,
             source_set: (fn_id, copy_source).into(),
-            slot_names: compiler.slot_names,
-            aliases: Default::default(),
         },
         ops: compiler.ops,
         arguments: compiler.arguments,
-        literals: compiler.literals,
-        return_slot: compiler.return_slot,
+        symtab,
+        return_slot,
         fn_id: compiler.fn_id,
-        ty,
+        ty: compiler.ty,
         ty_equate: compiler.ty_equate,
         stash: compiler.stash,
         name: compiler.name.to_string(),
