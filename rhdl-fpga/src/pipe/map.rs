@@ -62,10 +62,7 @@
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::core::{
-    dff::DFF,
-    option::{pack, unpack},
-};
+use crate::core::dff::DFF;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
 /// The Map Core (Pipe Version)
@@ -169,7 +166,7 @@ mod tests {
         let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
-        let tm = test_bench.flow_graph(&uut, &Default::default())?;
+        let tm = test_bench.ntl(&uut, &Default::default())?;
         tm.run_iverilog()?;
         Ok(())
     }

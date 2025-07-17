@@ -160,16 +160,12 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         self.build_test_module(&hdl, options)
     }
 
-    pub fn flow_graph<T>(
-        &self,
-        uut: &T,
-        options: &TestBenchOptions,
-    ) -> Result<TestModule, RHDLError>
+    pub fn ntl<T>(&self, uut: &T, options: &TestBenchOptions) -> Result<TestModule, RHDLError>
     where
         T: Circuit,
         T: CircuitIO<I = I, O = O>,
     {
-        let hdl = uut.flow_graph("uut")?.hdl("dut")?;
-        self.build_test_module(&hdl, options)
+        let module = crate::rhdl_core::ntl::hdl::generate_hdl("dut", &uut.descriptor("uut")?.ntl)?;
+        self.build_test_module(&module, options)
     }
 }

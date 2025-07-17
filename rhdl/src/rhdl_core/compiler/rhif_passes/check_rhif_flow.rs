@@ -5,11 +5,11 @@ use crate::rhdl_core::{
     compiler::mir::error::ICE,
     error::RHDLError,
     rhif::{
+        Object,
         spec::{
             Array, Assign, Binary, Case, Cast, Enum, Exec, Index, OpCode, Repeat, Retime, Select,
             Slot, Splice, Struct, Tuple, Unary, Wrap,
         },
-        Object,
     },
 };
 
@@ -40,13 +40,13 @@ impl InitSet<'_> {
     }
     fn read(&self, slot: &Slot) -> Result<(), RHDLError> {
         match slot {
-            Slot::Empty | Slot::Literal(_) => {}
+            Slot::Literal(_) => {}
             Slot::Register(_) => {
                 if !self.set.contains(slot) {
                     return Err(DataFlowCheckPass::raise_ice(
                         self.obj,
                         ICE::SlotIsReadBeforeBeingWritten { slot: *slot },
-                        self.obj.symbols.slot_map[slot],
+                        self.obj.symtab[slot].location,
                     ));
                 }
             }
@@ -55,12 +55,11 @@ impl InitSet<'_> {
     }
     fn write(&mut self, slot: &Slot) -> Result<(), RHDLError> {
         match slot {
-            Slot::Empty => {}
             Slot::Literal(ndx) => {
                 return Err(DataFlowCheckPass::raise_ice(
                     self.obj,
                     ICE::CannotWriteToRHIFLiteral { ndx: *ndx },
-                    self.obj.symbols.slot_map[slot],
+                    self.obj.symtab[slot].location,
                 ));
             }
             Slot::Register(_) => {
@@ -68,7 +67,7 @@ impl InitSet<'_> {
                     return Err(DataFlowCheckPass::raise_ice(
                         self.obj,
                         ICE::SlotIsWrittenTwice { slot: *slot },
-                        self.obj.symbols.slot_map[slot],
+                        self.obj.symtab[slot].location,
                     ));
                 }
                 self.set.insert(*slot);

@@ -2,9 +2,10 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::rhdl_core::{
-    circuit::yosys::YosysSynthError,
-    types::{bit_string::BitString, path::PathError},
     KernelFnKind, TypedBits,
+    circuit::yosys::YosysSynthError,
+    compiler::mir::ty::UnifyError,
+    types::{bit_string::BitString, path::PathError},
 };
 
 #[derive(Error, Debug, Diagnostic)]
@@ -45,23 +46,18 @@ pub enum RHDLError {
     RHDLErrorPath(#[from] Box<PathError>),
     #[error("IO Error")]
     IOError(#[from] std::io::Error),
-    #[error("Verilog Verification Error: Expected {expected}, got {got}")]
-    VerilogVerificationError { expected: String, got: String },
-    #[error("Verilog Verification Error: Expected {expected:?} got {actual:?}")]
+    #[error("Verilog Verification Error in RHIF: Expected {expected:?} got {actual:?}")]
     VerilogVerificationErrorTyped {
         expected: TypedBits,
         actual: TypedBits,
     },
     #[error("Cannot convert kernel function to Verilog descriptor {value:?}")]
     CannotConvertKernelFunctionToVerilogDescriptor { value: Box<KernelFnKind> },
-    #[error("Verilog Verification Error: Expected {expected:?} got {actual:?}")]
+    #[error("Verilog Verification Error in RTL: Expected {expected:?} got {actual:?}")]
     VerilogVerificationErrorRTL {
         expected: BitString,
         actual: BitString,
     },
-    #[error("Flow Graph Error")]
-    #[diagnostic(transparent)]
-    FlowGraphError(#[from] Box<crate::rhdl_core::flow_graph::error::FlowGraphError>),
     #[error("Verilog verification error: {0}")]
     VerilogVerificationErrorString(String),
     #[error("Testbench Construction Error: {0}")]
@@ -76,6 +72,15 @@ pub enum RHDLError {
     NotSynthesizable,
     #[error("Yosys synthesis error: {0}")]
     YosysSynthError(#[from] YosysSynthError),
+    #[error("Netlist Error")]
+    #[diagnostic(transparent)]
+    NetListError(#[from] Box<crate::rhdl_core::ntl::error::NetListError>),
+    #[error("Logic Loop")]
+    #[diagnostic(transparent)]
+    NetLoopError(#[from] Box<crate::rhdl_core::ntl::error::NetLoopError>),
+    #[error("Type Inference Error")]
+    #[diagnostic(transparent)]
+    TypeInferenceError(#[from] Box<UnifyError>),
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

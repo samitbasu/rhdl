@@ -39,11 +39,10 @@ mod tests {
 
     #[test]
     fn test_basic_trace() -> miette::Result<()> {
-        let input = repeat(None)
-            .take(2)
+        let input = std::iter::repeat_n(None, 2)
             .chain(once(Some(Cmd::Write(bits(0x15)))))
-            .chain(repeat(None).take(2))
-            .chain(once(Some(Cmd::Read)).chain(repeat(None).take(4)));
+            .chain(std::iter::repeat_n(None, 2))
+            .chain(once(Some(Cmd::Read)).chain(std::iter::repeat_n(None, 4)));
         let input = input.with_reset(1).clock_pos_edge(100);
         let uut = super::U::default();
         let vcd = uut.run(input)?.collect::<Vcd>();
@@ -52,7 +51,7 @@ mod tests {
             .join("tristate");
         std::fs::create_dir_all(&root).unwrap();
         let expect = expect!["0f867cb3b4bbb022c836ff8ec7a4722a537256e93c7253902d3fa67bd7fe16ab"];
-        let digest = vcd.dump_to_file(&root.join("basic.vcd")).unwrap();
+        let digest = vcd.dump_to_file(root.join("basic.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
     }

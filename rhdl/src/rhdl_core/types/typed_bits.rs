@@ -2,17 +2,17 @@ use std::iter::{once, repeat};
 
 use internment::Intern;
 
+use crate::rhdl_core::Color;
 use crate::rhdl_core::ast::ast_impl::WrapOp;
 use crate::rhdl_core::bitx::dyn_bit_manip::bits_shr_signed;
 use crate::rhdl_core::bitx::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
-use crate::rhdl_core::bitx::{bitx_string, BitX};
-use crate::rhdl_core::error::{rhdl_error, RHDLError};
-use crate::rhdl_core::Color;
+use crate::rhdl_core::bitx::{BitX, bitx_string};
+use crate::rhdl_core::error::{RHDLError, rhdl_error};
 use crate::rhdl_core::{
-    types::path::{bit_range, sub_kind, Path},
     Kind,
+    types::path::{Path, bit_range, sub_kind},
 };
 
 use super::error::DynamicTypeError;
@@ -71,6 +71,9 @@ impl TypedBits {
         bits: Vec::new(),
         kind: Kind::Empty,
     };
+    pub fn is_empty(&self) -> bool {
+        self.bits.is_empty()
+    }
     pub fn dont_care_from_kind(kind: Kind) -> Self {
         Self {
             bits: vec![BitX::X; kind.bits()],
@@ -171,7 +174,7 @@ impl TypedBits {
                 return Err(rhdl_error(DynamicTypeError::XshlFailed {
                     value: self.clone(),
                     len,
-                }))
+                }));
             }
         };
         let bits = std::iter::repeat_n(BitX::Zero, len)
@@ -187,7 +190,7 @@ impl TypedBits {
                 return Err(rhdl_error(DynamicTypeError::XshrFailed {
                     value: self.clone(),
                     len,
-                }))
+                }));
             }
         };
         let bits = self.bits.iter().copied().skip(len).collect();
@@ -502,6 +505,25 @@ impl TypedBits {
             WrapOp::Ok => self.wrap_ok(kind),
         }
     }
+    pub fn is_zero(&self) -> bool {
+        self.bits.iter().all(|b| *b == BitX::Zero)
+    }
+    pub fn num_ones(&self) -> usize {
+        self.bits.iter().filter(|b| **b == BitX::One).count()
+    }
+    pub fn trailing_zeros(&self) -> usize {
+        self.bits.iter().take_while(|b| **b == BitX::Zero).count()
+    }
+}
+
+impl FromIterator<TypedBits> for TypedBits {
+    fn from_iter<T: IntoIterator<Item = TypedBits>>(iter: T) -> Self {
+        let args = iter.into_iter().collect::<Vec<_>>();
+        let kinds = args.iter().map(|tb| tb.kind).collect::<Vec<_>>();
+        let kind = Kind::make_tuple(kinds);
+        let bits = args.into_iter().flat_map(|x| x.bits).collect::<Vec<_>>();
+        TypedBits { bits, kind }
+    }
 }
 
 fn binop_kind(lhs: &Kind, rhs: &Kind) -> Result<Kind> {
@@ -738,7 +760,7 @@ fn write_kind_with_bits(
         Kind::Empty => write!(f, "()"),
         Kind::Signal(base, color) => {
             write_kind_with_bits(base, bits, f)?;
-            write!(f, "@{:?}", color)
+            write!(f, "@{color:?}")
         }
     }
 }
@@ -883,8 +905,8 @@ mod tests {
     use crate::rhdl_bits::{alias::*, bits, consts::U2};
 
     use crate::rhdl_core::{
-        bitx::{bitx_vec, BitX},
         Digital, DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
+        bitx::{BitX, bitx_vec},
     };
 
     #[test]
@@ -998,7 +1020,7 @@ mod tests {
             }
             fn dont_care() -> Self {
                 use rand::Rng;
-                match rand::thread_rng().gen_range(0..3) {
+                match rand::rng().random_range(0..3) {
                     0 => Self::A(Default::default()),
                     1 => Self::B {
                         foo: Default::default(),
@@ -1078,34 +1100,34 @@ mod tests {
         assert_eq!(Bar::BITS, Bar::static_kind().bits());
 
         let a = b8(0x47).typed_bits();
-        assert_eq!(format!("{:?}", a), "47_b8");
+        assert_eq!(format!("{a:?}"), "47_b8");
         let c = (b8(0x12), b8(0x80), false).typed_bits();
-        assert_eq!(format!("{:?}", c), "(12_b8, 80_b8, false)");
+        assert_eq!(format!("{c:?}"), "(12_b8, 80_b8, false)");
         let b = (s32(-0x53)).typed_bits();
-        assert_eq!(format!("{:?}", b), "-83_s32");
+        assert_eq!(format!("{b:?}"), "-83_s32");
         let d = [b8(1), b8(3), b8(4)].typed_bits();
-        assert_eq!(format!("{:?}", d), "[1_b8, 3_b8, 4_b8]");
+        assert_eq!(format!("{d:?}"), "[1_b8, 3_b8, 4_b8]");
         let e = Foo {
             a: b8(0x47),
             b: b8(0x80),
             c: true,
         }
         .typed_bits();
-        assert_eq!(format!("{:?}", e), "Foo {a: 47_b8, b: 80_b8, c: true}");
+        assert_eq!(format!("{e:?}"), "Foo {a: 47_b8, b: 80_b8, c: true}");
         let e = Bar(b8(0x47), b8(0x80), true).typed_bits();
-        assert_eq!(format!("{:?}", e), "Bar {0: 47_b8, 1: 80_b8, 2: true}");
+        assert_eq!(format!("{e:?}"), "Bar {0: 47_b8, 1: 80_b8, 2: true}");
         let d = [
             Bar(b8(0x47), b8(0x80), true),
             Bar(b8(0x42), b8(0x13), false),
         ]
         .typed_bits();
         assert_eq!(
-            format!("{:?}", d),
+            format!("{d:?}"),
             "[Bar {0: 47_b8, 1: 80_b8, 2: true}, Bar {0: 42_b8, 1: 13_b8, 2: false}]"
         );
         let h = Baz::A(Bar(b8(0x47), b8(0x80), true)).typed_bits();
         assert_eq!(
-            format!("{:?}", h),
+            format!("{h:?}"),
             "rhdl::rhdl_core::types::typed_bits::tests::Baz::A(Bar {0: 47_b8, 1: 80_b8, 2: true})"
         );
     }

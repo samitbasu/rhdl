@@ -196,7 +196,7 @@ fn comment(ast: &str) -> String {
     // newlines in the comment text, otherwise write a block
     // comment with `/*` and `*/`.
     let ast = ast.replace("\n", "\n // ");
-    format!("// {}", ast)
+    format!("// {ast}")
 }
 
 fn if_statement(ast: &If) -> String {
@@ -222,20 +222,20 @@ fn always(ast: &Always) -> String {
         .sensitivity
         .iter()
         .map(|event| match event {
-            Events::Posedge(signal) => format!("posedge {}", signal),
-            Events::Negedge(signal) => format!("negedge {}", signal),
+            Events::Posedge(signal) => format!("posedge {signal}"),
+            Events::Negedge(signal) => format!("negedge {signal}"),
             Events::Change(signal) => signal.to_string(),
             Events::Star => "*".to_string(),
         })
         .collect::<Vec<_>>()
         .join(" or ");
     let statements = apply(&ast.block, statement, "\n");
-    format!("always @({}) begin\n{}\nend", sensitivity, statements)
+    format!("always @({sensitivity}) begin\n{statements}\nend")
 }
 
 fn initial(ast: &Initial) -> String {
     let statements = apply(&ast.block, statement, "\n");
-    format!("initial begin\n{}\nend", statements)
+    format!("initial begin\n{statements}\nend")
 }
 
 fn binop(ast: AluBinary) -> &'static str {

@@ -1,67 +1,36 @@
 use fnv::FnvHasher;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::ops::Range;
 
+use crate::rhdl_core::SourcePool;
+use crate::rhdl_core::ast::KernelFlags;
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
 use crate::rhdl_core::ast::source::spanned_source_set::SpannedSourceSet;
-use crate::rhdl_core::ast::KernelFlags;
-use crate::rhdl_core::SourcePool;
+use crate::rhdl_core::common::symtab::{RegisterId, SymbolTable};
+use crate::rhdl_core::rhif::spec::SlotKind;
 use crate::rhdl_core::{
+    Kind, TypedBits,
     ast::ast_impl::{FunctionId, NodeId},
     rhif::spec::Slot,
-    Kind, TypedBits,
 };
 
+use super::spec::FuncId;
 use super::spec::OpCode;
-use super::spec::{FuncId, LiteralId, RegisterId};
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, Default)]
 pub struct SymbolMap {
     pub source_set: SpannedSourceSet,
-    pub slot_map: BTreeMap<Slot, SourceLocation>,
-    pub slot_names: BTreeMap<Slot, String>,
-    pub aliases: BTreeMap<Slot, BTreeSet<Slot>>,
 }
 
 impl SymbolMap {
     pub fn source(&self) -> SourcePool {
         self.source_set.source()
     }
-    pub fn slot_span(&self, slot: Slot) -> Option<Range<usize>> {
-        self.slot_map
-            .get(&slot)
-            .map(|loc| self.source_set.span(*loc))
-    }
     pub fn span(&self, loc: SourceLocation) -> Range<usize> {
         self.source_set.span(loc)
-    }
-    pub fn best_span_for_slot_in_expression(
-        &self,
-        slot: Slot,
-        expression: SourceLocation,
-    ) -> Range<usize> {
-        let expression_span = self.span(expression);
-        let mut best_range = self.slot_span(slot).unwrap_or(expression_span);
-        let mut best_range_len = best_range.len();
-        if let Some(equivalent) = self.aliases.get(&slot) {
-            for alias in equivalent {
-                let alias_range = self.best_span_for_slot_in_expression(*alias, expression);
-                let alias_range_len = alias_range.len();
-                if alias_range_len < best_range_len
-                    || (alias_range_len == best_range_len && alias_range.start > best_range.start)
-                {
-                    best_range = alias_range;
-                    best_range_len = alias_range_len;
-                }
-            }
-        }
-        best_range
-    }
-    pub fn alias(&mut self, from_slot: Slot, to_slot: Slot) {
-        self.aliases.entry(from_slot).or_default().insert(to_slot);
     }
     pub fn fallback(&self, func: FunctionId) -> SourceLocation {
         self.source_set.fallback(func)
@@ -95,38 +64,52 @@ impl From<(OpCode, SourceLocation)> for LocatedOpCode {
     }
 }
 
+#[derive(Clone, Hash, Debug)]
+pub struct SourceDetails {
+    pub location: SourceLocation,
+    pub name: Option<String>,
+}
+
+impl From<SourceLocation> for SourceDetails {
+    fn from(val: SourceLocation) -> Self {
+        Self {
+            location: val,
+            name: None,
+        }
+    }
+}
+
 #[derive(Clone, Hash)]
 pub struct Object {
     pub symbols: SymbolMap,
-    pub literals: BTreeMap<LiteralId, TypedBits>,
-    pub kind: BTreeMap<RegisterId, Kind>,
+    pub symtab: SymbolTable<TypedBits, Kind, SourceDetails, SlotKind>,
     pub return_slot: Slot,
     pub externals: BTreeMap<FuncId, Box<Object>>,
     pub ops: Vec<LocatedOpCode>,
-    pub arguments: Vec<RegisterId>,
+    pub arguments: Vec<RegisterId<SlotKind>>,
     pub name: String,
     pub fn_id: FunctionId,
     pub flags: Vec<KernelFlags>,
 }
 
 impl Object {
-    pub fn reg_max_index(&self) -> RegisterId {
-        self.kind.keys().max().copied().unwrap_or(RegisterId(0))
-    }
-    pub fn literal_max_index(&self) -> LiteralId {
-        self.literals.keys().max().copied().unwrap_or(LiteralId(0))
-    }
     pub fn kind(&self, slot: Slot) -> Kind {
         match slot {
-            Slot::Register(reg) => self.kind[&reg],
-            Slot::Literal(lit) => self.literals[&lit].kind,
-            Slot::Empty => Kind::Empty,
+            Slot::Register(reg) => self.symtab[reg],
+            Slot::Literal(lit) => self.symtab[lit].kind,
         }
     }
     pub fn hash_value(&self) -> u64 {
         let mut hasher = FnvHasher::default();
         self.hash(&mut hasher);
         hasher.finish()
+    }
+    pub fn filename(&self) -> &str {
+        self.symbols.source_set.filename(self.fn_id)
+    }
+    pub fn slot_span(&self, slot: Slot) -> Range<usize> {
+        let loc = &self.symtab[slot];
+        self.symbols.span(loc.location)
     }
 }
 
@@ -135,20 +118,19 @@ impl std::fmt::Debug for Object {
         writeln!(f, "Object {}", self.name)?;
         writeln!(f, "  fn_id {:?}", self.fn_id)?;
         writeln!(f, "  return_slot {:?}", self.return_slot)?;
-        for regs in self.kind.keys() {
-            let slot_name = self
-                .symbols
-                .slot_names
-                .get(&Slot::Register(*regs))
-                .map(|s| s.as_str())
-                .unwrap_or("");
-            writeln!(f, "Reg {:?} : {:?} // {}", regs, self.kind[regs], slot_name)?;
+        for (reg, (kind, details)) in self.symtab.iter_reg() {
+            let slot_name = match details.name.as_ref() {
+                Some(x) => x.as_str(),
+                None => "",
+            };
+            writeln!(f, "Reg {reg:?} : {kind:?} // {slot_name}")?;
         }
-        for (slot, literal) in self.literals.iter() {
-            writeln!(f, "Literal {:?} : {:?} = {:?}", slot, literal.kind, literal)?;
+        for (lit, (tb, _)) in self.symtab.iter_lit() {
+            let kind = tb.kind;
+            writeln!(f, "Literal {lit:?} : {kind:?} = {tb:?}")?;
         }
         for (ndx, func) in self.externals.iter() {
-            writeln!(f, "Function {:?} object: {:?}", ndx, func)?;
+            writeln!(f, "Function {ndx:?} object: {func:?}")?;
         }
         let mut body_str = String::new();
         for lop in &self.ops {
@@ -168,7 +150,7 @@ impl std::fmt::Debug for Object {
             if line.contains('{') {
                 indent += 1;
             }
-            writeln!(f, "{}", line)?;
+            writeln!(f, "{line}")?;
         }
         Ok(())
     }

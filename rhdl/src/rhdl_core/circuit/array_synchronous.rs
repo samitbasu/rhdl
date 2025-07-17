@@ -1,14 +1,12 @@
 use std::collections::BTreeMap;
 
 use crate::rhdl_core::{
-    digital_fn::NoKernel3,
-    flow_graph::flow_graph_impl::FlowIx,
-    hdl::ast::{component_instance, connection, id, index, Direction, Module, Statement},
-    rtl::object::RegisterKind,
-    trace_pop_path, trace_push_path,
-    types::path::{bit_range, Path},
     CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous,
     SynchronousDQ, SynchronousIO,
+    digital_fn::NoKernel3,
+    hdl::ast::{Direction, Module, Statement, component_instance, connection, id, index},
+    ntl, trace_pop_path, trace_push_path,
+    types::path::{Path, bit_range},
 };
 
 use super::hdl_backend::maybe_port_wire;
@@ -60,43 +58,39 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
         &self,
         name: &str,
     ) -> Result<crate::rhdl_core::CircuitDescriptor, crate::rhdl_core::RHDLError> {
-        let mut fg = crate::rhdl_core::FlowGraph::default();
-        let cr_kind: RegisterKind = ClockReset::static_kind().into();
-        let input_kind: RegisterKind = Self::I::static_kind().into();
-        let output_kind: RegisterKind = Self::O::static_kind().into();
-        let cr_buffer = fg.buffer(cr_kind, "cr", None);
-        let input_buffer = fg.input(input_kind, 0, "i");
-        let output_buffer = fg.output(output_kind, "o");
+        let mut builder = ntl::Builder::new(name);
+        let cr_kind: Kind = ClockReset::static_kind();
+        let input_kind: Kind = Self::I::static_kind();
+        let output_kind: Kind = Self::O::static_kind();
+        let tcr = builder.add_input(cr_kind);
+        let ti = builder.add_input(input_kind);
+        let to = builder.allocate_outputs(output_kind);
         let mut children = std::collections::BTreeMap::default();
-        (0..N).try_for_each(|i| {
+        for i in 0..N {
             let child_path = Path::default().index(i);
             let (output_bit_range, _) = bit_range(Self::O::static_kind(), &child_path)?;
             let (input_bit_range, _) = bit_range(Self::I::static_kind(), &child_path)?;
-            let child_name = format!("{}_{}", name, i);
+            let child_name = format!("{name}_{i}");
             let child_desc = self[i].descriptor(&child_name)?;
-            let child_flow_graph = &child_desc.flow_graph;
-            let child_remap = fg.merge(child_flow_graph);
-            let remap_child = |x: &[FlowIx]| x.iter().map(|y| child_remap[y]).collect::<Vec<_>>();
-            let child_cr = remap_child(&child_flow_graph.inputs[0]);
-            let child_inputs = remap_child(&child_flow_graph.inputs[1]);
-            let child_output = remap_child(&child_flow_graph.output);
-            fg.zip(cr_buffer.iter().copied(), child_cr.into_iter());
-            let mut i_iter = input_buffer.iter().skip(input_bit_range.start).copied();
-            fg.zip(&mut i_iter, child_inputs.into_iter());
-            let mut o_iter = output_buffer.iter().skip(output_bit_range.start).copied();
-            fg.zip(child_output.into_iter(), &mut o_iter);
+            let offset = builder.import(&child_desc.ntl);
+            for (&t, c) in tcr.iter().zip(&child_desc.ntl.inputs[0]) {
+                builder.copy_from_to(t, offset(c.into()));
+            }
+            for (&t, c) in ti[input_bit_range].iter().zip(&child_desc.ntl.inputs[1]) {
+                builder.copy_from_to(t, offset(c.into()));
+            }
+            for (&t, c) in to[output_bit_range].iter().zip(&child_desc.ntl.outputs) {
+                builder.copy_from_to(offset(*c), t);
+            }
             children.insert(child_name, child_desc);
-            Ok::<(), RHDLError>(())
-        })?;
-        fg.inputs = vec![cr_buffer, input_buffer];
-        fg.output = output_buffer;
+        }
         Ok(CircuitDescriptor {
             unique_name: name.into(),
             input_kind: Self::I::static_kind(),
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            flow_graph: fg,
+            ntl: builder.build(ntl::builder::BuilderMode::Synchronous)?,
             rtl: None,
             children,
         })
@@ -113,7 +107,7 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
 
         let children = (0..N)
             .map(|ndx| {
-                let name = format!("{}_{}", name, ndx);
+                let name = format!("{name}_{ndx}");
                 let hdl = self[ndx].hdl(&name)?;
                 Ok((name, hdl))
             })

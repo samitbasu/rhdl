@@ -48,12 +48,6 @@ impl Pass for DeadCodeEliminationPass {
                 OpCode::Concat(concat) => {
                     mark_active(&concat.lhs);
                 }
-                OpCode::DynamicIndex(index) => {
-                    mark_active(&index.lhs);
-                }
-                OpCode::DynamicSplice(splice) => {
-                    mark_active(&splice.lhs);
-                }
                 OpCode::Index(index) => {
                     mark_active(&index.lhs);
                 }

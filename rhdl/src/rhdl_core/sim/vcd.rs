@@ -38,7 +38,7 @@ impl Vcd {
         self.dump(&mut buf)?;
         let hash = sha2::Sha256::digest(&buf);
         std::fs::write(path, &buf)?;
-        Ok(format!("{:x}", hash))
+        Ok(format!("{hash:x}"))
     }
     pub fn dump_svg(self, options: &SvgOptions) -> svg::Document {
         let db = self.guard.take();

@@ -466,11 +466,11 @@ pub mod alias {
     });
 }
 
-pub use bits_impl::bits;
 pub use bits_impl::Bits;
+pub use bits_impl::bits;
 pub use bitwidth::BitWidth;
-pub use signed_bits_impl::signed;
 pub use signed_bits_impl::SignedBits;
+pub use signed_bits_impl::signed;
 
 #[cfg(test)]
 mod test {
@@ -507,8 +507,8 @@ mod test {
             }
         }
         let duration = start.elapsed();
-        println!("Time elapsed in expensive_function() is: {:?}", duration);
-        println!("c = {:b}", c);
+        println!("Time elapsed in expensive_function() is: {duration:?}");
+        println!("c = {c:b}");
     }
 
     #[cfg(feature = "exhaustive-tests")]

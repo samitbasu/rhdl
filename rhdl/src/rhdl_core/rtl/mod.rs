@@ -5,4 +5,5 @@ pub use object::Object;
 pub mod remap;
 pub mod runtime_ops;
 pub mod symbols;
+pub mod visit;
 pub mod vm;

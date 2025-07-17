@@ -1,11 +1,11 @@
 use crate::rhdl_core::{
+    RHDLError,
     rtl::spec::AluBinary,
     rtl::{
+        Object,
         object::LocatedOpCode,
         spec::{AluUnary, Binary, OpCode, Operand, Unary},
-        Object,
     },
-    RHDLError,
 };
 
 use super::pass::Pass;
@@ -22,7 +22,7 @@ fn replace_not_equal_zero(input: &Object, lop: LocatedOpCode) -> LocatedOpCode {
     }) = lop.op
     {
         if let Operand::Literal(l1) = arg1 {
-            if input.literals[&l1].is_zero() {
+            if input.symtab[&l1].is_zero() {
                 return LocatedOpCode {
                     op: OpCode::Unary(Unary {
                         lhs,
@@ -33,7 +33,7 @@ fn replace_not_equal_zero(input: &Object, lop: LocatedOpCode) -> LocatedOpCode {
                 };
             }
         } else if let Operand::Literal(l2) = arg2 {
-            if input.literals[&l2].is_zero() {
+            if input.symtab[&l2].is_zero() {
                 return LocatedOpCode {
                     op: OpCode::Unary(Unary {
                         lhs,

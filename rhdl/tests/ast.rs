@@ -660,6 +660,7 @@ fn test_maybe_init_with_slice() -> miette::Result<()> {
         d.data = val;
         d
     }
+
     compile_design::<do_stuff>(CompilationMode::Synchronous)?;
     Ok(())
 }

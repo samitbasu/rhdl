@@ -1,18 +1,21 @@
-use crate::rhdl_core::{
-    ast::source::source_location::SourceLocation,
-    bitx::BitX,
-    compiler::mir::error::{RHDLCompileError, ICE},
-    error::rhdl_error,
-    hdl::ast::{
-        self, assign, concatenate, constant, declaration, dynamic_index, id, index, index_bit,
-        input_reg, literal, repeat, unary, CaseItem, Function, HDLKind,
+use crate::{
+    prelude::BitString,
+    rhdl_core::{
+        RHDLError,
+        ast::source::source_location::SourceLocation,
+        bitx::BitX,
+        compiler::mir::error::{ICE, RHDLCompileError},
+        error::rhdl_error,
+        hdl::ast::{
+            self, CaseItem, Function, HDLKind, assign, concatenate, constant, declaration, id,
+            index, index_bit, input_reg, literal, repeat, unary,
+        },
+        rtl::{
+            self,
+            object::LocatedOpCode,
+            spec::{AluUnary, CaseArgument, CastKind, Operand},
+        },
     },
-    rtl::{
-        self,
-        object::LocatedOpCode,
-        spec::{AluUnary, CaseArgument, CastKind, Operand},
-    },
-    RHDLError,
 };
 
 use rtl::spec as tl;
@@ -35,7 +38,7 @@ impl TranslationContext<'_> {
     /// Cast the argument ot the desired width, considering the result a signed value.
     /// The cast length must be less than or equal to the argument length, or an ICE is raised.
     fn translate_as_signed(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
-        if cast.len > self.rtl.kind(cast.arg).len() {
+        if cast.len > self.rtl.kind(cast.arg).bits() {
             return Err(self.raise_ice(
                 ICE::InvalidSignedCast {
                     lhs: cast.lhs,
@@ -58,11 +61,11 @@ impl TranslationContext<'_> {
         let lhs = self.rtl.op_name(cast.lhs);
         let arg = self.rtl.op_name(cast.arg);
         // Truncation case
-        if cast.len <= arg_kind.len() {
+        if cast.len <= arg_kind.bits() {
             self.func.block.push(assign(&lhs, index(&arg, 0..cast.len)));
         } else {
             // zero extend
-            let num_z = cast.len - arg_kind.len();
+            let num_z = cast.len - arg_kind.bits();
             let prefix = repeat(constant(BitX::Zero), num_z);
             self.func
                 .block
@@ -75,15 +78,15 @@ impl TranslationContext<'_> {
         let lhs = self.rtl.op_name(cast.lhs);
         let arg = self.rtl.op_name(cast.arg);
         // Truncation case
-        if cast.len <= arg_kind.len() {
+        if cast.len <= arg_kind.bits() {
             self.func.block.push(assign(
                 &lhs,
                 unary(AluUnary::Signed, index(&arg, 0..cast.len)),
             ));
         } else {
             // sign extend
-            let num_s = cast.len - arg_kind.len();
-            let sign_bit = index_bit(&arg, arg_kind.len().saturating_sub(1));
+            let num_s = cast.len - arg_kind.bits();
+            let sign_bit = index_bit(&arg, arg_kind.bits().saturating_sub(1));
             let prefix = repeat(sign_bit, num_s);
             self.func.block.push(assign(
                 &lhs,
@@ -146,7 +149,7 @@ impl TranslationContext<'_> {
             .map(|(arg, value)| {
                 let item = match arg {
                     CaseArgument::Literal(lit) => {
-                        let lit = self.rtl.literals[lit].clone();
+                        let lit = (&self.rtl.symtab[lit]).into();
                         CaseItem::Literal(lit)
                     }
                     CaseArgument::Wild => CaseItem::Wild,
@@ -167,27 +170,6 @@ impl TranslationContext<'_> {
             .collect::<Vec<_>>();
         let lhs = self.rtl.op_name(concat.lhs);
         self.func.block.push(assign(&lhs, concatenate(args)));
-        Ok(())
-    }
-    fn translate_dynamic_index(&mut self, index: &tl::DynamicIndex) -> Result<()> {
-        let lhs = self.rtl.op_name(index.lhs);
-        let arg = self.rtl.op_name(index.arg);
-        let offset = self.rtl.op_name(index.offset);
-        let len = index.len;
-        self.func
-            .block
-            .push(assign(&lhs, dynamic_index(&arg, id(&offset), len)));
-        Ok(())
-    }
-    fn translate_dynamic_splice(&mut self, splice: &tl::DynamicSplice) -> Result<()> {
-        let lhs = self.rtl.op_name(splice.lhs);
-        let arg = id(&self.rtl.op_name(splice.arg));
-        let offset = id(&self.rtl.op_name(splice.offset));
-        let value = id(&self.rtl.op_name(splice.value));
-        let len = splice.len;
-        self.func
-            .block
-            .push(ast::dynamic_splice(&lhs, arg, offset, value, len));
         Ok(())
     }
     fn translate_index(&mut self, index: &tl::Index) -> Result<()> {
@@ -243,8 +225,6 @@ impl TranslationContext<'_> {
             tl::OpCode::Cast(cast) => self.translate_cast(cast, lop.loc),
             tl::OpCode::Comment(comment) => self.translate_comment(comment),
             tl::OpCode::Concat(concat) => self.translate_concat(concat),
-            tl::OpCode::DynamicIndex(index) => self.translate_dynamic_index(index),
-            tl::OpCode::DynamicSplice(splice) => self.translate_dynamic_splice(splice),
             tl::OpCode::Index(index) => self.translate_index(index),
             tl::OpCode::Select(select) => self.translate_select(select),
             tl::OpCode::Splice(splice) => self.translate_splice(splice),
@@ -261,19 +241,19 @@ impl TranslationContext<'_> {
             .iter()
             .enumerate()
             .flat_map(|(ndx, x)| x.map(|r| (ndx, r)))
-            .map(|(ndx, reg)| input_reg(&format!("arg_{ndx}"), self.rtl.register_kind[&reg].into()))
+            .map(|(ndx, reg)| input_reg(&format!("arg_{ndx}"), self.rtl.symtab[&reg].into()))
             .collect::<Vec<_>>();
         self.func.arguments = arg_decls;
         let reg_decls = self
             .rtl
-            .register_kind
-            .keys()
-            .map(|reg| {
-                let alias = self.rtl.op_alias(Operand::Register(*reg));
+            .symtab
+            .iter_reg()
+            .map(|(rid, (kind, _))| {
+                let alias = self.rtl.op_alias(Operand::Register(rid));
                 declaration(
                     HDLKind::Reg,
-                    &self.rtl.op_name(Operand::Register(*reg)),
-                    self.rtl.register_kind[reg].into(),
+                    &self.rtl.op_name(Operand::Register(rid)),
+                    kind.into(),
                     alias,
                 )
             })
@@ -281,16 +261,19 @@ impl TranslationContext<'_> {
         self.func.registers = reg_decls;
         let literals = self
             .rtl
-            .literals
-            .iter()
-            .map(|(lit, bs)| literal(&self.rtl.op_name(Operand::Literal(*lit)), bs))
+            .symtab
+            .iter_lit()
+            .map(|(lit, (tb, _))| {
+                let bs: BitString = tb.into();
+                literal(&self.rtl.op_name(Operand::Literal(lit)), &bs)
+            })
             .collect::<Vec<_>>();
         self.func.literals = literals;
         // Bind the argument registers
         for (ndx, reg) in self.rtl.arguments.iter().enumerate() {
             if let Some(reg) = reg {
                 let reg_name = self.rtl.op_name(Operand::Register(*reg));
-                let arg_name = format!("arg_{}", ndx);
+                let arg_name = format!("arg_{ndx}");
                 self.func.block.push(assign(&reg_name, id(&arg_name)));
             }
         }

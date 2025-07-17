@@ -1,5 +1,5 @@
 use crate::rhdl_core::{
-    kernel::KernelFnKind, rhif::spec::Member, types::typed_bits::TypedBits, DigitalSignature, Kind,
+    DigitalSignature, Kind, kernel::KernelFnKind, rhif::spec::Member, types::typed_bits::TypedBits,
 };
 
 // Modeled after rustc's AST
@@ -424,6 +424,7 @@ pub enum ExprLit {
     TypedBits(ExprTypedBits),
     Int(String),
     Bool(bool),
+    Empty,
 }
 
 #[derive(Clone, Hash)]

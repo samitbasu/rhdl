@@ -152,10 +152,7 @@ mod tests {
                     assert_eq!(
                         lerp_signed(x, y, f).raw(),
                         expected,
-                        "{} {} {}",
-                        a,
-                        b,
-                        factor
+                        "{a} {b} {factor}"
                     );
                 }
             }
@@ -176,10 +173,7 @@ mod tests {
                     assert_eq!(
                         lerp_unsigned(x, y, f).raw(),
                         expected,
-                        "{} {} {}",
-                        a,
-                        b,
-                        factor
+                        "{a} {b} {factor}"
                     );
                 }
             }

@@ -15,7 +15,8 @@ impl SpannedSourceSet {
     pub fn source(&self) -> SourcePool {
         SourcePool::new(&self.sources)
     }
-    pub fn span(&self, loc: SourceLocation) -> Range<usize> {
+    pub fn span<T: Into<SourceLocation>>(&self, loc: T) -> Range<usize> {
+        let loc: SourceLocation = loc.into();
         let mut offset = 0;
         for (id, src) in &self.sources {
             if *id == loc.func {
@@ -28,6 +29,9 @@ impl SpannedSourceSet {
     }
     pub fn fallback(&self, func: FunctionId) -> SourceLocation {
         (func, self.sources[&func].fallback).into()
+    }
+    pub fn filename(&self, id: FunctionId) -> &str {
+        &self.sources[&id].filename
     }
 }
 

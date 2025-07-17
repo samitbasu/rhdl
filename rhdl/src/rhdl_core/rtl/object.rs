@@ -1,16 +1,20 @@
-use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::hash::Hash;
 use std::hash::Hasher;
 
 use fnv::FnvHasher;
 
+use crate::rhdl_core::Kind;
+use crate::rhdl_core::TypedBits;
 use crate::rhdl_core::ast::ast_impl::{FunctionId, NodeId};
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
+use crate::rhdl_core::common::symtab::RegisterId;
+use crate::rhdl_core::common::symtab::SymbolTable;
+use crate::rhdl_core::rhif::object::SourceDetails;
+use crate::rhdl_core::rtl::spec::OperandKind;
 use crate::rhdl_core::types::bit_string::BitString;
-use crate::rhdl_core::{Digital, Kind};
 
-use super::spec::{LiteralId, OpCode, Operand, RegisterId};
+use super::spec::{OpCode, Operand};
 use super::symbols::SymbolMap;
 
 #[derive(Clone, Hash)]
@@ -28,12 +32,6 @@ impl LocatedOpCode {
     }
 }
 
-impl From<(OpCode, NodeId, FunctionId)> for LocatedOpCode {
-    fn from((op, id, func): (OpCode, NodeId, FunctionId)) -> Self {
-        Self::new(op, id, func)
-    }
-}
-
 impl From<(OpCode, SourceLocation)> for LocatedOpCode {
     fn from((op, loc): (OpCode, SourceLocation)) -> Self {
         Self { op, loc }
@@ -44,112 +42,35 @@ pub fn lop(op: OpCode, id: NodeId, func: FunctionId) -> LocatedOpCode {
     LocatedOpCode::new(op, id, func)
 }
 
-#[derive(Clone, Copy, Hash)]
-pub enum RegisterKind {
-    Signed(usize),
-    Unsigned(usize),
-}
-
-impl RegisterKind {
-    pub fn is_signed(&self) -> bool {
-        matches!(self, RegisterKind::Signed(_))
-    }
-    pub fn is_unsigned(&self) -> bool {
-        matches!(self, RegisterKind::Unsigned(_))
-    }
-    pub fn len(&self) -> usize {
-        match self {
-            RegisterKind::Signed(len) => *len,
-            RegisterKind::Unsigned(len) => *len,
-        }
-    }
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-    pub fn from_digital(t: impl Digital) -> Self {
-        match t.kind() {
-            Kind::Signed(len) => RegisterKind::Signed(len),
-            _ => RegisterKind::Unsigned(t.bin().len()),
-        }
-    }
-}
-
-impl From<&Kind> for RegisterKind {
-    fn from(value: &Kind) -> Self {
-        match value {
-            Kind::Signed(len) => RegisterKind::Signed(*len),
-            _ => RegisterKind::Unsigned(value.bits()),
-        }
-    }
-}
-
-impl From<Kind> for RegisterKind {
-    fn from(value: Kind) -> Self {
-        (&value).into()
-    }
-}
-
-impl From<&BitString> for RegisterKind {
-    fn from(bs: &BitString) -> Self {
-        match bs {
-            BitString::Signed(bits) => RegisterKind::Signed(bits.len()),
-            BitString::Unsigned(bits) => RegisterKind::Unsigned(bits.len()),
-        }
-    }
-}
-
-impl std::fmt::Debug for RegisterKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            RegisterKind::Signed(width) => write!(f, "s{}", width),
-            RegisterKind::Unsigned(width) => write!(f, "b{}", width),
-        }
-    }
-}
-
 #[derive(Clone, Hash)]
 pub struct Object {
     pub symbols: SymbolMap,
-    pub literals: BTreeMap<LiteralId, BitString>,
-    pub register_kind: BTreeMap<RegisterId, RegisterKind>,
+    pub symtab: SymbolTable<TypedBits, Kind, SourceDetails, OperandKind>,
     pub return_register: Operand,
     pub ops: Vec<LocatedOpCode>,
-    pub arguments: Vec<Option<RegisterId>>,
+    pub arguments: Vec<Option<RegisterId<OperandKind>>>,
     pub name: String,
     pub fn_id: FunctionId,
 }
 
 impl Object {
-    pub fn reg_max_index(&self) -> RegisterId {
-        self.register_kind
-            .keys()
-            .max()
-            .copied()
-            .unwrap_or(RegisterId::new(0))
-    }
-    pub fn literal_max_index(&self) -> LiteralId {
-        self.literals
-            .keys()
-            .max()
-            .copied()
-            .unwrap_or(LiteralId::new(0))
-    }
     pub fn op_name(&self, op: Operand) -> String {
         format!("{op:?}")
     }
     pub fn op_alias(&self, op: Operand) -> Option<String> {
-        self.symbols.operand_names.get(&op).cloned()
-    }
-    pub fn kind(&self, op: Operand) -> RegisterKind {
-        match op {
-            Operand::Register(reg) => self.register_kind[&reg],
-            Operand::Literal(lit) => (&self.literals[&lit]).into(),
-        }
+        self.symtab[op].name.clone()
     }
     pub fn hash_value(&self) -> u64 {
         let mut hasher = FnvHasher::default();
         self.hash(&mut hasher);
         hasher.finish()
+    }
+
+    pub(crate) fn kind(&self, op: Operand) -> Kind {
+        match op {
+            Operand::Literal(lid) => self.symtab[lid].kind,
+            Operand::Register(rid) => self.symtab[rid],
+        }
     }
 }
 
@@ -159,11 +80,19 @@ impl std::fmt::Debug for Object {
         writeln!(f, "  fn_id {:?}", self.fn_id)?;
         writeln!(f, "  arguments {:?}", self.arguments)?;
         writeln!(f, "  return_register {:?}", self.return_register)?;
-        for (reg, kind) in &self.register_kind {
-            writeln!(f, "Reg {reg:?} : {kind:?}")?;
+        for (rid, (kind, details)) in self.symtab.iter_reg() {
+            let name = match details.name.as_ref() {
+                Some(s) => s.as_str(),
+                None => "",
+            };
+            let reg_type = if kind.is_signed() { "s" } else { "b" };
+            let reg_bits = kind.bits();
+            writeln!(f, "Reg {rid:?} : {reg_type}{reg_bits} // {name} {kind:?}")?;
         }
-        for (id, literal) in &self.literals {
-            writeln!(f, "Lit {id:?} : {literal:?}")?;
+        for (lid, (literal, _)) in self.symtab.iter_lit() {
+            let bs: BitString = literal.into();
+            let kind = literal.kind;
+            writeln!(f, "Lit {lid:?} : {bs:?} // {kind:?}")?;
         }
         let mut body_str = String::new();
         for lop in &self.ops {
@@ -181,7 +110,7 @@ impl std::fmt::Debug for Object {
             if line.contains('{') {
                 indent += 1;
             }
-            writeln!(f, "{}", line)?;
+            writeln!(f, "{line}")?;
         }
         Ok(())
     }

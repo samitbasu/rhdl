@@ -111,7 +111,7 @@ mod tests {
         let tb = out_stream.collect::<SynchronousTestBench<_, _>>();
         let tm = tb.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
-        let tm = tb.flow_graph(&uut, &Default::default())?;
+        let tm = tb.ntl(&uut, &Default::default())?;
         tm.run_iverilog()?;
         Ok(())
     }

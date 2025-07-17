@@ -1,8 +1,13 @@
 use std::collections::HashSet;
 
 use crate::rhdl_core::{
+    common::symtab::SymbolTable,
     error::RHDLError,
-    rhif::{remap::remap_slots, spec::Slot, Object},
+    rhif::{
+        Object,
+        spec::Slot,
+        visit::{visit_object_slots, visit_object_slots_mut},
+    },
 };
 
 use super::pass::Pass;
@@ -16,17 +21,19 @@ impl Pass for RemoveUnusedRegistersPass {
     }
     fn run(mut input: Object) -> Result<Object, RHDLError> {
         let mut used_set: HashSet<Slot> = Default::default();
-        used_set.extend(input.arguments.iter().map(|r| Slot::Register(*r)));
-        used_set.insert(input.return_slot);
-        for lop in input.ops.iter() {
-            remap_slots(lop.op.clone(), |slot| {
-                used_set.insert(slot);
-                slot
-            });
-        }
-        input
-            .kind
-            .retain(|&reg_id, _| used_set.contains(&reg_id.into()));
+        visit_object_slots(&input, |_sense, &slot| {
+            used_set.insert(slot);
+        });
+        let (literals, mut registers) = std::mem::take(&mut input.symtab).into_parts();
+        let remap = registers.retain(|rid, _| used_set.contains(&Slot::Register(rid)));
+        visit_object_slots_mut(&mut input, |_sense, slot| {
+            if let Some(rid) = slot.reg() {
+                *slot = Slot::Register(
+                    remap(rid).expect("New symbol table should include all used registers"),
+                );
+            }
+        });
+        input.symtab = SymbolTable::from_parts(literals, registers);
         Ok(input)
     }
 }

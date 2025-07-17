@@ -2,19 +2,18 @@
 use log::debug;
 
 use crate::rhdl_core::{
+    Kind,
     ast::{ast_impl::WrapOp, source::source_location::SourceLocation},
     compiler::mir::error::ICE,
     error::RHDLError,
     rhif::{
-        self,
+        self, Object,
         spec::{
             AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
             Index, OpCode, Repeat, Retime, Select, Slot, Splice, Struct, Tuple, Unary, Wrap,
         },
-        Object,
     },
-    types::path::{sub_kind, Path, PathElement},
-    Kind,
+    types::path::{Path, PathElement, sub_kind},
 };
 
 use super::pass::Pass;
@@ -111,12 +110,7 @@ fn xsub_kind(obj: &Object, loc: SourceLocation, a: Kind, b: Kind) -> Result<Kind
 }
 
 fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
-    let slot_type = |slot: &Slot| -> Kind {
-        if matches!(*slot, Slot::Empty) {
-            return Kind::Empty;
-        }
-        obj.kind(*slot)
-    };
+    let slot_type = |slot: &Slot| -> Kind { obj.kind(*slot) };
     // Checks that two kinds are equal, but ignores clocking information
     let eq_kinds = |a: Kind, b: Kind, loc: SourceLocation| -> Result<(), RHDLError> {
         // Special case Empty == Tuple([])
@@ -349,7 +343,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                         return Err(TypeCheckPass::raise_ice(
                             obj,
                             ICE::IndexValueMustBeUnsigned,
-                            obj.symbols.slot_map[slot],
+                            obj.symtab[slot].location,
                         ));
                     }
                 }
@@ -396,7 +390,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                             variant: discriminant_value,
                             ty,
                         },
-                        obj.symbols.slot_map[lhs],
+                        obj.symtab[lhs].location,
                     ))?
                     .kind;
                 for field in fields {
@@ -421,7 +415,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                     return Err(TypeCheckPass::raise_ice(
                         obj,
                         ICE::ExpectedArrayType { kind: ty },
-                        obj.symbols.slot_map[lhs],
+                        obj.symtab[lhs].location,
                     ));
                 };
                 eq_kinds(ty, Kind::make_array(*array_ty.base.clone(), *len as _), loc)?;
@@ -441,7 +435,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                                 return Err(TypeCheckPass::raise_ice(
                                     obj,
                                     ICE::MatchPatternValueMustBeLiteral,
-                                    obj.symbols.slot_map[slot],
+                                    obj.symtab[slot].location,
                                 ));
                             }
                             eq_kinds(arg_ty, slot_type(slot), loc)?;

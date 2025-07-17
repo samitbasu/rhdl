@@ -32,7 +32,7 @@ impl Default for Packet {
 fn test_packet_random() {
     for _ in 0..10 {
         let packet = Packet::default();
-        eprintln!("{:?}", packet);
+        eprintln!("{packet:?}");
     }
 }
 

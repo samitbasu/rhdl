@@ -14,6 +14,7 @@ rhdl = { path = "../rhdl" }
 strum = { version = "0.25.0", features = ["derive"] }
 
 [dev-dependencies]
+env_logger = "0.11.8"
 expect-test = "1.5.0"
 log = "0.4.22"
 miette = "7.2.0"

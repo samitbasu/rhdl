@@ -1,11 +1,10 @@
 use crate::rhdl_core::{
+    RHDLError, TypedBits,
     rtl::{
+        Object,
         object::LocatedOpCode,
         spec::{Assign, OpCode, Operand},
-        Object,
     },
-    types::bit_string::BitString,
-    RHDLError,
 };
 
 use super::pass::Pass;
@@ -19,25 +18,26 @@ impl Pass for RemoveEmptyFunctionArguments {
             .arguments
             .iter()
             .flat_map(|x| x.as_ref())
-            .filter(|x| input.register_kind[*x].is_empty())
+            .filter(|x| input.symtab[*x].bits() == 0)
             .copied()
             .collect::<Vec<_>>();
         if empty_args.is_empty() {
             return Ok(input);
         }
-        let my_empty = input.literal_max_index().next();
-        input.literals.insert(my_empty, BitString::Unsigned(vec![]));
-        let my_empty = Operand::Literal(my_empty);
-        let fallback = input.symbols.fallback(input.fn_id);
-        input.symbols.operand_map.insert(my_empty, fallback);
         let preamble = empty_args
             .iter()
-            .map(|arg| LocatedOpCode {
-                op: OpCode::Assign(Assign {
-                    lhs: Operand::Register(*arg),
-                    rhs: my_empty,
-                }),
-                loc: fallback,
+            .map(|arg| {
+                let operand = Operand::Register(*arg);
+                let details = input.symtab[operand].clone();
+                let loc = details.location;
+                let empty = input.symtab.lit(TypedBits::EMPTY, details);
+                LocatedOpCode {
+                    op: OpCode::Assign(Assign {
+                        lhs: Operand::Register(*arg),
+                        rhs: empty,
+                    }),
+                    loc,
+                }
             })
             .collect::<Vec<_>>();
         input.ops = preamble.into_iter().chain(input.ops).collect();

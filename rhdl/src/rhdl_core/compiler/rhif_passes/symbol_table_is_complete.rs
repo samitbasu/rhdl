@@ -1,9 +1,7 @@
-use std::collections::HashSet;
-
 use crate::rhdl_core::{
     compiler::mir::error::ICE,
     error::RHDLError,
-    rhif::{remap::remap_slots, spec::Slot, Object},
+    rhif::{Object, visit::visit_object_slots},
 };
 
 use super::pass::Pass;
@@ -16,25 +14,28 @@ impl Pass for SymbolTableIsComplete {
         "Check that symbol table is complete"
     }
     fn run(input: Object) -> Result<Object, RHDLError> {
-        let mut used_set: HashSet<Slot> = Default::default();
-        used_set.extend(input.arguments.iter().map(|r| Slot::Register(*r)));
-        used_set.insert(input.return_slot);
-        for lop in input.ops.iter() {
-            remap_slots(lop.op.clone(), |slot| {
-                used_set.insert(slot);
-                slot
-            });
-        }
+        let mut error = None;
         let id = input.symbols.fallback(input.fn_id);
-        for slot in used_set {
-            if !input.symbols.slot_map.contains_key(&slot) {
-                return Err(Self::raise_ice(
-                    &input,
-                    ICE::SymbolTableIsIncomplete { slot },
-                    id,
-                ));
+        visit_object_slots(&input, |sense, &slot| {
+            if error.is_none() {
+                if !input.symtab.is_key_valid(slot) {
+                    error = Some(Err(Self::raise_ice(
+                        &input,
+                        ICE::SymbolTableIsIncomplete { slot },
+                        id,
+                    )));
+                }
+                if sense.is_write() && slot.is_lit() {
+                    log::info!("{input:?}");
+                    log::error!("Write to literal {slot} detected");
+                    panic!("Cannot write to literal slot {slot}!");
+                }
             }
+        });
+        if let Some(err) = error {
+            err
+        } else {
+            Ok(input)
         }
-        Ok(input)
     }
 }

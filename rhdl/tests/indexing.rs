@@ -160,11 +160,11 @@ fn test_complex_array_dynamic_indexing() -> miette::Result<()> {
 
     fn rand_foo() -> Foo {
         // make a random Foo
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         Foo {
-            a: rng.gen(),
+            a: rng.random(),
             b: [rand_bits(), rand_bits(), rand_bits(), rand_bits()],
-            c: rng.gen(),
+            c: rng.random(),
         }
     }
 
@@ -176,9 +176,9 @@ fn test_complex_array_dynamic_indexing() -> miette::Result<()> {
 
     fn rand_bar() -> Bar {
         // make a random Bar
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         Bar {
-            a: b9(rng.gen::<u16>() as u128 % 512),
+            a: b9(rng.random::<u16>() as u128 % 512),
             b: [
                 rand_foo(),
                 rand_foo(),
@@ -239,6 +239,7 @@ fn test_complex_array_dynamic_indexing() -> miette::Result<()> {
 fn test_array_dynamic_indexing() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<[b8; 8], Red>, b: Signal<b3, Red>) -> Signal<b8, Red> {
+        let a = a.val();
         signal(a[b])
     }
 

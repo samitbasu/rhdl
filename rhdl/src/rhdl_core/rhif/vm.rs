@@ -1,10 +1,9 @@
-use std::collections::BTreeMap;
-
 use crate::rhdl_core::ast::ast_impl::WrapOp;
 use crate::rhdl_core::ast::source::source_location::SourceLocation;
-use crate::rhdl_core::compiler::mir::error::{RHDLCompileError, ICE};
+use crate::rhdl_core::common::slot_vec::SlotKey;
+use crate::rhdl_core::compiler::mir::error::{ICE, RHDLCompileError};
 use crate::rhdl_core::error::rhdl_error;
-use crate::rhdl_core::rhif::object::Object;
+use crate::rhdl_core::rhif::object::{Object, SourceDetails};
 use crate::rhdl_core::rhif::spec::{
     Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index, Member, OpCode, Repeat,
     Slot, Struct, Tuple, Unary,
@@ -15,13 +14,13 @@ use crate::rhdl_core::{Kind, RHDLError};
 
 use super::object::LocatedOpCode;
 use super::runtime_ops::{array, binary, tuple, unary};
-use super::spec::{LiteralId, Retime, Select, Splice, Wrap};
+use super::spec::{Retime, Select, Splice, Wrap};
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
 struct VMState<'a> {
     reg_stack: &'a mut [Option<TypedBits>],
-    literals: &'a BTreeMap<LiteralId, TypedBits>,
+    literals: &'a [(TypedBits, SourceDetails)],
     obj: &'a Object,
 }
 
@@ -36,26 +35,18 @@ impl VMState<'_> {
     }
     fn read(&self, slot: Slot, loc: SourceLocation) -> Result<TypedBits> {
         match slot {
-            Slot::Literal(l) => Ok(self.literals[&l].clone()),
-            Slot::Register(r) => self.reg_stack[r.0]
+            Slot::Literal(l) => Ok(self.literals[l.index()].0.clone()),
+            Slot::Register(r) => self.reg_stack[r.index()]
                 .clone()
                 .ok_or(self.raise_ice(ICE::UninitializedRegister { r }, loc)),
-            Slot::Empty => Ok(TypedBits::EMPTY),
         }
     }
     fn write(&mut self, slot: Slot, value: TypedBits, loc: SourceLocation) -> Result<()> {
         match slot {
             Slot::Literal(ndx) => Err(self.raise_ice(ICE::CannotWriteToRHIFLiteral { ndx }, loc)),
             Slot::Register(r) => {
-                self.reg_stack[r.0] = Some(value);
+                self.reg_stack[r.index()] = Some(value);
                 Ok(())
-            }
-            Slot::Empty => {
-                if value.kind.is_empty() {
-                    Ok(())
-                } else {
-                    Err(self.raise_ice(ICE::CannotWriteNonEmptyValueToEmptySlot, loc))
-                }
             }
         }
     }
@@ -286,7 +277,7 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
     }
     for (ndx, arg) in arguments.iter().enumerate() {
         let arg_kind = &arg.kind;
-        let obj_kind = &obj.kind[&obj.arguments[ndx]];
+        let obj_kind = &obj.symtab[obj.arguments[ndx]];
         if obj_kind != arg_kind {
             return Err(rhdl_error(RHDLCompileError {
                 cause: ICE::ArgumentTypeMismatchOnCall {
@@ -299,27 +290,26 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
         }
     }
     // Allocate registers for the function call.
-    let max_reg = obj.reg_max_index().0 + 1;
-    let mut reg_stack = vec![None; max_reg + 1];
+    let max_reg = obj.symtab.reg_vec().len();
+    let mut reg_stack = vec![None; max_reg];
     // Copy the arguments into the appropriate registers
     for (ndx, arg) in arguments.into_iter().enumerate() {
         let r = obj.arguments[ndx];
-        reg_stack[r.0] = Some(arg);
+        reg_stack[r.index()] = Some(arg);
     }
     let mut state = VMState {
         reg_stack: &mut reg_stack,
-        literals: &obj.literals,
+        literals: obj.symtab.lit_vec(),
         obj,
     };
     execute_block(&obj.ops, &mut state)?;
     match obj.return_slot {
-        Slot::Empty => Ok(TypedBits::EMPTY),
         Slot::Register(r) => reg_stack
-            .get(r.0)
+            .get(r.index())
             .cloned()
             .ok_or(rhdl_error(RHDLCompileError {
                 cause: ICE::ReturnSlotNotFound {
-                    name: format!("{:?}", r),
+                    name: format!("{r:?}"),
                 },
                 src: symbols.source(),
                 err_span: symbols.span(loc).into(),
@@ -329,6 +319,6 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
                 src: symbols.source(),
                 err_span: symbols.span(loc).into(),
             })),
-        Slot::Literal(ndx) => Ok(obj.literals[&ndx].clone()),
+        Slot::Literal(ndx) => Ok(obj.symtab[ndx].clone()),
     }
 }

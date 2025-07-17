@@ -1,6 +1,9 @@
-use crate::rhdl_core::{
-    circuit::yosys::run_yosys_synth, digital_fn::DigitalFn2, error::RHDLError,
-    flow_graph::optimization::optimize_flow_graph, DigitalFn, FlowGraph, Timed,
+use crate::{
+    prelude::Module,
+    rhdl_core::{
+        circuit::yosys::run_yosys_synth, digital_fn::DigitalFn2, error::RHDLError,
+        ntl::hdl::generate_hdl, DigitalFn, Timed,
+    },
 };
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
@@ -37,13 +40,12 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO {
     // auto derived
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
 
-    // Return a top level flow graph for this circuit, optimized
-    fn flow_graph(&self, name: &str) -> Result<FlowGraph, RHDLError> {
-        let flow_graph = self.descriptor(name)?.flow_graph.clone();
-        optimize_flow_graph(flow_graph)
-    }
-
     fn yosys_check(&self) -> Result<(), RHDLError> {
         run_yosys_synth(self.hdl("top")?)
+    }
+
+    fn netlist_hdl(&self, name: &str) -> Result<Module, RHDLError> {
+        let descriptor = self.descriptor(name)?;
+        generate_hdl(name, &descriptor.ntl)
     }
 }

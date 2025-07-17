@@ -6,3 +6,4 @@ pub use object::Object;
 pub mod display_rhif;
 pub mod remap;
 pub mod runtime_ops;
+pub mod visit;

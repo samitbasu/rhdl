@@ -266,7 +266,7 @@ mod tests {
                 .skip(10),
         )?;
         test_mod.run_iverilog()?;
-        let test_mod = test_bench.flow_graph(
+        let test_mod = test_bench.ntl(
             &uut,
             &TestBenchOptions::default()
                 .vcd(&root.join("split_counter_fg.vcd").to_string_lossy())

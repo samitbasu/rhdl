@@ -1,7 +1,9 @@
-use crate::rhdl_core::{
-    circuit::yosys::run_yosys_synth, digital_fn::DigitalFn3, error::RHDLError,
-    flow_graph::optimization::optimize_flow_graph, CircuitDescriptor, ClockReset, Digital,
-    DigitalFn, FlowGraph, HDLDescriptor,
+use crate::{
+    prelude::Module,
+    rhdl_core::{
+        circuit::yosys::run_yosys_synth, digital_fn::DigitalFn3, error::RHDLError,
+        ntl::hdl::generate_hdl, CircuitDescriptor, ClockReset, Digital, DigitalFn, HDLDescriptor,
+    },
 };
 
 pub trait SynchronousDQ: 'static + Sized + Clone {
@@ -31,12 +33,12 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO {
 
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
 
-    fn flow_graph(&self, name: &str) -> Result<FlowGraph, RHDLError> {
-        let flow_graph = self.descriptor(name)?.flow_graph.clone();
-        optimize_flow_graph(flow_graph)
-    }
-
     fn yosys_check(&self) -> Result<(), RHDLError> {
         run_yosys_synth(self.hdl("top")?)
+    }
+
+    fn netlist_hdl(&self, name: &str) -> Result<Module, RHDLError> {
+        let descriptor = self.descriptor(name)?;
+        generate_hdl(name, &descriptor.ntl)
     }
 }

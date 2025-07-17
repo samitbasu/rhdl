@@ -3,13 +3,13 @@ use std::collections::BTreeMap;
 
 use super::pass::Pass;
 use crate::rhdl_core::{
+    Kind, TypedBits,
     compiler::mir::ty::SignFlag,
     error::RHDLError,
     rhif::{
-        spec::{OpCode, Slot},
         Object,
+        spec::{OpCode, Slot},
     },
-    Kind, TypedBits,
 };
 
 #[derive(Default, Debug, Clone)]
@@ -34,12 +34,12 @@ impl Pass for PrecastIntegerLiteralsInBinops {
         // this kind of operation, so we must precast the u128 to a b8.
         // This is the purpose of this pass.
         let mut generic_int_literals = input
-            .literals
-            .iter()
-            .filter_map(|(k, v)| {
+            .symtab
+            .iter_lit()
+            .filter_map(|(k, (v, _loc))| {
                 if matches!(v.kind, Kind::Bits(128) | Kind::Signed(128)) {
                     Some((
-                        Slot::Literal(*k),
+                        Slot::Literal(k),
                         CastCandidate {
                             literal: v.clone(),
                             cast_details: None,
@@ -107,7 +107,7 @@ impl Pass for PrecastIntegerLiteralsInBinops {
                     v.literal.unsigned_cast(len)
                 };
                 if let Ok(new_tb) = new_tb {
-                    input.literals.insert(k.as_literal().unwrap(), new_tb);
+                    input.symtab[k.lit().unwrap()] = new_tb;
                 }
             }
         }
