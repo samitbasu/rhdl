@@ -118,10 +118,30 @@ Time:
 3
 <title>3</title>
 </text>
-<path d="M 651 50 L 654 43 L 1148 43 L 1151 50 L 1148 57 L 654 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 650 50 L 653 43 L 747 43 L 750 50 L 747 57 L 653 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="700" xml:space="preserve" y="50">
+4
+<title>4</title>
+</text>
+<path d="M 750 50 L 753 43 L 847 43 L 850 50 L 847 57 L 753 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="800" xml:space="preserve" y="50">
+5
+<title>5</title>
+</text>
+<path d="M 851 50 L 854 43 L 948 43 L 951 50 L 948 57 L 854 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="901" xml:space="preserve" y="50">
-3
-<title>3</title>
+5
+<title>5</title>
+</text>
+<path d="M 951 50 L 954 43 L 1047 43 L 1050 50 L 1047 57 L 954 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1000" xml:space="preserve" y="50">
+6
+<title>6</title>
+</text>
+<path d="M 1051 50 L 1054 43 L 1148 43 L 1151 50 L 1148 57 L 1054 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1101" xml:space="preserve" y="50">
+6
+<title>6</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
 .count.dff.output
@@ -142,10 +162,25 @@ Time:
 2
 <title>2</title>
 </text>
-<path d="M 650 70 L 653 63 L 1148 63 L 1151 70 L 1148 77 L 653 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="70">
+<path d="M 650 70 L 653 63 L 747 63 L 750 70 L 747 77 L 653 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="700" xml:space="preserve" y="70">
 3
 <title>3</title>
+</text>
+<path d="M 750 70 L 753 63 L 847 63 L 850 70 L 847 77 L 753 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="800" xml:space="preserve" y="70">
+4
+<title>4</title>
+</text>
+<path d="M 850 70 L 853 63 L 1047 63 L 1050 70 L 1047 77 L 853 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="950" xml:space="preserve" y="70">
+5
+<title>5</title>
+</text>
+<path d="M 1050 70 L 1053 63 L 1148 63 L 1151 70 L 1148 77 L 1053 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1100" xml:space="preserve" y="70">
+6
+<title>6</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="90">
 .input
@@ -155,9 +190,12 @@ Time:
 <rect fill="#1C400C" height="14" stroke="none" width="98" x="252" y="83"/>
 <path d="M 251 90 L 251 83 L 351 83 L 351 90" fill="none" stroke="#56C126" stroke-width="1"/>
 <path d="M 351 90 L 351 97 L 451 97 L 451 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="198" x="452" y="83"/>
-<path d="M 451 90 L 451 83 L 651 83 L 651 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<path d="M 651 90 L 651 97 L 1151 97 L 1151 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="398" x="452" y="83"/>
+<path d="M 451 90 L 451 83 L 851 83 L 851 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 851 90 L 851 97 L 951 97 L 951 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="98" x="952" y="83"/>
+<path d="M 951 90 L 951 83 L 1051 83 L 1051 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 1051 90 L 1051 97 L 1151 97 L 1151 90" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="110">
 .outputs
 <title>top.outputs</title>
@@ -177,10 +215,25 @@ Time:
 2
 <title>2</title>
 </text>
-<path d="M 650 110 L 653 103 L 1148 103 L 1151 110 L 1148 117 L 653 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="110">
+<path d="M 650 110 L 653 103 L 747 103 L 750 110 L 747 117 L 653 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="700" xml:space="preserve" y="110">
 3
 <title>3</title>
+</text>
+<path d="M 750 110 L 753 103 L 847 103 L 850 110 L 847 117 L 753 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="800" xml:space="preserve" y="110">
+4
+<title>4</title>
+</text>
+<path d="M 850 110 L 853 103 L 1047 103 L 1050 110 L 1047 117 L 853 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="950" xml:space="preserve" y="110">
+5
+<title>5</title>
+</text>
+<path d="M 1050 110 L 1053 103 L 1148 103 L 1151 110 L 1148 117 L 1053 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1100" xml:space="preserve" y="110">
+6
+<title>6</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="130">
 .reset

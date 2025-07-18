@@ -1,6 +1,6 @@
 use crate::rhdl_bits::{BitWidth, Bits};
 
-use crate::rhdl_core::{bitx::BitX, trace::bit::TraceBit, Digital, Kind};
+use crate::rhdl_core::{Digital, Kind, bitx::BitX, trace::bit::TraceBit};
 
 use super::kind::Field;
 
@@ -18,11 +18,11 @@ impl<N: BitWidth> Digital for BitZ<N> {
             "BitZ",
             vec![
                 Field {
-                    name: "value".into(),
+                    name: "value".to_string().into(),
                     kind: <Bits<N> as Digital>::static_kind(),
                 },
                 Field {
-                    name: "mask".into(),
+                    name: "mask".to_string().into(),
                     kind: <Bits<N> as Digital>::static_kind(),
                 },
             ],

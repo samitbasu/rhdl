@@ -52,14 +52,14 @@ impl VMState<'_> {
     }
     fn resolve_dynamic_paths(&mut self, path: &Path, loc: SourceLocation) -> Result<Path> {
         let mut result = Path::default();
-        for element in &path.elements {
+        for element in path.iter() {
             match element {
                 crate::rhdl_core::types::path::PathElement::DynamicIndex(slot) => {
                     let slot = self.read(*slot, loc)?;
                     let ndx = slot.as_i64()?;
                     result = result.index(ndx as usize);
                 }
-                _ => result.elements.push(element.clone()),
+                _ => result.push(element.clone()),
             }
         }
         Ok(result)

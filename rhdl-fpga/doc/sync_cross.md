@@ -175,41 +175,30 @@ Time:
 .input
 <title>top.input</title>
 </text>
-<path d="M 200 50 L 200 57 L 451 57 L 451 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="98" x="452" y="43"/>
-<path d="M 451 50 L 451 43 L 551 43 L 551 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 551 50 L 551 57 L 1551 57 L 1551 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="98" x="1552" y="43"/>
-<path d="M 1551 50 L 1551 43 L 1651 43 L 1651 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 1651 50 L 1651 57 L 2051 57 L 2051 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="98" x="2052" y="43"/>
-<path d="M 2051 50 L 2051 43 L 2151 43 L 2151 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 2151 50 L 2151 57 L 2190 57 L 2190 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 200 50 L 200 57 L 751 57 L 751 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="198" x="752" y="43"/>
+<path d="M 751 50 L 751 43 L 951 43 L 951 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 951 50 L 951 57 L 2151 57 L 2151 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="37" x="2152" y="43"/>
+<path d="M 2151 50 L 2151 43 L 2190 43 L 2190 50" fill="none" stroke="#D62246" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
 .input@
 <title>top.input@</title>
 </text>
-<path d="M 200 70 L 200 77 L 451 77 L 451 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="98" x="452" y="63"/>
-<path d="M 451 70 L 451 63 L 551 63 L 551 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 551 70 L 551 77 L 1551 77 L 1551 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="98" x="1552" y="63"/>
-<path d="M 1551 70 L 1551 63 L 1651 63 L 1651 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 1651 70 L 1651 77 L 2051 77 L 2051 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="98" x="2052" y="63"/>
-<path d="M 2051 70 L 2051 63 L 2151 63 L 2151 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 2151 70 L 2151 77 L 2190 77 L 2190 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 200 70 L 200 77 L 751 77 L 751 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="198" x="752" y="63"/>
+<path d="M 751 70 L 751 63 L 951 63 L 951 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 951 70 L 951 77 L 2151 77 L 2151 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="37" x="2152" y="63"/>
+<path d="M 2151 70 L 2151 63 L 2190 63 L 2190 70" fill="none" stroke="#D62246" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="90">
 .output
 <title>top.output</title>
 </text>
-<path d="M 200 90 L 200 97 L 551 97 L 551 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="154" x="552" y="83"/>
-<path d="M 551 90 L 551 83 L 707 83 L 707 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<path d="M 707 90 L 707 97 L 1643 97 L 1643 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="154" x="1644" y="83"/>
-<path d="M 1643 90 L 1643 83 L 1799 83 L 1799 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<path d="M 1799 90 L 1799 97 L 2189 97 L 2189 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 200 90 L 200 97 L 863 97 L 863 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="232" x="864" y="83"/>
+<path d="M 863 90 L 863 83 L 1097 83 L 1097 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 1097 90 L 1097 97 L 2190 97 L 2190 90" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="110">
 .reset
 <title>top.reset</title>

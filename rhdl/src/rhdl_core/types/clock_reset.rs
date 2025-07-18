@@ -1,4 +1,4 @@
-use crate::rhdl_core::{bitx::BitX, Clock, Digital, Kind, Reset};
+use crate::rhdl_core::{Clock, Digital, Kind, Reset, bitx::BitX};
 
 use super::kind::Field;
 
@@ -19,11 +19,11 @@ impl Digital for ClockReset {
             "ClockReset",
             vec![
                 Field {
-                    name: "clock".into(),
+                    name: "clock".to_string().into(),
                     kind: <Clock as Digital>::static_kind(),
                 },
                 Field {
-                    name: "reset".into(),
+                    name: "reset".to_string().into(),
                     kind: <Reset as Digital>::static_kind(),
                 },
             ],
@@ -34,11 +34,11 @@ impl Digital for ClockReset {
             name: "ClockReset".into(),
             fields: vec![
                 rhdl_trace_type::Field {
-                    name: "clock".into(),
+                    name: "clock".to_string().into(),
                     ty: <Clock as Digital>::static_trace_type(),
                 },
                 rhdl_trace_type::Field {
-                    name: "reset".into(),
+                    name: "reset".to_string().into(),
                     ty: <Reset as Digital>::static_trace_type(),
                 },
             ],

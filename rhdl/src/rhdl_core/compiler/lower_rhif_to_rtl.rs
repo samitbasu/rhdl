@@ -73,7 +73,7 @@ fn path_star_with_index_tracking(
             dynamic_slot_values: FnvHashMap::default(),
         }]);
     }
-    if let Some(element) = path.elements.first() {
+    if let Some(element) = path.iter().next() {
         match element {
             PathElement::DynamicIndex(slot) => {
                 let Kind::Array(array) = kind else {
@@ -86,8 +86,9 @@ fn path_star_with_index_tracking(
                 let upper_limit = array.size.min(1 << slot_bits);
                 let mut paths = Vec::new();
                 for i in 0..upper_limit {
-                    let mut path = path.clone();
-                    path.elements[0] = PathElement::Index(i);
+                    let path = std::iter::once(PathElement::Index(i))
+                        .chain(path.iter().copied().skip(1))
+                        .collect::<Path>();
                     let mut child_paths = path_star_with_index_tracking(object, kind, &path)?;
                     child_paths.iter_mut().for_each(|child| {
                         child.dynamic_slot_values.insert(*slot, i);
@@ -99,9 +100,7 @@ fn path_star_with_index_tracking(
             p => {
                 // We have a non-dynamic path element, like a.foo
                 // We want to apply it to get the subtype
-                let prefix_path = Path {
-                    elements: vec![p.clone()],
-                };
+                let prefix_path = Path::with_element(*p);
                 // The resulting kind we compute with [sub_kind]
                 let prefix_kind = sub_kind(kind, &prefix_path)?;
                 // Get a residual path
