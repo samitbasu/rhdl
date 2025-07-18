@@ -1,8 +1,8 @@
 use crate::{
     prelude::{BitX, Digital, Kind, Path},
     rhdl_core::{
-        types::path::{sub_kind, PathElement},
         Color, TypedBits,
+        types::path::{PathElement, sub_kind},
     },
 };
 
@@ -646,10 +646,7 @@ fn pretty_leaf_paths_inner(kind: &Kind, base: Path) -> Vec<Path> {
     // Special case base is a payload, and kind is a single-element tuple.  This happens
     // with enums, where the payload is a single-element tuple.  For readability, we
     // project through the payload to the tuple.
-    if matches!(
-        base.elements.iter().last(),
-        Some(PathElement::EnumPayload(_))
-    ) {
+    if matches!(base.iter().last(), Some(PathElement::EnumPayload(_))) {
         match kind {
             Kind::Tuple(tuple) if tuple.elements.len() == 1 => {
                 return pretty_leaf_paths_inner(&tuple.elements[0], base.clone().tuple_index(0));
@@ -717,7 +714,7 @@ pub fn compute_trace_color_from_path(t: Kind, path: &Path) -> Option<TraceColor>
 // the regular path method.
 pub fn try_path(t: &TypedBits, path: &Path) -> Option<TypedBits> {
     let mut t = t.clone();
-    for element in &path.elements {
+    for element in path.iter() {
         match element {
             PathElement::EnumPayload(tag) => {
                 let discriminant = t.discriminant().ok()?.as_i64().ok()?;

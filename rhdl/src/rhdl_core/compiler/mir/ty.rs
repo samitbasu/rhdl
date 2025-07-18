@@ -28,13 +28,13 @@ pub enum SignFlag {
 
 // These are types that are fundamental, i.e., not parameterized or
 // generic over any other types.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Const {
     Clock(Color),
     Length(usize),
     Empty,
     Signed(SignFlag),
-    String(String),
+    String(Intern<String>),
     Unclocked,
 }
 
@@ -76,7 +76,10 @@ pub enum UnifyError {
     #[error("Cannot unify structs {x:?} and {y:?}")]
     CannotUnifyStructs { x: AppStruct, y: AppStruct },
     #[error("Cannot unify fields with names {x} and {y}")]
-    CannotUnifyFieldsWithNames { x: String, y: String },
+    CannotUnifyFieldsWithNames {
+        x: Intern<String>,
+        y: Intern<String>,
+    },
     #[error("Cannot unify enums with different variants {x:?} and {y:?}")]
     CannotUnifyEnums { x: AppEnum, y: AppEnum },
     #[error("Cannot unify variants of tags {x:?} and {y:?}")]
@@ -220,8 +223,8 @@ impl AppTypeKind for AppArray {
 // both a name, and names for the fields.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct AppStruct {
-    name: String,
-    fields: Vec<(String, TypeId)>,
+    name: Intern<String>,
+    fields: Vec<(Intern<String>, TypeId)>,
 }
 
 impl AppTypeKind for AppStruct {
@@ -244,7 +247,10 @@ impl AppTypeKind for AppStruct {
             .into_iter()
             .map(|(name, t)| {
                 let kind = context.into_kind(t)?;
-                Ok(Field { name, kind })
+                Ok(Field {
+                    name: name.into(),
+                    kind,
+                })
             })
             .collect::<Result<_, RHDLError>>()?;
         Ok(Kind::make_struct(&self.name, fields))
@@ -287,7 +293,7 @@ impl AppTypeKind for AppEnum {
             .map(|(v, t)| {
                 let kind = context.into_kind(t)?;
                 Ok(crate::rhdl_core::types::kind::Variant {
-                    name: v.name,
+                    name: v.name.into(),
                     kind,
                     discriminant: v.discriminant,
                 })
@@ -336,13 +342,13 @@ impl AppTypeKind for AppTuple {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct VariantTag {
-    name: String,
+    name: Intern<String>,
     discriminant: i64,
 }
 
 pub fn make_variant_tag(name: &str, discriminant: i64) -> VariantTag {
     VariantTag {
-        name: name.to_string(),
+        name: name.to_string().into(),
         discriminant,
     }
 }
@@ -512,11 +518,11 @@ impl UnifyContext {
     }
 
     pub fn ty_struct(&mut self, loc: SourceLocation, strukt: &Struct) -> TypeId {
-        let fields: Vec<(String, TypeId)> = strukt
+        let fields: Vec<(Intern<String>, TypeId)> = strukt
             .fields
             .iter()
             .map(|field| {
-                let name = field.name.clone();
+                let name = field.name;
                 let ty = self.from_kind(loc, field.kind);
                 (name, ty)
             })
@@ -524,7 +530,7 @@ impl UnifyContext {
         self.ty_app(
             loc,
             AppType::Struct(AppStruct {
-                name: strukt.name.clone(),
+                name: strukt.name,
                 fields,
             }),
         )
@@ -533,8 +539,8 @@ impl UnifyContext {
     pub fn ty_dyn_struct(
         &mut self,
         loc: SourceLocation,
-        name: String,
-        fields: Vec<(String, TypeId)>,
+        name: Intern<String>,
+        fields: Vec<(Intern<String>, TypeId)>,
     ) -> TypeId {
         self.ty_app(loc, AppType::Struct(AppStruct { name, fields }))
     }
@@ -550,7 +556,7 @@ impl UnifyContext {
     pub fn ty_dyn_enum(
         &mut self,
         loc: SourceLocation,
-        name: String,
+        name: Intern<String>,
         discriminant: TypeId,
         alignment: DiscriminantAlignment,
         variants: Vec<(VariantTag, TypeId)>,
@@ -646,7 +652,7 @@ impl UnifyContext {
         enumerate
             .variants
             .iter()
-            .find_map(|(v, t)| if v.name == variant { Some(*t) } else { None })
+            .find_map(|(v, t)| if *v.name == variant { Some(*t) } else { None })
             .ok_or_else(|| {
                 self.raise_type_error(UnifyError::VariantNotFound {
                     tag: variant.to_string(),
@@ -690,7 +696,7 @@ impl UnifyContext {
         strukt
             .fields
             .iter()
-            .find_map(|f| if f.0 == member { Some(f.1) } else { None })
+            .find_map(|f| if *f.0 == member { Some(f.1) } else { None })
             .ok_or_else(|| {
                 self.raise_type_error(UnifyError::MissingFieldInStructDefinition {
                     field: member.to_string(),

@@ -1,3 +1,4 @@
+use internment::Intern;
 use log::debug;
 use miette::Diagnostic;
 use rhdl_trace_type::TraceType;
@@ -41,15 +42,18 @@ pub enum PathError {
     #[error("Array indexing not allowed on this type {trace:?}")]
     IndexingNotAllowedTrace { trace: TraceType },
     #[error("Field {field} not found in {kind:?}")]
-    FieldNotFound { field: String, kind: Kind },
+    FieldNotFound { field: Intern<String>, kind: Kind },
     #[error("Field {field} not found in {trace:?}")]
-    FieldNotFoundTrace { field: String, trace: TraceType },
+    FieldNotFoundTrace {
+        field: Intern<String>,
+        trace: TraceType,
+    },
     #[error("Field indexing not allowed on this type {kind:?}")]
     FieldIndexingNotAllowed { kind: Kind },
     #[error("Field indexing not allowed on this type {trace:?}")]
     FieldIndexingNotAllowedTrace { trace: TraceType },
     #[error("Enum variant {name} payload not found for {kind:?}")]
-    EnumPayloadNotFound { name: String, kind: Kind },
+    EnumPayloadNotFound { name: Intern<String>, kind: Kind },
     #[error("Enum payload not valid for non-enum type {kind:?}")]
     EnumPayloadNotValid { kind: Kind },
     #[error("Enum payload not found for discriminant {disc} in {kind:?}")]
@@ -64,13 +68,13 @@ pub enum PathError {
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PathElement {
     Index(usize),
     TupleIndex(usize),
-    Field(String),
+    Field(Intern<String>),
     EnumDiscriminant,
-    EnumPayload(String),
+    EnumPayload(Intern<String>),
     EnumPayloadByValue(i64),
     DynamicIndex(Slot),
     SignalValue,
@@ -78,7 +82,7 @@ pub enum PathElement {
 
 #[derive(Clone, PartialEq, Hash, Default)]
 pub struct Path {
-    pub elements: Vec<PathElement>,
+    elements: Vec<PathElement>,
 }
 
 impl FromIterator<PathElement> for Path {
@@ -138,7 +142,8 @@ impl Path {
         self
     }
     pub fn field(mut self, field: &str) -> Self {
-        self.elements.push(PathElement::Field(field.to_string()));
+        self.elements
+            .push(PathElement::Field(field.to_string().into()));
         self
     }
     pub fn signal_value(mut self) -> Self {
@@ -147,7 +152,9 @@ impl Path {
     }
     pub fn member(mut self, member: &Member) -> Self {
         match member {
-            Member::Named(name) => self.elements.push(PathElement::Field(name.to_owned())),
+            Member::Named(name) => self
+                .elements
+                .push(PathElement::Field(name.to_owned().into())),
             Member::Unnamed(ndx) => self.elements.push(PathElement::TupleIndex(*ndx as usize)),
         }
         self
@@ -162,7 +169,7 @@ impl Path {
     }
     pub fn payload(mut self, name: &str) -> Self {
         self.elements
-            .push(PathElement::EnumPayload(name.to_string()));
+            .push(PathElement::EnumPayload(name.to_string().into()));
         self
     }
     pub fn join(mut self, other: &Path) -> Self {
@@ -215,7 +222,8 @@ impl Path {
     }
 
     pub fn is_magic_val_path(&self) -> bool {
-        self.elements.len() == 1 && (self.elements[0] == PathElement::Field("#val".to_string()))
+        self.elements.len() == 1
+            && (self.elements[0] == PathElement::Field("#val".to_string().into()))
     }
     // Replace all dynamic indices such as `x[[a]]` with
     // simple indices `x[0]`.  Used to calculate the offset
@@ -257,13 +265,17 @@ impl Path {
     pub(crate) fn pop(&mut self) -> Option<PathElement> {
         self.elements.pop()
     }
+
+    pub(crate) fn push(&mut self, element: PathElement) {
+        self.elements.push(element);
+    }
 }
 
 impl From<Member> for Path {
     fn from(member: Member) -> Self {
         match member {
             Member::Named(name) => Path {
-                elements: vec![PathElement::Field(name.to_owned())],
+                elements: vec![PathElement::Field(name.to_owned().into())],
             },
             Member::Unnamed(ndx) => Path {
                 elements: vec![PathElement::TupleIndex(ndx as usize)],
@@ -389,13 +401,13 @@ pub fn sub_trace_type(trace: TraceType, path: &Path) -> Result<TraceType> {
             },
             PathElement::Field(field) => match &trace {
                 TraceType::Struct(strukt) => {
-                    if !strukt.fields.iter().any(|f| &f.name == field) {
+                    if !strukt.fields.iter().any(|f| f.name == **field) {
                         return Err(rhdl_error(PathError::FieldNotFoundTrace {
                             field: field.clone(),
                             trace,
                         }));
                     }
-                    let field = &strukt.fields.iter().find(|f| &f.name == field).unwrap().ty;
+                    let field = &strukt.fields.iter().find(|f| f.name == **field).unwrap().ty;
                     trace = field.clone();
                 }
                 _ => {

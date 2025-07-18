@@ -264,7 +264,7 @@ impl ClockDomainContext<'_> {
     ) -> Result<TypeId, RHDLError> {
         let arg_ty = self.slot_type(&arg_slot);
         let mut arg = self.ctx.apply(arg_ty);
-        for element in path.elements.iter() {
+        for element in path.iter() {
             debug!("Path project {} {:?}", self.ctx.desc(arg), element);
             match element {
                 PathElement::Index(ndx) => {

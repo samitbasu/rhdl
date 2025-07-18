@@ -116,7 +116,7 @@ risk than a technical one.
 - [ ] AXI for non-32 bit width?
 - [ ] Incorporate custom suffix
 - [ ] Remove respanned-source code
-- [ ] Intern Path type
+- [x] Intern Path type
 - [ ] Revisit precise diagnostics & debug/release builds.
 
 Some other topics I'm thinking about

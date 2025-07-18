@@ -387,8 +387,8 @@ pub mod kind_svg {
 #[cfg(test)]
 mod test {
     use crate::rhdl_core::{
-        types::kind::{Field, Variant},
         DiscriminantType, TypedBits,
+        types::kind::{Field, Variant},
     };
 
     use super::*;
@@ -498,103 +498,103 @@ mod test {
             "Crazy",
             vec![
                 Variant {
-                    name: "A".to_string(),
+                    name: "A".to_string().into(),
                     discriminant: 0,
                     kind: Kind::Empty,
                 },
                 Variant {
-                    name: "B".to_string(),
+                    name: "B".to_string().into(),
                     discriminant: 1,
                     kind: Kind::make_bits(8),
                 },
                 Variant {
-                    name: "C".to_string(),
+                    name: "C".to_string().into(),
                     discriminant: 2,
                     kind: Kind::make_tuple(vec![Kind::make_bits(8), Kind::make_bits(16)]),
                 },
                 Variant {
-                    name: "D".to_string(),
+                    name: "D".to_string().into(),
                     discriminant: 3,
                     kind: Kind::make_struct(
                         "Crazy::D",
                         vec![
                             Field {
-                                name: "a".to_string(),
+                                name: "a".to_string().into(),
                                 kind: Kind::make_bits(8),
                             },
                             Field {
-                                name: "b".to_string(),
+                                name: "b".to_string().into(),
                                 kind: Kind::make_bits(16),
                             },
                         ],
                     ),
                 },
                 Variant {
-                    name: "E".to_string(),
+                    name: "E".to_string().into(),
                     discriminant: 4,
                     kind: Kind::make_array(Kind::make_bits(8), 4),
                 },
                 Variant {
-                    name: "F".to_string(),
+                    name: "F".to_string().into(),
                     discriminant: 5,
                     kind: Kind::make_struct(
                         "Crazy::F",
                         vec![
                             Field {
-                                name: "a".to_string(),
+                                name: "a".to_string().into(),
                                 kind: Kind::make_bits(8),
                             },
                             Field {
-                                name: "b".to_string(),
+                                name: "b".to_string().into(),
                                 kind: Kind::make_array(Kind::make_bits(8), 4),
                             },
                         ],
                     ),
                 },
                 Variant {
-                    name: "G".to_string(),
+                    name: "G".to_string().into(),
                     discriminant: 6,
                     kind: Kind::make_struct(
                         "Crazy::G",
                         vec![
                             Field {
-                                name: "a".to_string(),
+                                name: "a".to_string().into(),
                                 kind: Kind::make_bits(8),
                             },
                             Field {
-                                name: "b".to_string(),
+                                name: "b".to_string().into(),
                                 kind: Kind::make_array(Kind::make_bits(8), 4),
                             },
                             Field {
-                                name: "c".to_string(),
+                                name: "c".to_string().into(),
                                 kind: Kind::make_bits(16),
                             },
                         ],
                     ),
                 },
                 Variant {
-                    name: "H".to_string(),
+                    name: "H".to_string().into(),
                     discriminant: 8,
                     kind: Kind::make_enum(
                         "Crazy::H",
                         vec![
                             Variant {
-                                name: "A".to_string(),
+                                name: "A".to_string().into(),
                                 discriminant: 0,
                                 kind: Kind::Empty,
                             },
                             Variant {
-                                name: "B".to_string(),
+                                name: "B".to_string().into(),
                                 discriminant: 1,
                                 kind: Kind::Bits(4),
                             },
                             Variant {
-                                name: "C".to_string(),
+                                name: "C".to_string().into(),
                                 discriminant: 2,
                                 kind: Kind::Empty,
                             },
                             Variant {
-                                name: "Unknown".to_string(),
+                                name: "Unknown".to_string().into(),
                                 discriminant: 3,
                                 kind: Kind::Empty,
                             },
@@ -627,15 +627,15 @@ mod test {
             "Foo",
             vec![
                 Field {
-                    name: "a".to_string(),
+                    name: "a".to_string().into(),
                     kind: Kind::make_bits(8),
                 },
                 Field {
-                    name: "b".to_string(),
+                    name: "b".to_string().into(),
                     kind: Kind::make_bits(16),
                 },
                 Field {
-                    name: "c".to_string(),
+                    name: "c".to_string().into(),
                     kind: Kind::make_bits(32),
                 },
             ],
@@ -649,24 +649,24 @@ mod test {
             "Foo",
             vec![
                 Field {
-                    name: "a".to_string(),
+                    name: "a".to_string().into(),
                     kind: Kind::make_bits(8),
                 },
                 Field {
-                    name: "b".to_string(),
+                    name: "b".to_string().into(),
                     kind: Kind::make_bits(16),
                 },
                 Field {
-                    name: "c".to_string(),
+                    name: "c".to_string().into(),
                     kind: Kind::make_struct(
                         "Foo:c",
                         vec![
                             Field {
-                                name: "d".to_string(),
+                                name: "d".to_string().into(),
                                 kind: Kind::make_bits(8),
                             },
                             Field {
-                                name: "e".to_string(),
+                                name: "e".to_string().into(),
                                 kind: Kind::make_bits(16),
                             },
                         ],
@@ -684,17 +684,17 @@ mod test {
             "Simple",
             vec![
                 Variant {
-                    name: "A".to_string(),
+                    name: "A".to_string().into(),
                     discriminant: 0,
                     kind: Kind::Empty,
                 },
                 Variant {
-                    name: "B".to_string(),
+                    name: "B".to_string().into(),
                     discriminant: 1,
                     kind: Kind::Empty,
                 },
                 Variant {
-                    name: "C".to_string(),
+                    name: "C".to_string().into(),
                     discriminant: 2,
                     kind: Kind::Empty,
                 },

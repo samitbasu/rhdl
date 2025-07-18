@@ -50,11 +50,11 @@ impl<I: Digital, D: Domain> Digital for AdapterInput<I, D> {
             "AdapterInput",
             vec![
                 Field {
-                    name: "clock_reset".into(),
+                    name: "clock_reset".to_string().into(),
                     kind: <Signal<ClockReset, D> as Digital>::static_kind(),
                 },
                 Field {
-                    name: "input".into(),
+                    name: "input".to_string().into(),
                     kind: <Signal<I, D> as Digital>::static_kind(),
                 },
             ],

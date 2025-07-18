@@ -632,27 +632,27 @@ mod test {
                     "Mixed",
                     vec![
                         Variant {
-                            name: "None".to_string(),
+                            name: "None".to_string().into(),
                             discriminant: 0,
                             kind: Kind::Empty,
                         },
                         Variant {
-                            name: "Bool".to_string(),
+                            name: "Bool".to_string().into(),
                             discriminant: 1,
                             kind: Kind::make_bits(1),
                         },
                         Variant {
-                            name: "Tuple".to_string(),
+                            name: "Tuple".to_string().into(),
                             discriminant: 2,
                             kind: Kind::make_tuple(vec![Kind::make_bits(1), Kind::make_bits(3)]),
                         },
                         Variant {
-                            name: "Array".to_string(),
+                            name: "Array".to_string().into(),
                             discriminant: 3,
                             kind: Kind::make_array(Kind::make_bits(1), 3),
                         },
                         Variant {
-                            name: "Strct".to_string(),
+                            name: "Strct".to_string().into(),
                             discriminant: 4,
                             kind: Kind::make_struct(
                                 "Mixed::Strct",
@@ -663,7 +663,7 @@ mod test {
                             ),
                         },
                         Variant {
-                            name: "Invalid".to_string(),
+                            name: "Invalid".to_string().into(),
                             discriminant: 5,
                             kind: Kind::Empty,
                         },
@@ -748,32 +748,32 @@ mod test {
                     "State",
                     vec![
                         Variant {
-                            name: "Init".to_string(),
+                            name: "Init".to_string().into(),
                             discriminant: 0,
                             kind: Kind::Empty,
                         },
                         Variant {
-                            name: "Boot".to_string(),
+                            name: "Boot".to_string().into(),
                             discriminant: 1,
                             kind: Kind::Empty,
                         },
                         Variant {
-                            name: "Running".to_string(),
+                            name: "Running".to_string().into(),
                             discriminant: 2,
                             kind: Kind::Empty,
                         },
                         Variant {
-                            name: "Stop".to_string(),
+                            name: "Stop".to_string().into(),
                             discriminant: 3,
                             kind: Kind::Empty,
                         },
                         Variant {
-                            name: "Boom".to_string(),
+                            name: "Boom".to_string().into(),
                             discriminant: 4,
                             kind: Kind::Empty,
                         },
                         Variant {
-                            name: "Invalid".to_string(),
+                            name: "Invalid".to_string().into(),
                             discriminant: 5,
                             kind: Kind::Empty,
                         },
@@ -814,32 +814,32 @@ mod test {
                 "State",
                 vec![
                     Variant {
-                        name: "Init".to_string(),
+                        name: "Init".to_string().into(),
                         discriminant: 0,
                         kind: Kind::Empty,
                     },
                     Variant {
-                        name: "Boot".to_string(),
+                        name: "Boot".to_string().into(),
                         discriminant: 1,
                         kind: Kind::Empty,
                     },
                     Variant {
-                        name: "Running".to_string(),
+                        name: "Running".to_string().into(),
                         discriminant: 2,
                         kind: Kind::Empty,
                     },
                     Variant {
-                        name: "Stop".to_string(),
+                        name: "Stop".to_string().into(),
                         discriminant: 3,
                         kind: Kind::Empty,
                     },
                     Variant {
-                        name: "Boom".to_string(),
+                        name: "Boom".to_string().into(),
                         discriminant: 4,
                         kind: Kind::Empty,
                     },
                     Variant {
-                        name: "Invalid".to_string(),
+                        name: "Invalid".to_string().into(),
                         discriminant: 5,
                         kind: Kind::Empty,
                     },

@@ -6,8 +6,8 @@ pub use crate::rhdl_core::ast::ast_impl::UnOp;
 use crate::rhdl_core::kernel::KernelFnKind;
 use crate::rhdl_core::rhif::spec::Member;
 use crate::rhdl_core::types::typed_bits::TypedBits;
-use crate::rhdl_core::{ast::ast_impl::*, Kind};
 use crate::rhdl_core::{Color, Digital, DigitalSignature};
+use crate::rhdl_core::{Kind, ast::ast_impl::*};
 
 #[derive(Default)]
 pub struct ASTBuilder {
@@ -428,7 +428,7 @@ impl ASTBuilder {
     }
 
     pub fn member_named(&self, name: &'static str) -> Member {
-        Member::Named(name.to_string())
+        Member::Named(name.to_string().into())
     }
 
     pub fn member_unnamed(&self, index: u32) -> Member {
