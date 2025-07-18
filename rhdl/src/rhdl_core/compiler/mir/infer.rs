@@ -416,7 +416,7 @@ impl<'a> MirTypeInference<'a> {
 
     fn ty_path_project(&mut self, arg: TypeId, path: &Path, loc: SourceLocation) -> Result<TypeId> {
         let mut arg = self.ctx.apply(arg);
-        for element in path.elements.iter() {
+        for element in path.iter() {
             match element {
                 PathElement::Index(ndx) => {
                     arg = self.ctx.ty_index(arg, *ndx)?;

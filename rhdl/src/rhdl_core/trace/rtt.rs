@@ -89,12 +89,12 @@ pub(crate) mod test {
             .fields
             .iter()
             .map(|field| rtt::Field {
-                name: field.name.clone(),
+                name: (*field.name).clone(),
                 ty: kind_to_trace(&field.kind),
             })
             .collect();
         TraceType::Struct(rtt::Struct {
-            name: strukt.name.clone(),
+            name: (*strukt.name).clone(),
             fields,
         })
     }
@@ -104,13 +104,13 @@ pub(crate) mod test {
             .variants
             .iter()
             .map(|variant| rtt::Variant {
-                name: variant.name.clone(),
+                name: (*variant.name).clone(),
                 ty: kind_to_trace(&variant.kind),
                 discriminant: variant.discriminant,
             })
             .collect();
         TraceType::Enum(rtt::Enum {
-            name: enumerate.name.clone(),
+            name: (*enumerate.name).clone(),
             variants,
             discriminant_layout: enumerate.discriminant_layout.into(),
         })

@@ -1,12 +1,12 @@
 use std::{
     any::Any,
     cell::RefCell,
-    collections::{hash_map::Entry, BTreeMap},
+    collections::{BTreeMap, hash_map::Entry},
     hash::{Hash, Hasher},
     io::Write,
 };
 
-use rhdl_trace_type::{TraceType, RTT};
+use rhdl_trace_type::{RTT, TraceType};
 use smallvec::SmallVec;
 
 use crate::rhdl_core::Digital;
@@ -14,7 +14,7 @@ use crate::rhdl_core::Digital;
 use super::{
     bit::TraceBit,
     key::TraceKey,
-    svg::{render_traces_as_svg_document, trace_out, SvgOptions, Trace},
+    svg::{SvgOptions, Trace, render_traces_as_svg_document, trace_out},
     vcd::VCDWrite,
 };
 
@@ -446,10 +446,10 @@ mod tests {
     use crate::rhdl_bits::alias::*;
 
     use crate::rhdl_core::{
-        bitx::{bitx_vec, BitX},
+        Digital, DiscriminantAlignment, Kind,
+        bitx::{BitX, bitx_vec},
         rtt::test::kind_to_trace,
         types::kind::Variant,
-        Digital, DiscriminantAlignment, Kind,
     };
 
     use super::*;
@@ -490,27 +490,27 @@ mod tests {
                     "Mixed",
                     vec![
                         Variant {
-                            name: "None".to_string(),
+                            name: "None".to_string().into(),
                             discriminant: 0,
                             kind: Kind::Empty,
                         },
                         Variant {
-                            name: "Bool".to_string(),
+                            name: "Bool".to_string().into(),
                             discriminant: 1,
                             kind: Kind::make_bits(1),
                         },
                         Variant {
-                            name: "Tuple".to_string(),
+                            name: "Tuple".to_string().into(),
                             discriminant: 2,
                             kind: Kind::make_tuple(vec![Kind::make_bits(1), Kind::make_bits(3)]),
                         },
                         Variant {
-                            name: "Array".to_string(),
+                            name: "Array".to_string().into(),
                             discriminant: 3,
                             kind: Kind::make_array(Kind::make_bits(1), 3),
                         },
                         Variant {
-                            name: "Strct".to_string(),
+                            name: "Strct".to_string().into(),
                             discriminant: 4,
                             kind: Kind::make_struct(
                                 "Mixed::Strct",

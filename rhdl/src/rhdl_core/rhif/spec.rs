@@ -1,3 +1,5 @@
+use internment::Intern;
+
 // RHDL Intermediate Form (RHIF).
 use crate::rhdl_core::{
     Color, Kind, TypedBits,
@@ -247,7 +249,7 @@ pub type Slot = Symbol<SlotKind>;
 
 #[derive(Clone, PartialEq, Hash)]
 pub enum Member {
-    Named(String),
+    Named(Intern<String>),
     Unnamed(u32),
 }
 
