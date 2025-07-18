@@ -1,10 +1,10 @@
 use internment::Intern;
 
 use crate::rhdl_core::{
-    bitx::BitX,
-    error::{rhdl_error, RHDLError},
-    rhif::spec::Member,
     TypedBits,
+    bitx::BitX,
+    error::{RHDLError, rhdl_error},
+    rhif::spec::Member,
 };
 
 use super::{domain::Color, error::DynamicTypeError};
@@ -59,7 +59,7 @@ pub struct Tuple {
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Struct {
-    pub name: String,
+    pub name: Intern<String>,
     pub fields: Vec<Field>,
 }
 
@@ -70,7 +70,7 @@ impl Struct {
     pub fn get_field_kind(&self, member: &Member) -> Result<Kind> {
         let field_name = match member {
             Member::Named(name) => name.clone(),
-            Member::Unnamed(ndx) => ndx.to_string(),
+            Member::Unnamed(ndx) => ndx.to_string().into(),
         };
         let field = self.fields.iter().find(|x| x.name == field_name);
         match field {
@@ -104,20 +104,20 @@ pub struct DiscriminantLayout {
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Enum {
-    pub name: String,
+    pub name: Intern<String>,
     pub variants: Vec<Variant>,
     pub discriminant_layout: DiscriminantLayout,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Field {
-    pub name: String,
+    pub name: Intern<String>,
     pub kind: Kind,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Variant {
-    pub name: String,
+    pub name: Intern<String>,
     pub discriminant: i64,
     pub kind: Kind,
 }
@@ -147,20 +147,20 @@ impl Kind {
     }
     pub fn make_field(name: &str, kind: Kind) -> Field {
         Field {
-            name: name.to_string(),
+            name: name.to_string().into(),
             kind,
         }
     }
     pub fn make_variant(name: &str, kind: Kind, discriminant: i64) -> Variant {
         Variant {
-            name: name.to_string(),
+            name: name.to_string().into(),
             discriminant,
             kind,
         }
     }
     pub fn make_struct(name: &str, fields: Vec<Field>) -> Self {
         Self::Struct(Intern::new(Struct {
-            name: name.into(),
+            name: name.to_string().into(),
             fields,
         }))
     }
@@ -181,7 +181,7 @@ impl Kind {
         discriminant_layout: DiscriminantLayout,
     ) -> Self {
         Self::Enum(Intern::new(Enum {
-            name: name.into(),
+            name: name.to_string().into(),
             variants,
             discriminant_layout,
         }))
@@ -242,7 +242,7 @@ impl Kind {
     pub fn get_field_kind(&self, member: &Member) -> Result<Kind> {
         let field_name = match member {
             Member::Named(name) => name.clone(),
-            Member::Unnamed(ndx) => ndx.to_string(),
+            Member::Unnamed(ndx) => ndx.to_string().into(),
         };
         match self {
             Kind::Struct(s) => {
@@ -286,8 +286,8 @@ impl Kind {
                     .join(", ");
                 format!("({elements})")
             }
-            Kind::Struct(s) => s.name.clone(),
-            Kind::Enum(e) => e.name.clone(),
+            Kind::Struct(s) => (*s.name).clone(),
+            Kind::Enum(e) => (*e.name).clone(),
             Kind::Signal(kind, color) => format!("Sig::<{kind:?},{color:?}>"),
         }
     }
@@ -315,7 +315,7 @@ impl Kind {
         let Kind::Enum(e) = &self else {
             return None;
         };
-        let variant = e.variants.iter().find(|x| x.name == name)?;
+        let variant = e.variants.iter().find(|x| (*x.name) == name)?;
         Some(variant.kind)
     }
 
@@ -332,7 +332,7 @@ impl Kind {
         let Kind::Enum(e) = &self else {
             return Err(rhdl_error(DynamicTypeError::NotAnEnum { kind: *self }));
         };
-        let Some(variant_kind) = e.variants.iter().find(|x| x.name == variant) else {
+        let Some(variant_kind) = e.variants.iter().find(|x| (*x.name) == variant) else {
             return Err(rhdl_error(DynamicTypeError::NoVariantInEnum {
                 name: variant.to_owned(),
                 kind: *self,
@@ -354,7 +354,7 @@ impl Kind {
         let Kind::Enum(e) = &self else {
             return Err(rhdl_error(DynamicTypeError::NotAnEnum { kind: *self }));
         };
-        let Some(variant_kind) = e.variants.iter().find(|x| x.name == variant) else {
+        let Some(variant_kind) = e.variants.iter().find(|x| (*x.name) == variant) else {
             return Err(rhdl_error(DynamicTypeError::NoVariantInEnum {
                 name: variant.into(),
                 kind: *self,
@@ -461,8 +461,8 @@ impl Kind {
         };
         if !enumerate.name.starts_with("Result::<")
             || !enumerate.variants.len() == 2
-            || enumerate.variants[0].name != "Err"
-            || enumerate.variants[1].name != "Ok"
+            || (*enumerate.variants[0].name) != "Err"
+            || (*enumerate.variants[1].name) != "Ok"
         {
             return false;
         }
@@ -484,8 +484,8 @@ impl Kind {
         };
         if !enumerate.name.starts_with("Option::<")
             || !enumerate.variants.len() == 2
-            || enumerate.variants[0].name != "None"
-            || enumerate.variants[1].name != "Some"
+            || *enumerate.variants[0].name != "None"
+            || *enumerate.variants[1].name != "Some"
         {
             return false;
         }

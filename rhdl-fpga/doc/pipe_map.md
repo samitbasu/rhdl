@@ -154,13 +154,13 @@ a
 </text>
 <path d="M 850 50 L 853 43 L 947 43 L 950 50 L 947 57 L 853 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="50">
-1
-<title>1</title>
+0
+<title>0</title>
 </text>
 <path d="M 950 50 L 953 43 L 1047 43 L 1050 50 L 1047 57 L 953 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1000" xml:space="preserve" y="50">
-0
-<title>0</title>
+1
+<title>1</title>
 </text>
 <path d="M 1050 50 L 1053 43 L 1247 43 L 1250 50 L 1247 57 L 1053 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1150" xml:space="preserve" y="50">
@@ -213,11 +213,16 @@ b
 </text>
 <path d="M 850 70 L 853 63 L 947 63 L 950 70 L 947 77 L 853 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="70">
+0
+<title>0</title>
+</text>
+<path d="M 950 70 L 953 63 L 1047 63 L 1050 70 L 1047 77 L 953 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1000" xml:space="preserve" y="70">
 1
 <title>1</title>
 </text>
-<path d="M 950 70 L 953 63 L 1247 63 L 1250 70 L 1247 77 L 953 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1100" xml:space="preserve" y="70">
+<path d="M 1050 70 L 1053 63 L 1247 63 L 1250 70 L 1247 77 L 1053 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1150" xml:space="preserve" y="70">
 0
 <title>0</title>
 </text>
@@ -267,13 +272,13 @@ Some(a)
 </text>
 <path d="M 751 90 L 754 83 L 848 83 L 851 90 L 848 97 L 754 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="801" xml:space="preserve" y="90">
-Some(1)
-<title>Some(1)</title>
+None
+<title>None</title>
 </text>
 <path d="M 851 90 L 854 83 L 948 83 L 951 90 L 948 97 L 854 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="901" xml:space="preserve" y="90">
-None
-<title>None</title>
+Some(1)
+<title>Some(1)</title>
 </text>
 <path d="M 951 90 L 954 83 L 1148 83 L 1151 90 L 1148 97 L 954 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1051" xml:space="preserve" y="90">
@@ -314,8 +319,8 @@ Some(6)
 
 <title></title>
 </text>
-<path d="M 851 110 L 854 103 L 948 103 L 951 110 L 948 117 L 854 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="901" xml:space="preserve" y="110">
+<path d="M 751 110 L 754 103 L 848 103 L 851 110 L 848 117 L 754 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="801" xml:space="preserve" y="110">
 
 <title></title>
 </text>
@@ -348,8 +353,8 @@ Some(6)
 a
 <title>a</title>
 </text>
-<path d="M 751 130 L 754 123 L 848 123 L 851 130 L 848 137 L 754 137 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="801" xml:space="preserve" y="130">
+<path d="M 851 130 L 854 123 L 948 123 L 951 130 L 948 137 L 854 137 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="901" xml:space="preserve" y="130">
 1
 <title>1</title>
 </text>
@@ -419,13 +424,13 @@ Some(a)
 </text>
 <path d="M 751 150 L 754 143 L 848 143 L 851 150 L 848 157 L 754 157 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="801" xml:space="preserve" y="150">
-Some(1)
-<title>Some(1)</title>
+None
+<title>None</title>
 </text>
 <path d="M 851 150 L 854 143 L 948 143 L 951 150 L 948 157 L 854 157 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="901" xml:space="preserve" y="150">
-None
-<title>None</title>
+Some(1)
+<title>Some(1)</title>
 </text>
 <path d="M 951 150 L 954 143 L 1148 143 L 1151 150 L 1148 157 L 954 157 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1051" xml:space="preserve" y="150">
@@ -466,8 +471,8 @@ Some(6)
 
 <title></title>
 </text>
-<path d="M 851 170 L 854 163 L 948 163 L 951 170 L 948 177 L 854 177 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="901" xml:space="preserve" y="170">
+<path d="M 751 170 L 754 163 L 848 163 L 851 170 L 848 177 L 754 177 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="801" xml:space="preserve" y="170">
 
 <title></title>
 </text>
@@ -500,8 +505,8 @@ Some(6)
 a
 <title>a</title>
 </text>
-<path d="M 751 190 L 754 183 L 848 183 L 851 190 L 848 197 L 754 197 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="801" xml:space="preserve" y="190">
+<path d="M 851 190 L 854 183 L 948 183 L 951 190 L 948 197 L 854 197 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="901" xml:space="preserve" y="190">
 1
 <title>1</title>
 </text>
@@ -571,13 +576,13 @@ Some(a)
 </text>
 <path d="M 850 210 L 853 203 L 947 203 L 950 210 L 947 217 L 853 217 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="210">
-Some(1)
-<title>Some(1)</title>
+None
+<title>None</title>
 </text>
 <path d="M 950 210 L 953 203 L 1047 203 L 1050 210 L 1047 217 L 953 217 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1000" xml:space="preserve" y="210">
-None
-<title>None</title>
+Some(1)
+<title>Some(1)</title>
 </text>
 <path d="M 1050 210 L 1053 203 L 1247 203 L 1250 210 L 1247 217 L 1053 217 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1150" xml:space="preserve" y="210">
@@ -613,8 +618,8 @@ Some(b)
 
 <title></title>
 </text>
-<path d="M 950 230 L 953 223 L 1047 223 L 1050 230 L 1047 237 L 953 237 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1000" xml:space="preserve" y="230">
+<path d="M 850 230 L 853 223 L 947 223 L 950 230 L 947 237 L 853 237 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="230">
 
 <title></title>
 </text>
@@ -647,8 +652,8 @@ Some(b)
 a
 <title>a</title>
 </text>
-<path d="M 850 250 L 853 243 L 947 243 L 950 250 L 947 257 L 853 257 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="250">
+<path d="M 950 250 L 953 243 L 1047 243 L 1050 250 L 1047 257 L 953 257 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1000" xml:space="preserve" y="250">
 1
 <title>1</title>
 </text>
@@ -703,13 +708,13 @@ Some(2)
 </text>
 <path d="M 850 270 L 853 263 L 947 263 L 950 270 L 947 277 L 853 277 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="270">
-Some(1)
-<title>Some(1)</title>
+None
+<title>None</title>
 </text>
 <path d="M 950 270 L 953 263 L 1047 263 L 1050 270 L 1047 277 L 953 277 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1000" xml:space="preserve" y="270">
-None
-<title>None</title>
+Some(1)
+<title>Some(1)</title>
 </text>
 <path d="M 1050 270 L 1053 263 L 1247 263 L 1250 270 L 1247 277 L 1053 277 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1150" xml:space="preserve" y="270">
@@ -735,8 +740,8 @@ Some(3)
 
 <title></title>
 </text>
-<path d="M 950 290 L 953 283 L 1047 283 L 1050 290 L 1047 297 L 953 297 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1000" xml:space="preserve" y="290">
+<path d="M 850 290 L 853 283 L 947 283 L 950 290 L 947 297 L 853 297 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="290">
 
 <title></title>
 </text>
@@ -759,8 +764,8 @@ Some(3)
 2
 <title>2</title>
 </text>
-<path d="M 850 310 L 853 303 L 947 303 L 950 310 L 947 317 L 853 317 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" xml:space="preserve" y="310">
+<path d="M 950 310 L 953 303 L 1047 303 L 1050 310 L 1047 317 L 953 317 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1000" xml:space="preserve" y="310">
 1
 <title>1</title>
 </text>

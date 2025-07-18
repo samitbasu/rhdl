@@ -1,12 +1,16 @@
+use internment::Intern;
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::rhdl_core::{types::path::Path, Kind, TypedBits};
+use crate::rhdl_core::{Kind, TypedBits, types::path::Path};
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum DynamicTypeError {
     #[error("No field in struct {kind:?} with name {field_name}")]
-    NoFieldInStruct { kind: Kind, field_name: String },
+    NoFieldInStruct {
+        kind: Kind,
+        field_name: Intern<String>,
+    },
     #[error("No variant with name {name} in enum {kind:?}")]
     NoVariantInEnum { name: String, kind: Kind },
     #[error("No variant with discriminant {disc} in enum {kind:?}")]
