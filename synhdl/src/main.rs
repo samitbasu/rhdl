@@ -2,8 +2,10 @@ use syn::{
     Ident, Lifetime, LitInt, Result, Token, braced, bracketed, parenthesized,
     parse::{Lookahead1, Parse, ParseBuffer, ParseStream},
     punctuated::Punctuated,
-    token,
+    token::{self, Bracket, Paren},
 };
+
+use derive_syn_parse::Parse;
 
 /*
 
@@ -109,6 +111,9 @@ mod kw {
     syn::custom_keyword!(case);
     syn::custom_keyword!(endcase);
     syn::custom_keyword!(default);
+    syn::custom_keyword!(module);
+    syn::custom_keyword!(endmodule);
+    syn::custom_keyword!(initial);
 }
 
 impl Parse for Direction {
@@ -139,30 +144,23 @@ impl Parse for HDLKind {
     }
 }
 
-#[derive(Debug, Clone, Hash)]
-pub struct Port {
-    pub name: Ident,
-    pub direction: Direction,
-    pub kind: HDLKind,
+#[derive(Debug, Clone, Parse)]
+pub struct SignedWidth {
     pub signed: Option<kw::signed>,
     pub width: WidthSpec,
 }
 
-impl Parse for Port {
-    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        let direction = input.parse()?;
-        let kind = input.parse()?;
-        let signed = input.parse()?;
-        let width = input.parse()?;
-        let name = input.parse()?;
-        Ok(Self {
-            name,
-            direction,
-            kind,
-            signed,
-            width,
-        })
-    }
+#[derive(Debug, Clone, Parse)]
+pub struct Declaration {
+    pub kind: HDLKind,
+    pub signed_width: SignedWidth,
+    pub name: Ident,
+}
+
+#[derive(Debug, Clone, Parse)]
+pub struct Port {
+    pub direction: Direction,
+    pub decl: Declaration,
 }
 
 /*
@@ -190,73 +188,265 @@ impl Parse for OuterAttribute {
 */
 
 #[derive(Debug, Clone)]
-pub enum Stmt {
+pub enum Item {
+    Statement(Stmt),
+    Declaration(Declaration),
+    FunctionDef(FunctionDef),
+    Initial(Stmt),
+}
+
+impl Parse for Item {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.peek(kw::function) {
+            input.parse().map(Item::FunctionDef)
+        } else if input.peek(kw::reg) || input.peek(kw::wire) {
+            input.parse().map(Item::Declaration)
+        } else if input.peek(kw::initial) {
+            input.parse().map(Item::Initial)
+        } else {
+            input.parse().map(Item::Statement)
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, Parse)]
+pub struct Stmt {
+    pub kind: StmtKind,
+    pub terminator: Option<Token![;]>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub enum StmtKind {
     If(If),
-    NonblockAssign(NonblockAssign),
     Always(Always),
     Case(Case),
-    Assign(Assign),
-    ContinuousAssign(ContinuousAssign),
     LocalParam(LocalParam),
+    Block(Block),
+    ContinuousAssign(ContinuousAssign),
+    NonblockAssign(NonblockAssign),
+    Assign(Assign),
+    Instance(Instance),
     Splice(Splice),
     DynamicSplice(DynamicSplice),
-    Instance(Instance),
-    Block(Block),
+    #[default]
+    Noop,
+}
+
+impl Parse for StmtKind {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+        if lookahead.peek(token::If) {
+            input.parse().map(StmtKind::If)
+        } else if lookahead.peek(kw::always) {
+            input.parse().map(StmtKind::Always)
+        } else if lookahead.peek(kw::case) {
+            input.parse().map(StmtKind::Case)
+        } else if lookahead.peek(kw::localparam) {
+            input.parse().map(StmtKind::LocalParam)
+        } else if lookahead.peek(kw::begin) {
+            input.parse().map(StmtKind::Block)
+        } else if lookahead.peek(kw::assign) {
+            input.parse().map(StmtKind::ContinuousAssign)
+        } else if lookahead.peek(Ident) && input.peek2(LeftArrow) {
+            input.parse().map(StmtKind::NonblockAssign)
+        } else if lookahead.peek(Ident) && input.peek2(Token![=]) {
+            input.parse().map(StmtKind::Assign)
+        } else if lookahead.peek(Ident) && input.peek2(Ident) && input.peek3(token::Paren) {
+            input.parse().map(StmtKind::Instance)
+        } else if lookahead.peek(Bracket) {
+            if input.fork().parse::<Splice>().is_ok() {
+                input.parse().map(StmtKind::Splice)
+            } else {
+                input.parse().map(StmtKind::DynamicSplice)
+            }
+        } else {
+            Err(lookahead.error())
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub enum CaseItem {
-    Literal(LitVerilog),
-    Wild(kw::default),
+    Literal(Pair<LitVerilog, Token![:]>),
+    Wild(Pair<kw::default, Option<Token![:]>>),
 }
 
-#[derive(Debug, Clone)]
+impl Parse for CaseItem {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.peek(kw::default) {
+            input.parse().map(CaseItem::Wild)
+        } else {
+            input.parse().map(CaseItem::Literal)
+        }
+    }
+}
+
+#[derive(Debug, Clone, Parse)]
 pub struct CaseLine {
-    item: CaseItem,
-    stmt: Box<Stmt>,
+    pub item: CaseItem,
+    pub stmt: Box<Stmt>,
+}
+
+/*
+
+case (rega)
+16'd0: result = 10'b0111111111;
+16'd1: result = 10'b1011111111;
+16'd2: result = 10'b1101111111;
+16'd3: result = 10'b1110111111;
+16'd4: result = 10'b1111011111;
+16'd5: result = 10'b1111101111;
+16'd6: result = 10'b1111110111;
+16'd7: result = 10'b1111111011;
+16'd8: result = 10'b1111111101;
+16'd9: result = 10'b1111111110;
+default result = 'bx;
+endcase
+*/
+
+pub struct Pair<S, T>(pub S, pub T);
+
+impl<S: Parse, T: Parse> Parse for Pair<S, T> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self(input.parse()?, input.parse()?))
+    }
+}
+
+impl<S: Clone, T: Clone> Clone for Pair<S, T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone(), self.1.clone())
+    }
+}
+
+impl<S: std::fmt::Debug, T: std::fmt::Debug> std::fmt::Debug for Pair<S, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Pair").field(&self.0).field(&self.1).finish()
+    }
+}
+
+pub struct ParenCommaList<T>(pub Punctuated<T, Token![,]>);
+
+impl<T: Parse> Parse for ParenCommaList<T> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        parenthesized!(content in input);
+        Ok(Self(content.parse_terminated(T::parse, Token![,])?))
+    }
+}
+
+impl<T: Clone> Clone for ParenCommaList<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+impl<T: std::fmt::Debug> std::fmt::Debug for ParenCommaList<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("ParenCommaList").field(&self.0).finish()
+    }
+}
+
+pub struct Parenthesized<T>(pub T);
+
+impl<T: Parse> Parse for Parenthesized<T> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        parenthesized!(content in input);
+        Ok(Self(content.parse::<T>()?))
+    }
+}
+
+impl<T: Clone> Clone for Parenthesized<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+impl<T: std::fmt::Debug> std::fmt::Debug for Parenthesized<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Parenthesized").field(&self.0).finish()
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Case {
-    case: kw::case,
-    discriminant: Box<Expr>,
-    lines: Vec<CaseLine>,
-    endcase: kw::endcase,
+    pub case: kw::case,
+    pub discriminant: Box<Expr>,
+    pub lines: Vec<CaseLine>,
+    pub endcase: kw::endcase,
 }
 
-#[derive(Debug, Clone)]
+impl Parse for Case {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let case = input.parse()?;
+        let discriminant;
+        parenthesized!(discriminant in input);
+        let discriminant = discriminant.parse()?;
+        let mut lines = Vec::new();
+        loop {
+            if input.peek(kw::endcase) {
+                break;
+            }
+            lines.push(input.parse()?);
+        }
+        let endcase = input.parse()?;
+        Ok(Self {
+            case,
+            discriminant,
+            lines,
+            endcase,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Parse)]
 pub struct Connection {
-    dot: Token![.],
-    target: Ident,
-    local: Box<Expr>,
+    pub dot: Token![.],
+    pub target: Ident,
+    pub local: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Parse)]
 pub struct Instance {
-    module: Ident,
-    instance: Ident,
-    connections: Punctuated<Connection, Token![,]>,
+    pub module: Ident,
+    pub instance: Ident,
+    pub connections: ParenCommaList<Connection>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Block {
-    begin: kw::begin,
-    body: Vec<Stmt>,
-    end: kw::end,
+    pub begin: kw::begin,
+    pub body: Vec<Stmt>,
+    pub end: kw::end,
 }
 
-#[derive(Debug, Clone)]
+impl Parse for Block {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let begin = input.parse()?;
+        let mut body = Vec::new();
+        loop {
+            if input.peek(kw::end) {
+                break;
+            }
+            body.push(input.parse()?);
+        }
+        let end = input.parse()?;
+        Ok(Self { begin, body, end })
+    }
+}
+
+#[derive(Debug, Clone, Parse)]
 pub struct DynamicSplice {
-    lhs: Box<ExprDynIndex>,
-    eq: Token![=],
-    rhs: Box<Expr>,
+    pub lhs: Box<ExprDynIndex>,
+    pub eq: Token![=],
+    pub rhs: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Parse)]
 pub struct Splice {
-    lhs: Box<ExprIndex>,
-    eq: Token![=],
-    rhs: Box<Expr>,
+    pub lhs: Box<ExprIndex>,
+    pub eq: Token![=],
+    pub rhs: Box<Expr>,
 }
 
 #[derive(Debug, Clone)]
@@ -267,32 +457,49 @@ pub enum Sensitivity {
     Star(Token![*]),
 }
 
-#[derive(Debug, Clone)]
+impl Parse for Sensitivity {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+        if lookahead.peek(kw::posedge) {
+            input.parse().map(Sensitivity::PosEdge)
+        } else if lookahead.peek(kw::negedge) {
+            input.parse().map(Sensitivity::NegEdge)
+        } else if lookahead.peek(Ident) {
+            input.parse().map(Sensitivity::Signal)
+        } else if lookahead.peek(Token![*]) {
+            input.parse().map(Sensitivity::Star)
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+#[derive(Debug, Clone, Parse)]
 pub struct PosEdgeSensitivity {
-    posedge: kw::posedge,
-    ident: Ident,
+    pub posedge: kw::posedge,
+    pub ident: Ident,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Parse)]
 pub struct NegEdgeSensitivity {
-    negedge: kw::negedge,
-    ident: Ident,
+    pub negedge: kw::negedge,
+    pub ident: Ident,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Parse)]
 pub struct SensitivityList {
-    at: Token![@],
-    elements: Punctuated<Sensitivity, Token![,]>,
+    pub at: Token![@],
+    pub elements: ParenCommaList<Sensitivity>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Parse)]
 pub struct Always {
-    always: kw::always,
-    sensitivity: SensitivityList,
-    body: Box<Stmt>,
+    pub always: kw::always,
+    pub sensitivity: SensitivityList,
+    pub body: Box<Stmt>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Parse)]
 pub struct LocalParam {
     pub localparam: kw::localparam,
     pub target: Ident,
@@ -302,25 +509,67 @@ pub struct LocalParam {
 
 #[derive(Debug, Clone)]
 pub struct If {
-    pub condition: Box<Expr>,
+    pub if_token: Token![if],
+    pub condition: Parenthesized<Box<Expr>>,
     pub true_stmt: Box<Stmt>,
-    pub false_stmt: Box<Stmt>,
+    pub else_branch: Option<(Token![else], Box<Stmt>)>,
 }
 
-#[derive(Debug, Clone)]
+impl Parse for If {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut clauses = Vec::new();
+        let mut stmt;
+        loop {
+            let if_token: Token![if] = input.parse()?;
+            let condition = input.parse()?;
+            let true_stmt = input.parse()?;
+
+            stmt = If {
+                if_token,
+                condition,
+                true_stmt,
+                else_branch: None,
+            };
+
+            if !input.peek(Token![else]) {
+                break;
+            }
+
+            let else_token: Token![else] = input.parse()?;
+            if input.peek(Token![if]) {
+                stmt.else_branch = Some((else_token, Box::new(Stmt::default())));
+                clauses.push(stmt);
+            } else {
+                stmt.else_branch = Some((else_token, input.parse()?));
+                break;
+            }
+        }
+
+        while let Some(mut prev) = clauses.pop() {
+            *prev.else_branch.as_mut().unwrap().1 = Stmt {
+                kind: StmtKind::If(stmt),
+                terminator: None,
+            };
+            stmt = prev;
+        }
+        Ok(stmt)
+    }
+}
+
+#[derive(Debug, Clone, Parse)]
 pub struct NonblockAssign {
     pub target: Ident,
     pub larrow: LeftArrow,
     pub rhs: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Parse)]
 pub struct ContinuousAssign {
     pub kw: kw::assign,
     pub assign: Assign,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Parse)]
 pub struct Assign {
     pub target: Ident,
     pub eq: Token![=],
@@ -331,6 +580,7 @@ pub struct Assign {
 pub enum Expr {
     Binary(ExprBinary),
     Unary(ExprUnary),
+    Constant(LitVerilog),
     Literal(LitInt),
     Ident(Ident),
     Paren(Box<Expr>),
@@ -351,7 +601,9 @@ impl Parse for Expr {
 fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
     eprintln!("exprbp: {input:?}, min_bp: {min_bp}");
     let lookahead = input.lookahead1();
-    let mut lhs = if lookahead.peek(LitInt) {
+    let mut lhs = if lookahead.peek(LitInt) && input.peek2(Lifetime) {
+        input.parse().map(Expr::Constant)?
+    } else if lookahead.peek(LitInt) {
         input.parse().map(Expr::Literal)?
     } else if input.fork().parse::<ExprFunction>().is_ok() {
         input.parse().map(Expr::Function)?
@@ -387,7 +639,11 @@ fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
         eprintln!("input = {input:?}");
         // Check for a trinary operator
         let lookahead = input.lookahead1();
-        if lookahead.peek(Token![:]) || lookahead.peek(Token![,]) || lookahead.peek(PlusColon) {
+        if lookahead.peek(Token![:])
+            || lookahead.peek(Token![,])
+            || lookahead.peek(PlusColon)
+            || lookahead.peek(Token![;])
+        {
             break;
         } else if lookahead.peek(Token![?]) {
             let (l_bp, r_bp) = TERNARY_BINDING;
@@ -468,22 +724,11 @@ impl Parse for ExprReplica {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Parse)]
 pub struct ExprFunction {
     pub dollar: Option<Token![$]>,
     pub name: Ident,
-    pub args: Punctuated<Expr, Token![,]>,
-}
-
-impl Parse for ExprFunction {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let dollar = input.parse()?;
-        let name = input.parse()?;
-        let content;
-        parenthesized!(content in input);
-        let args = content.parse_terminated(Expr::parse, Token![,])?;
-        Ok(Self { dollar, name, args })
-    }
+    pub args: ParenCommaList<Expr>,
 }
 
 #[derive(Debug, Clone)]
@@ -742,21 +987,11 @@ impl Parse for Operator {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq)]
+#[derive(Debug, Clone, Hash, PartialEq, Parse)]
 pub struct BitRange {
     start: LitInt,
     colon: token::Colon,
     end: LitInt,
-}
-
-impl Parse for BitRange {
-    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        Ok(Self {
-            start: input.parse()?,
-            colon: input.parse()?,
-            end: input.parse()?,
-        })
-    }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq)]
@@ -775,36 +1010,97 @@ impl Parse for WidthSpec {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq)]
-pub enum SignedWidth {
-    Unsigned(usize),
-    Signed(usize),
+#[derive(Debug, Clone, Parse)]
+pub struct LitVerilog {
+    pub width: LitInt,
+    pub lifetime: Lifetime,
 }
 
-#[derive(Debug, Clone)]
-struct LitVerilog {
-    width: LitInt,
-    lifetime: Lifetime,
+/*
+
+pub fn module(ast: &Module) -> String {
+    let name = &ast.name;
+    let description = &ast.description;
+    let ports = apply(&ast.ports, port, ", ");
+    let declarations = apply(&ast.declarations, register, "\n");
+    let statements = apply(&ast.statements, statement, "\n");
+    let functions = apply(&ast.functions, function, "\n");
+    let sub_modules = ast
+        .submodules
+        .iter()
+        .map(module)
+        .collect::<Vec<_>>()
+        .join("\n");
+    reformat_verilog(&format!(
+        "// {description}\nmodule {name}({ports});\n{declarations}\n{statements}\n{functions}\nendmodule\n{sub_modules}\n",
+    ))
 }
 
-#[derive(Debug)]
-struct OperatorList {
-    list: Punctuated<Operator, Token![,]>,
+*/
+
+#[derive(Clone, Debug)]
+pub struct ModuleDef {
+    pub module: kw::module,
+    pub name: Ident,
+    pub args: ParenCommaList<Port>,
+    pub semi: Token![;],
+    pub items: Vec<Item>,
+    pub end_module: kw::endmodule,
 }
 
-impl Parse for OperatorList {
+impl Parse for ModuleDef {
     fn parse(input: ParseStream) -> Result<Self> {
+        let module = input.parse()?;
+        let name = input.parse()?;
+        let args = input.parse()?;
+        let semi = input.parse()?;
+        let mut items = Vec::new();
+        while !input.peek(kw::endmodule) {
+            items.push(input.parse()?);
+        }
+        let end_module = input.parse()?;
         Ok(Self {
-            list: Punctuated::parse_terminated(&input)?,
+            module,
+            name,
+            args,
+            semi,
+            items,
+            end_module,
         })
     }
 }
 
-impl Parse for LitVerilog {
-    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        Ok(Self {
-            width: input.parse()?,
-            lifetime: input.parse()?,
+#[derive(Clone, Debug)]
+pub struct FunctionDef {
+    pub function: kw::function,
+    pub signed_width: SignedWidth,
+    pub name: Ident,
+    pub args: ParenCommaList<Declaration>,
+    pub semi: Token![;],
+    pub items: Vec<Item>,
+    pub end_function: kw::endfunction,
+}
+
+impl Parse for FunctionDef {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let function = input.parse()?;
+        let signed_width = input.parse()?;
+        let name = input.parse()?;
+        let args = input.parse()?;
+        let semi = input.parse()?;
+        let mut items = Vec::new();
+        while !input.peek(kw::endfunction) {
+            items.push(input.parse()?);
+        }
+        let end_function = input.parse()?;
+        Ok(FunctionDef {
+            function,
+            signed_width,
+            name,
+            args,
+            semi,
+            items,
+            end_function,
         })
     }
 }
@@ -820,8 +1116,6 @@ fn main() -> Result<()> {
     let test = "input reg signed [3:0] nibble";
     let port = syn::parse_str::<Port>(test)?;
     eprintln!("Port {port:#?}");
-    let operator_list = syn::parse_str::<OperatorList>("+,-,&&,&,||,<<,>>,%,!,~")?;
-    eprintln!("ops {operator_list:#?}");
     let expr = "d+3+~(^4+4*c*6%8&5)";
     let expr = syn::parse_str::<Expr>(expr)?;
     eprintln!("expr {expr:#?}");
@@ -839,5 +1133,34 @@ fn main() -> Result<()> {
     eprintln!("{expr:#?}");
     let expr = syn::parse_str::<Expr>("$signed(a)")?;
     eprintln!("{expr:#?}");
+    let stmt = syn::parse_str::<Stmt>(
+        r"
+begin
+   if (a > 3)
+      b = 4;
+   else
+      c = b;
+end    
+",
+    )?;
+    eprintln!("{stmt:?}");
+    let stmt = syn::parse_str::<Stmt>(
+        r"
+case (rega)
+16'd0: result = 10'b0111111111;
+16'd1: result = 10'b1011111111;
+16'd2: result = 10'b1101111111;
+16'd3: result = 10'b1110111111;
+16'd4: result = 10'b1111011111;
+16'd5: result = 10'b1111101111;
+16'd6: result = 10'b1111110111;
+16'd7: result = 10'b1111111011;
+16'd8: result = 10'b1111111101;
+16'd9: result = 10'b1111111110;
+default result = 10'bx;
+endcase
+        ",
+    )?;
+    eprintln!("{stmt:?}");
     Ok(())
 }
