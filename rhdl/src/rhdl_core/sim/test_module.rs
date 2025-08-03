@@ -1,4 +1,4 @@
-use crate::rhdl_core::{hdl::ast::Module, RHDLError};
+use crate::rhdl_core::{RHDLError, hdl::ast::Module};
 
 pub struct TestModule(Module);
 
@@ -17,6 +17,12 @@ impl std::fmt::Display for TestModule {
 #[cfg(feature = "iverilog")]
 impl TestModule {
     pub fn run_iverilog(&self) -> Result<(), RHDLError> {
+        use rand::random;
+
+        let name = format!("tm_{:x}.v", random::<u32>());
+        let path = format!("/Users/samitbasu/Devel/rhdl/synhdl/vlog/{name}");
+        std::fs::write(path, self.to_string())?;
+
         let d = tempfile::tempdir()?;
         // Write the test bench to a file
         let d_path = d.path();

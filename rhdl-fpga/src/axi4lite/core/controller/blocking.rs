@@ -251,6 +251,9 @@ mod tests {
     #[test]
     fn no_combinatorial_paths() -> miette::Result<()> {
         let uut = BlockReadWriteController::default();
+        let descriptor = uut.hdl("top")?;
+        let module = descriptor.as_module().as_verilog();
+        std::fs::write("/Users/samitbasu/Devel/rhdl/synhdl/controller.v", module).unwrap();
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }

@@ -1,8 +1,10 @@
+use std::fs::FileType;
+
 use syn::{
-    Ident, Lifetime, LitInt, Result, Token, braced, bracketed, parenthesized,
-    parse::{Lookahead1, Parse, ParseBuffer, ParseStream},
+    Ident, Lifetime, LitInt, LitStr, Result, Token, braced, bracketed, parenthesized,
+    parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    token::{self, Bracket, Paren},
+    token::{self, Bracket},
 };
 
 use derive_syn_parse::Parse;
@@ -92,6 +94,12 @@ pub enum Direction {
 syn::custom_punctuation!(PlusColon, +:);
 syn::custom_punctuation!(LeftArrow, <=);
 
+syn::custom_punctuation!(CaseUnequal, !==);
+
+syn::custom_punctuation!(CaseEqual, ===);
+
+syn::custom_punctuation!(SignedRightShift, >>>);
+
 mod kw {
     syn::custom_keyword!(input);
     syn::custom_keyword!(output);
@@ -155,6 +163,7 @@ pub struct Declaration {
     pub kind: HDLKind,
     pub signed_width: SignedWidth,
     pub name: Ident,
+    pub term: Option<Token![;]>,
 }
 
 #[derive(Debug, Clone, Parse)]
@@ -192,7 +201,7 @@ pub enum Item {
     Statement(Stmt),
     Declaration(Declaration),
     FunctionDef(FunctionDef),
-    Initial(Stmt),
+    Initial(Initial),
 }
 
 impl Parse for Item {
@@ -209,10 +218,22 @@ impl Parse for Item {
     }
 }
 
+#[derive(Debug, Clone, Parse)]
+pub struct Initial {
+    pub initial_kw: kw::initial,
+    pub statment: Stmt,
+}
+
 #[derive(Debug, Clone, Default, Parse)]
 pub struct Stmt {
     pub kind: StmtKind,
     pub terminator: Option<Token![;]>,
+}
+
+#[derive(Debug, Clone, Parse)]
+pub struct Delay {
+    pub hash_token: Token![#],
+    pub length: LitInt,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -230,6 +251,9 @@ pub enum StmtKind {
     DynamicSplice(DynamicSplice),
     #[default]
     Noop,
+    ConcatAssign(ConcatAssign),
+    Delay(Delay),
+    FunctionCall(FunctionCall),
 }
 
 impl Parse for StmtKind {
@@ -247,21 +271,47 @@ impl Parse for StmtKind {
             input.parse().map(StmtKind::Block)
         } else if lookahead.peek(kw::assign) {
             input.parse().map(StmtKind::ContinuousAssign)
+        } else if lookahead.peek(Token![$]) {
+            input.parse().map(StmtKind::FunctionCall)
         } else if lookahead.peek(Ident) && input.peek2(LeftArrow) {
             input.parse().map(StmtKind::NonblockAssign)
         } else if lookahead.peek(Ident) && input.peek2(Token![=]) {
             input.parse().map(StmtKind::Assign)
         } else if lookahead.peek(Ident) && input.peek2(Ident) && input.peek3(token::Paren) {
             input.parse().map(StmtKind::Instance)
-        } else if lookahead.peek(Bracket) {
+        } else if lookahead.peek(Ident) && input.peek2(Bracket) {
             if input.fork().parse::<Splice>().is_ok() {
                 input.parse().map(StmtKind::Splice)
             } else {
                 input.parse().map(StmtKind::DynamicSplice)
             }
+        } else if lookahead.peek(token::Brace) {
+            input.parse().map(StmtKind::ConcatAssign)
+        } else if lookahead.peek(token::Pound) {
+            input.parse().map(StmtKind::Delay)
         } else {
             Err(lookahead.error())
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FunctionCall {
+    pub dollar: Option<Token![$]>,
+    pub name: Ident,
+    pub args: Option<ParenCommaList<Expr>>,
+}
+
+impl Parse for FunctionCall {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let dollar = input.parse()?;
+        let name = input.parse()?;
+        let args = if input.peek(token::Paren) {
+            Some(input.parse()?)
+        } else {
+            None
+        };
+        Ok(FunctionCall { dollar, name, args })
     }
 }
 
@@ -576,12 +626,20 @@ pub struct Assign {
     pub rhs: Box<Expr>,
 }
 
+#[derive(Debug, Clone, Parse)]
+pub struct ConcatAssign {
+    pub target: ExprConcat,
+    pub eq: Token![=],
+    pub rhs: Box<Expr>,
+}
+
 #[derive(Debug, Clone)]
 pub enum Expr {
     Binary(ExprBinary),
     Unary(ExprUnary),
     Constant(LitVerilog),
     Literal(LitInt),
+    String(LitStr),
     Ident(Ident),
     Paren(Box<Expr>),
     Ternary(ExprTernary),
@@ -599,12 +657,13 @@ impl Parse for Expr {
 }
 
 fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
-    eprintln!("exprbp: {input:?}, min_bp: {min_bp}");
     let lookahead = input.lookahead1();
     let mut lhs = if lookahead.peek(LitInt) && input.peek2(Lifetime) {
         input.parse().map(Expr::Constant)?
     } else if lookahead.peek(LitInt) {
         input.parse().map(Expr::Literal)?
+    } else if lookahead.peek(LitStr) {
+        input.parse().map(Expr::String)?
     } else if input.fork().parse::<ExprFunction>().is_ok() {
         input.parse().map(Expr::Function)?
     } else if input.fork().parse::<ExprIndex>().is_ok() {
@@ -631,12 +690,10 @@ fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
         let arg = Box::new(expr_bp(input, r_bp)?);
         Expr::Unary(ExprUnary { op, arg })
     };
-    eprintln!("lhs = {lhs:?}");
     loop {
         if input.is_empty() {
             break;
         }
-        eprintln!("input = {input:?}");
         // Check for a trinary operator
         let lookahead = input.lookahead1();
         if lookahead.peek(Token![:])
@@ -848,6 +905,9 @@ pub enum BinaryOp {
     Xor(Token![^]),
     Mod(Token![%]),
     Mul(Token![*]),
+    CaseEq(CaseEqual),
+    CaseNe(CaseUnequal),
+    SignedRightShift(SignedRightShift),
 }
 
 impl Parse for BinaryOp {
@@ -855,12 +915,18 @@ impl Parse for BinaryOp {
         let lookahead = input.lookahead1();
         if lookahead.peek(Token![<<]) {
             input.parse().map(BinaryOp::Shl)
+        } else if lookahead.peek(SignedRightShift) {
+            input.parse().map(BinaryOp::SignedRightShift)
         } else if lookahead.peek(Token![>>]) {
             input.parse().map(BinaryOp::Shr)
         } else if lookahead.peek(Token![&&]) {
             input.parse().map(BinaryOp::ShortAnd)
         } else if lookahead.peek(Token![||]) {
             input.parse().map(BinaryOp::ShortOr)
+        } else if lookahead.peek(CaseEqual) {
+            input.parse().map(BinaryOp::CaseEq)
+        } else if lookahead.peek(CaseUnequal) {
+            input.parse().map(BinaryOp::CaseNe)
         } else if lookahead.peek(Token![!=]) {
             input.parse().map(BinaryOp::Ne)
         } else if lookahead.peek(Token![==]) {
@@ -898,9 +964,11 @@ impl BinaryOp {
         match self {
             BinaryOp::Mod(_) | BinaryOp::Mul(_) => (20, 21),
             BinaryOp::Plus(_) | BinaryOp::Minus(_) => (18, 19),
-            BinaryOp::Shl(_) | BinaryOp::Shr(_) => (16, 17),
+            BinaryOp::Shl(_) | BinaryOp::Shr(_) | BinaryOp::SignedRightShift(_) => (16, 17),
             BinaryOp::Ge(_) | BinaryOp::Le(_) | BinaryOp::Gt(_) | BinaryOp::Lt(_) => (14, 15),
-            BinaryOp::Ne(_) | BinaryOp::Eq(_) => (12, 13),
+            BinaryOp::Ne(_) | BinaryOp::Eq(_) | BinaryOp::CaseNe(_) | BinaryOp::CaseEq(_) => {
+                (12, 13)
+            }
             BinaryOp::And(_) => (10, 11),
             BinaryOp::Xor(_) => (9, 10),
             BinaryOp::Or(_) => (7, 8),
@@ -1039,6 +1107,24 @@ pub fn module(ast: &Module) -> String {
 */
 
 #[derive(Clone, Debug)]
+pub struct ModuleList {
+    pub modules: Vec<ModuleDef>,
+}
+
+impl Parse for ModuleList {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut modules = Vec::new();
+        loop {
+            if input.is_empty() {
+                break;
+            }
+            modules.push(input.parse()?);
+        }
+        Ok(Self { modules })
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct ModuleDef {
     pub module: kw::module,
     pub name: Ident,
@@ -1075,7 +1161,7 @@ pub struct FunctionDef {
     pub function: kw::function,
     pub signed_width: SignedWidth,
     pub name: Ident,
-    pub args: ParenCommaList<Declaration>,
+    pub args: ParenCommaList<Port>,
     pub semi: Token![;],
     pub items: Vec<Item>,
     pub end_function: kw::endfunction,
@@ -1105,35 +1191,40 @@ impl Parse for FunctionDef {
     }
 }
 
-fn main() -> Result<()> {
+fn test_parse<T: Parse>(text: impl AsRef<str>) -> std::result::Result<T, miette::Report> {
+    let text = text.as_ref();
+    syn::parse_str::<T>(text).map_err(|err| syn_miette::Error::new(err, text).into())
+}
+
+fn main() -> miette::Result<()> {
     // Get a string of text
     let test = "41'sd2332";
-    let foo = syn::parse_str::<LitVerilog>(test)?;
+    let foo = test_parse::<LitVerilog>(test)?;
     eprintln!("Foo {foo:#?}");
     let test = "[3:0]";
-    let width = syn::parse_str::<WidthSpec>(test)?;
+    let width = test_parse::<WidthSpec>(test)?;
     eprintln!("width {width:#?}");
     let test = "input reg signed [3:0] nibble";
-    let port = syn::parse_str::<Port>(test)?;
+    let port = test_parse::<Port>(test)?;
     eprintln!("Port {port:#?}");
     let expr = "d+3+~(^4+4*c*6%8&5)";
-    let expr = syn::parse_str::<Expr>(expr)?;
+    let expr = test_parse::<Expr>(expr)?;
     eprintln!("expr {expr:#?}");
     let expr = "a > 3 ? 1 : 7";
-    let expr = syn::parse_str::<Expr>(expr)?;
+    let expr = test_parse::<Expr>(expr)?;
     eprintln!("{expr:#?}");
     let expr = "{a, 3, 1}";
-    let expr = syn::parse_str::<Expr>(expr)?;
+    let expr = test_parse::<Expr>(expr)?;
     eprintln!("{expr:#?}");
-    let expr = syn::parse_str::<Expr>("a + {4 {w}}")?;
+    let expr = test_parse::<Expr>("a + {4 {w}}")?;
     eprintln!("{expr:#?}");
-    let expr = syn::parse_str::<Expr>("a[3] + b[5:2] - {4 {w}}")?;
+    let expr = test_parse::<Expr>("a[3] + b[5:2] - {4 {w}}")?;
     eprintln!("{expr:#?}");
-    let expr = syn::parse_str::<Expr>("h[a +: 3]")?;
+    let expr = test_parse::<Expr>("h[a +: 3]")?;
     eprintln!("{expr:#?}");
-    let expr = syn::parse_str::<Expr>("$signed(a)")?;
+    let expr = test_parse::<Expr>("$signed(a)")?;
     eprintln!("{expr:#?}");
-    let stmt = syn::parse_str::<Stmt>(
+    let stmt = test_parse::<Stmt>(
         r"
 begin
    if (a > 3)
@@ -1143,8 +1234,7 @@ begin
 end    
 ",
     )?;
-    eprintln!("{stmt:?}");
-    let stmt = syn::parse_str::<Stmt>(
+    let stmt = test_parse::<Stmt>(
         r"
 case (rega)
 16'd0: result = 10'b0111111111;
@@ -1161,6 +1251,130 @@ default result = 10'bx;
 endcase
         ",
     )?;
-    eprintln!("{stmt:?}");
+
+    let dff = r"
+        module foo(input wire[2:0] clock_reset, input wire[7:0] i, output wire[7:0] o);
+        endmodule        
+";
+    let foo = test_parse::<ModuleDef>(dff)?;
+    let dff = r"
+        module foo(input wire[2:0] clock_reset, input wire[7:0] i, output wire[7:0] o);
+           wire [0:0] clock;
+           wire [0:0] reset;
+           assign clock = clock_reset[0];
+           assign wire = clock_reset[1];
+           always @(posedge clock) begin
+               if (reset) begin
+                  o <= 8'b0;
+                end else begin
+                   o <= i;
+                end
+           end
+        endmodule        
+";
+    let foo = test_parse::<ModuleDef>(dff)?;
+    let add = r"
+module dut(input wire [7:0] arg_0, output reg [7:0] out);
+    reg [0:0] r0;
+    reg [0:0] r1;
+    reg [0:0] r2;
+    reg [0:0] r3;
+    reg [0:0] r4;
+    reg [0:0] r5;
+    reg [0:0] r6;
+    reg [0:0] r7;
+    reg [0:0] r8;
+    reg [0:0] r9;
+    reg [0:0] r10;
+    reg [0:0] r11;
+    reg [0:0] r12;
+    reg [0:0] r13;
+    reg [0:0] r14;
+    reg [0:0] r15;
+    always @(*) begin
+        r0 = arg_0[0];
+        r1 = arg_0[1];
+        r2 = arg_0[2];
+        r3 = arg_0[3];
+        r4 = arg_0[4];
+        r5 = arg_0[5];
+        r6 = arg_0[6];
+        r7 = arg_0[7];
+        // let b = Bar/* tuple::Bar */ {a: bits(1), b: Foo/* tuple::Foo */ {a: bits(2), b: bits(3),},};
+        //
+        // let Bar {a: a, b: Foo {a: c, b: d,},} = b;
+        //
+        // signal((a + c + d + a0.val()).resize())
+        //
+        { r15,r14,r13,r12,r11,r10,r9,r8 } = { 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b1, 1'b1, 1'b0 } + { r7, r6, r5, r4, r3, r2, r1, r0 };
+        out = { r15, r14, r13, r12, r11, r10, r9, r8 };
+    end
+endmodule
+    ";
+    let foo = test_parse::<ModuleDef>(add)?;
+    let foo = test_parse::<ModuleDef>(
+        r"
+    module dut(input wire [7:0] arg_0, input wire [7:0] arg_1, output reg [0:0] out);
+    reg [0:0] r0;
+    reg [0:0] r1;
+    reg [0:0] r2;
+    reg [0:0] r3;
+    reg [0:0] r4;
+    reg [0:0] r5;
+    reg [0:0] r6;
+    reg [0:0] r7;
+    reg [0:0] r8;
+    reg [0:0] r9;
+    reg [0:0] r10;
+    reg [0:0] r11;
+    reg [0:0] r12;
+    reg [0:0] r13;
+    reg [0:0] r14;
+    reg [0:0] r15;
+    reg [0:0] r16;
+    always @(*) begin
+        r0 = arg_0[0];
+        r1 = arg_0[1];
+        r2 = arg_0[2];
+        r3 = arg_0[3];
+        r4 = arg_0[4];
+        r5 = arg_0[5];
+        r6 = arg_0[6];
+        r7 = arg_0[7];
+        r8 = arg_1[0];
+        r9 = arg_1[1];
+        r10 = arg_1[2];
+        r11 = arg_1[3];
+        r12 = arg_1[4];
+        r13 = arg_1[5];
+        r14 = arg_1[6];
+        r15 = arg_1[7];
+        // signal(a.val() >= b.val())
+        //
+        { r16 } = $signed({ r7, r6, r5, r4, r3, r2, r1, r0 }) >= $signed({ r15, r14, r13, r12, r11, r10, r9, r8 });
+        out = { r16 };
+    end
+endmodule",
+    )?;
+    let foo = include_str!("../vlog/controller.v");
+    let error = test_parse::<ModuleList>(foo)?;
+    let dir = std::fs::read_dir("vlog").unwrap();
+    for entry in dir {
+        let Ok(entry) = entry else {
+            continue;
+        };
+        let Ok(file_type) = entry.file_type() else {
+            continue;
+        };
+        if !file_type.is_file() {
+            continue;
+        };
+        eprintln!("Path: {:?}", entry.path());
+        let Ok(module) = std::fs::read(entry.path()) else {
+            continue;
+        };
+        let text = String::from_utf8_lossy(&module);
+        let _ = test_parse::<ModuleList>(text)?;
+    }
     Ok(())
 }
