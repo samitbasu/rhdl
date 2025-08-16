@@ -8,16 +8,16 @@
                 leading_colon: None,
                 segments: [
                     PathSegment {
-                        ident: Ident(
-                            Baz,
-                        ),
+                        ident: Ident {
+                            sym: Baz,
+                        },
                         arguments: PathArguments::None,
                     },
                     PathSep,
                     PathSegment {
-                        ident: Ident(
-                            A,
-                        ),
+                        ident: Ident {
+                            sym: A,
+                        },
                         arguments: PathArguments::None,
                     },
                 ],
@@ -44,16 +44,16 @@
                 leading_colon: None,
                 segments: [
                     PathSegment {
-                        ident: Ident(
-                            Baz,
-                        ),
+                        ident: Ident {
+                            sym: Baz,
+                        },
                         arguments: PathArguments::None,
                     },
                     PathSep,
                     PathSegment {
-                        ident: Ident(
-                            B,
-                        ),
+                        ident: Ident {
+                            sym: B,
+                        },
                         arguments: PathArguments::None,
                     },
                 ],
@@ -89,16 +89,16 @@
                 leading_colon: None,
                 segments: [
                     PathSegment {
-                        ident: Ident(
-                            Baz,
-                        ),
+                        ident: Ident {
+                            sym: Baz,
+                        },
                         arguments: PathArguments::None,
                     },
                     PathSep,
                     PathSegment {
-                        ident: Ident(
-                            C,
-                        ),
+                        ident: Ident {
+                            sym: C,
+                        },
                         arguments: PathArguments::None,
                     },
                 ],
@@ -108,9 +108,9 @@
                 FieldPat {
                     attrs: [],
                     member: Member::Named(
-                        Ident(
-                            x,
-                        ),
+                        Ident {
+                            sym: x,
+                        },
                     ),
                     colon_token: Some(
                         Colon,
@@ -126,9 +126,9 @@
                 FieldPat {
                     attrs: [],
                     member: Member::Named(
-                        Ident(
-                            y,
-                        ),
+                        Ident {
+                            sym: y,
+                        },
                     ),
                     colon_token: Some(
                         Colon,
@@ -164,16 +164,16 @@
                 leading_colon: None,
                 segments: [
                     PathSegment {
-                        ident: Ident(
-                            Baz,
-                        ),
+                        ident: Ident {
+                            sym: Baz,
+                        },
                         arguments: PathArguments::None,
                     },
                     PathSep,
                     PathSegment {
-                        ident: Ident(
-                            C,
-                        ),
+                        ident: Ident {
+                            sym: C,
+                        },
                         arguments: PathArguments::None,
                     },
                 ],
@@ -183,18 +183,18 @@
                 FieldPat {
                     attrs: [],
                     member: Member::Named(
-                        Ident(
-                            x,
-                        ),
+                        Ident {
+                            sym: x,
+                        },
                     ),
                     colon_token: None,
                     pat: Pat::Ident {
                         attrs: [],
                         by_ref: None,
                         mutability: None,
-                        ident: Ident(
-                            x,
-                        ),
+                        ident: Ident {
+                            sym: x,
+                        },
                         subpat: None,
                     },
                 },
@@ -202,18 +202,18 @@
                 FieldPat {
                     attrs: [],
                     member: Member::Named(
-                        Ident(
-                            y,
-                        ),
+                        Ident {
+                            sym: y,
+                        },
                     ),
                     colon_token: None,
                     pat: Pat::Ident {
                         attrs: [],
                         by_ref: None,
                         mutability: None,
-                        ident: Ident(
-                            y,
-                        ),
+                        ident: Ident {
+                            sym: y,
+                        },
                         subpat: None,
                     },
                 },

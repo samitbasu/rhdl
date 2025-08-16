@@ -1,0 +1,16 @@
+[package]
+name = "rhdl-vlog"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+derive-syn-parse = "0.2.0"
+miette = { version = "7.6.0", features = ["fancy"] }
+proc-macro2 = "1.0.97"
+quote = "1.0.40"
+syn = { version = "2.0.104", features = ["extra-traits", "full"] }
+syn-miette = "0.3.0"
+syn_derive = "0.2.0"
+
+[dev-dependencies]
+expect-test = "1.5.1"

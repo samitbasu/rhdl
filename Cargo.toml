@@ -8,5 +8,6 @@ members = [
     "rhdl-macro",
     "rhdl-fpga",
     "rhdl-trace-type", "rhdl-bsp",
+    "rhdl-vlog"
     #    "rhdl-typenum",
 ]

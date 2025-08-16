@@ -21,3 +21,4 @@ pub mod typenum_op;
 pub use export::export_macro;
 mod path;
 pub use path::path_macro;
+pub mod vlog;
