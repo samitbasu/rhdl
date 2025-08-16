@@ -57,7 +57,7 @@ impl<T: Digital> rhdl::core::digital_fn::DigitalFn for update<T> {
                     std::any::TypeId::of::<update<T>>(),
                     "#[rhdl(allow_weak_partial)]\nfn update<T: Digital>(a: T, b: T) -> [T; 2] {\n    [a, b]\n}\n",
                     concat!(file!(), ":", line!()),
-                    vec![rhdl::core::ast::KernelFlags::AllowWeakPartial],
+                    vec![],
                 ),
         )
     }
