@@ -6,6 +6,9 @@ use syn::{
     token::{self, Brace, Bracket, Paren},
 };
 
+#[cfg(test)]
+mod tests;
+
 syn::custom_punctuation!(PlusColon, +:);
 syn::custom_punctuation!(LeftArrow, <=);
 
@@ -1629,7 +1632,7 @@ impl Parse for FunctionDef {
 }
 
 #[cfg(test)]
-mod tests {
+mod itests {
 
     use super::*;
     use quote::quote;
@@ -1645,230 +1648,6 @@ mod tests {
         let val = syn::parse_str::<T>(text).map_err(|err| syn_miette::Error::new(err, text))?;
         let quoted = quote! {#val};
         Ok(quoted.to_string())
-    }
-
-    #[test]
-    fn test_to_tokens() -> miette::Result<()> {
-        let expect = expect_test::expect!["0 ..= 3"];
-        let synth = test_parse_quote::<BitRange>("3:0")?;
-        expect.assert_eq(&synth.to_string());
-        Ok(())
-    }
-
-    #[test]
-    fn test_to_tokens_signed_wdith() -> miette::Result<()> {
-        let expect = expect_test::expect!["rhdl :: vlog :: SignedWidth :: Signed (0 ..= 4)"];
-        let synth = test_parse_quote::<SignedWidth>("signed [4:0]")?;
-        expect.assert_eq(&synth.to_string());
-        Ok(())
-    }
-
-    #[test]
-    fn test_quote_parse_hdl() -> miette::Result<()> {
-        let test_hdl = quote! {reg};
-        let kind = syn::parse2::<HDLKind>(test_hdl).unwrap();
-        let output = quote! {#kind};
-        let expect = expect_test::expect!["rhdl :: vlog :: HDLKind :: Reg"];
-        expect.assert_eq(&output.to_string());
-        Ok(())
-    }
-
-    #[test]
-    fn test_quote_parse_direction() -> miette::Result<()> {
-        let test_hdl = quote! {inout};
-        let direction = syn::parse2::<Direction>(test_hdl).unwrap();
-        let output = quote! {#direction};
-        let expect = expect_test::expect!["rhdl :: vlog :: Direction :: Inout"];
-        expect.assert_eq(&output.to_string());
-        Ok(())
-    }
-
-    #[test]
-    fn test_quote_parse_signed_width() -> miette::Result<()> {
-        let test_hdl = quote! {signed [4:0]};
-        let width = syn::parse2::<SignedWidth>(test_hdl).unwrap();
-        let output = quote! {#width};
-        let expect = expect_test::expect!["rhdl :: vlog :: SignedWidth :: Signed (0 ..= 4)"];
-        expect.assert_eq(&output.to_string());
-        Ok(())
-    }
-
-    #[test]
-    fn test_quote_parse_declaration() -> miette::Result<()> {
-        let test_hdl = quote! {wire signed [4:0] baz};
-        let decl = syn::parse2::<Declaration>(test_hdl).unwrap();
-        let output = quote! {#decl};
-        let expect = expect_test::expect![
-            "rhdl :: vlog :: Declaration { kind : rhdl :: vlog :: HDLKind :: Wire , signed_width : rhdl :: vlog :: SignedWidth :: Signed (0 ..= 4) , name : stringify ! (baz) . into () }"
-        ];
-        expect.assert_eq(&output.to_string());
-        Ok(())
-    }
-
-    #[test]
-    fn smoke_test_parse() -> miette::Result<()> {
-        // Get a string of text
-        let test = "41'sd2332";
-        let foo = test_parse::<LitVerilog>(test)?;
-        eprintln!("Foo {foo:#?}");
-        let test = "[3:0]";
-        let width = test_parse::<WidthSpec>(test)?;
-        eprintln!("width {width:#?}");
-        let test = "input reg signed [3:0] nibble";
-        let port = test_parse::<Port>(test)?;
-        eprintln!("Port {port:#?}");
-        let expr = "d+3+~(^4+4*c*6%8&5)";
-        let expr = test_parse::<Expr>(expr)?;
-        eprintln!("expr {expr:#?}");
-        let expr = "a > 3 ? 1 : 7";
-        let expr = test_parse::<Expr>(expr)?;
-        eprintln!("{expr:#?}");
-        let expr = "{a, 3, 1}";
-        let expr = test_parse::<Expr>(expr)?;
-        eprintln!("{expr:#?}");
-        let expr = test_parse::<Expr>("a + {4 {w}}")?;
-        eprintln!("{expr:#?}");
-        let expr = test_parse::<Expr>("a[3] + b[5:2] - {4 {w}}")?;
-        eprintln!("{expr:#?}");
-        let expr = test_parse::<Expr>("h[a +: 3]")?;
-        eprintln!("{expr:#?}");
-        let expr = test_parse::<Expr>("$signed(a)")?;
-        eprintln!("{expr:#?}");
-        let _ = test_parse::<Stmt>(
-            r"
-begin
-   if (a > 3)
-      b = 4;
-   else
-      c = b;
-end    
-",
-        )?;
-        let _ = test_parse::<Stmt>(
-            r"
-case (rega)
-16'd0: result = 10'b0111111111;
-16'd1: result = 10'b1011111111;
-16'd2: result = 10'b1101111111;
-16'd3: result = 10'b1110111111;
-16'd4: result = 10'b1111011111;
-16'd5: result = 10'b1111101111;
-16'd6: result = 10'b1111110111;
-16'd7: result = 10'b1111111011;
-16'd8: result = 10'b1111111101;
-16'd9: result = 10'b1111111110;
-default result = 10'bx;
-endcase
-        ",
-        )?;
-
-        let dff = r"
-        module foo(input wire[2:0] clock_reset, input wire[7:0] i, output wire[7:0] o);
-        endmodule        
-";
-        let _ = test_parse::<ModuleDef>(dff)?;
-        let dff = r"
-        module foo(input wire[2:0] clock_reset, input wire[7:0] i, output wire[7:0] o);
-           wire [0:0] clock;
-           wire [0:0] reset;
-           assign clock = clock_reset[0];
-           assign wire = clock_reset[1];
-           always @(posedge clock) begin
-               if (reset) begin
-                  o <= 8'b0;
-                end else begin
-                   o <= i;
-                end
-           end
-        endmodule        
-";
-        let _ = test_parse::<ModuleDef>(dff)?;
-        let add = r"
-module dut(input wire [7:0] arg_0, output reg [7:0] out);
-    reg [0:0] r0;
-    reg [0:0] r1;
-    reg [0:0] r2;
-    reg [0:0] r3;
-    reg [0:0] r4;
-    reg [0:0] r5;
-    reg [0:0] r6;
-    reg [0:0] r7;
-    reg [0:0] r8;
-    reg [0:0] r9;
-    reg [0:0] r10;
-    reg [0:0] r11;
-    reg [0:0] r12;
-    reg [0:0] r13;
-    reg [0:0] r14;
-    reg [0:0] r15;
-    always @(*) begin
-        r0 = arg_0[0];
-        r1 = arg_0[1];
-        r2 = arg_0[2];
-        r3 = arg_0[3];
-        r4 = arg_0[4];
-        r5 = arg_0[5];
-        r6 = arg_0[6];
-        r7 = arg_0[7];
-        // let b = Bar/* tuple::Bar */ {a: bits(1), b: Foo/* tuple::Foo */ {a: bits(2), b: bits(3),},};
-        //
-        // let Bar {a: a, b: Foo {a: c, b: d,},} = b;
-        //
-        // signal((a + c + d + a0.val()).resize())
-        //
-        { r15,r14,r13,r12,r11,r10,r9,r8 } = { 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b1, 1'b1, 1'b0 } + { r7, r6, r5, r4, r3, r2, r1, r0 };
-        out = { r15, r14, r13, r12, r11, r10, r9, r8 };
-    end
-endmodule
-    ";
-        let _foo = test_parse::<ModuleDef>(add)?;
-        let _bar = test_parse::<ModuleDef>(
-            r"
-    module dut(input wire [7:0] arg_0, input wire [7:0] arg_1, output reg [0:0] out);
-    reg [0:0] r0;
-    reg [0:0] r1;
-    reg [0:0] r2;
-    reg [0:0] r3;
-    reg [0:0] r4;
-    reg [0:0] r5;
-    reg [0:0] r6;
-    reg [0:0] r7;
-    reg [0:0] r8;
-    reg [0:0] r9;
-    reg [0:0] r10;
-    reg [0:0] r11;
-    reg [0:0] r12;
-    reg [0:0] r13;
-    reg [0:0] r14;
-    reg [0:0] r15;
-    reg [0:0] r16;
-    always @(*) begin
-        r0 = arg_0[0];
-        r1 = arg_0[1];
-        r2 = arg_0[2];
-        r3 = arg_0[3];
-        r4 = arg_0[4];
-        r5 = arg_0[5];
-        r6 = arg_0[6];
-        r7 = arg_0[7];
-        r8 = arg_1[0];
-        r9 = arg_1[1];
-        r10 = arg_1[2];
-        r11 = arg_1[3];
-        r12 = arg_1[4];
-        r13 = arg_1[5];
-        r14 = arg_1[6];
-        r15 = arg_1[7];
-        // signal(a.val() >= b.val())
-        //
-        { r16 } = $signed({ r7, r6, r5, r4, r3, r2, r1, r0 }) >= $signed({ r15, r14, r13, r12, r11, r10, r9, r8 });
-        out = { r16 };
-    end
-endmodule",
-        )?;
-        let foo = include_str!("../vlog/controller.v");
-        let _ = test_parse::<ModuleList>(foo)?;
-        Ok(())
     }
 
     #[test]
