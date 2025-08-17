@@ -28,10 +28,8 @@ pub fn test_parse_quote<T: Parse + ToTokens>(
 /// with prettyplease, and then uses `trybuild` to test it.
 pub fn test_compilation(test_case: &str, module: ModuleList) {
     let test = quote! {
-        mod rhdl {
-            pub mod vlog {
-                include!("../src/ast.rs");
-            }
+        pub mod vlog {
+            include!("../src/ast.rs");
         }
 
         fn main() {

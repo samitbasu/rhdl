@@ -1,1 +1,1 @@
-rhdl :: vlog :: Expr :: DynIndex (rhdl :: vlog :: ExprDynIndex { target : stringify ! (h) . into () , base : Box :: new (rhdl :: vlog :: Expr :: Ident (stringify ! (a) . into ())) , width : Box :: new (rhdl :: vlog :: Expr :: Literal (3)) , })
+vlog :: dyn_index_expr (stringify ! (h) , vlog :: ident_expr (stringify ! (a)) , vlog :: literal_expr (3))

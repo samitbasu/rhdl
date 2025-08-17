@@ -8,7 +8,7 @@ fn main() {
             {
                 let elem0 = vlog::port(
                     vlog::input(),
-                    vlog::declaration(vlog::wire(), vlog::unsigned(0..=1), stringify!(a)),
+                    vlog::declaration(vlog::wire(), vlog::unsigned(0..=2), stringify!(a)),
                 );
                 let elem1 = vlog::port(
                     vlog::output(),
@@ -17,18 +17,15 @@ fn main() {
                 vec![elem0, elem1]
             },
             {
-                let elem0 = vlog::stmt_item(
-                    vlog::function_call_stmt(
-                        stringify!(_my_function),
-                        {
-                            let elem0 = vlog::ident_expr(stringify!(a));
-                            let elem1 = vlog::ident_expr(stringify!(b));
-                            vec![elem0, elem1]
-                        },
+                let elem0 = vlog::declaration_item(
+                    vlog::declaration(
+                        vlog::wire(),
+                        vlog::unsigned(0..=4),
+                        stringify!(val1),
                     ),
                 );
-                let elem1 = vlog::stmt_item(
-                    vlog::function_call_stmt(stringify!(_finish), vec![]),
+                let elem1 = vlog::declaration_item(
+                    vlog::declaration(vlog::reg(), vlog::signed(0..=3), stringify!(val2)),
                 );
                 vec![elem0, elem1]
             },

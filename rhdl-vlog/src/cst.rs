@@ -53,8 +53,8 @@ enum HDLKind {
 impl ToTokens for HDLKind {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(match self {
-            HDLKind::Reg(_) => quote! {rhdl::vlog::HDLKind::Reg},
-            HDLKind::Wire(_) => quote! {rhdl::vlog::HDLKind::Wire},
+            HDLKind::Reg(_) => quote! {vlog::reg()},
+            HDLKind::Wire(_) => quote! {vlog::wire()},
         })
     }
 }
@@ -72,9 +72,9 @@ enum Direction {
 impl ToTokens for Direction {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(match self {
-            Direction::Input(_) => quote! {rhdl::vlog::Direction::Input},
-            Direction::Output(_) => quote! {rhdl::vlog::Direction::Output},
-            Direction::Inout(_) => quote! {rhdl::vlog::Direction::Inout},
+            Direction::Input(_) => quote! {vlog::input()},
+            Direction::Output(_) => quote! {vlog::output()},
+            Direction::Inout(_) => quote! {vlog::inout()},
         })
     }
 }
@@ -119,9 +119,9 @@ impl ToTokens for SignedWidth {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let width = &self.width;
         tokens.extend(if self.signed.is_some() {
-            quote! {rhdl::vlog::SignedWidth::Signed(#width)}
+            quote! {vlog::signed(#width)}
         } else {
-            quote! {rhdl::vlog::SignedWidth::Unsigned(#width)}
+            quote! {vlog::unsigned(#width)}
         })
     }
 }
@@ -140,11 +140,7 @@ impl ToTokens for Declaration {
         let signed_width = &self.signed_width;
         let name = &self.name;
         tokens.extend(quote! {
-            rhdl::vlog::Declaration {
-                kind: #kind,
-                signed_width: #signed_width,
-                name: stringify!(#name).into()
-            }
+            vlog::declaration(#kind, #signed_width, stringify!(#name))
         })
     }
 }
@@ -160,15 +156,12 @@ impl ToTokens for Port {
         let direction = &self.direction;
         let decl = &self.decl;
         tokens.extend(quote! {
-            rhdl::vlog::Port {
-                direction: #direction,
-                decl: #decl,
-            }
+            vlog::port(#direction, #decl)
         })
     }
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default)]
 enum StmtKind {
     If(If),
     Always(Always),
@@ -189,53 +182,156 @@ enum StmtKind {
     Noop,
 }
 
+fn option_tokens<T: ToTokens>(t: Option<T>) -> proc_macro2::TokenStream {
+    match t {
+        Some(inner) => {
+            quote! {Some(#inner)}
+        }
+        None => quote! {None},
+    }
+}
+
+fn iter_tokens<T: ToTokens>(t: impl IntoIterator<Item = T>) -> proc_macro2::TokenStream {
+    let t = t.into_iter();
+    let elements = t.collect::<Vec<_>>();
+    vec_tokens(&elements)
+}
+
+fn vec_tokens<T: ToTokens>(t: &[T]) -> proc_macro2::TokenStream {
+    if t.len() == 0 {
+        return quote! {vec![]};
+    }
+    let elements = t.iter().enumerate().map(|(i, elem)| {
+        let var_name = format_ident!("elem{}", i);
+        quote! {
+            let #var_name = #elem;
+        }
+    });
+    let var_names = (0..t.len()).map(|i| format_ident!("elem{}", i));
+    quote! {
+        {
+        #(#elements)*
+        vec![#(#var_names),*]
+        }
+    }
+}
+
 impl ToTokens for StmtKind {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(match self {
-            StmtKind::If(inner) => quote! {
-                rhdl::vlog::Stmt::If(#inner)
-            },
-            StmtKind::Always(inner) => quote! {
-                rhdl::vlog::Stmt::Always(#inner)
-            },
-            StmtKind::Case(inner) => quote! {
-                rhdl::vlog::Stmt::Case(#inner)
-            },
-            StmtKind::LocalParam(inner) => quote! {
-                rhdl::vlog::Stmt::LocalParam(#inner)
-            },
-            StmtKind::Block(inner) => quote! {
-                rhdl::vlog::Stmt::Block(#inner)
-            },
-            StmtKind::ContinuousAssign(inner) => quote! {
-                rhdl::vlog::Stmt::ContinuousAssign(#inner)
-            },
-            StmtKind::FunctionCall(inner) => quote! {
-                rhdl::vlog::Stmt::FunctionCall(#inner)
-            },
-            StmtKind::NonblockAssign(inner) => quote! {
-                rhdl::vlog::Stmt::NonblockAssign(#inner)
-            },
-            StmtKind::Assign(inner) => quote! {
-                rhdl::vlog::Stmt::Assign(#inner)
-            },
-            StmtKind::Instance(inner) => quote! {
-                rhdl::vlog::Stmt::Instance(#inner)
-            },
-            StmtKind::Splice(inner) => quote! {
-                rhdl::vlog::Stmt::Splice(#inner)
-            },
-            StmtKind::DynamicSplice(inner) => quote! {
-                rhdl::vlog::Stmt::DynamicSplice(#inner)
-            },
-            StmtKind::Delay(inner) => quote! {
-                rhdl::vlog::Stmt::Delay(#inner)
-            },
-            StmtKind::ConcatAssign(inner) => quote! {
-                rhdl::vlog::Stmt::ConcatAssign(#inner)
-            },
+            StmtKind::If(inner) => {
+                let condition = &inner.condition.inner;
+                let true_stmt = &inner.true_stmt;
+                let else_stmt = option_tokens(inner.else_branch.as_ref().map(|x| &x.stmt));
+                quote! {
+                    vlog::if_stmt(#condition, #true_stmt, #else_stmt)
+                }
+            }
+            StmtKind::Always(inner) => {
+                let sensitivity = &inner.sensitivity;
+                let body = &inner.body;
+                quote! {
+                    vlog::always_stmt(#sensitivity, #body)
+                }
+            }
+            StmtKind::Case(inner) => {
+                let discriminant = &inner.discriminant;
+                let lines = vec_tokens(&inner.lines);
+                quote! {
+                    vlog::case_stmt(#discriminant, #lines)
+                }
+            }
+            StmtKind::LocalParam(inner) => {
+                let target = &inner.target;
+                let rhs = &inner.rhs;
+                quote! {
+                    vlog::local_param_stmt(stringify!(#target), #rhs)
+                }
+            }
+            StmtKind::Block(inner) => {
+                let inner = vec_tokens(&inner.body);
+                quote! {
+                    vlog::block_stmt(#inner)
+                }
+            }
+            StmtKind::ContinuousAssign(inner) => {
+                let target = &inner.assign.target;
+                let rhs = &inner.assign.rhs;
+                quote! {
+                    vlog::continuous_assign_stmt(stringify!(#target), #rhs)
+                }
+            }
+            StmtKind::FunctionCall(inner) => {
+                let name = if inner.dollar.is_some() {
+                    format_ident!("_{}", inner.name)
+                } else {
+                    inner.name.clone()
+                };
+                let args = inner
+                    .args
+                    .iter()
+                    .flat_map(|x| x.inner.iter())
+                    .collect::<Vec<_>>();
+                let args = vec_tokens(&args);
+                quote! {
+                    vlog::function_call_stmt(stringify!(#name), #args)
+                }
+            }
+            StmtKind::NonblockAssign(inner) => {
+                let target = &inner.target;
+                let rhs = &inner.rhs;
+                quote! {
+                    vlog::nonblock_assign_stmt(stringify!(#target), #rhs)
+                }
+            }
+            StmtKind::Assign(inner) => {
+                let target = &inner.target;
+                let rhs = &inner.rhs;
+                quote! {
+                    vlog::assign_stmt(stringify!(#target), #rhs)
+                }
+            }
+            StmtKind::Instance(inner) => {
+                let module = &inner.module;
+                let instance = &inner.instance;
+                let connections = iter_tokens(&inner.connections.inner);
+                quote! {
+                    vlog::instance_stmt(stringify!(#module), stringify!(#instance), #connections)
+                }
+            }
+            StmtKind::Splice(inner) => {
+                let target = &inner.lhs.target;
+                let msb = &inner.lhs.address.msb;
+                let lsb = option_tokens(inner.lhs.address.lsb.as_ref().map(|x| &x.1));
+                let rhs = &inner.rhs;
+                quote! {
+                    vlog::splice_stmt(stringify!(#target), #msb, #lsb, #rhs)
+                }
+            }
+            StmtKind::DynamicSplice(inner) => {
+                let target = &inner.lhs.target;
+                let base = &inner.lhs.address.base;
+                let width = &inner.lhs.address.width;
+                let rhs = &inner.rhs;
+                quote! {
+                    vlog::dynamic_splice_stmt(stringify!(#target), #base, #width, #rhs)
+                }
+            }
+            StmtKind::Delay(inner) => {
+                let delay = &inner.length;
+                quote! {
+                    vlog::delay_stmt(#delay)
+                }
+            }
+            StmtKind::ConcatAssign(inner) => {
+                let target = iter_tokens(&inner.target.elements);
+                let rhs = &inner.rhs;
+                quote! {
+                    vlog::concat_assign_stmt(#target, #rhs)
+                }
+            }
             StmtKind::Noop => quote! {
-                rhdl::vlog::Stmt::Noop
+                vlog::Stmt::default()
             },
         })
     }
@@ -280,7 +376,7 @@ impl Parse for StmtKind {
     }
 }
 
-#[derive(Debug, Default, Clone, syn_derive::Parse)]
+#[derive(Default, syn_derive::Parse)]
 struct Stmt {
     kind: StmtKind,
     _terminator: Option<Token![;]>,
@@ -292,7 +388,6 @@ impl ToTokens for Stmt {
     }
 }
 
-#[derive(Debug, Clone)]
 enum Item {
     Statement(Stmt),
     Declaration(Declaration),
@@ -304,16 +399,16 @@ impl ToTokens for Item {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(match self {
             Item::Statement(stmt) => quote! {
-                rhdl::vlog::Item::Statement(#stmt)
+                vlog::stmt_item(#stmt)
             },
             Item::Declaration(decl) => quote! {
-                rhdl::vlog::Item::Declaration(#decl)
+                vlog::declaration_item(#decl)
             },
             Item::FunctionDef(func) => quote! {
-                rhdl::vlog::Item::FunctionDef(#func)
+                vlog::function_def_item(#func)
             },
             Item::Initial(init) => quote! {
-                rhdl::vlog::Item::Initial(#init)
+                vlog::initial_item(#init)
             },
         })
     }
@@ -333,7 +428,7 @@ impl Parse for Item {
     }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct Initial {
     _initial_kw: kw::initial,
     statment: Stmt,
@@ -345,58 +440,16 @@ impl ToTokens for Initial {
     }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct Delay {
     _hash_token: Token![#],
     length: LitInt,
 }
 
-impl ToTokens for Delay {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let length = &self.length;
-        tokens.extend(quote! {
-            #length
-        })
-    }
-}
-
-#[derive(Debug, Clone)]
 struct FunctionCall {
     dollar: Option<Token![$]>,
     name: Ident,
     args: Option<ParenCommaList<Expr>>,
-}
-
-impl ToTokens for FunctionCall {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = if self.dollar.is_some() {
-            format_ident!("_{}", self.name)
-        } else {
-            self.name.clone()
-        };
-        let args = self
-            .args
-            .iter()
-            .flat_map(|x| x.inner.iter())
-            .enumerate()
-            .map(|(i, arg)| {
-                let var_name = format_ident!("arg{}", i);
-                quote! {
-                    let #var_name = #arg;
-                }
-            });
-        let arg_names = self.args.as_ref().map(|t| t.inner.len()).unwrap_or(0);
-        let arg_names = (0..arg_names).map(|i| format_ident!("arg{}", i));
-        tokens.extend(quote! {
-        {
-            #(#args)*
-            rhdl::vlog::FunctionCall {
-                name: stringify!(#name).into(),
-                args: vec![#(#arg_names,)*]
-            }
-        }
-        })
-    }
 }
 
 impl Parse for FunctionCall {
@@ -412,7 +465,6 @@ impl Parse for FunctionCall {
     }
 }
 
-#[derive(Debug, Clone)]
 enum CaseItem {
     Literal(Pair<LitVerilog, Token![:]>),
     Wild(Pair<kw::default, Option<Token![:]>>),
@@ -424,12 +476,12 @@ impl ToTokens for CaseItem {
             CaseItem::Literal(pair) => {
                 let lit = &pair.0;
                 tokens.extend(quote! {
-                    rhdl::vlog::CaseItem::Literal(#lit)
+                    vlog::case_item_literal(#lit)
                 });
             }
             CaseItem::Wild(_pair) => {
                 tokens.extend(quote! {
-                    rhdl::vlog::CaseItem::Wild
+                    vlog::case_item_wild()
                 });
             }
         }
@@ -446,7 +498,7 @@ impl Parse for CaseItem {
     }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct CaseLine {
     item: CaseItem,
     stmt: Box<Stmt>,
@@ -457,10 +509,7 @@ impl ToTokens for CaseLine {
         let item = &self.item;
         let stmt = &self.stmt;
         tokens.extend(quote! {
-            rhdl::vlog::CaseLine {
-                item: #item,
-                stmt: Box::new(#stmt),
-            }
+            vlog::case_line(#item, #stmt)
         })
     }
 }
@@ -473,98 +522,29 @@ impl<S: Parse, T: Parse> Parse for Pair<S, T> {
     }
 }
 
-impl<S: Clone, T: Clone> Clone for Pair<S, T> {
-    fn clone(&self) -> Self {
-        Self(self.0.clone(), self.1.clone())
-    }
-}
-
-impl<S: std::fmt::Debug, T: std::fmt::Debug> std::fmt::Debug for Pair<S, T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Pair").field(&self.0).field(&self.1).finish()
-    }
-}
-
-impl<S: ToTokens, T: ToTokens> ToTokens for Pair<S, T> {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        self.0.to_tokens(tokens);
-        self.1.to_tokens(tokens);
-    }
-}
-
 #[derive(syn_derive::Parse)]
 struct ParenCommaList<T: Parse + ToTokens> {
     #[syn(parenthesized)]
-    paren: Paren,
-    #[syn(in = paren)]
+    _paren: Paren,
+    #[syn(in = _paren)]
     #[parse(Punctuated::parse_terminated)]
     inner: Punctuated<T, Token![,]>,
-}
-
-impl<T: Clone + Parse + ToTokens> Clone for ParenCommaList<T> {
-    fn clone(&self) -> Self {
-        Self {
-            paren: self.paren.clone(),
-            inner: self.inner.clone(),
-        }
-    }
-}
-
-impl<T: Clone + Parse + ToTokens + std::fmt::Debug> std::fmt::Debug for ParenCommaList<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ParenCommaList")
-            .field("paren", &self.paren)
-            .field("inner", &self.inner)
-            .finish()
-    }
 }
 
 #[derive(syn_derive::Parse)]
 struct Parenthesized<T: Parse + ToTokens> {
     #[syn(parenthesized)]
-    paren: Paren,
-    #[syn(in = paren)]
+    _paren: Paren,
+    #[syn(in = _paren)]
     inner: T,
 }
 
-impl<T: Clone + Parse + ToTokens> Clone for Parenthesized<T> {
-    fn clone(&self) -> Self {
-        Self {
-            paren: self.paren.clone(),
-            inner: self.inner.clone(),
-        }
-    }
-}
-
-impl<T: std::fmt::Debug + Parse + ToTokens> std::fmt::Debug for Parenthesized<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Parenthesized")
-            .field("paren", &self.paren)
-            .field("inner", &self.inner)
-            .finish()
-    }
-}
-
-#[derive(Debug, Clone)]
 struct Case {
     _case: kw::case,
     _parens: Paren,
     discriminant: Box<Expr>,
     lines: Vec<CaseLine>,
     _endcase: kw::endcase,
-}
-
-impl ToTokens for Case {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let discriminant = &self.discriminant;
-        let lines = &self.lines;
-        tokens.extend(quote! {
-            rhdl::vlog::Case {
-                discriminant: Box::new(#discriminant),
-                lines: vec![#(#lines),*],
-            }
-        })
-    }
 }
 
 impl Parse for Case {
@@ -591,7 +571,7 @@ impl Parse for Case {
     }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct Connection {
     _dot: Token![.],
     target: Ident,
@@ -603,77 +583,22 @@ impl ToTokens for Connection {
         let target = &self.target;
         let local = &self.local;
         tokens.extend(quote! {
-            rhdl::vlog::Connection {
-                target: stringify!(#target).into(),
-                local: Box::new(#local),
-            }
+            vlog::connection(stringify!(#target), #local)
         })
     }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct Instance {
     module: Ident,
     instance: Ident,
     connections: ParenCommaList<Connection>,
 }
 
-impl ToTokens for Instance {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let module = &self.module;
-        let instance = &self.instance;
-        let connections = self
-            .connections
-            .inner
-            .iter()
-            .enumerate()
-            .map(|(i, connection)| {
-                let var_name = format_ident!("conn{}", i);
-                quote! {let #var_name = #connection;}
-            });
-        let variables = (0..self.connections.inner.len()).map(|i| {
-            let var_name = format_ident!("conn{}", i);
-            quote! {#var_name}
-        });
-        tokens.extend(quote! {
-            {
-                #(#connections)*
-                rhdl::vlog::Instance {
-                    module: stringify!(#module).into(),
-                    instance: stringify!(#instance).into(),
-                    connections: vec![#(#variables,)*],
-                }
-            }
-        })
-    }
-}
-
-#[derive(Debug, Clone)]
 struct Block {
     _begin: kw::begin,
     body: Vec<Stmt>,
     _end: kw::end,
-}
-
-impl ToTokens for Block {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let statements = self.body.iter().enumerate().map(|(i, stmt)| {
-            let var_name = format_ident!("stmt{}", i);
-            quote! {let #var_name = #stmt;}
-        });
-        let variables = (0..self.body.len()).map(|i| {
-            let var_name = format_ident!("stmt{}", i);
-            quote! {#var_name}
-        });
-        tokens.extend(quote! {
-            {
-                #(#statements)*
-                vec![
-                    #(#variables,)*
-                ]
-            }
-        })
-    }
 }
 
 impl Parse for Block {
@@ -695,52 +620,18 @@ impl Parse for Block {
     }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct DynamicSplice {
     lhs: Box<ExprDynIndex>,
     _eq: Token![=],
     rhs: Box<Expr>,
 }
 
-impl ToTokens for DynamicSplice {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let target = &self.lhs.target;
-        let base = &self.lhs.address.base;
-        let width = &self.lhs.address.width;
-        let rhs = &self.rhs;
-        tokens.extend(quote! {
-            rhdl::vlog::DynamicSplice {
-                target: stringify!(#target).into(),
-                base: Box::new(#base),
-                width: Box::new(#width),
-                rhs: Box::new(#rhs),
-            }
-        })
-    }
-}
-
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct Splice {
     lhs: Box<ExprIndex>,
     _eq: Token![=],
     rhs: Box<Expr>,
-}
-
-impl ToTokens for Splice {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let target = &self.lhs.target;
-        let msb = &self.lhs.address.msb;
-        let lsb = &self.lhs.address.lsb;
-        let rhs = &self.rhs;
-        tokens.extend(quote! {
-            rhdl::vlog::Splice {
-                target: stringify!(#target).into(),
-                msb: Box::new(#msb),
-                lsb: #lsb.map(Box::new),
-                rhs: Box::new(#rhs),
-            }
-        })
-    }
 }
 
 #[derive(Debug, Clone, syn_derive::Parse)]
@@ -760,18 +651,18 @@ impl ToTokens for Sensitivity {
         tokens.extend(match self {
             Sensitivity::PosEdge(sen) => {
                 let ident = &sen.ident;
-                quote! {rhdl::vlog::Sensitivity::PosEdge(stringify!(#ident).into())}
+                quote! {vlog::pos_edge(stringify!(#ident))}
             }
             Sensitivity::NegEdge(sen) => {
                 let ident = &sen.ident;
-                quote! {rhdl::vlog::Sensitivity::NegEdge(stringify!(#ident).into())}
+                quote! {vlog::neg_edge(stringify!(#ident))}
             }
             Sensitivity::Signal(ident) => {
-                quote! {rhdl::vlog::Sensitivity::Signal(stringify!(#ident).into())}
+                quote! {vlog::signal(stringify!(#ident))}
             }
             Sensitivity::Star(inner) => {
                 let _ = inner;
-                quote! {rhdl::vlog::Sensitivity::Star}
+                quote! {vlog::star()}
             }
         })
     }
@@ -789,30 +680,26 @@ struct NegEdgeSensitivity {
     ident: Ident,
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct SensitivityList {
     _at: Token![@],
     elements: ParenCommaList<Sensitivity>,
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+impl ToTokens for SensitivityList {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let elements = iter_tokens(self.elements.inner.iter());
+        tokens.extend(quote! {
+            #elements
+        });
+    }
+}
+
+#[derive(syn_derive::Parse)]
 struct Always {
     _always: kw::always,
     sensitivity: SensitivityList,
     body: Box<Stmt>,
-}
-
-impl ToTokens for Always {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let sensitivity = self.sensitivity.elements.inner.iter();
-        let body = &self.body;
-        tokens.extend(quote! {
-            rhdl::vlog::Always {
-                sensitivity: vec![#(#sensitivity),*],
-                body: Box::new(#body),
-            }
-        });
-    }
 }
 
 #[derive(Debug, Clone, syn_derive::Parse)]
@@ -823,56 +710,16 @@ struct LocalParam {
     rhs: LitVerilog,
 }
 
-impl ToTokens for LocalParam {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let target = &self.target;
-        let rhs = &self.rhs;
-        tokens.extend(quote! {
-            rhdl::vlog::LocalParam {
-                target: stringify!(#target).into(),
-                rhs: #rhs,
-            }
-        });
-    }
-}
-
-#[derive(Debug, Clone)]
 struct ElseBranch {
     _else_token: Token![else],
     stmt: Box<Stmt>,
 }
 
-impl ToTokens for ElseBranch {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        self.stmt.to_tokens(tokens);
-    }
-}
-
-#[derive(Debug, Clone)]
 struct If {
     _if_token: Token![if],
     condition: Parenthesized<Box<Expr>>,
     true_stmt: Box<Stmt>,
     else_branch: Option<ElseBranch>,
-}
-
-impl ToTokens for If {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let condition = &self.condition.inner;
-        let true_stmt = &self.true_stmt;
-        let else_branch = if let Some(else_branch) = &self.else_branch {
-            quote! { Some(Box::new(#else_branch)) }
-        } else {
-            quote! { None }
-        };
-        tokens.extend(quote! {
-            rhdl::vlog::If {
-                condition: Box::new(#condition),
-                true_stmt: Box::new(#true_stmt),
-                else_branch: #else_branch,
-            }
-        });
-    }
 }
 
 impl Parse for If {
@@ -922,79 +769,33 @@ impl Parse for If {
     }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct NonblockAssign {
     target: Ident,
     _left_arrow: LeftArrow,
     rhs: Box<Expr>,
 }
 
-impl ToTokens for NonblockAssign {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let target = &self.target;
-        let rhs = &self.rhs;
-        tokens.extend(quote! {
-            rhdl::vlog::Assign {
-                target: stringify!(#target).into(),
-                rhs: Box::new(#rhs),
-            }
-        });
-    }
-}
-
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct ContinuousAssign {
     _kw_assign: kw::assign,
     assign: Assign,
 }
 
-impl ToTokens for ContinuousAssign {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        self.assign.to_tokens(tokens);
-    }
-}
-
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct Assign {
     target: Ident,
     _eq: Token![=],
     rhs: Box<Expr>,
 }
 
-impl ToTokens for Assign {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let target = &self.target;
-        let rhs = &self.rhs;
-        tokens.extend(quote! {
-            rhdl::vlog::Assign {
-                target: stringify!(#target).into(),
-                rhs: Box::new(#rhs),
-            }
-        });
-    }
-}
-
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct ConcatAssign {
     target: ExprConcat,
     _eq: Token![=],
     rhs: Box<Expr>,
 }
 
-impl ToTokens for ConcatAssign {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let target = &self.target;
-        let rhs = &self.rhs;
-        tokens.extend(quote! {
-            rhdl::vlog::ConcatAssign {
-                target: #target,
-                rhs: Box::new(#rhs),
-            }
-        });
-    }
-}
-
-#[derive(Debug, Clone)]
 enum Expr {
     Binary(ExprBinary),
     Unary(ExprUnary),
@@ -1014,19 +815,64 @@ enum Expr {
 impl ToTokens for Expr {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(match self {
-            Expr::Binary(expr) => quote! {rhdl::vlog::Expr::Binary(#expr)},
-            Expr::Unary(expr) => quote! {rhdl::vlog::Expr::Unary(#expr)},
-            Expr::Constant(lit) => quote! {rhdl::vlog::Expr::Constant(#lit)},
-            Expr::Literal(lit) => quote! {rhdl::vlog::Expr::Literal(#lit)},
-            Expr::String(lit) => quote! {rhdl::vlog::Expr::String(#lit)},
-            Expr::Ident(ident) => quote! {rhdl::vlog::Expr::Ident(stringify!(#ident).into())},
-            Expr::Paren(expr) => quote! {rhdl::vlog::Expr::Paren(Box::new(#expr))},
-            Expr::Ternary(expr) => quote! {rhdl::vlog::Expr::Ternary(#expr)},
-            Expr::Concat(expr) => quote! {rhdl::vlog::Expr::Concat(#expr)},
-            Expr::Replica(expr) => quote! {rhdl::vlog::Expr::Replica(#expr)},
-            Expr::Index(expr) => quote! {rhdl::vlog::Expr::Index(#expr)},
-            Expr::DynIndex(expr) => quote! {rhdl::vlog::Expr::DynIndex(#expr)},
-            Expr::Function(expr) => quote! {rhdl::vlog::Expr::Function(#expr)},
+            Expr::Binary(expr) => {
+                let lhs = &expr.lhs;
+                let op = &expr.op;
+                let rhs = &expr.rhs;
+                quote! {vlog::binary_expr(#lhs, #op, #rhs)}
+            }
+            Expr::Unary(expr) => {
+                let op = &expr.op;
+                let arg = &expr.arg;
+                quote! {vlog::unary_expr(#op, #arg)}
+            }
+            Expr::Constant(lit) => {
+                let width = &lit.width;
+                let value = &lit.lifetime.ident;
+                quote! {
+                    vlog::constant_expr(vlog::lit_verilog(#width, stringify!(#value)))
+                }
+            }
+            Expr::Literal(lit) => {
+                quote! {
+                    vlog::literal_expr(#lit)
+                }
+            }
+            Expr::String(lit) => quote! {vlog::string_expr(#lit)},
+            Expr::Ident(ident) => quote! {vlog::ident_expr(stringify!(#ident))},
+            Expr::Paren(expr) => quote! {vlog::paren_expr(#expr)},
+            Expr::Ternary(expr) => {
+                let lhs = &expr.lhs;
+                let mhs = &expr.mhs;
+                let rhs = &expr.rhs;
+                quote! {vlog::ternary_expr(#lhs, #mhs, #rhs)}
+            }
+            Expr::Concat(expr) => {
+                let args = iter_tokens(expr.elements.iter());
+                quote! {vlog::concat_expr(#args)}
+            }
+            Expr::Replica(expr) => {
+                let count = &expr.inner.count;
+                let concatenation = iter_tokens(expr.inner.concatenation.elements.iter());
+                quote! {vlog::replica_expr(#count, #concatenation)}
+            }
+            Expr::Index(expr) => {
+                let target = &expr.target;
+                let msb = &expr.address.msb;
+                let lsb = option_tokens(expr.address.lsb.as_ref().map(|x| &x.1));
+                quote! {vlog::index_expr(stringify!(#target), #msb, #lsb)}
+            }
+            Expr::DynIndex(expr) => {
+                let target = &expr.target;
+                let base = &expr.address.base;
+                let width = &expr.address.width;
+                quote! {vlog::dyn_index_expr(stringify!(#target), #base, #width)}
+            }
+            Expr::Function(expr) => {
+                let name = &expr.name;
+                let args = iter_tokens(expr.args.inner.iter());
+                quote! {vlog::function_expr(stringify!(#name), #args)}
+            }
         })
     }
 }
@@ -1119,48 +965,18 @@ fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
     Ok(lhs)
 }
 
-#[derive(Debug, Clone)]
 struct ExprBinary {
     lhs: Box<Expr>,
     op: BinaryOp,
     rhs: Box<Expr>,
 }
 
-impl ToTokens for ExprBinary {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let lhs = &self.lhs;
-        let op = &self.op;
-        let rhs = &self.rhs;
-        tokens.extend(quote! {
-            rhdl::vlog::ExprBinary {
-                lhs: Box::new(#lhs),
-                op: #op,
-                rhs: Box::new(#rhs)
-            }
-        })
-    }
-}
-
-#[derive(Debug, Clone)]
 struct ExprUnary {
     op: UnaryOp,
     arg: Box<Expr>,
 }
 
-impl ToTokens for ExprUnary {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let op = &self.op;
-        let arg = &self.arg;
-        tokens.extend(quote! {
-            rhdl::vlog::ExprUnary {
-                op: #op,
-                arg: Box::new(#arg),
-            }
-        })
-    }
-}
-
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct ExprConcat {
     #[syn(braced)]
     _brace: Brace,
@@ -1169,32 +985,13 @@ struct ExprConcat {
     elements: Punctuated<Expr, Token![,]>,
 }
 
-impl ToTokens for ExprConcat {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let elements = self.elements.iter().enumerate().map(|(i, expr)| {
-            let var_name = format_ident!("elem{}", i);
-            quote! {let #var_name = #expr;}
-        });
-        let vars = (0..self.elements.len()).map(|i| {
-            let var_name = format_ident!("elem{}", i);
-            quote! {#var_name}
-        });
-        tokens.extend(quote! {
-            {
-                #(#elements)*
-                vec![#(#vars,)*]
-            }
-        })
-    }
-}
-
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct ExprReplicaInner {
     count: LitInt,
     concatenation: ExprConcat,
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct ExprReplica {
     #[syn(braced)]
     _brace: Brace,
@@ -1202,51 +999,21 @@ struct ExprReplica {
     inner: ExprReplicaInner,
 }
 
-impl ToTokens for ExprReplica {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let count = &self.inner.count;
-        let concatenation = &self.inner.concatenation;
-        tokens.extend(quote! {
-            rhdl::vlog::ExprReplica {
-                count: #count,
-                concatenation: #concatenation,
-            }
-        })
-    }
-}
-
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct ExprFunction {
-    dollar: Option<Token![$]>,
+    _dollar: Option<Token![$]>,
     name: Ident,
     args: ParenCommaList<Expr>,
 }
 
-impl ToTokens for ExprFunction {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = if self.dollar.is_some() {
-            format_ident!("_{}", self.name)
-        } else {
-            self.name.clone()
-        };
-        let args = self.args.inner.iter();
-        tokens.extend(quote! {
-            rhdl::vlog::ExprFunction {
-                name: #name,
-                args: vec![#(#args,)*]
-            }
-        })
-    }
-}
-
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct ExprDynIndexInner {
     base: Box<Expr>,
     _op: PlusColon,
     width: Box<Expr>,
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct ExprDynIndex {
     target: Ident,
     #[syn(bracketed)]
@@ -1255,22 +1022,6 @@ struct ExprDynIndex {
     address: ExprDynIndexInner,
 }
 
-impl ToTokens for ExprDynIndex {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let target = &self.target;
-        let base = &self.address.base;
-        let width = &self.address.width;
-        tokens.extend(quote! {
-            rhdl::vlog::ExprDynIndex {
-                target: stringify!(#target).into(),
-                base: Box::new(#base),
-                width: Box::new(#width),
-            }
-        })
-    }
-}
-
-#[derive(Debug, Clone)]
 struct ExprIndexAddress {
     msb: Box<Expr>,
     lsb: Option<Pair<Token![:], Box<Expr>>>,
@@ -1292,7 +1043,7 @@ impl Parse for ExprIndexAddress {
     }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct ExprIndex {
     target: Ident,
     #[syn(bracketed)]
@@ -1301,45 +1052,13 @@ struct ExprIndex {
     address: ExprIndexAddress,
 }
 
-impl ToTokens for ExprIndex {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let target = &self.target;
-        let msb = &self.address.msb;
-        let lsb = self.address.lsb.as_ref().map(|x| &x.1);
-        tokens.extend(quote! {
-            rhdl::vlog::ExprIndex {
-                target: stringify!(#target).into(),
-                address: rhdl::vlog::ExprIndexAddress {
-                    msb: Box::new(#msb),
-                    lsb: #lsb.map(Box::new),
-                },
-            }
-        })
-    }
-}
-
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct ExprTernary {
     lhs: Box<Expr>,
     _op: Token![?],
     mhs: Box<Expr>,
     _colon: Token![:],
     rhs: Box<Expr>,
-}
-
-impl ToTokens for ExprTernary {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let lhs = &self.lhs;
-        let mhs = &self.mhs;
-        let rhs = &self.rhs;
-        tokens.extend(quote! {
-            rhdl::vlog::ExprTernary {
-                lhs: #lhs,
-                mhs: #mhs,
-                rhs: #rhs,
-            }
-        })
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -1385,13 +1104,13 @@ impl Parse for UnaryOp {
 impl ToTokens for UnaryOp {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(match self {
-            UnaryOp::Plus => quote! {rhdl::vlog::UnaryOp::Plus},
-            UnaryOp::Minus => quote! {rhdl::vlog::UnaryOp::Minus},
-            UnaryOp::Bang => quote! {rhdl::vlog::UnaryOp::Bang},
-            UnaryOp::Not => quote! {rhdl::vlog::UnaryOp::Not},
-            UnaryOp::And => quote! {rhdl::vlog::UnaryOp::And},
-            UnaryOp::Or => quote! {rhdl::vlog::UnaryOp::Or},
-            UnaryOp::Xor => quote! {rhdl::vlog::UnaryOp::Xor},
+            UnaryOp::Plus => quote! {vlog::unary_plus()},
+            UnaryOp::Minus => quote! {vlog::unary_minus()},
+            UnaryOp::Bang => quote! {vlog::unary_bang()},
+            UnaryOp::Not => quote! {vlog::unary_not()},
+            UnaryOp::And => quote! {vlog::unary_and()},
+            UnaryOp::Or => quote! {vlog::unary_or()},
+            UnaryOp::Xor => quote! {vlog::unary_xor()},
         })
     }
 }
@@ -1498,26 +1217,26 @@ impl Parse for BinaryOp {
 impl ToTokens for BinaryOp {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(match self {
-            BinaryOp::Shl => quote! {rhdl::vlog::BinaryOp::Shl},
-            BinaryOp::SignedRightShift => quote! {rhdl::vlog::BinaryOp::SignedRightShift},
-            BinaryOp::Shr => quote! {rhdl::vlog::BinaryOp::Shr},
-            BinaryOp::ShortAnd => quote! {rhdl::vlog::BinaryOp::ShortAnd},
-            BinaryOp::ShortOr => quote! {rhdl::vlog::BinaryOp::ShortOr},
-            BinaryOp::CaseEq => quote! {rhdl::vlog::BinaryOp::CaseEq},
-            BinaryOp::CaseNe => quote! {rhdl::vlog::BinaryOp::CaseNe},
-            BinaryOp::Ne => quote! {rhdl::vlog::BinaryOp::Ne},
-            BinaryOp::Eq => quote! {rhdl::vlog::BinaryOp::Eq},
-            BinaryOp::Ge => quote! {rhdl::vlog::BinaryOp::Ge},
-            BinaryOp::Le => quote! {rhdl::vlog::BinaryOp::Le},
-            BinaryOp::Gt => quote! {rhdl::vlog::BinaryOp::Gt},
-            BinaryOp::Lt => quote! {rhdl::vlog::BinaryOp::Lt},
-            BinaryOp::Plus => quote! {rhdl::vlog::BinaryOp::Plus},
-            BinaryOp::Minus => quote! {rhdl::vlog::BinaryOp::Minus},
-            BinaryOp::And => quote! {rhdl::vlog::BinaryOp::And},
-            BinaryOp::Or => quote! {rhdl::vlog::BinaryOp::Or},
-            BinaryOp::Xor => quote! {rhdl::vlog::BinaryOp::Xor},
-            BinaryOp::Mod => quote! {rhdl::vlog::BinaryOp::Mod},
-            BinaryOp::Mul => quote! {rhdl::vlog::BinaryOp::Mul},
+            BinaryOp::Shl => quote! {vlog::binary_shl()},
+            BinaryOp::SignedRightShift => quote! {vlog::binary_signed_right_shift()},
+            BinaryOp::Shr => quote! {vlog::binary_shr()},
+            BinaryOp::ShortAnd => quote! {vlog::binary_short_and()},
+            BinaryOp::ShortOr => quote! {vlog::binary_short_or()},
+            BinaryOp::CaseEq => quote! {vlog::binary_case_eq()},
+            BinaryOp::CaseNe => quote! {vlog::binary_case_ne()},
+            BinaryOp::Ne => quote! {vlog::binary_ne()},
+            BinaryOp::Eq => quote! {vlog::binary_eq()},
+            BinaryOp::Ge => quote! {vlog::binary_ge()},
+            BinaryOp::Le => quote! {vlog::binary_le()},
+            BinaryOp::Gt => quote! {vlog::binary_gt()},
+            BinaryOp::Lt => quote! {vlog::binary_lt()},
+            BinaryOp::Plus => quote! {vlog::binary_plus()},
+            BinaryOp::Minus => quote! {vlog::binary_minus()},
+            BinaryOp::And => quote! {vlog::binary_and()},
+            BinaryOp::Or => quote! {vlog::binary_or()},
+            BinaryOp::Xor => quote! {vlog::binary_xor()},
+            BinaryOp::Mod => quote! {vlog::binary_mod()},
+            BinaryOp::Mul => quote! {vlog::binary_mul()},
         })
     }
 }
@@ -1551,34 +1270,20 @@ impl ToTokens for LitVerilog {
         let width = &self.width;
         let lifetime = &self.lifetime.ident;
         tokens.extend(quote! {
-            rhdl::vlog::LitVerilog {
-                width: #width,
-                value: stringify!(#lifetime).into(),
-            }
+            vlog::lit_verilog(#width, stringify!(#lifetime).into())
         })
     }
 }
 
-#[derive(Clone, Debug)]
 struct ModuleList {
     modules: Vec<ModuleDef>,
 }
 
 impl ToTokens for ModuleList {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let modules = self.modules.iter().enumerate().map(|(i, module)| {
-            let var_name = format_ident!("module{}", i);
-            quote! { let #var_name = #module; }
-        });
-        let module_names = (0..modules.len()).map(|i| {
-            let var_name = format_ident!("module{}", i);
-            quote! { #var_name }
-        });
+        let modules = vec_tokens(&self.modules);
         tokens.extend(quote! {
-            {
-                #(#modules)*;
-                rhdl::vlog::ModuleList(vec![#(#module_names,)*])
-            }
+            vlog::module_list(#modules)
         })
     }
 }
@@ -1596,7 +1301,6 @@ impl Parse for ModuleList {
     }
 }
 
-#[derive(Clone, Debug)]
 struct ModuleDef {
     _module: kw::module,
     name: Ident,
@@ -1609,46 +1313,10 @@ struct ModuleDef {
 impl ToTokens for ModuleDef {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = &self.name;
-
-        // Generate let statements for args
-        let args_construction = if let Some(ref args) = self.args {
-            let ports = args.inner.iter().enumerate().map(|(i, port)| {
-                let var_name = format_ident!("arg{}", i);
-                quote! { let #var_name = #port; }
-            });
-            let var_names = (0..args.inner.len()).map(|i| format_ident!("arg{}", i));
-            quote! {
-                #(#ports)*
-                let args_vec = vec![#(#var_names,)*];
-            }
-        } else {
-            quote! { let args_vec = vec![]; }
-        };
-
-        // Generate let statements for items
-        let items = &self.items;
-        let items_construction = {
-            let item_lets = items.iter().enumerate().map(|(i, item)| {
-                let var_name = format_ident!("item{}", i);
-                quote! { let #var_name = #item; }
-            });
-            let var_names = (0..items.len()).map(|i| format_ident!("item{}", i));
-            quote! {
-                #(#item_lets)*
-                let items_vec = vec![#(#var_names,)*];
-            }
-        };
-
+        let args = iter_tokens(self.args.as_ref().iter().flat_map(|args| args.inner.iter()));
+        let items = vec_tokens(&self.items);
         tokens.extend(quote! {
-            {
-                #args_construction
-                #items_construction
-                rhdl::vlog::ModuleDef {
-                    name: stringify!(#name).into(),
-                    args: args_vec,
-                    items: items_vec,
-                }
-            }
+            vlog::module_def(stringify!(#name), #args, #items)
         })
     }
 }
@@ -1679,7 +1347,6 @@ impl Parse for ModuleDef {
     }
 }
 
-#[derive(Clone, Debug)]
 struct FunctionDef {
     _function: kw::function,
     signed_width: SignedWidth,
@@ -1694,15 +1361,10 @@ impl ToTokens for FunctionDef {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let width = &self.signed_width;
         let name = &self.name;
-        let args = self.args.inner.iter();
-        let items = &self.items;
+        let args = iter_tokens(self.args.inner.iter());
+        let items = vec_tokens(&self.items);
         tokens.extend(quote! {
-            rhdl::vlog::FunctionDef {
-                width: #width,
-                name: stringify!(#name).into(),
-                args: vec![#(#args,)*],
-                items: vec![#(#items,)*],
-            }
+            vlog::function_def(#width, stringify!(#name), #args, #items)
         })
     }
 }
@@ -1739,15 +1401,6 @@ mod itests {
     fn test_parse<T: Parse>(text: impl AsRef<str>) -> std::result::Result<T, miette::Report> {
         let text = text.as_ref();
         syn::parse_str::<T>(text).map_err(|err| syn_miette::Error::new(err, text).into())
-    }
-
-    fn test_parse_quote<T: Parse + ToTokens>(
-        text: impl AsRef<str>,
-    ) -> std::result::Result<String, miette::Report> {
-        let text = text.as_ref();
-        let val = syn::parse_str::<T>(text).map_err(|err| syn_miette::Error::new(err, text))?;
-        let quoted = quote! {#val};
-        Ok(quoted.to_string())
     }
 
     #[test]

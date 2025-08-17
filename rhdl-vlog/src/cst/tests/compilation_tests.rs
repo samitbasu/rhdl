@@ -115,7 +115,7 @@ fn test_always_statement() -> miette::Result<()> {
     let modules = test_parse::<ModuleList>(
         "
             module foo(input wire[1:0] a, output reg[1:0] b);
-            always @(posedge a) begin
+            always @(posedge a, b) begin
                 b <= 1;
             end
             endmodule
@@ -134,7 +134,7 @@ fn test_case_statement() -> miette::Result<()> {
                 2'b00: b = 1;
                 2'b01: b = 2;
                 2'b10: b = 3;
-                2'b11: b = 4;
+                default: b = 4;
             endcase
             endmodule
     ",
@@ -205,7 +205,7 @@ fn test_delay_statement() -> miette::Result<()> {
     let modules = test_parse::<ModuleList>(
         "
             module foo(input wire[1:0] a, output reg[1:0] b);
-            always @(posedge a) begin
+            always @(posedge a, negedge b, *) begin
                 b <= 1;
                 # 10;
             end
@@ -235,9 +235,82 @@ fn test_function_call_statement() -> miette::Result<()> {
         "
             module foo(input wire[1:0] a, output reg[1:0] b);
             $my_function(a, b);
+            $finish;
             endmodule
     ",
     )?;
     test_compilation("function_call_statement", modules);
+    Ok(())
+}
+
+#[test]
+fn test_splice_statement() -> miette::Result<()> {
+    let modules = test_parse::<ModuleList>(
+        "
+            module foo(input wire[2:0] a, output reg[1:0] b);
+            a[1] = b;
+            a[1:0] = {b, b};
+            endmodule
+    ",
+    )?;
+    test_compilation("splice_statement", modules);
+    Ok(())
+}
+
+#[test]
+fn test_dynamic_splice_statement() -> miette::Result<()> {
+    let modules = test_parse::<ModuleList>(
+        "
+            module foo(input wire[2:0] a, output reg[1:0] b);
+            a[b +: 1] = 1;
+            endmodule
+    ",
+    )?;
+    test_compilation("dynamic_splice_statement", modules);
+    Ok(())
+}
+
+#[test]
+fn test_local_declaration_statement() -> miette::Result<()> {
+    let modules = test_parse::<ModuleList>(
+        "
+            module foo(input wire[2:0] a, output reg[1:0] b);
+            wire [4:0] val1;
+            reg signed [3:0] val2;
+            endmodule
+    ",
+    )?;
+    test_compilation("local_declaration_statement", modules);
+    Ok(())
+}
+
+#[test]
+fn test_function_def_in_module() -> miette::Result<()> {
+    let modules = test_parse::<ModuleList>(
+        "
+            module foo(input wire[2:0] a, output reg[1:0] b);
+            function [1:0] my_function(input wire[1:0] x);
+                assign my_function = x + 1;
+            endfunction
+            b = my_function(a);
+            endmodule
+    ",
+    )?;
+    test_compilation("function_def_in_module", modules);
+    Ok(())
+}
+
+#[test]
+fn test_initial_statement_in_module() -> miette::Result<()> {
+    let modules = test_parse::<ModuleList>(
+        "
+            module foo(input wire[2:0] a, output reg[1:0] b);
+            initial begin
+                b = 0;
+            end
+            endmodule
+    ",
+    )?;
+    test_compilation("initial_statement_in_module", modules);
     Ok(())
 }

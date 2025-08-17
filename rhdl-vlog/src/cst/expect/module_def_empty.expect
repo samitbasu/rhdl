@@ -1,1 +1,1 @@
-{ let args_vec = vec ! [] ; let items_vec = vec ! [] ; rhdl :: vlog :: ModuleDef { name : stringify ! (foo) . into () , args : args_vec , items : items_vec , } }
+vlog :: module_def (stringify ! (foo) , vec ! [] , vec ! [])

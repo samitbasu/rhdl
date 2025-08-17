@@ -1,1 +1,1 @@
-rhdl :: vlog :: Port { direction : rhdl :: vlog :: Direction :: Input , decl : rhdl :: vlog :: Declaration { kind : rhdl :: vlog :: HDLKind :: Reg , signed_width : rhdl :: vlog :: SignedWidth :: Signed (0 ..= 3) , name : stringify ! (nibble) . into () } , }
+vlog :: port (vlog :: input () , vlog :: declaration (vlog :: reg () , vlog :: signed (0 ..= 3) , stringify ! (nibble)))
