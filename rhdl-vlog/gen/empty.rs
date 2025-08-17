@@ -1,19 +1,9 @@
-mod rhdl {
-    pub mod vlog {
-        include!("../src/ast.rs");
-    }
+pub mod vlog {
+    include!("../src/ast.rs");
 }
 fn main() {
-    let _ = {
-        let module0 = {
-            let args_vec = vec![];
-            let items_vec = vec![];
-            rhdl::vlog::ModuleDef {
-                name: stringify!(foo).into(),
-                args: args_vec,
-                items: items_vec,
-            }
-        };
-        rhdl::vlog::ModuleList(vec![module0,])
-    };
+    let _ = vlog::module_list({
+        let elem0 = vlog::module_def(stringify!(foo), vec![], vec![]);
+        vec![elem0]
+    });
 }

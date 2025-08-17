@@ -1,1 +1,1 @@
-rhdl :: vlog :: HDLKind :: Reg
+vlog :: reg ()

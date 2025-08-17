@@ -8,23 +8,21 @@ fn main() {
             {
                 let elem0 = vlog::port(
                     vlog::input(),
-                    vlog::declaration(vlog::wire(), vlog::unsigned(0..=1), stringify!(a)),
+                    vlog::declaration(vlog::wire(), vlog::unsigned(0..=2), stringify!(a)),
                 );
                 let elem1 = vlog::port(
                     vlog::output(),
-                    vlog::declaration(vlog::wire(), vlog::unsigned(0..=1), stringify!(b)),
+                    vlog::declaration(vlog::reg(), vlog::unsigned(0..=1), stringify!(b)),
                 );
                 vec![elem0, elem1]
             },
             {
                 let elem0 = vlog::stmt_item(
-                    vlog::continuous_assign_stmt(
-                        stringify!(b),
-                        vlog::binary_expr(
-                            vlog::ident_expr(stringify!(a)),
-                            vlog::binary_plus(),
-                            vlog::literal_expr(1),
-                        ),
+                    vlog::dynamic_splice_stmt(
+                        stringify!(a),
+                        vlog::ident_expr(stringify!(b)),
+                        vlog::literal_expr(1),
+                        vlog::literal_expr(1),
                     ),
                 );
                 vec![elem0]

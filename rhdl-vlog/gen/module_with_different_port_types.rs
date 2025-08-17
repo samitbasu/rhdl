@@ -1,68 +1,42 @@
-mod rhdl {
-    pub mod vlog {
-        include!("../src/ast.rs");
-    }
+pub mod vlog {
+    include!("../src/ast.rs");
 }
 fn main() {
-    let _ = {
-        let module0 = {
-            let arg0 = rhdl::vlog::Port {
-                direction: rhdl::vlog::Direction::Input,
-                decl: rhdl::vlog::Declaration {
-                    kind: rhdl::vlog::HDLKind::Wire,
-                    signed_width: rhdl::vlog::SignedWidth::Unsigned(0..=1),
-                    name: stringify!(a).into(),
-                },
-            };
-            let arg1 = rhdl::vlog::Port {
-                direction: rhdl::vlog::Direction::Output,
-                decl: rhdl::vlog::Declaration {
-                    kind: rhdl::vlog::HDLKind::Wire,
-                    signed_width: rhdl::vlog::SignedWidth::Unsigned(0..=1),
-                    name: stringify!(b).into(),
-                },
-            };
-            let arg2 = rhdl::vlog::Port {
-                direction: rhdl::vlog::Direction::Inout,
-                decl: rhdl::vlog::Declaration {
-                    kind: rhdl::vlog::HDLKind::Reg,
-                    signed_width: rhdl::vlog::SignedWidth::Unsigned(0..=3),
-                    name: stringify!(c).into(),
-                },
-            };
-            let args_vec = vec![arg0, arg1, arg2,];
-            let items_vec = vec![];
-            rhdl::vlog::ModuleDef {
-                name: stringify!(foo).into(),
-                args: args_vec,
-                items: items_vec,
-            }
-        };
-        let module1 = {
-            let arg0 = rhdl::vlog::Port {
-                direction: rhdl::vlog::Direction::Input,
-                decl: rhdl::vlog::Declaration {
-                    kind: rhdl::vlog::HDLKind::Wire,
-                    signed_width: rhdl::vlog::SignedWidth::Signed(0..=1),
-                    name: stringify!(c).into(),
-                },
-            };
-            let arg1 = rhdl::vlog::Port {
-                direction: rhdl::vlog::Direction::Output,
-                decl: rhdl::vlog::Declaration {
-                    kind: rhdl::vlog::HDLKind::Reg,
-                    signed_width: rhdl::vlog::SignedWidth::Signed(0..=1),
-                    name: stringify!(d).into(),
-                },
-            };
-            let args_vec = vec![arg0, arg1,];
-            let items_vec = vec![];
-            rhdl::vlog::ModuleDef {
-                name: stringify!(bar).into(),
-                args: args_vec,
-                items: items_vec,
-            }
-        };
-        rhdl::vlog::ModuleList(vec![module0, module1,])
-    };
+    let _ = vlog::module_list({
+        let elem0 = vlog::module_def(
+            stringify!(foo),
+            {
+                let elem0 = vlog::port(
+                    vlog::input(),
+                    vlog::declaration(vlog::wire(), vlog::unsigned(0..=1), stringify!(a)),
+                );
+                let elem1 = vlog::port(
+                    vlog::output(),
+                    vlog::declaration(vlog::wire(), vlog::unsigned(0..=1), stringify!(b)),
+                );
+                let elem2 = vlog::port(
+                    vlog::inout(),
+                    vlog::declaration(vlog::reg(), vlog::unsigned(0..=3), stringify!(c)),
+                );
+                vec![elem0, elem1, elem2]
+            },
+            vec![],
+        );
+        let elem1 = vlog::module_def(
+            stringify!(bar),
+            {
+                let elem0 = vlog::port(
+                    vlog::input(),
+                    vlog::declaration(vlog::wire(), vlog::signed(0..=1), stringify!(c)),
+                );
+                let elem1 = vlog::port(
+                    vlog::output(),
+                    vlog::declaration(vlog::reg(), vlog::signed(0..=1), stringify!(d)),
+                );
+                vec![elem0, elem1]
+            },
+            vec![],
+        );
+        vec![elem0, elem1]
+    });
 }

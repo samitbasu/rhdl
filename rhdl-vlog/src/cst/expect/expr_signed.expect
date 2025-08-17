@@ -1,1 +1,1 @@
-rhdl :: vlog :: Expr :: Function (rhdl :: vlog :: ExprFunction { name : _signed , args : vec ! [rhdl :: vlog :: Expr :: Ident (stringify ! (a) . into ()) ,] })
+vlog :: function_expr (stringify ! (signed) , { let elem0 = vlog :: ident_expr (stringify ! (a)) ; vec ! [elem0] })
