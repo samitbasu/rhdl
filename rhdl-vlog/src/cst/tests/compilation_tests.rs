@@ -314,3 +314,120 @@ fn test_initial_statement_in_module() -> miette::Result<()> {
     test_compilation("initial_statement_in_module", modules);
     Ok(())
 }
+
+#[test]
+fn test_unary_expressions() -> miette::Result<()> {
+    let modules = test_parse::<ModuleList>(
+        "
+            module foo(input wire[2:0] a, output reg[1:0] b);
+            always @(*) begin
+                b = +a;
+                b = -a;
+                b = ~a;
+                b = !a;
+                b = &a;
+                b = ^a;
+                b = |a;
+            end
+            endmodule
+    ",
+    )?;
+    test_compilation("unary_expressions", modules);
+    Ok(())
+}
+
+#[test]
+fn test_ternary_expression() -> miette::Result<()> {
+    let modules = test_parse::<ModuleList>(
+        "
+            module foo(input wire[2:0] a, output reg[1:0] b);
+            always @(*) begin
+                b = (a == 1) ? 2 : 3;
+            end
+            endmodule
+    ",
+    )?;
+    test_compilation("ternary_expression", modules);
+    Ok(())
+}
+
+#[test]
+fn test_replica_expression() -> miette::Result<()> {
+    let modules = test_parse::<ModuleList>(
+        "
+            module foo(input wire[2:0] a, output reg[1:0] b);
+            always @(*) begin
+                b = {3{a}};
+            end
+            endmodule
+    ",
+    )?;
+    test_compilation("replica_expression", modules);
+    Ok(())
+}
+
+#[test]
+fn test_index_expressions() -> miette::Result<()> {
+    let modules = test_parse::<ModuleList>(
+        "
+            module foo(input wire[2:0] a, output reg[1:0] b);
+            always @(*) begin
+                b = a[1];
+                b = a[1:0];
+                b = a[b+:2];
+            end
+            endmodule
+    ",
+    )?;
+    test_compilation("index_expressions", modules);
+    Ok(())
+}
+
+#[test]
+fn test_string_expression() -> miette::Result<()> {
+    let modules = test_parse::<ModuleList>(
+        r#"
+            module foo(input wire[2:0] a, output reg[1:0] b);
+            always @(*) begin
+                $display("Hello, World!");
+            end
+            endmodule
+            "#,
+    )?;
+    test_compilation("string_expression", modules);
+    Ok(())
+}
+
+#[test]
+fn test_binary_expressions() -> miette::Result<()> {
+    let modules = test_parse::<ModuleList>(
+        "
+            module foo(input wire[2:0] a, output reg[1:0] b);
+            always @(*) begin
+                b = a << 1;
+                b = a >>> 2;
+                b = a >> 2;
+                b = a && a;
+                b = a || a;
+                b = a === 1;
+                b = a !== 1;
+                b = a != 1;
+                b = a == 1;
+                b = a >= 1;
+                b = a <= 1;
+                b = a > 1;
+                b = a < 1;
+                b = a + b;
+                b = a - b;
+                b = a & b;
+                b = a | b;
+                b = a ^ b;
+                b = a % b;
+                b = a * b;
+            end
+            endmodule
+    ",
+    )?;
+    test_compilation("binary_expressions", modules);
+    Ok(())
+}

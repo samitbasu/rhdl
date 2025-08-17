@@ -14,7 +14,7 @@ fn main() {
                             vlog::input(),
                             vlog::declaration(
                                 vlog::wire(),
-                                vlog::unsigned(0..=1),
+                                vlog::unsigned(0..=2),
                                 stringify!(a),
                             ),
                         ),
@@ -37,17 +37,23 @@ fn main() {
                         vlog::stmt_item(
                             vlog::always_stmt(
                                 {
-                                    let mut ret = Vec::with_capacity(2usize);
-                                    ret.push(vlog::pos_edge(stringify!(a)));
-                                    ret.push(vlog::signal(stringify!(b)));
+                                    let mut ret = Vec::with_capacity(1usize);
+                                    ret.push(vlog::star());
                                     ret
                                 },
                                 vlog::block_stmt({
                                     let mut ret = Vec::with_capacity(1usize);
                                     ret.push(
-                                        vlog::nonblock_assign_stmt(
+                                        vlog::assign_stmt(
                                             stringify!(b),
-                                            vlog::literal_expr(1),
+                                            vlog::replica_expr(
+                                                3,
+                                                {
+                                                    let mut ret = Vec::with_capacity(1usize);
+                                                    ret.push(vlog::ident_expr(stringify!(a)));
+                                                    ret
+                                                },
+                                            ),
                                         ),
                                     );
                                     ret
