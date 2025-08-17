@@ -16,3 +16,9 @@ trybuild = "1.0.110"
 [dev-dependencies]
 expect-test = "1.5.1"
 prettyplease = "0.2.36"
+
+# Optional: Add coverage-specific configuration
+[profile.coverage]
+inherits = "test"
+debug = true
+opt-level = 0

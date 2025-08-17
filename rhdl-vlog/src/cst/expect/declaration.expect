@@ -1,0 +1,1 @@
+rhdl :: vlog :: Declaration { kind : rhdl :: vlog :: HDLKind :: Wire , signed_width : rhdl :: vlog :: SignedWidth :: Signed (0 ..= 4) , name : stringify ! (baz) . into () }

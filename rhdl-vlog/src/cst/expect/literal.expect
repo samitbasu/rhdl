@@ -1,0 +1,1 @@
+rhdl :: vlog :: LitVerilog { width : 41 , value : stringify ! (sd2332) . into () , }

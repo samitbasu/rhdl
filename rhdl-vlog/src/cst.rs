@@ -355,7 +355,7 @@ impl ToTokens for Delay {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let length = &self.length;
         tokens.extend(quote! {
-            rhdl::vlog::Stmt::Delay(#length)
+            #length
         })
     }
 }
@@ -374,12 +374,27 @@ impl ToTokens for FunctionCall {
         } else {
             self.name.clone()
         };
-        let args = self.args.iter().flat_map(|x| x.inner.iter());
+        let args = self
+            .args
+            .iter()
+            .flat_map(|x| x.inner.iter())
+            .enumerate()
+            .map(|(i, arg)| {
+                let var_name = format_ident!("arg{}", i);
+                quote! {
+                    let #var_name = #arg;
+                }
+            });
+        let arg_names = self.args.as_ref().map(|t| t.inner.len()).unwrap_or(0);
+        let arg_names = (0..arg_names).map(|i| format_ident!("arg{}", i));
         tokens.extend(quote! {
+        {
+            #(#args)*
             rhdl::vlog::FunctionCall {
-                name: #name,
-                args: vec![#(#args,)*]
+                name: stringify!(#name).into(),
+                args: vec![#(#arg_names,)*]
             }
+        }
         })
     }
 }
@@ -607,12 +622,27 @@ impl ToTokens for Instance {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let module = &self.module;
         let instance = &self.instance;
-        let connections = self.connections.inner.iter();
+        let connections = self
+            .connections
+            .inner
+            .iter()
+            .enumerate()
+            .map(|(i, connection)| {
+                let var_name = format_ident!("conn{}", i);
+                quote! {let #var_name = #connection;}
+            });
+        let variables = (0..self.connections.inner.len()).map(|i| {
+            let var_name = format_ident!("conn{}", i);
+            quote! {#var_name}
+        });
         tokens.extend(quote! {
-            rhdl::vlog::Instance {
-                module: stringify!(#module).into(),
-                instance: stringify!(#instance).into(),
-                connections: vec![#(#connections,)*],
+            {
+                #(#connections)*
+                rhdl::vlog::Instance {
+                    module: stringify!(#module).into(),
+                    instance: stringify!(#instance).into(),
+                    connections: vec![#(#variables,)*],
+                }
             }
         })
     }
@@ -800,7 +830,7 @@ impl ToTokens for LocalParam {
         tokens.extend(quote! {
             rhdl::vlog::LocalParam {
                 target: stringify!(#target).into(),
-                rhs: Box::new(#rhs),
+                rhs: #rhs,
             }
         });
     }
@@ -957,7 +987,7 @@ impl ToTokens for ConcatAssign {
         let rhs = &self.rhs;
         tokens.extend(quote! {
             rhdl::vlog::ConcatAssign {
-                target: #target
+                target: #target,
                 rhs: Box::new(#rhs),
             }
         });
@@ -1141,9 +1171,19 @@ struct ExprConcat {
 
 impl ToTokens for ExprConcat {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let elements = self.elements.iter();
+        let elements = self.elements.iter().enumerate().map(|(i, expr)| {
+            let var_name = format_ident!("elem{}", i);
+            quote! {let #var_name = #expr;}
+        });
+        let vars = (0..self.elements.len()).map(|i| {
+            let var_name = format_ident!("elem{}", i);
+            quote! {#var_name}
+        });
         tokens.extend(quote! {
-            vec![#(#elements,)*]
+            {
+                #(#elements)*
+                vec![#(#vars,)*]
+            }
         })
     }
 }
@@ -1513,7 +1553,7 @@ impl ToTokens for LitVerilog {
         tokens.extend(quote! {
             rhdl::vlog::LitVerilog {
                 width: #width,
-                lifetime: stringify!(#lifetime).into(),
+                value: stringify!(#lifetime).into(),
             }
         })
     }

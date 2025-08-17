@@ -1,0 +1,1 @@
+rhdl :: vlog :: Expr :: Concat (vec ! [rhdl :: vlog :: Expr :: Ident (stringify ! (a) . into ()) , rhdl :: vlog :: Expr :: Literal (3) , rhdl :: vlog :: Expr :: Literal (1) ,])
