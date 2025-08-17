@@ -66,7 +66,9 @@ fn test_quote_parse_width_spec() -> miette::Result<()> {
 
 #[test]
 fn test_quote_parse_port() -> miette::Result<()> {
-    let expect = expect_test::expect!["rhdl :: vlog :: Port { direction : rhdl :: vlog :: Direction :: Input , decl : rhdl :: vlog :: Declaration { kind : rhdl :: vlog :: HDLKind :: Reg , signed_width : rhdl :: vlog :: SignedWidth :: Signed (0 ..= 3) , name : stringify ! (nibble) . into () } , }"];
+    let expect = expect_test::expect![
+        "rhdl :: vlog :: Port { direction : rhdl :: vlog :: Direction :: Input , decl : rhdl :: vlog :: Declaration { kind : rhdl :: vlog :: HDLKind :: Reg , signed_width : rhdl :: vlog :: SignedWidth :: Signed (0 ..= 3) , name : stringify ! (nibble) . into () } , }"
+    ];
     let synth = test_parse_quote::<Port>("input reg signed [3:0] nibble")?;
     expect.assert_eq(&synth.to_string());
     Ok(())
@@ -178,10 +180,18 @@ endcase
 }
 
 #[test]
-fn test_quote_parse_module_def() -> miette::Result<()> {
+fn test_quote_parse_module_def_empty() -> miette::Result<()> {
     let expect = expect_test::expect![
-        "rhdl :: vlog :: ModuleDef { name : stringify ! (foo) . into () , args : vec ! [rhdl :: vlog :: Port { direction : rhdl :: vlog :: Direction :: Input , decl : rhdl :: vlog :: Declaration { kind : rhdl :: vlog :: HDLKind :: Wire , signed_width : rhdl :: vlog :: SignedWidth :: Unsigned (0 ..= 2) , name : stringify ! (clock_reset) . into () } , } , rhdl :: vlog :: Port { direction : rhdl :: vlog :: Direction :: Input , decl : rhdl :: vlog :: Declaration { kind : rhdl :: vlog :: HDLKind :: Wire , signed_width : rhdl :: vlog :: SignedWidth :: Unsigned (0 ..= 7) , name : stringify ! (i) . into () } , } , rhdl :: vlog :: Port { direction : rhdl :: vlog :: Direction :: Output , decl : rhdl :: vlog :: Declaration { kind : rhdl :: vlog :: HDLKind :: Wire , signed_width : rhdl :: vlog :: SignedWidth :: Unsigned (0 ..= 7) , name : stringify ! (o) . into () } , } ,] , items : vec ! [] , }"
+        "rhdl :: vlog :: ModuleDef { name : stringify ! (foo) . into () , args : vec ! [] , items : vec ! [] , }"
     ];
+    let synth = test_parse_quote::<ModuleDef>("module foo; endmodule")?;
+    expect.assert_eq(&synth.to_string());
+    Ok(())
+}
+
+#[test]
+fn test_quote_parse_module_def() -> miette::Result<()> {
+    let expect = expect_test::expect!["{ let arg0 = rhdl :: vlog :: Port { direction : rhdl :: vlog :: Direction :: Input , decl : rhdl :: vlog :: Declaration { kind : rhdl :: vlog :: HDLKind :: Wire , signed_width : rhdl :: vlog :: SignedWidth :: Unsigned (0 ..= 2) , name : stringify ! (clock_reset) . into () } , } ; let arg1 = rhdl :: vlog :: Port { direction : rhdl :: vlog :: Direction :: Input , decl : rhdl :: vlog :: Declaration { kind : rhdl :: vlog :: HDLKind :: Wire , signed_width : rhdl :: vlog :: SignedWidth :: Unsigned (0 ..= 7) , name : stringify ! (i) . into () } , } ; let arg2 = rhdl :: vlog :: Port { direction : rhdl :: vlog :: Direction :: Output , decl : rhdl :: vlog :: Declaration { kind : rhdl :: vlog :: HDLKind :: Wire , signed_width : rhdl :: vlog :: SignedWidth :: Unsigned (0 ..= 7) , name : stringify ! (o) . into () } , } ; let args_vec = vec ! [arg0 , arg1 , arg2 ,] ; let items_vec = vec ! [] ; rhdl :: vlog :: ModuleDef { name : stringify ! (foo) . into () , args : args_vec , items : items_vec , } }"];
     let synth = test_parse_quote::<ModuleDef>(
         "
         module foo(input wire[2:0] clock_reset, input wire[7:0] i, output wire[7:0] o);
