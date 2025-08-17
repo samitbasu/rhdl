@@ -627,11 +627,21 @@ struct Block {
 
 impl ToTokens for Block {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let body = &self.body;
+        let statements = self.body.iter().enumerate().map(|(i, stmt)| {
+            let var_name = format_ident!("stmt{}", i);
+            quote! {let #var_name = #stmt;}
+        });
+        let variables = (0..self.body.len()).map(|i| {
+            let var_name = format_ident!("stmt{}", i);
+            quote! {#var_name}
+        });
         tokens.extend(quote! {
-            rhdl::vlog::Stmt::Block(vec![
-                #(#body,)*
-            ])
+            {
+                #(#statements)*
+                vec![
+                    #(#variables,)*
+                ]
+            }
         })
     }
 }
@@ -820,12 +830,16 @@ impl ToTokens for If {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let condition = &self.condition.inner;
         let true_stmt = &self.true_stmt;
-        let else_branch = &self.else_branch;
+        let else_branch = if let Some(else_branch) = &self.else_branch {
+            quote! { Some(Box::new(#else_branch)) }
+        } else {
+            quote! { None }
+        };
         tokens.extend(quote! {
             rhdl::vlog::If {
                 condition: Box::new(#condition),
                 true_stmt: Box::new(#true_stmt),
-                else_branch: #else_branch.map(Box::new),
+                else_branch: #else_branch,
             }
         });
     }
@@ -975,7 +989,7 @@ impl ToTokens for Expr {
             Expr::Constant(lit) => quote! {rhdl::vlog::Expr::Constant(#lit)},
             Expr::Literal(lit) => quote! {rhdl::vlog::Expr::Literal(#lit)},
             Expr::String(lit) => quote! {rhdl::vlog::Expr::String(#lit)},
-            Expr::Ident(ident) => quote! {rhdl::vlog::Expr::Ident(#ident)},
+            Expr::Ident(ident) => quote! {rhdl::vlog::Expr::Ident(stringify!(#ident).into())},
             Expr::Paren(expr) => quote! {rhdl::vlog::Expr::Paren(Box::new(#expr))},
             Expr::Ternary(expr) => quote! {rhdl::vlog::Expr::Ternary(#expr)},
             Expr::Concat(expr) => quote! {rhdl::vlog::Expr::Concat(#expr)},
@@ -1089,9 +1103,9 @@ impl ToTokens for ExprBinary {
         let rhs = &self.rhs;
         tokens.extend(quote! {
             rhdl::vlog::ExprBinary {
-                lhs: #lhs,
+                lhs: Box::new(#lhs),
                 op: #op,
-                rhs: #rhs
+                rhs: Box::new(#rhs)
             }
         })
     }
@@ -1512,9 +1526,19 @@ struct ModuleList {
 
 impl ToTokens for ModuleList {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let modules = &self.modules;
+        let modules = self.modules.iter().enumerate().map(|(i, module)| {
+            let var_name = format_ident!("module{}", i);
+            quote! { let #var_name = #module; }
+        });
+        let module_names = (0..modules.len()).map(|i| {
+            let var_name = format_ident!("module{}", i);
+            quote! { #var_name }
+        });
         tokens.extend(quote! {
-            rhdl::vlog::ModuleList(vec![#(#modules,)*])
+            {
+                #(#modules)*;
+                rhdl::vlog::ModuleList(vec![#(#module_names,)*])
+            }
         })
     }
 }
@@ -1536,7 +1560,7 @@ impl Parse for ModuleList {
 struct ModuleDef {
     _module: kw::module,
     name: Ident,
-    args: ParenCommaList<Port>,
+    args: Option<ParenCommaList<Port>>,
     _semi: Token![;],
     items: Vec<Item>,
     _end_module: kw::endmodule,
@@ -1545,13 +1569,45 @@ struct ModuleDef {
 impl ToTokens for ModuleDef {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = &self.name;
-        let ports = self.args.inner.iter();
+
+        // Generate let statements for args
+        let args_construction = if let Some(ref args) = self.args {
+            let ports = args.inner.iter().enumerate().map(|(i, port)| {
+                let var_name = format_ident!("arg{}", i);
+                quote! { let #var_name = #port; }
+            });
+            let var_names = (0..args.inner.len()).map(|i| format_ident!("arg{}", i));
+            quote! {
+                #(#ports)*
+                let args_vec = vec![#(#var_names,)*];
+            }
+        } else {
+            quote! { let args_vec = vec![]; }
+        };
+
+        // Generate let statements for items
         let items = &self.items;
+        let items_construction = {
+            let item_lets = items.iter().enumerate().map(|(i, item)| {
+                let var_name = format_ident!("item{}", i);
+                quote! { let #var_name = #item; }
+            });
+            let var_names = (0..items.len()).map(|i| format_ident!("item{}", i));
+            quote! {
+                #(#item_lets)*
+                let items_vec = vec![#(#var_names,)*];
+            }
+        };
+
         tokens.extend(quote! {
-            rhdl::vlog::ModuleDef {
-                name: stringify!(#name).into(),
-                args: vec![#(#ports,)*],
-                items: vec![#(#items,)*],
+            {
+                #args_construction
+                #items_construction
+                rhdl::vlog::ModuleDef {
+                    name: stringify!(#name).into(),
+                    args: args_vec,
+                    items: items_vec,
+                }
             }
         })
     }
@@ -1561,7 +1617,11 @@ impl Parse for ModuleDef {
     fn parse(input: ParseStream) -> Result<Self> {
         let module = input.parse()?;
         let name = input.parse()?;
-        let args = input.parse()?;
+        let args = if input.peek(token::Paren) {
+            Some(input.parse()?)
+        } else {
+            None
+        };
         let semi = input.parse()?;
         let mut items = Vec::new();
         while !input.peek(kw::endmodule) {

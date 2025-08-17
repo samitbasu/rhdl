@@ -25,7 +25,7 @@ pub enum SignedWidth {
 #[derive(Clone, Debug)]
 pub struct Declaration {
     pub kind: HDLKind,
-    pub width: SignedWidth,
+    pub signed_width: SignedWidth,
     pub name: String,
 }
 
