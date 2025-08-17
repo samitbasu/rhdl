@@ -14,7 +14,7 @@ fn main() {
                             vlog::input(),
                             vlog::declaration(
                                 vlog::wire(),
-                                vlog::unsigned(0..=1),
+                                vlog::unsigned(0..=2),
                                 stringify!(a),
                             ),
                         ),
@@ -37,17 +37,26 @@ fn main() {
                         vlog::stmt_item(
                             vlog::always_stmt(
                                 {
-                                    let mut ret = Vec::with_capacity(2usize);
-                                    ret.push(vlog::pos_edge(stringify!(a)));
-                                    ret.push(vlog::signal(stringify!(b)));
+                                    let mut ret = Vec::with_capacity(1usize);
+                                    ret.push(vlog::star());
                                     ret
                                 },
                                 vlog::block_stmt({
                                     let mut ret = Vec::with_capacity(1usize);
                                     ret.push(
-                                        vlog::nonblock_assign_stmt(
+                                        vlog::assign_stmt(
                                             stringify!(b),
-                                            vlog::literal_expr(1),
+                                            vlog::ternary_expr(
+                                                vlog::paren_expr(
+                                                    vlog::binary_expr(
+                                                        vlog::ident_expr(stringify!(a)),
+                                                        vlog::binary_eq(),
+                                                        vlog::literal_expr(1),
+                                                    ),
+                                                ),
+                                                vlog::literal_expr(2),
+                                                vlog::literal_expr(3),
+                                            ),
                                         ),
                                     );
                                     ret

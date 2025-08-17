@@ -1,1 +1,1 @@
-vlog :: concat_expr ({ let elem0 = vlog :: ident_expr (stringify ! (a)) ; let elem1 = vlog :: literal_expr (3) ; let elem2 = vlog :: literal_expr (1) ; vec ! [elem0 , elem1 , elem2] })
+vlog :: concat_expr ({ let mut ret = Vec :: with_capacity (3usize) ; ret . push (vlog :: ident_expr (stringify ! (a))) ; ret . push (vlog :: literal_expr (3)) ; ret . push (vlog :: literal_expr (1)) ; ret })

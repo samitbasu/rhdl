@@ -258,7 +258,7 @@ pub fn unary_xor() -> UnaryOp {
     UnaryOp::Xor
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub enum Stmt {
     If(If),
     Always(Always),
@@ -274,9 +274,6 @@ pub enum Stmt {
     DynamicSplice(DynamicSplice),
     Delay(u32),
     ConcatAssign(ConcatAssign),
-    #[default]
-    /// Required because the parser for if/else uses it as a placeholder
-    Noop,
 }
 
 pub fn if_stmt(condition: Expr, true_stmt: Stmt, else_branch: Option<Stmt>) -> Stmt {

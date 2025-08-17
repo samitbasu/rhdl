@@ -3,36 +3,67 @@ pub mod vlog {
 }
 fn main() {
     let _ = vlog::module_list({
-        let elem0 = vlog::module_def(
-            stringify!(foo),
-            {
-                let elem0 = vlog::port(
-                    vlog::input(),
-                    vlog::declaration(vlog::wire(), vlog::unsigned(0..=1), stringify!(a)),
-                );
-                let elem1 = vlog::port(
-                    vlog::output(),
-                    vlog::declaration(vlog::wire(), vlog::unsigned(0..=1), stringify!(b)),
-                );
-                vec![elem0, elem1]
-            },
-            vec![],
+        let mut ret = Vec::with_capacity(2usize);
+        ret.push(
+            vlog::module_def(
+                stringify!(foo),
+                {
+                    let mut ret = Vec::with_capacity(2usize);
+                    ret.push(
+                        vlog::port(
+                            vlog::input(),
+                            vlog::declaration(
+                                vlog::wire(),
+                                vlog::unsigned(0..=1),
+                                stringify!(a),
+                            ),
+                        ),
+                    );
+                    ret.push(
+                        vlog::port(
+                            vlog::output(),
+                            vlog::declaration(
+                                vlog::wire(),
+                                vlog::unsigned(0..=1),
+                                stringify!(b),
+                            ),
+                        ),
+                    );
+                    ret
+                },
+                vec![],
+            ),
         );
-        let elem1 = vlog::module_def(
-            stringify!(bar),
-            {
-                let elem0 = vlog::port(
-                    vlog::input(),
-                    vlog::declaration(vlog::wire(), vlog::unsigned(0..=1), stringify!(c)),
-                );
-                let elem1 = vlog::port(
-                    vlog::output(),
-                    vlog::declaration(vlog::wire(), vlog::unsigned(0..=1), stringify!(d)),
-                );
-                vec![elem0, elem1]
-            },
-            vec![],
+        ret.push(
+            vlog::module_def(
+                stringify!(bar),
+                {
+                    let mut ret = Vec::with_capacity(2usize);
+                    ret.push(
+                        vlog::port(
+                            vlog::input(),
+                            vlog::declaration(
+                                vlog::wire(),
+                                vlog::unsigned(0..=1),
+                                stringify!(c),
+                            ),
+                        ),
+                    );
+                    ret.push(
+                        vlog::port(
+                            vlog::output(),
+                            vlog::declaration(
+                                vlog::wire(),
+                                vlog::unsigned(0..=1),
+                                stringify!(d),
+                            ),
+                        ),
+                    );
+                    ret
+                },
+                vec![],
+            ),
         );
-        vec![elem0, elem1]
+        ret
     });
 }

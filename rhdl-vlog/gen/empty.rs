@@ -3,7 +3,8 @@ pub mod vlog {
 }
 fn main() {
     let _ = vlog::module_list({
-        let elem0 = vlog::module_def(stringify!(foo), vec![], vec![]);
-        vec![elem0]
+        let mut ret = Vec::with_capacity(1usize);
+        ret.push(vlog::module_def(stringify!(foo), vec![], vec![]));
+        ret
     });
 }

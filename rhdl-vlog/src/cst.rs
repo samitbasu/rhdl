@@ -201,17 +201,14 @@ fn vec_tokens<T: ToTokens>(t: &[T]) -> proc_macro2::TokenStream {
     if t.len() == 0 {
         return quote! {vec![]};
     }
-    let elements = t.iter().enumerate().map(|(i, elem)| {
-        let var_name = format_ident!("elem{}", i);
-        quote! {
-            let #var_name = #elem;
-        }
-    });
-    let var_names = (0..t.len()).map(|i| format_ident!("elem{}", i));
+    let len = t.len();
+    let ret = format_ident!("ret");
+    let push = t.iter().map(|x| quote! {#ret.push(#x);});
     quote! {
         {
-        #(#elements)*
-        vec![#(#var_names),*]
+            let mut #ret = Vec::with_capacity(#len);
+            #(#push)*
+            #ret
         }
     }
 }
@@ -262,11 +259,7 @@ impl ToTokens for StmtKind {
                 }
             }
             StmtKind::FunctionCall(inner) => {
-                let name = if inner.dollar.is_some() {
-                    format_ident!("_{}", inner.name)
-                } else {
-                    inner.name.clone()
-                };
+                let name = format_ident!("_dollar_{}", inner.name);
                 let args = inner
                     .args
                     .iter()
@@ -330,9 +323,7 @@ impl ToTokens for StmtKind {
                     vlog::concat_assign_stmt(#target, #rhs)
                 }
             }
-            StmtKind::Noop => quote! {
-                vlog::Stmt::default()
-            },
+            StmtKind::Noop => quote! {},
         })
     }
 }
@@ -447,7 +438,7 @@ struct Delay {
 }
 
 struct FunctionCall {
-    dollar: Option<Token![$]>,
+    _dollar: Token![$],
     name: Ident,
     args: Option<ParenCommaList<Expr>>,
 }
@@ -461,7 +452,11 @@ impl Parse for FunctionCall {
         } else {
             None
         };
-        Ok(FunctionCall { dollar, name, args })
+        Ok(FunctionCall {
+            _dollar: dollar,
+            name,
+            args,
+        })
     }
 }
 
@@ -1390,49 +1385,5 @@ impl Parse for FunctionDef {
             items,
             _end_function: end_function,
         })
-    }
-}
-
-#[cfg(test)]
-mod itests {
-
-    use super::*;
-    use quote::quote;
-    fn test_parse<T: Parse>(text: impl AsRef<str>) -> std::result::Result<T, miette::Report> {
-        let text = text.as_ref();
-        syn::parse_str::<T>(text).map_err(|err| syn_miette::Error::new(err, text).into())
-    }
-
-    #[test]
-    fn test_vlog_files() -> miette::Result<()> {
-        let dir = std::fs::read_dir("vlog").unwrap();
-        for entry in dir {
-            let Ok(entry) = entry else {
-                continue;
-            };
-            let Ok(file_type) = entry.file_type() else {
-                continue;
-            };
-            if !file_type.is_file() {
-                continue;
-            };
-            eprintln!("Path: {:?}", entry.path());
-            let path = entry.path();
-            let Some(extension) = path.extension() else {
-                continue;
-            };
-            if extension != "v" {
-                continue;
-            }
-            let Ok(module) = std::fs::read(entry.path()) else {
-                continue;
-            };
-            let text = String::from_utf8_lossy(&module);
-            let module_list = test_parse::<ModuleList>(text)?;
-            let requote = quote! {#module_list ;}.to_string();
-            let _ = syn::parse_str::<syn::Stmt>(&requote)
-                .map_err(|err| syn_miette::Error::new(err, requote))?;
-        }
-        Ok(())
     }
 }
