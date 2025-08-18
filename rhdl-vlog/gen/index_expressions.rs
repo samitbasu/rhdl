@@ -45,13 +45,13 @@ fn main() {
                                     let mut ret = Vec::with_capacity(3usize);
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::index_expr(stringify!(a), vlog::literal_expr(1), None),
                                         ),
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::index_expr(
                                                 stringify!(a),
                                                 vlog::literal_expr(1),
@@ -61,10 +61,11 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::dyn_index_expr(
                                                 stringify!(a),
                                                 vlog::ident_expr(stringify!(b)),
+                                                vlog::dyn_plus_colon(),
                                                 vlog::literal_expr(2),
                                             ),
                                         ),

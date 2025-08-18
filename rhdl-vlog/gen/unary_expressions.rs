@@ -45,7 +45,7 @@ fn main() {
                                     let mut ret = Vec::with_capacity(7usize);
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::unary_expr(
                                                 vlog::unary_plus(),
                                                 vlog::ident_expr(stringify!(a)),
@@ -54,7 +54,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::unary_expr(
                                                 vlog::unary_minus(),
                                                 vlog::ident_expr(stringify!(a)),
@@ -63,7 +63,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::unary_expr(
                                                 vlog::unary_not(),
                                                 vlog::ident_expr(stringify!(a)),
@@ -72,7 +72,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::unary_expr(
                                                 vlog::unary_bang(),
                                                 vlog::ident_expr(stringify!(a)),
@@ -81,7 +81,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::unary_expr(
                                                 vlog::unary_and(),
                                                 vlog::ident_expr(stringify!(a)),
@@ -90,7 +90,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::unary_expr(
                                                 vlog::unary_xor(),
                                                 vlog::ident_expr(stringify!(a)),
@@ -99,7 +99,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::unary_expr(
                                                 vlog::unary_or(),
                                                 vlog::ident_expr(stringify!(a)),

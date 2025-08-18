@@ -36,7 +36,6 @@ pub fn test_compilation(test_case: &str, module: ModuleList) {
             let _ = #module;
         }
     };
-    eprintln!("{}", test.clone().to_string());
     let file: syn::File = syn::parse2(test).unwrap();
     let pretty = prettyplease::unparse(&file);
 

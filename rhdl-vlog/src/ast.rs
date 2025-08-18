@@ -6,6 +6,7 @@ pub fn module_list(modules: Vec<ModuleDef>) -> ModuleList {
 }
 
 use std::ops::RangeInclusive;
+
 #[derive(Clone, Debug)]
 pub enum HDLKind {
     Wire,
@@ -65,6 +66,38 @@ pub fn declaration(kind: HDLKind, signed_width: SignedWidth, name: &str) -> Decl
         kind,
         signed_width,
         name: name.to_string(),
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct DeclKind {
+    pub name: String,
+    pub width: Option<SignedWidth>,
+}
+
+pub fn decl_kind(name: &str, width: Option<SignedWidth>) -> DeclKind {
+    DeclKind {
+        name: name.to_string(),
+        width,
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct DeclarationList {
+    pub kind: HDLKind,
+    pub signed_width: SignedWidth,
+    pub items: Vec<DeclKind>,
+}
+
+pub fn declaration_list(
+    kind: HDLKind,
+    signed_width: SignedWidth,
+    items: Vec<DeclKind>,
+) -> DeclarationList {
+    DeclarationList {
+        kind,
+        signed_width,
+        items,
     }
 }
 
@@ -270,7 +303,6 @@ pub enum Stmt {
     NonblockAssign(Assign),
     Assign(Assign),
     Instance(Instance),
-    Splice(Splice),
     DynamicSplice(DynamicSplice),
     Delay(u32),
     ConcatAssign(ConcatAssign),
@@ -298,7 +330,7 @@ pub fn case_stmt(discriminant: Expr, lines: Vec<CaseLine>) -> Stmt {
     })
 }
 
-pub fn local_param_stmt(target: &str, rhs: LitVerilog) -> Stmt {
+pub fn local_param_stmt(target: &str, rhs: ConstExpr) -> Stmt {
     Stmt::LocalParam(LocalParam {
         target: target.to_string(),
         rhs,
@@ -309,9 +341,9 @@ pub fn block_stmt(stmts: Vec<Stmt>) -> Stmt {
     Stmt::Block(stmts)
 }
 
-pub fn continuous_assign_stmt(target: &str, rhs: Expr) -> Stmt {
+pub fn continuous_assign_stmt(target: AssignTarget, rhs: Expr) -> Stmt {
     Stmt::ContinuousAssign(Assign {
-        target: target.to_string(),
+        target,
         rhs: Box::new(rhs),
     })
 }
@@ -323,16 +355,16 @@ pub fn function_call_stmt(name: &str, args: Vec<Expr>) -> Stmt {
     })
 }
 
-pub fn nonblock_assign_stmt(target: &str, rhs: Expr) -> Stmt {
+pub fn nonblock_assign_stmt(target: AssignTarget, rhs: Expr) -> Stmt {
     Stmt::NonblockAssign(Assign {
-        target: target.to_string(),
+        target,
         rhs: Box::new(rhs),
     })
 }
 
-pub fn assign_stmt(target: &str, rhs: Expr) -> Stmt {
+pub fn assign_stmt(target: AssignTarget, rhs: Expr) -> Stmt {
     Stmt::Assign(Assign {
-        target: target.to_string(),
+        target,
         rhs: Box::new(rhs),
     })
 }
@@ -345,19 +377,11 @@ pub fn instance_stmt(module: &str, instance: &str, connections: Vec<Connection>)
     })
 }
 
-pub fn splice_stmt(target: &str, msb: Expr, lsb: Option<Expr>, rhs: Expr) -> Stmt {
-    Stmt::Splice(Splice {
-        target: target.to_string(),
-        msb: Box::new(msb),
-        lsb: lsb.map(Box::new),
-        rhs: Box::new(rhs),
-    })
-}
-
-pub fn dynamic_splice_stmt(target: &str, base: Expr, width: Expr, rhs: Expr) -> Stmt {
+pub fn dynamic_splice_stmt(target: &str, base: Expr, op: DynOp, width: Expr, rhs: Expr) -> Stmt {
     Stmt::DynamicSplice(DynamicSplice {
         target: target.to_string(),
         base: Box::new(base),
+        op,
         width: Box::new(width),
         rhs: Box::new(rhs),
     })
@@ -381,9 +405,24 @@ pub struct ConcatAssign {
 }
 
 #[derive(Debug, Clone)]
+pub enum DynOp {
+    PlusColon,
+    MinusColon,
+}
+
+pub fn dyn_plus_colon() -> DynOp {
+    DynOp::PlusColon
+}
+
+pub fn dyn_minus_colon() -> DynOp {
+    DynOp::MinusColon
+}
+
+#[derive(Debug, Clone)]
 pub struct DynamicSplice {
     pub target: String,
     pub base: Box<Expr>,
+    pub op: DynOp,
     pub width: Box<Expr>,
     pub rhs: Box<Expr>,
 }
@@ -410,15 +449,48 @@ pub struct FunctionCall {
 }
 
 #[derive(Debug, Clone)]
+pub enum AssignTarget {
+    Ident(String),
+    Index(Expr),
+}
+
+pub fn assign_target_ident(ident: &str) -> AssignTarget {
+    AssignTarget::Ident(ident.to_string())
+}
+
+pub fn assign_target_index(target: Expr) -> AssignTarget {
+    AssignTarget::Index(target)
+}
+
+#[derive(Debug, Clone)]
 pub struct Assign {
-    pub target: String,
+    pub target: AssignTarget,
     pub rhs: Box<Expr>,
 }
 
 #[derive(Debug, Clone)]
 pub struct LocalParam {
     pub target: String,
-    pub rhs: LitVerilog,
+    pub rhs: ConstExpr,
+}
+
+#[derive(Debug, Clone)]
+pub enum ConstExpr {
+    LitVerilog(LitVerilog),
+    LitInt(i32),
+    LitStr(String),
+}
+
+pub fn const_verilog(val: LitVerilog) -> ConstExpr {
+    ConstExpr::LitVerilog(val)
+}
+
+pub fn const_int(val: i32) -> ConstExpr {
+    ConstExpr::LitInt(val)
+}
+
+pub fn const_str(val: &str) -> ConstExpr {
+    ConstExpr::LitStr(val.to_string())
 }
 
 #[derive(Debug, Clone)]
@@ -436,8 +508,13 @@ pub fn lit_verilog(width: u32, value: &str) -> LitVerilog {
 
 #[derive(Debug, Clone)]
 pub enum CaseItem {
+    Ident(String),
     Literal(LitVerilog),
     Wild,
+}
+
+pub fn case_item_ident(ident: &str) -> CaseItem {
+    CaseItem::Ident(ident.to_string())
 }
 
 pub fn case_item_literal(lit: LitVerilog) -> CaseItem {
@@ -505,7 +582,7 @@ pub fn function_def(
 #[derive(Debug, Clone)]
 pub enum Item {
     Statement(Stmt),
-    Declaration(Declaration),
+    Declaration(DeclarationList),
     FunctionDef(FunctionDef),
     Initial(Stmt),
 }
@@ -514,7 +591,7 @@ pub fn stmt_item(stmt: Stmt) -> Item {
     Item::Statement(stmt)
 }
 
-pub fn declaration_item(decl: Declaration) -> Item {
+pub fn declaration_item(decl: DeclarationList) -> Item {
     Item::Declaration(decl)
 }
 
@@ -620,10 +697,11 @@ pub fn index_expr(target: &str, msb: Expr, lsb: Option<Expr>) -> Expr {
     })
 }
 
-pub fn dyn_index_expr(target: &str, base: Expr, width: Expr) -> Expr {
+pub fn dyn_index_expr(target: &str, base: Expr, op: DynOp, width: Expr) -> Expr {
     Expr::DynIndex(ExprDynIndex {
         target: target.to_string(),
         base: Box::new(base),
+        op,
         width: Box::new(width),
     })
 }
@@ -639,6 +717,7 @@ pub fn function_expr(name: &str, args: Vec<Expr>) -> Expr {
 pub struct ExprDynIndex {
     pub target: String,
     pub base: Box<Expr>,
+    pub op: DynOp,
     pub width: Box<Expr>,
 }
 

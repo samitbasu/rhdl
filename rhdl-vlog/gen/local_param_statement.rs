@@ -37,7 +37,9 @@ fn main() {
                         vlog::stmt_item(
                             vlog::local_param_stmt(
                                 stringify!(my_param),
-                                vlog::lit_verilog(5, stringify!(b1_1001).into()),
+                                vlog::const_verilog(
+                                    vlog::lit_verilog(5, stringify!(b1_1001).into()),
+                                ),
                             ),
                         ),
                     );
@@ -53,7 +55,7 @@ fn main() {
                                     let mut ret = Vec::with_capacity(1usize);
                                     ret.push(
                                         vlog::nonblock_assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::ident_expr(stringify!(my_param)),
                                         ),
                                     );

@@ -179,6 +179,28 @@ fn test_quote_parse_module_def() -> miette::Result<()> {
 }
 
 #[test]
+fn test_assignment_with_index() -> miette::Result<()> {
+    let expect = expect_test::expect_file!["../expect/assignment_with_index.expect"];
+    let synth = test_parse_quote::<ModuleDef>(
+        "
+      module foo(
+          input wire [7:0] a,
+          input wire [7:0] b,
+          output wire [7:0] c
+      );
+      c = a[3] + b[5:2];
+      c <= a[3] + b[5:2];
+      c[a] <= b;
+      c[a[3:0]] <= b;
+      c[3:0] <= a;
+      endmodule
+    ",
+    )?;
+    expect.assert_eq(&synth.to_string());
+    Ok(())
+}
+
+#[test]
 fn test_quote_parse_dff_definition() -> miette::Result<()> {
     let expect = expect_test::expect_file!["../expect/dff_definition.expect"];
     let synth = test_parse_quote::<ModuleDef>(

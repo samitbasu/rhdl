@@ -40,7 +40,10 @@ fn main() {
                                 vlog::block_stmt({
                                     let mut ret = Vec::with_capacity(1usize);
                                     ret.push(
-                                        vlog::assign_stmt(stringify!(b), vlog::literal_expr(1)),
+                                        vlog::assign_stmt(
+                                            vlog::assign_target_ident(stringify!(b)),
+                                            vlog::literal_expr(1),
+                                        ),
                                     );
                                     ret
                                 }),
@@ -48,7 +51,10 @@ fn main() {
                                     vlog::block_stmt({
                                         let mut ret = Vec::with_capacity(1usize);
                                         ret.push(
-                                            vlog::assign_stmt(stringify!(b), vlog::literal_expr(0)),
+                                            vlog::assign_stmt(
+                                                vlog::assign_target_ident(stringify!(b)),
+                                                vlog::literal_expr(0),
+                                            ),
                                         );
                                         ret
                                     }),

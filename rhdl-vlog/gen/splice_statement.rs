@@ -35,20 +35,24 @@ fn main() {
                     let mut ret = Vec::with_capacity(2usize);
                     ret.push(
                         vlog::stmt_item(
-                            vlog::splice_stmt(
-                                stringify!(a),
-                                vlog::literal_expr(1),
-                                None,
+                            vlog::assign_stmt(
+                                vlog::assign_target_index(
+                                    vlog::index_expr(stringify!(a), vlog::literal_expr(1), None),
+                                ),
                                 vlog::ident_expr(stringify!(b)),
                             ),
                         ),
                     );
                     ret.push(
                         vlog::stmt_item(
-                            vlog::splice_stmt(
-                                stringify!(a),
-                                vlog::literal_expr(1),
-                                Some(vlog::literal_expr(0)),
+                            vlog::assign_stmt(
+                                vlog::assign_target_index(
+                                    vlog::index_expr(
+                                        stringify!(a),
+                                        vlog::literal_expr(1),
+                                        Some(vlog::literal_expr(0)),
+                                    ),
+                                ),
                                 vlog::concat_expr({
                                     let mut ret = Vec::with_capacity(2usize);
                                     ret.push(vlog::ident_expr(stringify!(b)));

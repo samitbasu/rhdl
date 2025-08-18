@@ -45,7 +45,7 @@ fn main() {
                                     let mut ret = Vec::with_capacity(20usize);
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_shl(),
@@ -55,7 +55,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_signed_right_shift(),
@@ -65,7 +65,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_shr(),
@@ -75,7 +75,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_short_and(),
@@ -85,7 +85,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_short_or(),
@@ -95,7 +95,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_case_eq(),
@@ -105,7 +105,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_case_ne(),
@@ -115,7 +115,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_ne(),
@@ -125,7 +125,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_eq(),
@@ -135,7 +135,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_ge(),
@@ -145,7 +145,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_le(),
@@ -155,7 +155,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_gt(),
@@ -165,7 +165,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_lt(),
@@ -175,7 +175,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_plus(),
@@ -185,7 +185,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_minus(),
@@ -195,7 +195,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_and(),
@@ -205,7 +205,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_or(),
@@ -215,7 +215,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_xor(),
@@ -225,7 +225,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_mod(),
@@ -235,7 +235,7 @@ fn main() {
                                     );
                                     ret.push(
                                         vlog::assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::binary_expr(
                                                 vlog::ident_expr(stringify!(a)),
                                                 vlog::binary_mul(),

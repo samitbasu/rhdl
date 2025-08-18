@@ -1,0 +1,199 @@
+pub mod vlog {
+    include!("../src/ast.rs");
+}
+fn main() {
+    let _ = vlog::module_list({
+        let mut ret = Vec::with_capacity(1usize);
+        ret.push(
+            vlog::module_def(
+                stringify!(sensitivity_test),
+                {
+                    let mut ret = Vec::with_capacity(6usize);
+                    ret.push(
+                        vlog::port(
+                            vlog::input(),
+                            vlog::declaration(
+                                vlog::wire(),
+                                vlog::unsigned(0..=0),
+                                stringify!(clk1),
+                            ),
+                        ),
+                    );
+                    ret.push(
+                        vlog::port(
+                            vlog::input(),
+                            vlog::declaration(
+                                vlog::wire(),
+                                vlog::unsigned(0..=0),
+                                stringify!(clk2),
+                            ),
+                        ),
+                    );
+                    ret.push(
+                        vlog::port(
+                            vlog::input(),
+                            vlog::declaration(
+                                vlog::wire(),
+                                vlog::unsigned(0..=0),
+                                stringify!(rst),
+                            ),
+                        ),
+                    );
+                    ret.push(
+                        vlog::port(
+                            vlog::input(),
+                            vlog::declaration(
+                                vlog::wire(),
+                                vlog::unsigned(0..=3),
+                                stringify!(data),
+                            ),
+                        ),
+                    );
+                    ret.push(
+                        vlog::port(
+                            vlog::output(),
+                            vlog::declaration(
+                                vlog::reg(),
+                                vlog::unsigned(0..=7),
+                                stringify!(out1),
+                            ),
+                        ),
+                    );
+                    ret.push(
+                        vlog::port(
+                            vlog::output(),
+                            vlog::declaration(
+                                vlog::reg(),
+                                vlog::unsigned(0..=7),
+                                stringify!(out2),
+                            ),
+                        ),
+                    );
+                    ret
+                },
+                {
+                    let mut ret = Vec::with_capacity(3usize);
+                    ret.push(
+                        vlog::stmt_item(
+                            vlog::always_stmt(
+                                {
+                                    let mut ret = Vec::with_capacity(2usize);
+                                    ret.push(vlog::pos_edge(stringify!(clk1)));
+                                    ret.push(vlog::neg_edge(stringify!(rst)));
+                                    ret
+                                },
+                                vlog::block_stmt({
+                                    let mut ret = Vec::with_capacity(1usize);
+                                    ret.push(
+                                        vlog::if_stmt(
+                                            vlog::unary_expr(
+                                                vlog::unary_bang(),
+                                                vlog::ident_expr(stringify!(rst)),
+                                            ),
+                                            vlog::block_stmt({
+                                                let mut ret = Vec::with_capacity(1usize);
+                                                ret.push(
+                                                    vlog::nonblock_assign_stmt(
+                                                        vlog::assign_target_ident(stringify!(out1)),
+                                                        vlog::constant_expr(vlog::lit_verilog(8, stringify!(h00))),
+                                                    ),
+                                                );
+                                                ret
+                                            }),
+                                            Some(
+                                                vlog::block_stmt({
+                                                    let mut ret = Vec::with_capacity(1usize);
+                                                    ret.push(
+                                                        vlog::nonblock_assign_stmt(
+                                                            vlog::assign_target_ident(stringify!(out1)),
+                                                            vlog::binary_expr(
+                                                                vlog::ident_expr(stringify!(data)),
+                                                                vlog::binary_plus(),
+                                                                vlog::literal_expr(1),
+                                                            ),
+                                                        ),
+                                                    );
+                                                    ret
+                                                }),
+                                            ),
+                                        ),
+                                    );
+                                    ret
+                                }),
+                            ),
+                        ),
+                    );
+                    ret.push(
+                        vlog::stmt_item(
+                            vlog::always_stmt(
+                                {
+                                    let mut ret = Vec::with_capacity(3usize);
+                                    ret.push(vlog::neg_edge(stringify!(clk2)));
+                                    ret.push(vlog::pos_edge(stringify!(clk1)));
+                                    ret.push(vlog::signal(stringify!(data)));
+                                    ret
+                                },
+                                vlog::block_stmt({
+                                    let mut ret = Vec::with_capacity(1usize);
+                                    ret.push(
+                                        vlog::nonblock_assign_stmt(
+                                            vlog::assign_target_ident(stringify!(out2)),
+                                            vlog::concat_expr({
+                                                let mut ret = Vec::with_capacity(2usize);
+                                                ret.push(vlog::ident_expr(stringify!(data)));
+                                                ret.push(vlog::ident_expr(stringify!(data)));
+                                                ret
+                                            }),
+                                        ),
+                                    );
+                                    ret
+                                }),
+                            ),
+                        ),
+                    );
+                    ret.push(
+                        vlog::stmt_item(
+                            vlog::always_stmt(
+                                {
+                                    let mut ret = Vec::with_capacity(1usize);
+                                    ret.push(vlog::star());
+                                    ret
+                                },
+                                vlog::block_stmt({
+                                    let mut ret = Vec::with_capacity(1usize);
+                                    ret.push(
+                                        vlog::if_stmt(
+                                            vlog::binary_expr(
+                                                vlog::ident_expr(stringify!(out1)),
+                                                vlog::binary_gt(),
+                                                vlog::ident_expr(stringify!(out2)),
+                                            ),
+                                            vlog::block_stmt({
+                                                let mut ret = Vec::with_capacity(1usize);
+                                                ret.push(
+                                                    vlog::assign_stmt(
+                                                        vlog::assign_target_ident(stringify!(out2)),
+                                                        vlog::binary_expr(
+                                                            vlog::ident_expr(stringify!(out1)),
+                                                            vlog::binary_minus(),
+                                                            vlog::ident_expr(stringify!(out2)),
+                                                        ),
+                                                    ),
+                                                );
+                                                ret
+                                            }),
+                                            None,
+                                        ),
+                                    );
+                                    ret
+                                }),
+                            ),
+                        ),
+                    );
+                    ret
+                },
+            ),
+        );
+        ret
+    });
+}

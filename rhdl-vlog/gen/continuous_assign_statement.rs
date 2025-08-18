@@ -36,7 +36,7 @@ fn main() {
                     ret.push(
                         vlog::stmt_item(
                             vlog::continuous_assign_stmt(
-                                stringify!(b),
+                                vlog::assign_target_ident(stringify!(b)),
                                 vlog::binary_expr(
                                     vlog::ident_expr(stringify!(a)),
                                     vlog::binary_plus(),

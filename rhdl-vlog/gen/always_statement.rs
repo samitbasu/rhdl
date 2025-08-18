@@ -46,7 +46,7 @@ fn main() {
                                     let mut ret = Vec::with_capacity(1usize);
                                     ret.push(
                                         vlog::nonblock_assign_stmt(
-                                            stringify!(b),
+                                            vlog::assign_target_ident(stringify!(b)),
                                             vlog::literal_expr(1),
                                         ),
                                     );
