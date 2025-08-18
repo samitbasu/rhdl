@@ -35,19 +35,27 @@ fn main() {
                     let mut ret = Vec::with_capacity(2usize);
                     ret.push(
                         vlog::declaration_item(
-                            vlog::declaration(
+                            vlog::declaration_list(
                                 vlog::wire(),
                                 vlog::unsigned(0..=4),
-                                stringify!(val1),
+                                {
+                                    let mut ret = Vec::with_capacity(1usize);
+                                    ret.push(vlog::decl_kind(stringify!(val1), None));
+                                    ret
+                                },
                             ),
                         ),
                     );
                     ret.push(
                         vlog::declaration_item(
-                            vlog::declaration(
+                            vlog::declaration_list(
                                 vlog::reg(),
                                 vlog::signed(0..=3),
-                                stringify!(val2),
+                                {
+                                    let mut ret = Vec::with_capacity(1usize);
+                                    ret.push(vlog::decl_kind(stringify!(val2), None));
+                                    ret
+                                },
                             ),
                         ),
                     );

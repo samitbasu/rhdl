@@ -10,6 +10,8 @@ use syn::{
 mod tests;
 
 syn::custom_punctuation!(PlusColon, +:);
+
+syn::custom_punctuation!(MinusColon, -:);
 syn::custom_punctuation!(LeftArrow, <=);
 
 syn::custom_punctuation!(CaseUnequal, !==);
@@ -126,18 +128,111 @@ impl ToTokens for SignedWidth {
     }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(Debug, Clone)]
+struct DeclKind {
+    name: Ident,
+    width: Option<SignedWidth>,
+}
+
+impl Parse for DeclKind {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let name = input.parse()?;
+        let width = if input.peek(token::Bracket) {
+            Some(input.parse()?)
+        } else {
+            None
+        };
+        Ok(DeclKind { name, width })
+    }
+}
+
+impl ToTokens for DeclKind {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = &self.name;
+        let width = option_tokens(self.width.as_ref());
+        tokens.extend(quote! {
+            vlog::decl_kind(stringify!(#name), #width)
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+struct DeclarationList {
+    kind: HDLKind,
+    signed_width: Option<SignedWidth>,
+    items: Punctuated<DeclKind, Token![,]>,
+    _term: Token![;],
+}
+
+impl Parse for DeclarationList {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let kind = input.parse()?;
+        let signed_width = if input.peek(token::Bracket) || input.peek(kw::signed) {
+            Some(input.parse()?)
+        } else {
+            None
+        };
+        let items = Punctuated::parse_separated_nonempty(input)?;
+        let _term = input.parse()?;
+        Ok(DeclarationList {
+            kind,
+            signed_width,
+            items,
+            _term,
+        })
+    }
+}
+
+impl ToTokens for DeclarationList {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let kind = &self.kind;
+        let signed_width = if let Some(width) = self.signed_width.as_ref() {
+            quote! {#width}
+        } else {
+            quote! {vlog::unsigned(0..=0)}
+        };
+        let items = iter_tokens(self.items.iter());
+        tokens.extend(quote! {
+            vlog::declaration_list(#kind, #signed_width, #items)
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
 struct Declaration {
     kind: HDLKind,
-    signed_width: SignedWidth,
+    signed_width: Option<SignedWidth>,
     name: Ident,
     _term: Option<Token![;]>,
+}
+
+impl Parse for Declaration {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let kind = input.parse()?;
+        let signed_width = if input.peek(token::Bracket) || input.peek(kw::signed) {
+            Some(input.parse()?)
+        } else {
+            None
+        };
+        let name = input.parse()?;
+        let _term = input.parse()?;
+        Ok(Declaration {
+            kind,
+            signed_width,
+            name,
+            _term,
+        })
+    }
 }
 
 impl ToTokens for Declaration {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let kind = &self.kind;
-        let signed_width = &self.signed_width;
+        let signed_width = if let Some(width) = self.signed_width.as_ref() {
+            quote! {#width}
+        } else {
+            quote! {vlog::unsigned(0..=0)}
+        };
         let name = &self.name;
         tokens.extend(quote! {
             vlog::declaration(#kind, #signed_width, stringify!(#name))
@@ -173,7 +268,6 @@ enum StmtKind {
     NonblockAssign(NonblockAssign),
     Assign(Assign),
     Instance(Instance),
-    Splice(Splice),
     DynamicSplice(DynamicSplice),
     Delay(Delay),
     ConcatAssign(ConcatAssign),
@@ -255,7 +349,7 @@ impl ToTokens for StmtKind {
                 let target = &inner.assign.target;
                 let rhs = &inner.assign.rhs;
                 quote! {
-                    vlog::continuous_assign_stmt(stringify!(#target), #rhs)
+                    vlog::continuous_assign_stmt(#target, #rhs)
                 }
             }
             StmtKind::FunctionCall(inner) => {
@@ -274,14 +368,14 @@ impl ToTokens for StmtKind {
                 let target = &inner.target;
                 let rhs = &inner.rhs;
                 quote! {
-                    vlog::nonblock_assign_stmt(stringify!(#target), #rhs)
+                    vlog::nonblock_assign_stmt(#target, #rhs)
                 }
             }
             StmtKind::Assign(inner) => {
                 let target = &inner.target;
                 let rhs = &inner.rhs;
                 quote! {
-                    vlog::assign_stmt(stringify!(#target), #rhs)
+                    vlog::assign_stmt(#target, #rhs)
                 }
             }
             StmtKind::Instance(inner) => {
@@ -292,22 +386,14 @@ impl ToTokens for StmtKind {
                     vlog::instance_stmt(stringify!(#module), stringify!(#instance), #connections)
                 }
             }
-            StmtKind::Splice(inner) => {
-                let target = &inner.lhs.target;
-                let msb = &inner.lhs.address.msb;
-                let lsb = option_tokens(inner.lhs.address.lsb.as_ref().map(|x| &x.1));
-                let rhs = &inner.rhs;
-                quote! {
-                    vlog::splice_stmt(stringify!(#target), #msb, #lsb, #rhs)
-                }
-            }
             StmtKind::DynamicSplice(inner) => {
                 let target = &inner.lhs.target;
                 let base = &inner.lhs.address.base;
+                let op = &inner.lhs.address.op;
                 let width = &inner.lhs.address.width;
                 let rhs = &inner.rhs;
                 quote! {
-                    vlog::dynamic_splice_stmt(stringify!(#target), #base, #width, #rhs)
+                    vlog::dynamic_splice_stmt(stringify!(#target), #base, #op, #width, #rhs)
                 }
             }
             StmtKind::Delay(inner) => {
@@ -345,18 +431,14 @@ impl Parse for StmtKind {
             input.parse().map(StmtKind::ContinuousAssign)
         } else if lookahead.peek(Token![$]) {
             input.parse().map(StmtKind::FunctionCall)
-        } else if lookahead.peek(Ident) && input.peek2(LeftArrow) {
+        } else if input.fork().parse::<NonblockAssign>().is_ok() {
             input.parse().map(StmtKind::NonblockAssign)
-        } else if lookahead.peek(Ident) && input.peek2(Token![=]) {
+        } else if input.fork().parse::<Assign>().is_ok() {
             input.parse().map(StmtKind::Assign)
         } else if lookahead.peek(Ident) && input.peek2(Ident) && input.peek3(token::Paren) {
             input.parse().map(StmtKind::Instance)
         } else if lookahead.peek(Ident) && input.peek2(Bracket) {
-            if input.fork().parse::<Splice>().is_ok() {
-                input.parse().map(StmtKind::Splice)
-            } else {
-                input.parse().map(StmtKind::DynamicSplice)
-            }
+            input.parse().map(StmtKind::DynamicSplice)
         } else if lookahead.peek(token::Brace) {
             input.parse().map(StmtKind::ConcatAssign)
         } else if lookahead.peek(token::Pound) {
@@ -381,7 +463,7 @@ impl ToTokens for Stmt {
 
 enum Item {
     Statement(Stmt),
-    Declaration(Declaration),
+    Declaration(DeclarationList),
     FunctionDef(FunctionDef),
     Initial(Initial),
 }
@@ -461,6 +543,7 @@ impl Parse for FunctionCall {
 }
 
 enum CaseItem {
+    Ident(Pair<Ident, Token![:]>),
     Literal(Pair<LitVerilog, Token![:]>),
     Wild(Pair<kw::default, Option<Token![:]>>),
 }
@@ -468,6 +551,12 @@ enum CaseItem {
 impl ToTokens for CaseItem {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         match self {
+            CaseItem::Ident(ident) => {
+                let ident = &ident.0;
+                tokens.extend(quote! {
+                    vlog::case_item_ident(stringify!(#ident))
+                });
+            }
             CaseItem::Literal(pair) => {
                 let lit = &pair.0;
                 tokens.extend(quote! {
@@ -487,6 +576,8 @@ impl Parse for CaseItem {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.peek(kw::default) {
             input.parse().map(CaseItem::Wild)
+        } else if input.peek(Ident) {
+            input.parse().map(CaseItem::Ident)
         } else {
             input.parse().map(CaseItem::Literal)
         }
@@ -622,13 +713,6 @@ struct DynamicSplice {
     rhs: Box<Expr>,
 }
 
-#[derive(syn_derive::Parse)]
-struct Splice {
-    lhs: Box<ExprIndex>,
-    _eq: Token![=],
-    rhs: Box<Expr>,
-}
-
 #[derive(Debug, Clone, syn_derive::Parse)]
 enum Sensitivity {
     #[parse(peek = kw::posedge)]
@@ -697,12 +781,48 @@ struct Always {
     body: Box<Stmt>,
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
+#[derive(syn_derive::Parse)]
 struct LocalParam {
     _localparam: kw::localparam,
     target: Ident,
     _eq: Token![=],
-    rhs: LitVerilog,
+    rhs: ConstExpr,
+}
+
+enum ConstExpr {
+    LitVerilog(LitVerilog),
+    LitInt(LitInt),
+    LitStr(LitStr),
+}
+
+impl ToTokens for ConstExpr {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            ConstExpr::LitVerilog(lit) => {
+                tokens.extend(quote! { vlog::const_verilog(#lit) });
+            }
+            ConstExpr::LitInt(lit) => {
+                tokens.extend(quote! { vlog::const_int(#lit) });
+            }
+            ConstExpr::LitStr(lit) => {
+                tokens.extend(quote! { vlog::const_str(#lit) });
+            }
+        }
+    }
+}
+
+impl Parse for ConstExpr {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.fork().parse::<LitVerilog>().is_ok() {
+            Ok(ConstExpr::LitVerilog(input.parse()?))
+        } else if input.fork().parse::<LitInt>().is_ok() {
+            Ok(ConstExpr::LitInt(input.parse()?))
+        } else if input.fork().parse::<LitStr>().is_ok() {
+            Ok(ConstExpr::LitStr(input.parse()?))
+        } else {
+            Err(input.error("expected constant expression"))
+        }
+    }
 }
 
 struct ElseBranch {
@@ -764,9 +884,39 @@ impl Parse for If {
     }
 }
 
+enum AssignTarget {
+    Ident(Ident),
+    Index(ExprIndex),
+}
+
+impl ToTokens for AssignTarget {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            AssignTarget::Ident(ident) => {
+                tokens.extend(quote! {vlog::assign_target_ident(stringify!(#ident))});
+            }
+            AssignTarget::Index(expr) => {
+                tokens.extend(quote! {vlog::assign_target_index(#expr)});
+            }
+        }
+    }
+}
+
+impl Parse for AssignTarget {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.peek(Ident) && input.peek2(token::Bracket) {
+            Ok(AssignTarget::Index(input.parse()?))
+        } else if input.peek(Ident) {
+            Ok(AssignTarget::Ident(input.parse()?))
+        } else {
+            Err(input.error("expected assignment target"))
+        }
+    }
+}
+
 #[derive(syn_derive::Parse)]
 struct NonblockAssign {
-    target: Ident,
+    target: AssignTarget,
     _left_arrow: LeftArrow,
     rhs: Box<Expr>,
 }
@@ -779,7 +929,7 @@ struct ContinuousAssign {
 
 #[derive(syn_derive::Parse)]
 struct Assign {
-    target: Ident,
+    target: AssignTarget,
     _eq: Token![=],
     rhs: Box<Expr>,
 }
@@ -860,8 +1010,9 @@ impl ToTokens for Expr {
             Expr::DynIndex(expr) => {
                 let target = &expr.target;
                 let base = &expr.address.base;
+                let op = &expr.address.op;
                 let width = &expr.address.width;
-                quote! {vlog::dyn_index_expr(stringify!(#target), #base, #width)}
+                quote! {vlog::dyn_index_expr(stringify!(#target), #base, #op, #width)}
             }
             Expr::Function(expr) => {
                 let name = &expr.name;
@@ -923,6 +1074,7 @@ fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
         if lookahead.peek(Token![:])
             || lookahead.peek(Token![,])
             || lookahead.peek(PlusColon)
+            || lookahead.peek(MinusColon)
             || lookahead.peek(Token![;])
         {
             break;
@@ -1001,10 +1153,38 @@ struct ExprFunction {
     args: ParenCommaList<Expr>,
 }
 
+enum DynOp {
+    PlusColon,
+    MinusColon,
+}
+
+impl Parse for DynOp {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.peek(PlusColon) {
+            let _: PlusColon = input.parse()?;
+            Ok(DynOp::PlusColon)
+        } else if input.peek(MinusColon) {
+            let _: MinusColon = input.parse()?;
+            Ok(DynOp::MinusColon)
+        } else {
+            Err(input.error("expected dynamic operator"))
+        }
+    }
+}
+
+impl ToTokens for DynOp {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.extend(match self {
+            DynOp::PlusColon => quote! {vlog::dyn_plus_colon()},
+            DynOp::MinusColon => quote! {vlog::dyn_minus_colon()},
+        })
+    }
+}
+
 #[derive(syn_derive::Parse)]
 struct ExprDynIndexInner {
     base: Box<Expr>,
-    _op: PlusColon,
+    op: DynOp,
     width: Box<Expr>,
 }
 
@@ -1045,6 +1225,15 @@ struct ExprIndex {
     _bracket: Bracket,
     #[syn(in = _bracket)]
     address: ExprIndexAddress,
+}
+
+impl ToTokens for ExprIndex {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let target = &self.target;
+        let msb = &self.address.msb;
+        let lsb = option_tokens(self.address.lsb.as_ref().map(|x| &x.1));
+        tokens.extend(quote! {vlog::index_expr(stringify!(#target), #msb, #lsb)});
+    }
 }
 
 #[derive(syn_derive::Parse)]

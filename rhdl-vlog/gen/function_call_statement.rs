@@ -32,7 +32,7 @@ fn main() {
                     ret
                 },
                 {
-                    let mut ret = Vec::with_capacity(2usize);
+                    let mut ret = Vec::with_capacity(3usize);
                     ret.push(
                         vlog::stmt_item(
                             vlog::function_call_stmt(
@@ -49,6 +49,18 @@ fn main() {
                     ret.push(
                         vlog::stmt_item(
                             vlog::function_call_stmt(stringify!(_dollar_finish), vec![]),
+                        ),
+                    );
+                    ret.push(
+                        vlog::stmt_item(
+                            vlog::function_call_stmt(
+                                stringify!(_dollar_display),
+                                {
+                                    let mut ret = Vec::with_capacity(1usize);
+                                    ret.push(vlog::string_expr("Hello World"));
+                                    ret
+                                },
+                            ),
                         ),
                     );
                     ret

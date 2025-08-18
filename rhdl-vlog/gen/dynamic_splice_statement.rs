@@ -38,6 +38,7 @@ fn main() {
                             vlog::dynamic_splice_stmt(
                                 stringify!(a),
                                 vlog::ident_expr(stringify!(b)),
+                                vlog::dyn_plus_colon(),
                                 vlog::literal_expr(1),
                                 vlog::literal_expr(1),
                             ),
