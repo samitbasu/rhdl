@@ -298,7 +298,7 @@ impl From<&StmtKind> for ast::Stmt {
             StmtKind::DynamicSplice(dynamic_splice) => {
                 ast::Stmt::DynamicSplice(dynamic_splice.into())
             }
-            StmtKind::Delay(delay) => ast::Stmt::Delay(delay.into()),
+            StmtKind::Delay(delay) => ast::Stmt::Delay(delay.length.base10_parse::<u32>().unwrap()),
             StmtKind::ConcatAssign(concat_assign) => ast::Stmt::ConcatAssign(concat_assign.into()),
             StmtKind::Noop => panic!("Noop should not be converted to ast::Stmt"),
         }
@@ -587,7 +587,7 @@ impl From<&CaseItem> for ast::CaseItem {
     fn from(value: &CaseItem) -> Self {
         match value {
             CaseItem::Ident(pair) => ast::CaseItem::Ident(pair.0.to_string()),
-            CaseItem::Literal(pair) => ast::CaseItem::Literal(pair.0.into()),
+            CaseItem::Literal(pair) => ast::CaseItem::Literal((&pair.0).into()),
             CaseItem::Wild(_pair) => ast::CaseItem::Wild,
         }
     }
@@ -637,7 +637,7 @@ struct CaseLine {
 
 impl From<&CaseLine> for ast::CaseLine {
     fn from(value: &CaseLine) -> Self {
-        let item = value.item.into();
+        let item = (&value.item).into();
         let stmt = Box::new(value.stmt.as_ref().into());
         ast::CaseLine { item, stmt }
     }
@@ -994,6 +994,15 @@ enum AssignTarget {
     Index(ExprIndex),
 }
 
+impl From<&AssignTarget> for ast::AssignTarget {
+    fn from(value: &AssignTarget) -> Self {
+        match value {
+            AssignTarget::Ident(ident) => ast::AssignTarget::Ident(ident.to_string()),
+            AssignTarget::Index(expr) => ast::AssignTarget::Index(ast::Expr::Index(expr.into())),
+        }
+    }
+}
+
 impl ToTokens for AssignTarget {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         match self {
@@ -1032,6 +1041,12 @@ struct ContinuousAssign {
     assign: Assign,
 }
 
+impl From<&ContinuousAssign> for ast::Assign {
+    fn from(value: &ContinuousAssign) -> Self {
+        (&value.assign).into()
+    }
+}
+
 #[derive(syn_derive::Parse)]
 struct Assign {
     target: AssignTarget,
@@ -1039,11 +1054,27 @@ struct Assign {
     rhs: Box<Expr>,
 }
 
+impl From<&Assign> for ast::Assign {
+    fn from(value: &Assign) -> Self {
+        let target = (&value.target).into();
+        let rhs = Box::new(value.rhs.as_ref().into());
+        ast::Assign { target, rhs }
+    }
+}
+
 #[derive(syn_derive::Parse)]
 struct ConcatAssign {
     target: ExprConcat,
     _eq: Token![=],
     rhs: Box<Expr>,
+}
+
+impl From<&ConcatAssign> for ast::ConcatAssign {
+    fn from(value: &ConcatAssign) -> Self {
+        let target = value.target.elements.iter().map(|x| x.into()).collect();
+        let rhs = Box::new(value.rhs.as_ref().into());
+        ast::ConcatAssign { target, rhs }
+    }
 }
 
 enum Expr {
