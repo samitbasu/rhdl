@@ -6,6 +6,8 @@ use syn::{
     token::{self, Brace, Bracket, Paren},
 };
 
+use crate::ast;
+
 #[cfg(test)]
 mod tests;
 
@@ -276,6 +278,33 @@ enum StmtKind {
     Noop,
 }
 
+impl From<&StmtKind> for ast::Stmt {
+    fn from(value: &StmtKind) -> Self {
+        match value {
+            StmtKind::If(if_stmt) => ast::Stmt::If(if_stmt.into()),
+            StmtKind::Always(always) => ast::Stmt::Always(always.into()),
+            StmtKind::Case(case) => ast::Stmt::Case(case.into()),
+            StmtKind::LocalParam(local_param) => ast::Stmt::LocalParam(local_param.into()),
+            StmtKind::Block(block) => ast::Stmt::Block(block.into()),
+            StmtKind::ContinuousAssign(continuous_assign) => {
+                ast::Stmt::ContinuousAssign(continuous_assign.into())
+            }
+            StmtKind::FunctionCall(function_call) => ast::Stmt::FunctionCall(function_call.into()),
+            StmtKind::NonblockAssign(nonblock_assign) => {
+                ast::Stmt::NonblockAssign(nonblock_assign.into())
+            }
+            StmtKind::Assign(assign) => ast::Stmt::Assign(assign.into()),
+            StmtKind::Instance(instance) => ast::Stmt::Instance(instance.into()),
+            StmtKind::DynamicSplice(dynamic_splice) => {
+                ast::Stmt::DynamicSplice(dynamic_splice.into())
+            }
+            StmtKind::Delay(delay) => ast::Stmt::Delay(delay.into()),
+            StmtKind::ConcatAssign(concat_assign) => ast::Stmt::ConcatAssign(concat_assign.into()),
+            StmtKind::Noop => panic!("Noop should not be converted to ast::Stmt"),
+        }
+    }
+}
+
 fn option_tokens<T: ToTokens>(t: Option<T>) -> proc_macro2::TokenStream {
     match t {
         Some(inner) => {
@@ -455,6 +484,12 @@ struct Stmt {
     _terminator: Option<Token![;]>,
 }
 
+impl From<&Stmt> for ast::Stmt {
+    fn from(value: &Stmt) -> Self {
+        (&value.kind).into()
+    }
+}
+
 impl ToTokens for Stmt {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         self.kind.to_tokens(tokens);
@@ -548,6 +583,16 @@ enum CaseItem {
     Wild(Pair<kw::default, Option<Token![:]>>),
 }
 
+impl From<&CaseItem> for ast::CaseItem {
+    fn from(value: &CaseItem) -> Self {
+        match value {
+            CaseItem::Ident(pair) => ast::CaseItem::Ident(pair.0.to_string()),
+            CaseItem::Literal(pair) => ast::CaseItem::Literal(pair.0.into()),
+            CaseItem::Wild(_pair) => ast::CaseItem::Wild,
+        }
+    }
+}
+
 impl ToTokens for CaseItem {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         match self {
@@ -588,6 +633,14 @@ impl Parse for CaseItem {
 struct CaseLine {
     item: CaseItem,
     stmt: Box<Stmt>,
+}
+
+impl From<&CaseLine> for ast::CaseLine {
+    fn from(value: &CaseLine) -> Self {
+        let item = value.item.into();
+        let stmt = Box::new(value.stmt.as_ref().into());
+        ast::CaseLine { item, stmt }
+    }
 }
 
 impl ToTokens for CaseLine {
@@ -631,6 +684,17 @@ struct Case {
     discriminant: Box<Expr>,
     lines: Vec<CaseLine>,
     _endcase: kw::endcase,
+}
+
+impl From<&Case> for ast::Case {
+    fn from(value: &Case) -> Self {
+        let discriminant = Box::new(value.discriminant.as_ref().into());
+        let lines = value.lines.iter().map(|x| x.into()).collect::<Vec<_>>();
+        ast::Case {
+            discriminant,
+            lines,
+        }
+    }
 }
 
 impl Parse for Case {
@@ -725,6 +789,17 @@ enum Sensitivity {
     Star(Token![*]),
 }
 
+impl From<&Sensitivity> for ast::Sensitivity {
+    fn from(value: &Sensitivity) -> Self {
+        match value {
+            Sensitivity::PosEdge(sen) => ast::Sensitivity::PosEdge(sen.ident.to_string()),
+            Sensitivity::NegEdge(sen) => ast::Sensitivity::NegEdge(sen.ident.to_string()),
+            Sensitivity::Signal(ident) => ast::Sensitivity::Signal(ident.to_string()),
+            Sensitivity::Star(_) => ast::Sensitivity::Star,
+        }
+    }
+}
+
 impl ToTokens for Sensitivity {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(match self {
@@ -781,6 +856,20 @@ struct Always {
     body: Box<Stmt>,
 }
 
+impl From<&Always> for ast::Always {
+    fn from(value: &Always) -> Self {
+        let sensitivity = value
+            .sensitivity
+            .elements
+            .inner
+            .iter()
+            .map(|x| x.into())
+            .collect();
+        let body = Box::new(value.body.as_ref().into());
+        ast::Always { sensitivity, body }
+    }
+}
+
 #[derive(syn_derive::Parse)]
 struct LocalParam {
     _localparam: kw::localparam,
@@ -835,6 +924,22 @@ struct If {
     condition: Parenthesized<Box<Expr>>,
     true_stmt: Box<Stmt>,
     else_branch: Option<ElseBranch>,
+}
+
+impl From<&If> for ast::If {
+    fn from(value: &If) -> Self {
+        let condition = Box::new(value.condition.inner.as_ref().into());
+        let true_stmt = Box::new(value.true_stmt.as_ref().into());
+        let else_branch = value
+            .else_branch
+            .as_ref()
+            .map(|x| Box::new(x.stmt.as_ref().into()));
+        ast::If {
+            condition,
+            true_stmt,
+            else_branch,
+        }
+    }
 }
 
 impl Parse for If {
@@ -955,6 +1060,28 @@ enum Expr {
     Index(ExprIndex),
     DynIndex(ExprDynIndex),
     Function(ExprFunction),
+}
+
+impl From<&Expr> for ast::Expr {
+    fn from(value: &Expr) -> Self {
+        match value {
+            Expr::Binary(expr) => ast::Expr::Binary(expr.into()),
+            Expr::Unary(expr) => ast::Expr::Unary(expr.into()),
+            Expr::Constant(lit) => ast::Expr::Constant(lit.into()),
+            Expr::Literal(lit) => ast::Expr::Literal(lit.base10_parse::<i32>().unwrap()),
+            Expr::String(lit) => ast::Expr::String(lit.value()),
+            Expr::Ident(ident) => ast::Expr::Ident(ident.to_string()),
+            Expr::Paren(expr) => ast::Expr::Paren(Box::new(expr.as_ref().into())),
+            Expr::Ternary(expr) => ast::Expr::Ternary(expr.into()),
+            Expr::Concat(expr) => {
+                ast::Expr::Concat(expr.elements.iter().map(|x| x.into()).collect())
+            }
+            Expr::Replica(expr) => ast::Expr::Replica(expr.into()),
+            Expr::Index(expr) => ast::Expr::Index(expr.into()),
+            Expr::DynIndex(expr) => ast::Expr::DynIndex(expr.into()),
+            Expr::Function(expr) => ast::Expr::Function(expr.into()),
+        }
+    }
 }
 
 impl ToTokens for Expr {
@@ -1112,19 +1239,38 @@ fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
     Ok(lhs)
 }
 
-struct ExprBinary {
+pub(crate) struct ExprBinary {
     lhs: Box<Expr>,
     op: BinaryOp,
     rhs: Box<Expr>,
 }
 
-struct ExprUnary {
+impl From<&ExprBinary> for ast::ExprBinary {
+    fn from(value: &ExprBinary) -> Self {
+        ast::ExprBinary {
+            lhs: Box::new(value.lhs.as_ref().into()),
+            op: value.op.into(),
+            rhs: Box::new(value.rhs.as_ref().into()),
+        }
+    }
+}
+
+pub(crate) struct ExprUnary {
     op: UnaryOp,
     arg: Box<Expr>,
 }
 
+impl From<&ExprUnary> for ast::ExprUnary {
+    fn from(value: &ExprUnary) -> Self {
+        ast::ExprUnary {
+            op: value.op.into(),
+            arg: Box::new(value.arg.as_ref().into()),
+        }
+    }
+}
+
 #[derive(syn_derive::Parse)]
-struct ExprConcat {
+pub(crate) struct ExprConcat {
     #[syn(braced)]
     _brace: Brace,
     #[syn(in = _brace)]
@@ -1133,29 +1279,63 @@ struct ExprConcat {
 }
 
 #[derive(syn_derive::Parse)]
-struct ExprReplicaInner {
+pub(crate) struct ExprReplicaInner {
     count: LitInt,
     concatenation: ExprConcat,
 }
 
 #[derive(syn_derive::Parse)]
-struct ExprReplica {
+pub(crate) struct ExprReplica {
     #[syn(braced)]
     _brace: Brace,
     #[syn(in = _brace)]
     inner: ExprReplicaInner,
 }
 
+impl From<&ExprReplica> for ast::ExprReplica {
+    fn from(value: &ExprReplica) -> Self {
+        ast::ExprReplica {
+            count: value.inner.count.base10_parse::<usize>().unwrap(),
+            concatenation: value
+                .inner
+                .concatenation
+                .elements
+                .iter()
+                .map(|x| x.into())
+                .collect(),
+        }
+    }
+}
+
 #[derive(syn_derive::Parse)]
-struct ExprFunction {
+pub(crate) struct ExprFunction {
     _dollar: Option<Token![$]>,
     name: Ident,
     args: ParenCommaList<Expr>,
 }
 
+impl From<&ExprFunction> for ast::ExprFunction {
+    fn from(value: &ExprFunction) -> Self {
+        ast::ExprFunction {
+            name: value.name.to_string(),
+            args: value.args.inner.iter().map(|x| x.into()).collect(),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 enum DynOp {
     PlusColon,
     MinusColon,
+}
+
+impl From<DynOp> for ast::DynOp {
+    fn from(value: DynOp) -> Self {
+        match value {
+            DynOp::PlusColon => ast::DynOp::PlusColon,
+            DynOp::MinusColon => ast::DynOp::MinusColon,
+        }
+    }
 }
 
 impl Parse for DynOp {
@@ -1197,6 +1377,17 @@ struct ExprDynIndex {
     address: ExprDynIndexInner,
 }
 
+impl From<&ExprDynIndex> for ast::ExprDynIndex {
+    fn from(value: &ExprDynIndex) -> Self {
+        ast::ExprDynIndex {
+            target: value.target.to_string(),
+            base: Box::new(value.address.base.as_ref().into()),
+            op: value.address.op.into(),
+            width: Box::new(value.address.width.as_ref().into()),
+        }
+    }
+}
+
 struct ExprIndexAddress {
     msb: Box<Expr>,
     lsb: Option<Pair<Token![:], Box<Expr>>>,
@@ -1227,6 +1418,20 @@ struct ExprIndex {
     address: ExprIndexAddress,
 }
 
+impl From<&ExprIndex> for ast::ExprIndex {
+    fn from(value: &ExprIndex) -> Self {
+        ast::ExprIndex {
+            target: value.target.to_string(),
+            msb: Box::new(value.address.msb.as_ref().into()),
+            lsb: value
+                .address
+                .lsb
+                .as_ref()
+                .map(|x| Box::new(x.1.as_ref().into())),
+        }
+    }
+}
+
 impl ToTokens for ExprIndex {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let target = &self.target;
@@ -1245,7 +1450,17 @@ struct ExprTernary {
     rhs: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
+impl From<&ExprTernary> for ast::ExprTernary {
+    fn from(value: &ExprTernary) -> Self {
+        ast::ExprTernary {
+            lhs: Box::new(value.lhs.as_ref().into()),
+            mhs: Box::new(value.mhs.as_ref().into()),
+            rhs: Box::new(value.rhs.as_ref().into()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 enum UnaryOp {
     Plus,
     Minus,
@@ -1254,6 +1469,20 @@ enum UnaryOp {
     And,
     Or,
     Xor,
+}
+
+impl From<UnaryOp> for ast::UnaryOp {
+    fn from(value: UnaryOp) -> Self {
+        match value {
+            UnaryOp::Plus => ast::UnaryOp::Plus,
+            UnaryOp::Minus => ast::UnaryOp::Minus,
+            UnaryOp::Bang => ast::UnaryOp::Bang,
+            UnaryOp::Not => ast::UnaryOp::Not,
+            UnaryOp::And => ast::UnaryOp::And,
+            UnaryOp::Or => ast::UnaryOp::Or,
+            UnaryOp::Xor => ast::UnaryOp::Xor,
+        }
+    }
 }
 
 impl Parse for UnaryOp {
@@ -1305,7 +1534,7 @@ impl UnaryOp {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 enum BinaryOp {
     Shl,
     SignedRightShift,
@@ -1327,6 +1556,33 @@ enum BinaryOp {
     Xor,
     Mod,
     Mul,
+}
+
+impl From<BinaryOp> for ast::BinaryOp {
+    fn from(value: BinaryOp) -> Self {
+        match value {
+            BinaryOp::Shl => ast::BinaryOp::Shl,
+            BinaryOp::SignedRightShift => ast::BinaryOp::SignedRightShift,
+            BinaryOp::Shr => ast::BinaryOp::Shr,
+            BinaryOp::ShortAnd => ast::BinaryOp::ShortAnd,
+            BinaryOp::ShortOr => ast::BinaryOp::ShortOr,
+            BinaryOp::CaseEq => ast::BinaryOp::CaseEq,
+            BinaryOp::CaseNe => ast::BinaryOp::CaseNe,
+            BinaryOp::Ne => ast::BinaryOp::Ne,
+            BinaryOp::Eq => ast::BinaryOp::Eq,
+            BinaryOp::Ge => ast::BinaryOp::Ge,
+            BinaryOp::Le => ast::BinaryOp::Le,
+            BinaryOp::Gt => ast::BinaryOp::Gt,
+            BinaryOp::Lt => ast::BinaryOp::Lt,
+            BinaryOp::Plus => ast::BinaryOp::Plus,
+            BinaryOp::Minus => ast::BinaryOp::Minus,
+            BinaryOp::And => ast::BinaryOp::And,
+            BinaryOp::Or => ast::BinaryOp::Or,
+            BinaryOp::Xor => ast::BinaryOp::Xor,
+            BinaryOp::Mod => ast::BinaryOp::Mod,
+            BinaryOp::Mul => ast::BinaryOp::Mul,
+        }
+    }
 }
 
 impl Parse for BinaryOp {
@@ -1444,9 +1700,18 @@ impl BinaryOp {
 const TERNARY_BINDING: (u8, u8) = (2, 1);
 
 #[derive(Debug, Clone, syn_derive::Parse)]
-struct LitVerilog {
+pub(crate) struct LitVerilog {
     width: LitInt,
     lifetime: Lifetime,
+}
+
+impl From<&LitVerilog> for ast::LitVerilog {
+    fn from(value: &LitVerilog) -> Self {
+        ast::LitVerilog {
+            width: value.width.base10_parse::<u32>().unwrap(),
+            value: value.lifetime.ident.to_string(),
+        }
+    }
 }
 
 impl ToTokens for LitVerilog {
