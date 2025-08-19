@@ -5,12 +5,32 @@ pub fn module_list(modules: Vec<ModuleDef>) -> ModuleList {
     ModuleList(modules)
 }
 
+impl Pretty for ModuleList {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        for module in &self.0 {
+            module.pretty_print(formatter);
+            formatter.newline();
+        }
+    }
+}
+
 use std::ops::RangeInclusive;
+
+use crate::formatter::Pretty;
 
 #[derive(Clone, Debug)]
 pub enum HDLKind {
     Wire,
     Reg,
+}
+
+impl Pretty for HDLKind {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            HDLKind::Wire => formatter.write("wire"),
+            HDLKind::Reg => formatter.write("reg"),
+        }
+    }
 }
 
 pub fn wire() -> HDLKind {
@@ -26,6 +46,16 @@ pub enum Direction {
     Input,
     Output,
     Inout,
+}
+
+impl Pretty for Direction {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            Direction::Input => formatter.write("input"),
+            Direction::Output => formatter.write("output"),
+            Direction::Inout => formatter.write("inout"),
+        }
+    }
 }
 
 pub fn input() -> Direction {
@@ -54,11 +84,41 @@ pub fn unsigned(range: RangeInclusive<u32>) -> SignedWidth {
     SignedWidth::Unsigned(range)
 }
 
+impl Pretty for SignedWidth {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            SignedWidth::Signed(range) => {
+                formatter.write("signed ");
+                if range.eq(&(0..=0)) {
+                    return;
+                }
+                formatter.write(&format!("[{}:{}]", range.start(), range.end()));
+            }
+            SignedWidth::Unsigned(range) => {
+                if range.eq(&(0..=0)) {
+                    return;
+                }
+                formatter.write(&format!("[{}:{}]", range.start(), range.end()));
+            }
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Declaration {
     pub kind: HDLKind,
     pub signed_width: SignedWidth,
     pub name: String,
+}
+
+impl Pretty for Declaration {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        self.kind.pretty_print(formatter);
+        formatter.write(" ");
+        self.signed_width.pretty_print(formatter);
+        formatter.write(" ");
+        formatter.write(&self.name);
+    }
 }
 
 pub fn declaration(kind: HDLKind, signed_width: SignedWidth, name: &str) -> Declaration {
@@ -105,6 +165,14 @@ pub fn declaration_list(
 pub struct Port {
     pub direction: Direction,
     pub decl: Declaration,
+}
+
+impl Pretty for Port {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        self.direction.pretty_print(formatter);
+        formatter.write(" ");
+        self.decl.pretty_print(formatter);
+    }
 }
 
 pub fn port(direction: Direction, decl: Declaration) -> Port {
@@ -615,6 +683,21 @@ pub fn module_def(name: &str, args: Vec<Port>, items: Vec<Item>) -> ModuleDef {
         name: name.to_string(),
         args,
         items,
+    }
+}
+
+impl Pretty for ModuleDef {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&format!("module {}", self.name));
+        formatter.parenthesized(|formatter| {
+            formatter.comma_separated(&self.args);
+        });
+        formatter.newline();
+        formatter.scoped(|formatter| {
+            //formatter.semi_line_separated(&self.items);
+        });
+        formatter.write("endmodule");
+        formatter.newline();
     }
 }
 
