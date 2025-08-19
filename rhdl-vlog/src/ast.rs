@@ -16,7 +16,7 @@ impl Pretty for ModuleList {
 
 use std::ops::RangeInclusive;
 
-use crate::formatter::Pretty;
+use crate::{cst, formatter::Pretty};
 
 #[derive(Clone, Debug)]
 pub enum HDLKind {
