@@ -1459,7 +1459,7 @@ impl ToTokens for LitVerilog {
     }
 }
 
-struct ModuleList {
+pub struct ModuleList {
     modules: Vec<ModuleDef>,
 }
 
