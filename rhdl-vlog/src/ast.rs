@@ -16,9 +16,9 @@ impl Pretty for ModuleList {
 
 use std::ops::RangeInclusive;
 
-use crate::{cst, formatter::Pretty};
+use crate::formatter::Pretty;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub enum HDLKind {
     Wire,
     Reg,
@@ -41,7 +41,7 @@ pub fn reg() -> HDLKind {
     HDLKind::Reg
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub enum Direction {
     Input,
     Output,
@@ -135,6 +135,17 @@ pub struct DeclKind {
     pub width: Option<SignedWidth>,
 }
 
+impl Pretty for DeclKind {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&self.name);
+        if let Some(width) = &self.width {
+            formatter.bracketed(|f| {
+                width.pretty_print(f);
+            });
+        }
+    }
+}
+
 pub fn decl_kind(name: &str, width: Option<SignedWidth>) -> DeclKind {
     DeclKind {
         name: name.to_string(),
@@ -147,6 +158,16 @@ pub struct DeclarationList {
     pub kind: HDLKind,
     pub signed_width: SignedWidth,
     pub items: Vec<DeclKind>,
+}
+
+impl Pretty for DeclarationList {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        self.kind.pretty_print(formatter);
+        formatter.write(" ");
+        self.signed_width.pretty_print(formatter);
+        formatter.write(" ");
+        formatter.comma_separated(&self.items);
+    }
 }
 
 pub fn declaration_list(
@@ -185,6 +206,15 @@ pub struct Connection {
     pub local: Box<Expr>,
 }
 
+impl Pretty for Connection {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&format!(".{}", self.target));
+        formatter.parenthesized(|f| {
+            self.local.pretty_print(f);
+        });
+    }
+}
+
 pub fn connection(target: &str, local: Expr) -> Connection {
     Connection {
         target: target.to_string(),
@@ -198,6 +228,17 @@ pub enum Sensitivity {
     NegEdge(String),
     Signal(String),
     Star,
+}
+
+impl Pretty for Sensitivity {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            Sensitivity::PosEdge(signal) => formatter.write(&format!("posedge {}", signal)),
+            Sensitivity::NegEdge(signal) => formatter.write(&format!("negedge {}", signal)),
+            Sensitivity::Signal(signal) => formatter.write(signal),
+            Sensitivity::Star => formatter.write("*"),
+        }
+    }
 }
 
 pub fn pos_edge(signal: &str) -> Sensitivity {
@@ -238,6 +279,33 @@ pub enum BinaryOp {
     Xor,
     Mod,
     Mul,
+}
+
+impl Pretty for BinaryOp {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            BinaryOp::Shl => formatter.write("<<"),
+            BinaryOp::SignedRightShift => formatter.write(">>>"),
+            BinaryOp::Shr => formatter.write(">>"),
+            BinaryOp::ShortAnd => formatter.write("&&"),
+            BinaryOp::ShortOr => formatter.write("||"),
+            BinaryOp::CaseEq => formatter.write("==="),
+            BinaryOp::CaseNe => formatter.write("!=="),
+            BinaryOp::Ne => formatter.write("!="),
+            BinaryOp::Eq => formatter.write("=="),
+            BinaryOp::Ge => formatter.write(">="),
+            BinaryOp::Le => formatter.write("<="),
+            BinaryOp::Gt => formatter.write(">"),
+            BinaryOp::Lt => formatter.write("<"),
+            BinaryOp::Plus => formatter.write("+"),
+            BinaryOp::Minus => formatter.write("-"),
+            BinaryOp::And => formatter.write("&"),
+            BinaryOp::Or => formatter.write("|"),
+            BinaryOp::Xor => formatter.write("^"),
+            BinaryOp::Mod => formatter.write("%"),
+            BinaryOp::Mul => formatter.write("*"),
+        }
+    }
 }
 
 pub fn binary_shl() -> BinaryOp {
@@ -331,6 +399,20 @@ pub enum UnaryOp {
     Xor,
 }
 
+impl Pretty for UnaryOp {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            UnaryOp::Plus => formatter.write("+"),
+            UnaryOp::Minus => formatter.write("-"),
+            UnaryOp::Bang => formatter.write("!"),
+            UnaryOp::Not => formatter.write("~"),
+            UnaryOp::And => formatter.write("&"),
+            UnaryOp::Or => formatter.write("|"),
+            UnaryOp::Xor => formatter.write("^"),
+        }
+    }
+}
+
 pub fn unary_plus() -> UnaryOp {
     UnaryOp::Plus
 }
@@ -374,6 +456,37 @@ pub enum Stmt {
     DynamicSplice(DynamicSplice),
     Delay(u32),
     ConcatAssign(ConcatAssign),
+}
+
+impl Pretty for Stmt {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            Stmt::If(if_stmt) => if_stmt.pretty_print(formatter),
+            Stmt::Always(always_stmt) => always_stmt.pretty_print(formatter),
+            Stmt::Case(case_stmt) => case_stmt.pretty_print(formatter),
+            Stmt::LocalParam(local_param_stmt) => local_param_stmt.pretty_print(formatter),
+            Stmt::Block(block_stmts) => {
+                formatter.write("begin\n");
+                formatter.scoped(|f| {
+                    f.lines(block_stmts);
+                });
+                formatter.write("end\n");
+            }
+            Stmt::ContinuousAssign(continuous_assign_stmt) => {
+                formatter.write("assign ");
+                continuous_assign_stmt.pretty_print(formatter)
+            }
+            Stmt::FunctionCall(function_call_stmt) => function_call_stmt.pretty_print(formatter),
+            Stmt::NonblockAssign(nonblock_assign_stmt) => {
+                nonblock_assign_stmt.pretty_print(formatter)
+            }
+            Stmt::Assign(assign_stmt) => assign_stmt.pretty_print(formatter),
+            Stmt::Instance(instance_stmt) => instance_stmt.pretty_print(formatter),
+            Stmt::DynamicSplice(dynamic_splice_stmt) => dynamic_splice_stmt.pretty_print(formatter),
+            Stmt::Delay(delay) => formatter.write(&format!("#{}", delay)),
+            Stmt::ConcatAssign(concat_assign_stmt) => concat_assign_stmt.pretty_print(formatter),
+        }
+    }
 }
 
 pub fn if_stmt(condition: Expr, true_stmt: Stmt, else_branch: Option<Stmt>) -> Stmt {
@@ -472,10 +585,29 @@ pub struct ConcatAssign {
     pub rhs: Box<Expr>,
 }
 
+impl Pretty for ConcatAssign {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.braced(|formatter| {
+            formatter.comma_separated(&self.target);
+        });
+        formatter.write(" = ");
+        self.rhs.pretty_print(formatter);
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum DynOp {
     PlusColon,
     MinusColon,
+}
+
+impl Pretty for DynOp {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            DynOp::PlusColon => formatter.write("+:"),
+            DynOp::MinusColon => formatter.write("-:"),
+        }
+    }
 }
 
 pub fn dyn_plus_colon() -> DynOp {
@@ -495,6 +627,19 @@ pub struct DynamicSplice {
     pub rhs: Box<Expr>,
 }
 
+impl Pretty for DynamicSplice {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&self.target);
+        formatter.bracketed(|f| {
+            self.base.pretty_print(f);
+            self.op.pretty_print(f);
+            self.width.pretty_print(f);
+        });
+        formatter.write(" = ");
+        self.rhs.pretty_print(formatter);
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Splice {
     pub target: String,
@@ -510,16 +655,47 @@ pub struct Instance {
     pub connections: Vec<Connection>,
 }
 
+impl Pretty for Instance {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&format!("{} {}", self.module, self.instance));
+        formatter.parenthesized(|f| {
+            f.comma_separated(&self.connections);
+        });
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct FunctionCall {
     pub name: String,
     pub args: Vec<Expr>,
 }
 
+impl Pretty for FunctionCall {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&self.name);
+        formatter.parenthesized(|f| {
+            f.comma_separated(&self.args);
+        });
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum AssignTarget {
     Ident(String),
     Index(Expr),
+}
+
+impl Pretty for AssignTarget {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            AssignTarget::Ident(ident) => formatter.write(ident),
+            AssignTarget::Index(target) => {
+                formatter.bracketed(|f| {
+                    target.pretty_print(f);
+                });
+            }
+        }
+    }
 }
 
 pub fn assign_target_ident(ident: &str) -> AssignTarget {
@@ -536,10 +712,27 @@ pub struct Assign {
     pub rhs: Box<Expr>,
 }
 
+impl Pretty for Assign {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        self.target.pretty_print(formatter);
+        formatter.write(" = ");
+        self.rhs.pretty_print(formatter);
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct LocalParam {
     pub target: String,
     pub rhs: ConstExpr,
+}
+
+impl Pretty for LocalParam {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write("localparam ");
+        formatter.write(&self.target);
+        formatter.write(" = ");
+        self.rhs.pretty_print(formatter);
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -547,6 +740,16 @@ pub enum ConstExpr {
     LitVerilog(LitVerilog),
     LitInt(i32),
     LitStr(String),
+}
+
+impl Pretty for ConstExpr {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            ConstExpr::LitVerilog(lit) => lit.pretty_print(formatter),
+            ConstExpr::LitInt(int) => formatter.write(&int.to_string()),
+            ConstExpr::LitStr(string) => formatter.write(&format!("\"{}\"", string)),
+        }
+    }
 }
 
 pub fn const_verilog(val: LitVerilog) -> ConstExpr {
@@ -567,6 +770,12 @@ pub struct LitVerilog {
     pub value: String,
 }
 
+impl Pretty for LitVerilog {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&format!("{}'", self.width));
+        formatter.write(&self.value);
+    }
+}
 pub fn lit_verilog(width: u32, value: &str) -> LitVerilog {
     LitVerilog {
         width,
@@ -579,6 +788,17 @@ pub enum CaseItem {
     Ident(String),
     Literal(LitVerilog),
     Wild,
+}
+
+impl Pretty for CaseItem {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            CaseItem::Ident(ident) => formatter.write(ident),
+            CaseItem::Literal(lit) => lit.pretty_print(formatter),
+            CaseItem::Wild => formatter.write("default"),
+        }
+        formatter.write(": ");
+    }
 }
 
 pub fn case_item_ident(ident: &str) -> CaseItem {
@@ -599,6 +819,13 @@ pub struct CaseLine {
     pub stmt: Box<Stmt>,
 }
 
+impl Pretty for CaseLine {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        self.item.pretty_print(formatter);
+        self.stmt.pretty_print(formatter);
+    }
+}
+
 pub fn case_line(item: CaseItem, stmt: Stmt) -> CaseLine {
     CaseLine {
         item,
@@ -612,10 +839,33 @@ pub struct Case {
     pub lines: Vec<CaseLine>,
 }
 
+impl Pretty for Case {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write("case ");
+        formatter.parenthesized(|f| self.discriminant.pretty_print(f));
+        formatter.newline();
+        formatter.scoped(|f| {
+            f.lines(&self.lines);
+        });
+        formatter.write("endcase");
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Always {
     pub sensitivity: Vec<Sensitivity>,
     pub body: Box<Stmt>,
+}
+
+impl Pretty for Always {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write("always @");
+        formatter.parenthesized(|f| {
+            f.comma_separated(&self.sensitivity);
+        });
+        formatter.write(" ");
+        self.body.pretty_print(formatter);
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -625,12 +875,41 @@ pub struct If {
     pub else_branch: Option<Box<Stmt>>,
 }
 
+impl Pretty for If {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write("if ");
+        formatter.parenthesized(|f| self.condition.pretty_print(f));
+        formatter.write(" ");
+        self.true_stmt.pretty_print(formatter);
+        if let Some(else_branch) = &self.else_branch {
+            formatter.write("else ");
+            else_branch.pretty_print(formatter);
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct FunctionDef {
     pub width: SignedWidth,
     pub name: String,
     pub args: Vec<Port>,
     pub items: Vec<Item>,
+}
+
+impl Pretty for FunctionDef {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&format!("function "));
+        formatter.scoped(|formatter| {
+            self.width.pretty_print(formatter);
+            formatter.write(&format!(" {}", self.name));
+            formatter.parenthesized(|f| f.comma_separated(&self.args));
+            formatter.newline();
+            formatter.scoped(|f| {
+                f.lines(&self.items);
+            });
+        });
+        formatter.write("endfunction");
+    }
 }
 
 pub fn function_def(
@@ -653,6 +932,20 @@ pub enum Item {
     Declaration(DeclarationList),
     FunctionDef(FunctionDef),
     Initial(Stmt),
+}
+
+impl Pretty for Item {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            Item::Statement(stmt) => stmt.pretty_print(formatter),
+            Item::Declaration(decl) => decl.pretty_print(formatter),
+            Item::FunctionDef(func) => func.pretty_print(formatter),
+            Item::Initial(initial) => {
+                formatter.write("initial ");
+                initial.pretty_print(formatter);
+            }
+        }
+    }
 }
 
 pub fn stmt_item(stmt: Stmt) -> Item {
@@ -694,10 +987,9 @@ impl Pretty for ModuleDef {
         });
         formatter.newline();
         formatter.scoped(|formatter| {
-            //formatter.semi_line_separated(&self.items);
+            formatter.lines(&self.items);
         });
         formatter.write("endmodule");
-        formatter.newline();
     }
 }
 
@@ -716,6 +1008,30 @@ pub enum Expr {
     Index(ExprIndex),
     DynIndex(ExprDynIndex),
     Function(ExprFunction),
+}
+
+impl Pretty for Expr {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            Expr::Binary(expr) => expr.pretty_print(formatter),
+            Expr::Unary(expr) => expr.pretty_print(formatter),
+            Expr::Constant(lit) => lit.pretty_print(formatter),
+            Expr::Literal(value) => formatter.write(&value.to_string()),
+            Expr::String(value) => formatter.write(&format!("\"{}\"", value)),
+            Expr::Ident(name) => formatter.write(name),
+            Expr::Paren(expr) => {
+                formatter.parenthesized(|f| expr.pretty_print(f));
+            }
+            Expr::Ternary(expr) => expr.pretty_print(formatter),
+            Expr::Concat(exprs) => {
+                formatter.braced(|f| f.comma_separated(exprs));
+            }
+            Expr::Replica(expr) => expr.pretty_print(formatter),
+            Expr::Index(expr) => expr.pretty_print(formatter),
+            Expr::DynIndex(expr) => expr.pretty_print(formatter),
+            Expr::Function(expr) => expr.pretty_print(formatter),
+        }
+    }
 }
 
 pub fn binary_expr(lhs: Expr, op: BinaryOp, rhs: Expr) -> Expr {
@@ -804,11 +1120,35 @@ pub struct ExprDynIndex {
     pub width: Box<Expr>,
 }
 
+impl Pretty for ExprDynIndex {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&self.target);
+        formatter.bracketed(|f| {
+            self.base.pretty_print(f);
+            self.op.pretty_print(f);
+            self.width.pretty_print(f);
+        });
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ExprIndex {
     pub target: String,
     pub msb: Box<Expr>,
     pub lsb: Option<Box<Expr>>,
+}
+
+impl Pretty for ExprIndex {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&self.target);
+        formatter.bracketed(|f| {
+            self.msb.pretty_print(f);
+            if let Some(lsb) = &self.lsb {
+                f.write(":");
+                lsb.pretty_print(f);
+            }
+        });
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -818,11 +1158,29 @@ pub struct ExprTernary {
     pub rhs: Box<Expr>,
 }
 
+impl Pretty for ExprTernary {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        self.lhs.pretty_print(formatter);
+        formatter.write(" ? ");
+        self.mhs.pretty_print(formatter);
+        formatter.write(" : ");
+        self.rhs.pretty_print(formatter);
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ExprBinary {
     pub lhs: Box<Expr>,
     pub op: BinaryOp,
     pub rhs: Box<Expr>,
+}
+
+impl Pretty for ExprBinary {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        self.lhs.pretty_print(formatter);
+        self.op.pretty_print(formatter);
+        self.rhs.pretty_print(formatter);
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -831,14 +1189,39 @@ pub struct ExprUnary {
     pub arg: Box<Expr>,
 }
 
+impl Pretty for ExprUnary {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        self.op.pretty_print(formatter);
+        self.arg.pretty_print(formatter);
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ExprReplica {
     pub count: usize,
     pub concatenation: Vec<Expr>,
 }
 
+impl Pretty for ExprReplica {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.braced(|f| {
+            f.write(&format!("{}", self.count));
+            f.braced(|f| {
+                f.comma_separated(&self.concatenation);
+            });
+        })
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ExprFunction {
     pub name: String,
     pub args: Vec<Expr>,
+}
+
+impl Pretty for ExprFunction {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&self.name);
+        formatter.parenthesized(|f| f.comma_separated(&self.args));
+    }
 }

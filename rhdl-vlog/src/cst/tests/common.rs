@@ -31,6 +31,9 @@ pub fn test_compilation(test_case: &str, module: ModuleList) {
         pub mod vlog {
             include!("../src/ast.rs");
         }
+        pub mod formatter {
+        include!("../src/formatter.rs");
+        }
 
         fn main() {
             let _ = #module;

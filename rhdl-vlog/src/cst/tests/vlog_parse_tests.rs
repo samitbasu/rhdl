@@ -149,7 +149,7 @@ case (rega)
 16'd7: result = 10'b1111111011;
 16'd8: result = 10'b1111111101;
 16'd9: result = 10'b1111111110;
-default result = 10'bx;
+default: result = 10'bx;
 endcase
         ",
     )?;
