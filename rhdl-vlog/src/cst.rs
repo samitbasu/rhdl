@@ -54,6 +54,15 @@ enum HDLKind {
     Reg(kw::reg),
 }
 
+impl From<HDLKind> for ast::HDLKind {
+    fn from(value: HDLKind) -> Self {
+        match value {
+            HDLKind::Wire(_) => ast::HDLKind::Wire,
+            HDLKind::Reg(_) => ast::HDLKind::Reg,
+        }
+    }
+}
+
 impl ToTokens for HDLKind {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(match self {
@@ -71,6 +80,16 @@ enum Direction {
     Output(kw::output),
     #[parse(peek = kw::inout)]
     Inout(kw::inout),
+}
+
+impl From<Direction> for ast::Direction {
+    fn from(value: Direction) -> Self {
+        match value {
+            Direction::Input(_) => ast::Direction::Input,
+            Direction::Output(_) => ast::Direction::Output,
+            Direction::Inout(_) => ast::Direction::Inout,
+        }
+    }
 }
 
 impl ToTokens for Direction {
@@ -119,6 +138,18 @@ struct SignedWidth {
     width: WidthSpec,
 }
 
+impl From<&SignedWidth> for ast::SignedWidth {
+    fn from(value: &SignedWidth) -> Self {
+        let start = value.width.bit_range.start.base10_parse::<u32>().unwrap();
+        let end = value.width.bit_range.end.base10_parse::<u32>().unwrap();
+        if value.signed.is_some() {
+            ast::SignedWidth::Signed(start..=end)
+        } else {
+            ast::SignedWidth::Unsigned(start..=end)
+        }
+    }
+}
+
 impl ToTokens for SignedWidth {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let width = &self.width;
@@ -134,6 +165,14 @@ impl ToTokens for SignedWidth {
 struct DeclKind {
     name: Ident,
     width: Option<SignedWidth>,
+}
+
+impl From<&DeclKind> for ast::DeclKind {
+    fn from(value: &DeclKind) -> Self {
+        let name = value.name.to_string();
+        let width = value.width.as_ref().map(|w| w.into());
+        ast::DeclKind { name, width }
+    }
 }
 
 impl Parse for DeclKind {
@@ -164,6 +203,23 @@ struct DeclarationList {
     signed_width: Option<SignedWidth>,
     items: Punctuated<DeclKind, Token![,]>,
     _term: Token![;],
+}
+
+impl From<&DeclarationList> for ast::DeclarationList {
+    fn from(value: &DeclarationList) -> Self {
+        let kind = value.kind.into();
+        let signed_width = if let Some(width) = value.signed_width.as_ref() {
+            width.into()
+        } else {
+            ast::SignedWidth::Unsigned(0..=0)
+        };
+        let items = value.items.iter().map(|item| item.into()).collect();
+        ast::DeclarationList {
+            kind,
+            signed_width,
+            items,
+        }
+    }
 }
 
 impl Parse for DeclarationList {
@@ -208,6 +264,23 @@ struct Declaration {
     _term: Option<Token![;]>,
 }
 
+impl From<&Declaration> for ast::Declaration {
+    fn from(value: &Declaration) -> Self {
+        let kind = value.kind.into();
+        let signed_width = if let Some(width) = value.signed_width.as_ref() {
+            width.into()
+        } else {
+            ast::SignedWidth::Unsigned(0..=0)
+        };
+        let name = value.name.to_string();
+        ast::Declaration {
+            kind,
+            signed_width,
+            name,
+        }
+    }
+}
+
 impl Parse for Declaration {
     fn parse(input: ParseStream) -> Result<Self> {
         let kind = input.parse()?;
@@ -248,6 +321,14 @@ struct Port {
     decl: Declaration,
 }
 
+impl From<&Port> for ast::Port {
+    fn from(value: &Port) -> Self {
+        let direction = value.direction.into();
+        let decl = (&value.decl).into();
+        ast::Port { direction, decl }
+    }
+}
+
 impl ToTokens for Port {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let direction = &self.direction;
@@ -285,7 +366,13 @@ impl From<&StmtKind> for ast::Stmt {
             StmtKind::Always(always) => ast::Stmt::Always(always.into()),
             StmtKind::Case(case) => ast::Stmt::Case(case.into()),
             StmtKind::LocalParam(local_param) => ast::Stmt::LocalParam(local_param.into()),
-            StmtKind::Block(block) => ast::Stmt::Block(block.into()),
+            StmtKind::Block(block) => ast::Stmt::Block(
+                block
+                    .body
+                    .iter()
+                    .map(|stmt| stmt.into())
+                    .collect::<Vec<_>>(),
+            ),
             StmtKind::ContinuousAssign(continuous_assign) => {
                 ast::Stmt::ContinuousAssign(continuous_assign.into())
             }
@@ -503,6 +590,17 @@ enum Item {
     Initial(Initial),
 }
 
+impl From<&Item> for ast::Item {
+    fn from(value: &Item) -> Self {
+        match value {
+            Item::Statement(stmt) => ast::Item::Statement(stmt.into()),
+            Item::Declaration(decl) => ast::Item::Declaration(decl.into()),
+            Item::FunctionDef(func) => ast::Item::FunctionDef(func.into()),
+            Item::Initial(init) => ast::Item::Initial((&init.statement).into()),
+        }
+    }
+}
+
 impl ToTokens for Item {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(match self {
@@ -539,12 +637,12 @@ impl Parse for Item {
 #[derive(syn_derive::Parse)]
 struct Initial {
     _initial_kw: kw::initial,
-    statment: Stmt,
+    statement: Stmt,
 }
 
 impl ToTokens for Initial {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        self.statment.to_tokens(tokens);
+        self.statement.to_tokens(tokens);
     }
 }
 
@@ -558,6 +656,19 @@ struct FunctionCall {
     _dollar: Token![$],
     name: Ident,
     args: Option<ParenCommaList<Expr>>,
+}
+
+impl From<&FunctionCall> for ast::FunctionCall {
+    fn from(value: &FunctionCall) -> Self {
+        let name = format!("_{}", value.name.to_string());
+        let args = value
+            .args
+            .iter()
+            .flat_map(|args| args.inner.iter())
+            .map(|arg| arg.into())
+            .collect::<Vec<_>>();
+        ast::FunctionCall { name, args }
+    }
 }
 
 impl Parse for FunctionCall {
@@ -580,7 +691,7 @@ impl Parse for FunctionCall {
 enum CaseItem {
     Ident(Pair<Ident, Token![:]>),
     Literal(Pair<LitVerilog, Token![:]>),
-    Wild(Pair<kw::default, Option<Token![:]>>),
+    Wild(Pair<kw::default, Token![:]>),
 }
 
 impl From<&CaseItem> for ast::CaseItem {
@@ -728,6 +839,14 @@ struct Connection {
     local: Box<Expr>,
 }
 
+impl From<&Connection> for ast::Connection {
+    fn from(value: &Connection) -> Self {
+        let target = value.target.to_string();
+        let local = Box::new(value.local.as_ref().into());
+        ast::Connection { target, local }
+    }
+}
+
 impl ToTokens for Connection {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let target = &self.target;
@@ -743,6 +862,24 @@ struct Instance {
     module: Ident,
     instance: Ident,
     connections: ParenCommaList<Connection>,
+}
+
+impl From<&Instance> for ast::Instance {
+    fn from(value: &Instance) -> Self {
+        let module = value.module.to_string();
+        let instance = value.instance.to_string();
+        let connections = value
+            .connections
+            .inner
+            .iter()
+            .map(|x| x.into())
+            .collect::<Vec<_>>();
+        ast::Instance {
+            module,
+            instance,
+            connections,
+        }
+    }
 }
 
 struct Block {
@@ -775,6 +912,23 @@ struct DynamicSplice {
     lhs: Box<ExprDynIndex>,
     _eq: Token![=],
     rhs: Box<Expr>,
+}
+
+impl From<&DynamicSplice> for ast::DynamicSplice {
+    fn from(value: &DynamicSplice) -> Self {
+        let target = value.lhs.target.to_string();
+        let base = Box::new(value.lhs.address.base.as_ref().into());
+        let op = value.lhs.address.op.into();
+        let width = Box::new(value.lhs.address.width.as_ref().into());
+        let rhs = Box::new(value.rhs.as_ref().into());
+        ast::DynamicSplice {
+            target,
+            base,
+            op,
+            width,
+            rhs,
+        }
+    }
 }
 
 #[derive(Debug, Clone, syn_derive::Parse)]
@@ -878,10 +1032,29 @@ struct LocalParam {
     rhs: ConstExpr,
 }
 
+impl From<&LocalParam> for ast::LocalParam {
+    fn from(value: &LocalParam) -> Self {
+        ast::LocalParam {
+            target: value.target.to_string(),
+            rhs: (&value.rhs).into(),
+        }
+    }
+}
+
 enum ConstExpr {
     LitVerilog(LitVerilog),
     LitInt(LitInt),
     LitStr(LitStr),
+}
+
+impl From<&ConstExpr> for ast::ConstExpr {
+    fn from(value: &ConstExpr) -> Self {
+        match value {
+            ConstExpr::LitVerilog(lit) => ast::ConstExpr::LitVerilog(lit.into()),
+            ConstExpr::LitInt(lit) => ast::ConstExpr::LitInt(lit.base10_parse::<i32>().unwrap()),
+            ConstExpr::LitStr(lit) => ast::ConstExpr::LitStr(lit.value()),
+        }
+    }
 }
 
 impl ToTokens for ConstExpr {
@@ -1033,6 +1206,14 @@ struct NonblockAssign {
     target: AssignTarget,
     _left_arrow: LeftArrow,
     rhs: Box<Expr>,
+}
+
+impl From<&NonblockAssign> for ast::Assign {
+    fn from(value: &NonblockAssign) -> Self {
+        let target = (&value.target).into();
+        let rhs = Box::new(value.rhs.as_ref().into());
+        ast::Assign { target, rhs }
+    }
 }
 
 #[derive(syn_derive::Parse)]
@@ -1759,6 +1940,13 @@ pub struct ModuleList {
     modules: Vec<ModuleDef>,
 }
 
+impl From<&ModuleList> for ast::ModuleList {
+    fn from(value: &ModuleList) -> Self {
+        let modules = value.modules.iter().map(|x| x.into()).collect();
+        ast::ModuleList(modules)
+    }
+}
+
 impl ToTokens for ModuleList {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let modules = vec_tokens(&self.modules);
@@ -1788,6 +1976,20 @@ struct ModuleDef {
     _semi: Token![;],
     items: Vec<Item>,
     _end_module: kw::endmodule,
+}
+
+impl From<&ModuleDef> for ast::ModuleDef {
+    fn from(value: &ModuleDef) -> Self {
+        let name = value.name.to_string();
+        let args = value
+            .args
+            .iter()
+            .flat_map(|args| args.inner.iter())
+            .map(|x| x.into())
+            .collect();
+        let items = value.items.iter().map(|x| x.into()).collect();
+        ast::ModuleDef { name, args, items }
+    }
 }
 
 impl ToTokens for ModuleDef {
@@ -1835,6 +2037,21 @@ struct FunctionDef {
     _semi: Token![;],
     items: Vec<Item>,
     _end_function: kw::endfunction,
+}
+
+impl From<&FunctionDef> for ast::FunctionDef {
+    fn from(value: &FunctionDef) -> Self {
+        let width = (&value.signed_width).into();
+        let name = value.name.to_string();
+        let args = value.args.inner.iter().map(|x| x.into()).collect();
+        let items = value.items.iter().map(|x| x.into()).collect();
+        ast::FunctionDef {
+            width,
+            name,
+            args,
+            items,
+        }
+    }
 }
 
 impl ToTokens for FunctionDef {

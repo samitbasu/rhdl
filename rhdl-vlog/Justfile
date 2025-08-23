@@ -5,6 +5,7 @@ coverage:
     
     # Run coverage specifically on compilation tests
     echo "Running coverage analysis on compilation tests..."
+    cargo llvm-cov clean
     cargo llvm-cov --html --output-dir target/coverage test 
 
     # Open the coverage report in the default web browser (macOS)

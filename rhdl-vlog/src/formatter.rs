@@ -29,7 +29,8 @@ impl Formatter {
             self.contents.push_str(&TAB.repeat(self.indent_level));
             self.start_of_line = false;
         }
-        self.contents.push_str(&format!("{}\n", text));
+        self.contents.push_str(&format!("{}", text));
+        self.start_of_line = text.ends_with('\n');
     }
 
     pub fn newline(&mut self) {
@@ -53,22 +54,36 @@ impl Formatter {
         self.write(")");
     }
 
+    pub fn braced(&mut self, f: impl FnOnce(&mut Self)) {
+        self.write("{");
+        f(self);
+        self.write("}");
+    }
+
+    pub fn bracketed(&mut self, f: impl FnOnce(&mut Self)) {
+        self.write("[");
+        f(self);
+        self.write("]");
+    }
+
     pub fn comma_separated<T: Pretty>(&mut self, items: impl IntoIterator<Item = T>) {
         let mut iter = items.into_iter();
         if let Some(first) = iter.next() {
             first.pretty_print(self);
             for item in iter {
-                self.write(",");
+                self.write(", ");
                 item.pretty_print(self);
             }
         }
     }
 
-    pub fn semi_line_separated<T: Pretty>(&mut self, items: impl IntoIterator<Item = T>) {
+    pub fn lines<T: Pretty>(&mut self, items: impl IntoIterator<Item = T>) {
         let iter = items.into_iter();
         for item in iter {
             item.pretty_print(self);
-            self.write(";");
+            if !self.contents.ends_with("end\n") {
+                self.write(";");
+            }
             self.newline();
         }
     }
@@ -90,41 +105,69 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::cst;
+    use crate::{ast, cst};
 
     use super::*;
 
     #[test]
-    fn test_formatter() {
-        let mut formatter = Formatter::new();
-        formatter.push();
-        formatter.write("Hello");
-        formatter.pop();
-        formatter.write("World");
-        assert_eq!(formatter.contents, "   Hello\nWorld\n");
-    }
-
-    #[test]
     fn test_pretty_printing() {
-        let expect = expect_test::expect_file!["../expect/pretty_dff_definition.expect"];
+        let expect = expect_test::expect_file!["cst/expect/pretty_dff_definition.expect"];
         let synth = syn::parse_str::<cst::ModuleList>(
             "
-        module foo(input wire[2:0] clock_reset, input wire[7:0] i, output wire[7:0] o);
+        module foo(input wire[2:0] clock_reset, input wire[7:0] i, output wire signed [7:0] o, inout wire baz);
            wire [0:0] clock;
            wire [0:0] reset;
+           reg [3:0] a, b, c;
+           wire foo;
            assign clock = clock_reset[0];
            assign wire = clock_reset[1];
-           always @(posedge clock) begin
+           assign o = {i, i};
+           assign o = {3 {i}};
+           a[b +: 1] = clock;
+           a[1:0] = reset;
+           {a, b} = c;
+           localparam cost = 42;
+           localparam bar = 16'd16;
+           localparam pie = \"apple\";
+           obj obj(.clk(clock), .reset(reset), .i(i), .o(o));
+           initial begin
+               o = 8'b0;
+               # 10;
+               o = add(8'b0, 8'b1) + !c;
+               o = (a > b) ? a : b[o -: 4];
+               $display(\"o = 2\");
+           end
+           always @(posedge clock, negedge reset, foo, *) begin
                if (reset) begin
                   o <= 8'b0;
                 end else begin
                    o <= i;
                 end
            end
-        endmodule        
+           case (rega)
+            16'd0: result = 10'b0111111111;
+            16'd1: result = 10'b1011111111;
+            16'd2: result = 10'b1101111111;
+            16'd3: result = 10'b1110111111;
+            START: result = 10'b1110111111;
+            16'd4: result = 10'b1111011111;
+            16'd5: result = 10'b1111101111;
+            16'd6: result = 10'b1111110111;
+            16'd7: result = 10'b1111111011;
+            16'd8: result = 10'b1111111101;
+            16'd9: result = 10'b1111111110;
+            default: result = 10'bx;
+          endcase
+          function [3:0] add(input wire[3:0] a, input wire[3:0] b);
+            begin
+              add = a + b;
+            end
+          endfunction
+        endmodule
 ",
         )
         .unwrap();
+        let synth: ast::ModuleList = (&synth).into();
         let mut formatter = Formatter::new();
         synth.pretty_print(&mut formatter);
         expect.assert_eq(&formatter.finish());
