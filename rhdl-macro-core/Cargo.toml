@@ -17,6 +17,7 @@ inflections = "1.1.1"
 prettyplease = "0.2.15"
 proc-macro2 = "1.0.66"
 quote = "1.0.33"
+rhdl-vlog = { version = "0.1.0", path = "../rhdl-vlog" }
 syn = { version = "2.0.38", features = ["full", "extra-traits", "visit-mut"] }
 
 [dev-dependencies]
