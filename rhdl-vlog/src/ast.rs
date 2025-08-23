@@ -14,6 +14,14 @@ impl Pretty for ModuleList {
     }
 }
 
+impl std::fmt::Display for ModuleList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut fmt = crate::formatter::Formatter::new();
+        self.pretty_print(&mut fmt);
+        write!(f, "{}", fmt.finish())
+    }
+}
+
 use std::ops::RangeInclusive;
 
 use crate::formatter::Pretty;
@@ -689,11 +697,7 @@ impl Pretty for AssignTarget {
     fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
         match self {
             AssignTarget::Ident(ident) => formatter.write(ident),
-            AssignTarget::Index(target) => {
-                formatter.bracketed(|f| {
-                    target.pretty_print(f);
-                });
-            }
+            AssignTarget::Index(target) => target.pretty_print(formatter),
         }
     }
 }

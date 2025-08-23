@@ -8,7 +8,7 @@ module foo(input wire [2:0] clock_reset, input wire [7:0] i, output wire signed 
    assign o = {i, i};
    assign o = {3{i}};
    a[b+:1] = clock;
-   [a[1:0]] = reset;
+   a[1:0] = reset;
    {a, b} = c;
    localparam cost = 42;
    localparam bar = 16'd16;

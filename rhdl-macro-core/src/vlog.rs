@@ -1,20 +1,26 @@
-pub mod ast;
-pub mod builder;
-pub mod formatter;
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::Result;
+
+pub fn modules(input: TokenStream) -> Result<TokenStream> {
+    let module_list = syn::parse::<rhdl_vlog::cst::ModuleList>(input.into())?;
+    Ok(quote! {
+        {
+            use rhdl_vlog::ast as vlog;
+            #module_list
+        }
+    })
+}
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use expect_test::expect_file;
 
     #[test]
-    fn test_vlog_macro() {
-        use rhdl_macro::vlog_modules;
-
-        let foo = vlog_modules! {
-            module baz;
-            endmodule
-
-
-            module foo(input wire[2:0] clock_reset, input wire[7:0] i, output wire signed [7:0] o, inout wire baz);
+    fn test_modules_proc_macro() {
+        let kitchen_sink = quote! {
+        module foo(input wire[2:0] clock_reset, input wire[7:0] i, output wire signed [7:0] o, inout wire baz);
            wire [0:0] clock;
            wire [0:0] reset;
            reg [3:0] a, b, c;
@@ -64,8 +70,10 @@ mod tests {
             end
           endfunction
         endmodule
-
         };
-        println!("{}", foo);
+        let module = syn::parse2::<rhdl_vlog::cst::ModuleList>(kitchen_sink).unwrap();
+        let expect = expect_file!["expect/vlog_modules.expect"];
+        let module: rhdl_vlog::ast::ModuleList = (&module).into();
+        expect.assert_eq(&module.to_string());
     }
 }
