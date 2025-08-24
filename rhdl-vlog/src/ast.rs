@@ -1,3 +1,9 @@
+use quote::ToTokens;
+use quote::quote;
+use std::ops::RangeInclusive;
+
+use crate::formatter::Pretty;
+
 #[derive(Clone, Debug)]
 pub struct ModuleList(pub Vec<ModuleDef>);
 
@@ -22,10 +28,6 @@ impl std::fmt::Display for ModuleList {
     }
 }
 
-use std::ops::RangeInclusive;
-
-use crate::formatter::Pretty;
-
 #[derive(Clone, Debug, Copy)]
 pub enum HDLKind {
     Wire,
@@ -38,6 +40,15 @@ impl Pretty for HDLKind {
             HDLKind::Wire => formatter.write("wire"),
             HDLKind::Reg => formatter.write("reg"),
         }
+    }
+}
+
+impl ToTokens for HDLKind {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.extend(match self {
+            HDLKind::Wire => quote! {wire},
+            HDLKind::Reg => quote! {reg},
+        })
     }
 }
 
@@ -78,6 +89,16 @@ pub fn inout() -> Direction {
     Direction::Inout
 }
 
+impl ToTokens for Direction {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.extend(match self {
+            Direction::Input => quote! {input},
+            Direction::Output => quote! {output},
+            Direction::Inout => quote! {inout},
+        })
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum SignedWidth {
     Signed(RangeInclusive<u32>),
@@ -109,6 +130,27 @@ impl Pretty for SignedWidth {
                 formatter.write(&format!("[{}:{}]", range.start(), range.end()));
             }
         }
+    }
+}
+
+impl ToTokens for SignedWidth {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.extend(match self {
+            SignedWidth::Signed(range) => {
+                let start = range.start();
+                let end = range.end();
+                if range.start() == range.end() && range.start() == &0 {
+                    quote! {signed}
+                } else {
+                    quote! {signed [#start:#end]}
+                }
+            }
+            SignedWidth::Unsigned(range) => {
+                let start = range.start();
+                let end = range.end();
+                quote! {[#start:#end]}
+            }
+        })
     }
 }
 
@@ -989,6 +1031,7 @@ impl Pretty for ModuleDef {
         formatter.parenthesized(|formatter| {
             formatter.comma_separated(&self.args);
         });
+        formatter.write(";");
         formatter.newline();
         formatter.scoped(|formatter| {
             formatter.lines(&self.items);

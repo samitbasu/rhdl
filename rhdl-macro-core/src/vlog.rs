@@ -12,6 +12,16 @@ pub fn modules(input: TokenStream) -> Result<TokenStream> {
     })
 }
 
+pub fn module(input: TokenStream) -> Result<TokenStream> {
+    let module = syn::parse::<rhdl_vlog::cst::ModuleDef>(input.into())?;
+    Ok(quote! {
+        {
+            use rhdl_vlog::ast as vlog;
+            #module
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
