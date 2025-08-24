@@ -47,7 +47,7 @@ mod kw {
 }
 
 #[derive(Debug, Clone, Hash, Copy, PartialEq, syn_derive::Parse)]
-enum HDLKind {
+pub enum HDLKind {
     #[parse(peek = kw::wire)]
     Wire(kw::wire),
     #[parse(peek = kw::reg)]
@@ -1969,7 +1969,7 @@ impl Parse for ModuleList {
     }
 }
 
-struct ModuleDef {
+pub struct ModuleDef {
     _module: kw::module,
     name: Ident,
     args: Option<ParenCommaList<Port>>,

@@ -7,7 +7,29 @@ mod tests {
 
     #[test]
     fn test_vlog_macro() {
+        use quote::quote;
+        use rhdl_macro::vlog_module;
         use rhdl_macro::vlog_modules;
+
+        let baz = syn::parse2::<rhdl_vlog::cst::ModuleList>(blah).unwrap();
+
+        let foo1 = vlog_module! {
+            module foo;
+            endmodule
+        };
+
+        let foo2 = vlog_module! {
+            module bar;
+            endmodule
+        };
+
+        let blah = quote! {
+          module foo;
+          endmodule
+
+          module bar;
+          endmodule
+        };
 
         let foo = vlog_modules! {
             module baz;

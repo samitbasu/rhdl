@@ -87,3 +87,11 @@ pub fn vlog_modules(input: TokenStream) -> TokenStream {
         Err(err) => err.to_compile_error().into(),
     }
 }
+
+#[proc_macro]
+pub fn vlog_module(input: TokenStream) -> TokenStream {
+    match rhdl_macro_core::vlog::module(input.into()) {
+        Ok(output) => output.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
