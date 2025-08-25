@@ -1,1 +1,4 @@
-vlog :: lit_verilog (41 , stringify ! (sd2332) . into ())
+{
+  "width": 41,
+  "value": "sd2332"
+}

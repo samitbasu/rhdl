@@ -1,1 +1,15 @@
-vlog :: concat_expr ({ let mut ret = Vec :: with_capacity (3usize) ; ret . push (vlog :: ident_expr (stringify ! (a))) ; ret . push (vlog :: literal_expr (3)) ; ret . push (vlog :: literal_expr (1)) ; ret })
+{
+  "Concat": {
+    "elements": [
+      {
+        "Ident": "a"
+      },
+      {
+        "Literal": 3
+      },
+      {
+        "Literal": 1
+      }
+    ]
+  }
+}

@@ -1,4 +1,7 @@
-use crate::cst::{ModuleList, tests::common::test_parse};
+use crate::{
+    cst::{ModuleList, tests::common::test_parse},
+    formatter::Pretty,
+};
 use quote::quote;
 
 #[test]
@@ -27,9 +30,10 @@ fn test_vlog_files() -> miette::Result<()> {
         };
         let text = String::from_utf8_lossy(&module);
         let module_list = test_parse::<ModuleList>(text)?;
-        let requote = quote! {#module_list ;}.to_string();
-        let _ = syn::parse_str::<syn::Stmt>(&requote)
-            .map_err(|err| syn_miette::Error::new(err, requote))?;
+        let pretty_1 = module_list.pretty();
+        let module_list_2 = test_parse::<ModuleList>(&pretty_1)?;
+        let pretty_2 = module_list_2.pretty();
+        assert_eq!(pretty_1, pretty_2);
     }
     Ok(())
 }

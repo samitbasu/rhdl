@@ -1,1 +1,8 @@
-vlog :: signed (0 ..= 4)
+{
+  "Signed": {
+    "bit_range": {
+      "start": 4,
+      "end": 0
+    }
+  }
+}

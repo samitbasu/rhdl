@@ -1,1 +1,51 @@
-vlog :: module_def (stringify ! (foo) , { let mut ret = Vec :: with_capacity (3usize) ; ret . push (vlog :: port (vlog :: input () , vlog :: declaration (vlog :: wire () , vlog :: unsigned (0 ..= 2) , stringify ! (clock_reset)))) ; ret . push (vlog :: port (vlog :: input () , vlog :: declaration (vlog :: wire () , vlog :: unsigned (0 ..= 7) , stringify ! (i)))) ; ret . push (vlog :: port (vlog :: output () , vlog :: declaration (vlog :: wire () , vlog :: unsigned (0 ..= 7) , stringify ! (o)))) ; ret } , vec ! [])
+{
+  "name": "foo",
+  "args": [
+    {
+      "direction": "Input",
+      "decl": {
+        "kind": "Wire",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 2,
+              "end": 0
+            }
+          }
+        },
+        "name": "clock_reset"
+      }
+    },
+    {
+      "direction": "Input",
+      "decl": {
+        "kind": "Wire",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 7,
+              "end": 0
+            }
+          }
+        },
+        "name": "i"
+      }
+    },
+    {
+      "direction": "Output",
+      "decl": {
+        "kind": "Wire",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 7,
+              "end": 0
+            }
+          }
+        },
+        "name": "o"
+      }
+    }
+  ],
+  "items": []
+}

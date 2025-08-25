@@ -1,1 +1,21 @@
-vlog :: ternary_expr (vlog :: binary_expr (vlog :: ident_expr (stringify ! (a)) , vlog :: binary_gt () , vlog :: literal_expr (3)) , vlog :: literal_expr (1) , vlog :: literal_expr (7))
+{
+  "Ternary": {
+    "lhs": {
+      "Binary": {
+        "lhs": {
+          "Ident": "a"
+        },
+        "op": "Gt",
+        "rhs": {
+          "Literal": 3
+        }
+      }
+    },
+    "mhs": {
+      "Literal": 1
+    },
+    "rhs": {
+      "Literal": 7
+    }
+  }
+}

@@ -1,12 +1,13 @@
+use crate::formatter::{Formatter, Pretty};
 use quote::{ToTokens, format_ident, quote};
+use serde::{Deserialize, Serialize};
 use syn::{
-    Ident, Lifetime, LitInt, LitStr, Result, Token, parenthesized,
+    Ident, Lifetime, LitInt, LitStr, Result, Token, braced, bracketed, custom_punctuation,
+    parenthesized,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    token::{self, Brace, Bracket, Paren},
+    token::{self, Bracket, Paren},
 };
-
-use crate::ast;
 
 #[cfg(test)]
 mod tests;
@@ -46,19 +47,32 @@ mod kw {
     syn::custom_keyword!(initial);
 }
 
-#[derive(Debug, Clone, Hash, Copy, PartialEq, syn_derive::Parse)]
+#[derive(Debug, Clone, Hash, Copy, PartialEq, Serialize, Deserialize)]
 pub enum HDLKind {
-    #[parse(peek = kw::wire)]
-    Wire(kw::wire),
-    #[parse(peek = kw::reg)]
-    Reg(kw::reg),
+    Wire,
+    Reg,
 }
 
-impl From<HDLKind> for ast::HDLKind {
-    fn from(value: HDLKind) -> Self {
-        match value {
-            HDLKind::Wire(_) => ast::HDLKind::Wire,
-            HDLKind::Reg(_) => ast::HDLKind::Reg,
+impl Parse for HDLKind {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+        if lookahead.peek(kw::wire) {
+            let _ = input.parse::<kw::wire>()?;
+            Ok(HDLKind::Wire)
+        } else if lookahead.peek(kw::reg) {
+            let _ = input.parse::<kw::reg>()?;
+            Ok(HDLKind::Reg)
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Pretty for HDLKind {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            HDLKind::Wire => formatter.write("wire"),
+            HDLKind::Reg => formatter.write("reg"),
         }
     }
 }
@@ -66,28 +80,43 @@ impl From<HDLKind> for ast::HDLKind {
 impl ToTokens for HDLKind {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(match self {
-            HDLKind::Reg(_) => quote! {vlog::reg()},
-            HDLKind::Wire(_) => quote! {vlog::wire()},
-        })
+            HDLKind::Wire => quote! { wire },
+            HDLKind::Reg => quote! { reg },
+        });
     }
 }
 
-#[derive(Debug, Clone, Hash, Copy, PartialEq, syn_derive::Parse)]
-enum Direction {
-    #[parse(peek = kw::input)]
-    Input(kw::input),
-    #[parse(peek = kw::output)]
-    Output(kw::output),
-    #[parse(peek = kw::inout)]
-    Inout(kw::inout),
+#[derive(Debug, Clone, Hash, Copy, PartialEq, Serialize, Deserialize)]
+pub enum Direction {
+    Input,
+    Output,
+    Inout,
 }
 
-impl From<Direction> for ast::Direction {
-    fn from(value: Direction) -> Self {
-        match value {
-            Direction::Input(_) => ast::Direction::Input,
-            Direction::Output(_) => ast::Direction::Output,
-            Direction::Inout(_) => ast::Direction::Inout,
+impl Parse for Direction {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+        if lookahead.peek(kw::input) {
+            let _ = input.parse::<kw::input>()?;
+            Ok(Direction::Input)
+        } else if lookahead.peek(kw::output) {
+            let _ = input.parse::<kw::output>()?;
+            Ok(Direction::Output)
+        } else if lookahead.peek(kw::inout) {
+            let _ = input.parse::<kw::inout>()?;
+            Ok(Direction::Inout)
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Pretty for Direction {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            Direction::Input => formatter.write("input"),
+            Direction::Output => formatter.write("output"),
+            Direction::Inout => formatter.write("inout"),
         }
     }
 }
@@ -95,131 +124,164 @@ impl From<Direction> for ast::Direction {
 impl ToTokens for Direction {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(match self {
-            Direction::Input(_) => quote! {vlog::input()},
-            Direction::Output(_) => quote! {vlog::output()},
-            Direction::Inout(_) => quote! {vlog::inout()},
-        })
+            Direction::Input => quote! { input },
+            Direction::Output => quote! { output },
+            Direction::Inout => quote! { inout },
+        });
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, syn_derive::Parse)]
-struct BitRange {
-    start: LitInt,
-    colon: token::Colon,
-    end: LitInt,
+#[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct BitRange {
+    pub start: u32,
+    pub end: u32,
+}
+
+impl Parse for BitRange {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let start = input.parse::<LitInt>()?;
+        let _ = input.parse::<Token![:]>()?;
+        let end = input.parse::<LitInt>()?;
+        let start = start.base10_parse::<u32>()?;
+        let end = end.base10_parse::<u32>()?;
+        Ok(BitRange { start, end })
+    }
+}
+
+impl Pretty for BitRange {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&self.start.to_string());
+        formatter.write(":");
+        formatter.write(&self.end.to_string());
+    }
 }
 
 impl ToTokens for BitRange {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let first = &self.end;
-        let last = &self.start;
-        tokens.extend(quote! {#first..=#last})
+        let start = syn::Index::from(self.start as usize);
+        let end = syn::Index::from(self.end as usize);
+        tokens.extend(quote! { #start : #end });
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, syn_derive::Parse)]
-struct WidthSpec {
-    #[syn(bracketed)]
-    bracket_token: token::Bracket,
-    #[syn(in = bracket_token)]
-    bit_range: BitRange,
+#[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct WidthSpec {
+    pub bit_range: BitRange,
+}
+
+impl Parse for WidthSpec {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        let _bracket = bracketed!(content in input);
+        let bit_range = content.parse()?;
+        Ok(WidthSpec { bit_range })
+    }
+}
+
+impl Pretty for WidthSpec {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.bracketed(|f| {
+            self.bit_range.pretty_print(f);
+        });
+    }
 }
 
 impl ToTokens for WidthSpec {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let range = &self.bit_range;
-        tokens.extend(quote! {#range})
+        let bit_range = &self.bit_range;
+        tokens.extend(quote! { [ #bit_range ] });
     }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
-struct SignedWidth {
-    signed: Option<kw::signed>,
-    width: WidthSpec,
+#[derive(Clone, Debug, Hash, PartialEq, Serialize, Deserialize)]
+pub enum SignedWidth {
+    Signed(WidthSpec),
+    Unsigned(WidthSpec),
 }
 
-impl From<&SignedWidth> for ast::SignedWidth {
-    fn from(value: &SignedWidth) -> Self {
-        let start = value.width.bit_range.start.base10_parse::<u32>().unwrap();
-        let end = value.width.bit_range.end.base10_parse::<u32>().unwrap();
-        if value.signed.is_some() {
-            ast::SignedWidth::Signed(start..=end)
+impl Parse for SignedWidth {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+        if lookahead.peek(kw::signed) {
+            let _ = input.parse::<kw::signed>()?;
+            let bit_range = input.parse()?;
+            Ok(SignedWidth::Signed(bit_range))
         } else {
-            ast::SignedWidth::Unsigned(start..=end)
+            let bit_range = input.parse()?;
+            Ok(SignedWidth::Unsigned(bit_range))
+        }
+    }
+}
+
+impl Pretty for SignedWidth {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        match self {
+            SignedWidth::Signed(width) => {
+                formatter.write("signed ");
+                width.pretty_print(formatter);
+            }
+            SignedWidth::Unsigned(width) => {
+                width.pretty_print(formatter);
+            }
         }
     }
 }
 
 impl ToTokens for SignedWidth {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let width = &self.width;
-        tokens.extend(if self.signed.is_some() {
-            quote! {vlog::signed(#width)}
-        } else {
-            quote! {vlog::unsigned(#width)}
-        })
+        match self {
+            SignedWidth::Signed(width) => {
+                tokens.extend(quote! { signed });
+                width.to_tokens(tokens);
+            }
+            SignedWidth::Unsigned(width) => {
+                width.to_tokens(tokens);
+            }
+        }
     }
 }
 
-#[derive(Debug, Clone)]
-struct DeclKind {
-    name: Ident,
-    width: Option<SignedWidth>,
-}
-
-impl From<&DeclKind> for ast::DeclKind {
-    fn from(value: &DeclKind) -> Self {
-        let name = value.name.to_string();
-        let width = value.width.as_ref().map(|w| w.into());
-        ast::DeclKind { name, width }
-    }
+#[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct DeclKind {
+    pub name: String,
+    pub width: Option<SignedWidth>,
 }
 
 impl Parse for DeclKind {
     fn parse(input: ParseStream) -> Result<Self> {
-        let name = input.parse()?;
-        let width = if input.peek(token::Bracket) {
+        let name: Ident = input.parse()?;
+        let width = if input.peek(token::Bracket) || input.peek(kw::signed) {
             Some(input.parse()?)
         } else {
             None
         };
-        Ok(DeclKind { name, width })
+        Ok(DeclKind {
+            name: name.to_string(),
+            width,
+        })
+    }
+}
+
+impl Pretty for DeclKind {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&self.name);
+        self.width.pretty_print(formatter);
     }
 }
 
 impl ToTokens for DeclKind {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = &self.name;
-        let width = option_tokens(self.width.as_ref());
-        tokens.extend(quote! {
-            vlog::decl_kind(stringify!(#name), #width)
-        })
+        let name = format_ident!("{}", self.name);
+        let width = &self.width;
+        tokens.extend(quote! { #name #width });
     }
 }
 
-#[derive(Debug, Clone)]
-struct DeclarationList {
-    kind: HDLKind,
-    signed_width: Option<SignedWidth>,
-    items: Punctuated<DeclKind, Token![,]>,
-    _term: Token![;],
-}
-
-impl From<&DeclarationList> for ast::DeclarationList {
-    fn from(value: &DeclarationList) -> Self {
-        let kind = value.kind.into();
-        let signed_width = if let Some(width) = value.signed_width.as_ref() {
-            width.into()
-        } else {
-            ast::SignedWidth::Unsigned(0..=0)
-        };
-        let items = value.items.iter().map(|item| item.into()).collect();
-        ast::DeclarationList {
-            kind,
-            signed_width,
-            items,
-        }
-    }
+#[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct DeclarationList {
+    pub kind: HDLKind,
+    pub signed_width: Option<SignedWidth>,
+    pub items: Vec<DeclKind>,
 }
 
 impl Parse for DeclarationList {
@@ -230,55 +292,40 @@ impl Parse for DeclarationList {
         } else {
             None
         };
-        let items = Punctuated::parse_separated_nonempty(input)?;
-        let _term = input.parse()?;
+        let items = Punctuated::<DeclKind, Token![,]>::parse_separated_nonempty(input)?;
+        let _term = input.parse::<Token![;]>()?;
         Ok(DeclarationList {
             kind,
             signed_width,
-            items,
-            _term,
+            items: items.into_iter().collect(),
         })
+    }
+}
+
+impl Pretty for DeclarationList {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        self.kind.pretty_print(formatter);
+        formatter.write(" ");
+        self.signed_width.pretty_print(formatter);
+        formatter.write(" ");
+        formatter.comma_separated(self.items.iter());
     }
 }
 
 impl ToTokens for DeclarationList {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let kind = &self.kind;
-        let signed_width = if let Some(width) = self.signed_width.as_ref() {
-            quote! {#width}
-        } else {
-            quote! {vlog::unsigned(0..=0)}
-        };
-        let items = iter_tokens(self.items.iter());
-        tokens.extend(quote! {
-            vlog::declaration_list(#kind, #signed_width, #items)
-        })
+        let signed_width = &self.signed_width;
+        let items = &self.items;
+        tokens.extend(quote! { #kind #signed_width #(#items),* ; });
     }
 }
 
-#[derive(Debug, Clone)]
-struct Declaration {
-    kind: HDLKind,
-    signed_width: Option<SignedWidth>,
-    name: Ident,
-    _term: Option<Token![;]>,
-}
-
-impl From<&Declaration> for ast::Declaration {
-    fn from(value: &Declaration) -> Self {
-        let kind = value.kind.into();
-        let signed_width = if let Some(width) = value.signed_width.as_ref() {
-            width.into()
-        } else {
-            ast::SignedWidth::Unsigned(0..=0)
-        };
-        let name = value.name.to_string();
-        ast::Declaration {
-            kind,
-            signed_width,
-            name,
-        }
-    }
+#[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct Declaration {
+    pub kind: HDLKind,
+    pub signed_width: Option<SignedWidth>,
+    pub name: String,
 }
 
 impl Parse for Declaration {
@@ -289,43 +336,53 @@ impl Parse for Declaration {
         } else {
             None
         };
-        let name = input.parse()?;
-        let _term = input.parse()?;
+        let name: Ident = input.parse()?;
         Ok(Declaration {
             kind,
             signed_width,
-            name,
-            _term,
+            name: name.to_string(),
         })
+    }
+}
+
+impl Pretty for Declaration {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        self.kind.pretty_print(formatter);
+        formatter.write(" ");
+        self.signed_width.pretty_print(formatter);
+        formatter.write(" ");
+        formatter.write(&self.name);
     }
 }
 
 impl ToTokens for Declaration {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let kind = &self.kind;
-        let signed_width = if let Some(width) = self.signed_width.as_ref() {
-            quote! {#width}
-        } else {
-            quote! {vlog::unsigned(0..=0)}
-        };
-        let name = &self.name;
-        tokens.extend(quote! {
-            vlog::declaration(#kind, #signed_width, stringify!(#name))
-        })
+        self.kind.to_tokens(tokens);
+        self.signed_width.to_tokens(tokens);
+        let name = format_ident!("{}", self.name);
+        tokens.extend(quote! { #name });
     }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
-struct Port {
-    direction: Direction,
-    decl: Declaration,
+#[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct Port {
+    pub direction: Direction,
+    pub decl: Declaration,
 }
 
-impl From<&Port> for ast::Port {
-    fn from(value: &Port) -> Self {
-        let direction = value.direction.into();
-        let decl = (&value.decl).into();
-        ast::Port { direction, decl }
+impl Parse for Port {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let direction = input.parse()?;
+        let decl = input.parse()?;
+        Ok(Port { direction, decl })
+    }
+}
+
+impl Pretty for Port {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        self.direction.pretty_print(formatter);
+        formatter.write(" ");
+        self.decl.pretty_print(formatter);
     }
 }
 
@@ -333,14 +390,13 @@ impl ToTokens for Port {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let direction = &self.direction;
         let decl = &self.decl;
-        tokens.extend(quote! {
-            vlog::port(#direction, #decl)
-        })
+        direction.to_tokens(tokens);
+        decl.to_tokens(tokens);
     }
 }
 
-#[derive(Default)]
-enum StmtKind {
+#[derive(Default, Clone, PartialEq, Hash, Serialize, Deserialize)]
+pub enum StmtKind {
     If(If),
     Always(Always),
     Case(Case),
@@ -357,177 +413,6 @@ enum StmtKind {
     #[default]
     /// Required because the parser for if/else uses it as a placeholder
     Noop,
-}
-
-impl From<&StmtKind> for ast::Stmt {
-    fn from(value: &StmtKind) -> Self {
-        match value {
-            StmtKind::If(if_stmt) => ast::Stmt::If(if_stmt.into()),
-            StmtKind::Always(always) => ast::Stmt::Always(always.into()),
-            StmtKind::Case(case) => ast::Stmt::Case(case.into()),
-            StmtKind::LocalParam(local_param) => ast::Stmt::LocalParam(local_param.into()),
-            StmtKind::Block(block) => ast::Stmt::Block(
-                block
-                    .body
-                    .iter()
-                    .map(|stmt| stmt.into())
-                    .collect::<Vec<_>>(),
-            ),
-            StmtKind::ContinuousAssign(continuous_assign) => {
-                ast::Stmt::ContinuousAssign(continuous_assign.into())
-            }
-            StmtKind::FunctionCall(function_call) => ast::Stmt::FunctionCall(function_call.into()),
-            StmtKind::NonblockAssign(nonblock_assign) => {
-                ast::Stmt::NonblockAssign(nonblock_assign.into())
-            }
-            StmtKind::Assign(assign) => ast::Stmt::Assign(assign.into()),
-            StmtKind::Instance(instance) => ast::Stmt::Instance(instance.into()),
-            StmtKind::DynamicSplice(dynamic_splice) => {
-                ast::Stmt::DynamicSplice(dynamic_splice.into())
-            }
-            StmtKind::Delay(delay) => ast::Stmt::Delay(delay.length.base10_parse::<u32>().unwrap()),
-            StmtKind::ConcatAssign(concat_assign) => ast::Stmt::ConcatAssign(concat_assign.into()),
-            StmtKind::Noop => panic!("Noop should not be converted to ast::Stmt"),
-        }
-    }
-}
-
-fn option_tokens<T: ToTokens>(t: Option<T>) -> proc_macro2::TokenStream {
-    match t {
-        Some(inner) => {
-            quote! {Some(#inner)}
-        }
-        None => quote! {None},
-    }
-}
-
-fn iter_tokens<T: ToTokens>(t: impl IntoIterator<Item = T>) -> proc_macro2::TokenStream {
-    let t = t.into_iter();
-    let elements = t.collect::<Vec<_>>();
-    vec_tokens(&elements)
-}
-
-fn vec_tokens<T: ToTokens>(t: &[T]) -> proc_macro2::TokenStream {
-    if t.len() == 0 {
-        return quote! {vec![]};
-    }
-    let len = t.len();
-    let ret = format_ident!("ret");
-    let push = t.iter().map(|x| quote! {#ret.push(#x);});
-    quote! {
-        {
-            let mut #ret = Vec::with_capacity(#len);
-            #(#push)*
-            #ret
-        }
-    }
-}
-
-impl ToTokens for StmtKind {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        tokens.extend(match self {
-            StmtKind::If(inner) => {
-                let condition = &inner.condition.inner;
-                let true_stmt = &inner.true_stmt;
-                let else_stmt = option_tokens(inner.else_branch.as_ref().map(|x| &x.stmt));
-                quote! {
-                    vlog::if_stmt(#condition, #true_stmt, #else_stmt)
-                }
-            }
-            StmtKind::Always(inner) => {
-                let sensitivity = &inner.sensitivity;
-                let body = &inner.body;
-                quote! {
-                    vlog::always_stmt(#sensitivity, #body)
-                }
-            }
-            StmtKind::Case(inner) => {
-                let discriminant = &inner.discriminant;
-                let lines = vec_tokens(&inner.lines);
-                quote! {
-                    vlog::case_stmt(#discriminant, #lines)
-                }
-            }
-            StmtKind::LocalParam(inner) => {
-                let target = &inner.target;
-                let rhs = &inner.rhs;
-                quote! {
-                    vlog::local_param_stmt(stringify!(#target), #rhs)
-                }
-            }
-            StmtKind::Block(inner) => {
-                let inner = vec_tokens(&inner.body);
-                quote! {
-                    vlog::block_stmt(#inner)
-                }
-            }
-            StmtKind::ContinuousAssign(inner) => {
-                let target = &inner.assign.target;
-                let rhs = &inner.assign.rhs;
-                quote! {
-                    vlog::continuous_assign_stmt(#target, #rhs)
-                }
-            }
-            StmtKind::FunctionCall(inner) => {
-                let name = format_ident!("_dollar_{}", inner.name);
-                let args = inner
-                    .args
-                    .iter()
-                    .flat_map(|x| x.inner.iter())
-                    .collect::<Vec<_>>();
-                let args = vec_tokens(&args);
-                quote! {
-                    vlog::function_call_stmt(stringify!(#name), #args)
-                }
-            }
-            StmtKind::NonblockAssign(inner) => {
-                let target = &inner.target;
-                let rhs = &inner.rhs;
-                quote! {
-                    vlog::nonblock_assign_stmt(#target, #rhs)
-                }
-            }
-            StmtKind::Assign(inner) => {
-                let target = &inner.target;
-                let rhs = &inner.rhs;
-                quote! {
-                    vlog::assign_stmt(#target, #rhs)
-                }
-            }
-            StmtKind::Instance(inner) => {
-                let module = &inner.module;
-                let instance = &inner.instance;
-                let connections = iter_tokens(&inner.connections.inner);
-                quote! {
-                    vlog::instance_stmt(stringify!(#module), stringify!(#instance), #connections)
-                }
-            }
-            StmtKind::DynamicSplice(inner) => {
-                let target = &inner.lhs.target;
-                let base = &inner.lhs.address.base;
-                let op = &inner.lhs.address.op;
-                let width = &inner.lhs.address.width;
-                let rhs = &inner.rhs;
-                quote! {
-                    vlog::dynamic_splice_stmt(stringify!(#target), #base, #op, #width, #rhs)
-                }
-            }
-            StmtKind::Delay(inner) => {
-                let delay = &inner.length;
-                quote! {
-                    vlog::delay_stmt(#delay)
-                }
-            }
-            StmtKind::ConcatAssign(inner) => {
-                let target = iter_tokens(&inner.target.elements);
-                let rhs = &inner.rhs;
-                quote! {
-                    vlog::concat_assign_stmt(#target, #rhs)
-                }
-            }
-            StmtKind::Noop => quote! {},
-        })
-    }
 }
 
 impl Parse for StmtKind {
@@ -559,21 +444,74 @@ impl Parse for StmtKind {
             input.parse().map(StmtKind::ConcatAssign)
         } else if lookahead.peek(token::Pound) {
             input.parse().map(StmtKind::Delay)
+        } else if lookahead.peek(Token![;]) {
+            Ok(StmtKind::Noop)
         } else {
             Err(lookahead.error())
         }
     }
 }
 
-#[derive(Default, syn_derive::Parse)]
-struct Stmt {
-    kind: StmtKind,
-    _terminator: Option<Token![;]>,
+impl Pretty for StmtKind {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        match self {
+            StmtKind::If(if_stmt) => if_stmt.pretty_print(formatter),
+            StmtKind::Always(always_stmt) => always_stmt.pretty_print(formatter),
+            StmtKind::Case(case_stmt) => case_stmt.pretty_print(formatter),
+            StmtKind::LocalParam(local_param) => local_param.pretty_print(formatter),
+            StmtKind::Block(block) => block.pretty_print(formatter),
+            StmtKind::ContinuousAssign(continuous_assign) => {
+                continuous_assign.pretty_print(formatter)
+            }
+            StmtKind::FunctionCall(function_call) => function_call.pretty_print(formatter),
+            StmtKind::NonblockAssign(nonblock_assign) => nonblock_assign.pretty_print(formatter),
+            StmtKind::Assign(assign) => assign.pretty_print(formatter),
+            StmtKind::Instance(instance) => instance.pretty_print(formatter),
+            StmtKind::DynamicSplice(dynamic_splice) => dynamic_splice.pretty_print(formatter),
+            StmtKind::Delay(delay) => delay.pretty_print(formatter),
+            StmtKind::ConcatAssign(concat_assign) => concat_assign.pretty_print(formatter),
+            StmtKind::Noop => {}
+        }
+    }
 }
 
-impl From<&Stmt> for ast::Stmt {
-    fn from(value: &Stmt) -> Self {
-        (&value.kind).into()
+impl ToTokens for StmtKind {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            StmtKind::If(if_stmt) => if_stmt.to_tokens(tokens),
+            StmtKind::Always(always_stmt) => always_stmt.to_tokens(tokens),
+            StmtKind::Case(case_stmt) => case_stmt.to_tokens(tokens),
+            StmtKind::LocalParam(local_param) => local_param.to_tokens(tokens),
+            StmtKind::Block(block) => block.to_tokens(tokens),
+            StmtKind::ContinuousAssign(continuous_assign) => continuous_assign.to_tokens(tokens),
+            StmtKind::FunctionCall(function_call) => function_call.to_tokens(tokens),
+            StmtKind::NonblockAssign(nonblock_assign) => nonblock_assign.to_tokens(tokens),
+            StmtKind::Assign(assign) => assign.to_tokens(tokens),
+            StmtKind::Instance(instance) => instance.to_tokens(tokens),
+            StmtKind::DynamicSplice(dynamic_splice) => dynamic_splice.to_tokens(tokens),
+            StmtKind::Delay(delay) => delay.to_tokens(tokens),
+            StmtKind::ConcatAssign(concat_assign) => concat_assign.to_tokens(tokens),
+            StmtKind::Noop => {}
+        }
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize, Default)]
+pub struct Stmt {
+    pub kind: StmtKind,
+}
+
+impl Parse for Stmt {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let kind = input.parse()?;
+        let _ = input.parse::<Option<Token![;]>>()?;
+        Ok(Stmt { kind })
+    }
+}
+
+impl Pretty for Stmt {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        self.kind.pretty_print(formatter);
     }
 }
 
@@ -583,41 +521,12 @@ impl ToTokens for Stmt {
     }
 }
 
-enum Item {
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub enum Item {
     Statement(Stmt),
     Declaration(DeclarationList),
     FunctionDef(FunctionDef),
     Initial(Initial),
-}
-
-impl From<&Item> for ast::Item {
-    fn from(value: &Item) -> Self {
-        match value {
-            Item::Statement(stmt) => ast::Item::Statement(stmt.into()),
-            Item::Declaration(decl) => ast::Item::Declaration(decl.into()),
-            Item::FunctionDef(func) => ast::Item::FunctionDef(func.into()),
-            Item::Initial(init) => ast::Item::Initial((&init.statement).into()),
-        }
-    }
-}
-
-impl ToTokens for Item {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        tokens.extend(match self {
-            Item::Statement(stmt) => quote! {
-                vlog::stmt_item(#stmt)
-            },
-            Item::Declaration(decl) => quote! {
-                vlog::declaration_item(#decl)
-            },
-            Item::FunctionDef(func) => quote! {
-                vlog::function_def_item(#func)
-            },
-            Item::Initial(init) => quote! {
-                vlog::initial_item(#init)
-            },
-        })
-    }
 }
 
 impl Parse for Item {
@@ -634,72 +543,157 @@ impl Parse for Item {
     }
 }
 
-#[derive(syn_derive::Parse)]
-struct Initial {
-    _initial_kw: kw::initial,
-    statement: Stmt,
+impl Pretty for Item {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        match self {
+            Item::Statement(stmt) => stmt.pretty_print(formatter),
+            Item::Declaration(decl) => decl.pretty_print(formatter),
+            Item::FunctionDef(func) => func.pretty_print(formatter),
+            Item::Initial(initial) => initial.pretty_print(formatter),
+        }
+    }
+}
+
+impl ToTokens for Item {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            Item::Statement(stmt) => stmt.to_tokens(tokens),
+            Item::Declaration(decl) => decl.to_tokens(tokens),
+            Item::FunctionDef(func) => func.to_tokens(tokens),
+            Item::Initial(initial) => initial.to_tokens(tokens),
+        }
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct Initial {
+    pub statement: Stmt,
+}
+
+impl Parse for Initial {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _initial_kw: kw::initial = input.parse()?;
+        let statement = input.parse()?;
+        Ok(Initial { statement })
+    }
+}
+
+impl Pretty for Initial {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write("initial ");
+        self.statement.pretty_print(formatter);
+    }
 }
 
 impl ToTokens for Initial {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        self.statement.to_tokens(tokens);
+        let statement = &self.statement;
+        tokens.extend(quote! { initial #statement });
     }
 }
 
-#[derive(syn_derive::Parse)]
-struct Delay {
-    _hash_token: Token![#],
-    length: LitInt,
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct Delay {
+    pub length: u64,
 }
 
-struct FunctionCall {
-    _dollar: Token![$],
-    name: Ident,
-    args: Option<ParenCommaList<Expr>>,
-}
-
-impl From<&FunctionCall> for ast::FunctionCall {
-    fn from(value: &FunctionCall) -> Self {
-        let name = format!("_{}", value.name.to_string());
-        let args = value
-            .args
-            .iter()
-            .flat_map(|args| args.inner.iter())
-            .map(|arg| arg.into())
-            .collect::<Vec<_>>();
-        ast::FunctionCall { name, args }
+impl Parse for Delay {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _hash = input.parse::<Token![#]>()?;
+        let length: LitInt = input.parse()?;
+        let length = length.base10_parse::<u64>()?;
+        Ok(Delay { length })
     }
+}
+
+impl Pretty for Delay {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write("#");
+        formatter.write(&self.length.to_string());
+    }
+}
+
+impl ToTokens for Delay {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let length = syn::Index::from(self.length as usize);
+        let hash = token::Pound::default();
+        tokens.extend(quote! { #hash #length });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct FunctionCall {
+    pub name: String,
+    pub args: Vec<Expr>,
 }
 
 impl Parse for FunctionCall {
     fn parse(input: ParseStream) -> Result<Self> {
-        let dollar = input.parse()?;
-        let name = input.parse()?;
+        let _dollar = input.parse::<Token![$]>()?;
+        let name = input.parse::<Ident>()?;
         let args = if input.peek(token::Paren) {
-            Some(input.parse()?)
+            Some(input.parse::<ParenCommaList<Expr>>()?)
         } else {
             None
         };
         Ok(FunctionCall {
-            _dollar: dollar,
-            name,
-            args,
+            name: name.to_string(),
+            args: args.into_iter().flat_map(|x| x.inner.into_iter()).collect(),
         })
     }
 }
 
-enum CaseItem {
-    Ident(Pair<Ident, Token![:]>),
-    Literal(Pair<LitVerilog, Token![:]>),
-    Wild(Pair<kw::default, Token![:]>),
+impl Pretty for FunctionCall {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write("$");
+        formatter.write(&self.name);
+        if !self.args.is_empty() {
+            formatter.parenthesized(|f| {
+                f.comma_separated(self.args.iter());
+            });
+        }
+    }
 }
 
-impl From<&CaseItem> for ast::CaseItem {
-    fn from(value: &CaseItem) -> Self {
-        match value {
-            CaseItem::Ident(pair) => ast::CaseItem::Ident(pair.0.to_string()),
-            CaseItem::Literal(pair) => ast::CaseItem::Literal((&pair.0).into()),
-            CaseItem::Wild(_pair) => ast::CaseItem::Wild,
+impl ToTokens for FunctionCall {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = format_ident!("{}", self.name);
+        let args = &self.args;
+        if args.is_empty() {
+            tokens.extend(quote! { $ #name ; });
+        } else {
+            tokens.extend(quote! { $ #name ( #( #args ),* ) ; });
+        }
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub enum CaseItem {
+    Ident(String),
+    Literal(LitVerilog),
+    Wild,
+}
+
+impl Parse for CaseItem {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.peek(kw::default) {
+            input.parse::<kw::default>().map(|_| CaseItem::Wild)
+        } else if input.peek(Ident) {
+            input
+                .parse::<Ident>()
+                .map(|ident| CaseItem::Ident(ident.to_string()))
+        } else {
+            input.parse().map(CaseItem::Literal)
+        }
+    }
+}
+
+impl Pretty for CaseItem {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        match self {
+            CaseItem::Ident(ident) => formatter.write(ident),
+            CaseItem::Literal(literal) => literal.pretty_print(formatter),
+            CaseItem::Wild => formatter.write("default"),
         }
     }
 }
@@ -708,49 +702,38 @@ impl ToTokens for CaseItem {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         match self {
             CaseItem::Ident(ident) => {
-                let ident = &ident.0;
-                tokens.extend(quote! {
-                    vlog::case_item_ident(stringify!(#ident))
-                });
+                let ident = format_ident!("{}", ident);
+                tokens.extend(quote! { #ident });
             }
-            CaseItem::Literal(pair) => {
-                let lit = &pair.0;
-                tokens.extend(quote! {
-                    vlog::case_item_literal(#lit)
-                });
-            }
-            CaseItem::Wild(_pair) => {
-                tokens.extend(quote! {
-                    vlog::case_item_wild()
-                });
-            }
+            CaseItem::Literal(literal) => literal.to_tokens(tokens),
+            CaseItem::Wild => tokens.extend(quote! { default }),
         }
     }
 }
 
-impl Parse for CaseItem {
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct CaseLine {
+    pub item: CaseItem,
+    pub stmt: Box<Stmt>,
+}
+
+impl Parse for CaseLine {
     fn parse(input: ParseStream) -> Result<Self> {
-        if input.peek(kw::default) {
-            input.parse().map(CaseItem::Wild)
-        } else if input.peek(Ident) {
-            input.parse().map(CaseItem::Ident)
-        } else {
-            input.parse().map(CaseItem::Literal)
-        }
+        let item = input.parse()?;
+        let _colon = input.parse::<Token![:]>()?;
+        let stmt = input.parse()?;
+        Ok(CaseLine {
+            item,
+            stmt: Box::new(stmt),
+        })
     }
 }
 
-#[derive(syn_derive::Parse)]
-struct CaseLine {
-    item: CaseItem,
-    stmt: Box<Stmt>,
-}
-
-impl From<&CaseLine> for ast::CaseLine {
-    fn from(value: &CaseLine) -> Self {
-        let item = (&value.item).into();
-        let stmt = Box::new(value.stmt.as_ref().into());
-        ast::CaseLine { item, stmt }
+impl Pretty for CaseLine {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        self.item.pretty_print(formatter);
+        formatter.write(" : ");
+        self.stmt.pretty_print(formatter);
     }
 }
 
@@ -758,22 +741,12 @@ impl ToTokens for CaseLine {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let item = &self.item;
         let stmt = &self.stmt;
-        tokens.extend(quote! {
-            vlog::case_line(#item, #stmt)
-        })
-    }
-}
-
-struct Pair<S, T>(S, T);
-
-impl<S: Parse, T: Parse> Parse for Pair<S, T> {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self(input.parse()?, input.parse()?))
+        tokens.extend(quote! { #item : #stmt });
     }
 }
 
 #[derive(syn_derive::Parse)]
-struct ParenCommaList<T: Parse + ToTokens> {
+struct ParenCommaList<T: Parse> {
     #[syn(parenthesized)]
     _paren: Paren,
     #[syn(in = _paren)]
@@ -782,115 +755,147 @@ struct ParenCommaList<T: Parse + ToTokens> {
 }
 
 #[derive(syn_derive::Parse)]
-struct Parenthesized<T: Parse + ToTokens> {
+struct Parenthesized<T: Parse> {
     #[syn(parenthesized)]
     _paren: Paren,
     #[syn(in = _paren)]
     inner: T,
 }
 
-struct Case {
-    _case: kw::case,
-    _parens: Paren,
-    discriminant: Box<Expr>,
-    lines: Vec<CaseLine>,
-    _endcase: kw::endcase,
-}
-
-impl From<&Case> for ast::Case {
-    fn from(value: &Case) -> Self {
-        let discriminant = Box::new(value.discriminant.as_ref().into());
-        let lines = value.lines.iter().map(|x| x.into()).collect::<Vec<_>>();
-        ast::Case {
-            discriminant,
-            lines,
-        }
-    }
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct Case {
+    pub discriminant: Box<Expr>,
+    pub lines: Vec<CaseLine>,
 }
 
 impl Parse for Case {
     fn parse(input: ParseStream) -> Result<Self> {
-        let case = input.parse()?;
+        let _case = input.parse::<kw::case>()?;
         let discriminant;
-        let parens = parenthesized!(discriminant in input);
-        let discriminant = discriminant.parse()?;
-        let mut lines = Vec::new();
+        let _parens = parenthesized!(discriminant in input);
+        let discriminant = discriminant.parse::<Box<Expr>>()?;
+        let mut lines = Vec::<CaseLine>::new();
         loop {
             if input.peek(kw::endcase) {
                 break;
             }
             lines.push(input.parse()?);
         }
-        let endcase = input.parse()?;
+        let _endcase = input.parse::<kw::endcase>()?;
         Ok(Self {
-            _case: case,
-            _parens: parens,
             discriminant,
             lines,
-            _endcase: endcase,
         })
     }
 }
 
-#[derive(syn_derive::Parse)]
-struct Connection {
-    _dot: Token![.],
-    target: Ident,
-    local: Box<Expr>,
+impl Pretty for Case {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write("case ");
+        formatter.parenthesized(|f| self.discriminant.pretty_print(f));
+        formatter.newline();
+        formatter.scoped(|f| {
+            f.lines(&self.lines);
+        });
+        formatter.write("endcase");
+    }
 }
 
-impl From<&Connection> for ast::Connection {
-    fn from(value: &Connection) -> Self {
-        let target = value.target.to_string();
-        let local = Box::new(value.local.as_ref().into());
-        ast::Connection { target, local }
+impl ToTokens for Case {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let discriminant = &self.discriminant;
+        let lines = &self.lines;
+        tokens.extend(quote! {
+            case (#discriminant)
+                #( #lines )*
+            endcase
+        });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct Connection {
+    pub target: String,
+    pub local: Box<Expr>,
+}
+
+impl Parse for Connection {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _dot = input.parse::<Token![.]>()?;
+        let target = input.parse::<Ident>()?;
+        let content;
+        let _paren = parenthesized!(content in input);
+        let local = content.parse::<Box<Expr>>()?;
+        Ok(Self {
+            target: target.to_string(),
+            local,
+        })
+    }
+}
+
+impl Pretty for Connection {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&format!(".{}", self.target));
+        formatter.parenthesized(|f| {
+            self.local.pretty_print(f);
+        });
     }
 }
 
 impl ToTokens for Connection {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let target = &self.target;
+        let target = format_ident!("{}", self.target);
         let local = &self.local;
-        tokens.extend(quote! {
-            vlog::connection(stringify!(#target), #local)
+        tokens.extend(quote! { .#target ( #local ) });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct Instance {
+    pub module: String,
+    pub instance: String,
+    pub connections: Vec<Connection>,
+}
+
+impl Parse for Instance {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let module = input.parse::<Ident>()?;
+        let instance = input.parse::<Ident>()?;
+        let connections = input.parse::<ParenCommaList<Connection>>()?;
+        Ok(Self {
+            module: module.to_string(),
+            instance: instance.to_string(),
+            connections: connections.inner.into_iter().collect(),
         })
     }
 }
 
-#[derive(syn_derive::Parse)]
-struct Instance {
-    module: Ident,
-    instance: Ident,
-    connections: ParenCommaList<Connection>,
-}
-
-impl From<&Instance> for ast::Instance {
-    fn from(value: &Instance) -> Self {
-        let module = value.module.to_string();
-        let instance = value.instance.to_string();
-        let connections = value
-            .connections
-            .inner
-            .iter()
-            .map(|x| x.into())
-            .collect::<Vec<_>>();
-        ast::Instance {
-            module,
-            instance,
-            connections,
-        }
+impl Pretty for Instance {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&format!("{} {}", self.module, self.instance));
+        formatter.parenthesized(|f| {
+            f.comma_separated(&self.connections);
+        });
     }
 }
 
-struct Block {
-    _begin: kw::begin,
-    body: Vec<Stmt>,
-    _end: kw::end,
+impl ToTokens for Instance {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let module = format_ident!("{}", self.module);
+        let instance = format_ident!("{}", self.instance);
+        let connections = &self.connections;
+        tokens.extend(quote! { #module #instance ( #( #connections ),* ) ; });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct Block {
+    pub body: Vec<Stmt>,
 }
 
 impl Parse for Block {
     fn parse(input: ParseStream) -> Result<Self> {
-        let begin = input.parse()?;
+        let _begin = input.parse::<kw::begin>()?;
         let mut body = Vec::new();
         loop {
             if input.peek(kw::end) {
@@ -898,179 +903,291 @@ impl Parse for Block {
             }
             body.push(input.parse()?);
         }
-        let end = input.parse()?;
-        Ok(Self {
-            _begin: begin,
-            body,
-            _end: end,
-        })
+        let _end = input.parse::<kw::end>()?;
+        Ok(Self { body })
     }
 }
 
-#[derive(syn_derive::Parse)]
-struct DynamicSplice {
-    lhs: Box<ExprDynIndex>,
-    _eq: Token![=],
-    rhs: Box<Expr>,
+impl Pretty for Block {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write("begin");
+        formatter.newline();
+        formatter.scoped(|f| {
+            f.lines(&self.body);
+        });
+        formatter.write("end");
+    }
 }
 
-impl From<&DynamicSplice> for ast::DynamicSplice {
-    fn from(value: &DynamicSplice) -> Self {
-        let target = value.lhs.target.to_string();
-        let base = Box::new(value.lhs.address.base.as_ref().into());
-        let op = value.lhs.address.op.into();
-        let width = Box::new(value.lhs.address.width.as_ref().into());
-        let rhs = Box::new(value.rhs.as_ref().into());
-        ast::DynamicSplice {
-            target,
-            base,
-            op,
-            width,
-            rhs,
+impl ToTokens for Block {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let body = &self.body;
+        tokens.extend(quote! {
+            begin
+                #( #body )*
+            end
+        });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct DynamicSplice {
+    pub lhs: Box<ExprDynIndex>,
+    pub rhs: Box<Expr>,
+}
+
+impl Parse for DynamicSplice {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lhs = input.parse::<Box<ExprDynIndex>>()?;
+        let _eq = input.parse::<Token![=]>()?;
+        let rhs = input.parse::<Box<Expr>>()?;
+        Ok(Self { lhs, rhs })
+    }
+}
+
+impl Pretty for DynamicSplice {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        self.lhs.pretty_print(formatter);
+        formatter.write(" = ");
+        self.rhs.pretty_print(formatter);
+    }
+}
+
+impl ToTokens for DynamicSplice {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let lhs = &self.lhs;
+        let rhs = &self.rhs;
+        tokens.extend(quote! { #lhs = #rhs ; });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub enum Sensitivity {
+    PosEdge(PosEdgeSensitivity),
+    NegEdge(NegEdgeSensitivity),
+    Signal(String),
+    Star,
+}
+
+impl Parse for Sensitivity {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+        if lookahead.peek(kw::posedge) {
+            Ok(Sensitivity::PosEdge(input.parse()?))
+        } else if lookahead.peek(kw::negedge) {
+            Ok(Sensitivity::NegEdge(input.parse()?))
+        } else if lookahead.peek(Ident) {
+            Ok(Sensitivity::Signal(input.parse::<Ident>()?.to_string()))
+        } else if lookahead.peek(Token![*]) {
+            let _ = input.parse::<Token![*]>()?;
+            Ok(Sensitivity::Star)
+        } else {
+            Err(input.error("expected sensitivity"))
         }
     }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
-enum Sensitivity {
-    #[parse(peek = kw::posedge)]
-    PosEdge(PosEdgeSensitivity),
-    #[parse(peek = kw::negedge)]
-    NegEdge(NegEdgeSensitivity),
-    #[parse(peek = Ident)]
-    Signal(Ident),
-    #[parse(peek = Token![*])]
-    Star(Token![*]),
-}
-
-impl From<&Sensitivity> for ast::Sensitivity {
-    fn from(value: &Sensitivity) -> Self {
-        match value {
-            Sensitivity::PosEdge(sen) => ast::Sensitivity::PosEdge(sen.ident.to_string()),
-            Sensitivity::NegEdge(sen) => ast::Sensitivity::NegEdge(sen.ident.to_string()),
-            Sensitivity::Signal(ident) => ast::Sensitivity::Signal(ident.to_string()),
-            Sensitivity::Star(_) => ast::Sensitivity::Star,
+impl Pretty for Sensitivity {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        match self {
+            Sensitivity::PosEdge(pos) => {
+                pos.pretty_print(formatter);
+            }
+            Sensitivity::NegEdge(neg) => {
+                neg.pretty_print(formatter);
+            }
+            Sensitivity::Signal(sig) => {
+                formatter.write(sig);
+            }
+            Sensitivity::Star => {
+                formatter.write("*");
+            }
         }
     }
 }
 
 impl ToTokens for Sensitivity {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        tokens.extend(match self {
-            Sensitivity::PosEdge(sen) => {
-                let ident = &sen.ident;
-                quote! {vlog::pos_edge(stringify!(#ident))}
+        match self {
+            Sensitivity::PosEdge(pos) => pos.to_tokens(tokens),
+            Sensitivity::NegEdge(neg) => neg.to_tokens(tokens),
+            Sensitivity::Signal(sig) => {
+                let sig = format_ident!("{}", sig);
+                tokens.extend(quote! { #sig });
             }
-            Sensitivity::NegEdge(sen) => {
-                let ident = &sen.ident;
-                quote! {vlog::neg_edge(stringify!(#ident))}
+            Sensitivity::Star => {
+                tokens.extend(quote! { * });
             }
-            Sensitivity::Signal(ident) => {
-                quote! {vlog::signal(stringify!(#ident))}
-            }
-            Sensitivity::Star(inner) => {
-                let _ = inner;
-                quote! {vlog::star()}
-            }
+        }
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct PosEdgeSensitivity {
+    pub ident: String,
+}
+
+impl Parse for PosEdgeSensitivity {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _posedge = input.parse::<kw::posedge>()?;
+        let ident = input.parse::<Ident>()?;
+        Ok(PosEdgeSensitivity {
+            ident: ident.to_string(),
         })
     }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
-struct PosEdgeSensitivity {
-    _posedge: kw::posedge,
-    ident: Ident,
+impl Pretty for PosEdgeSensitivity {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write("posedge ");
+        formatter.write(&self.ident);
+    }
 }
 
-#[derive(Debug, Clone, syn_derive::Parse)]
-struct NegEdgeSensitivity {
-    _negedge: kw::negedge,
-    ident: Ident,
-}
-
-#[derive(syn_derive::Parse)]
-struct SensitivityList {
-    _at: Token![@],
-    elements: ParenCommaList<Sensitivity>,
-}
-
-impl ToTokens for SensitivityList {
+impl ToTokens for PosEdgeSensitivity {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let elements = iter_tokens(self.elements.inner.iter());
-        tokens.extend(quote! {
-            #elements
+        let ident = format_ident!("{}", self.ident);
+        tokens.extend(quote! { posedge #ident });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct NegEdgeSensitivity {
+    pub ident: String,
+}
+
+impl Parse for NegEdgeSensitivity {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _negedge = input.parse::<kw::negedge>()?;
+        let ident = input.parse::<Ident>()?;
+        Ok(NegEdgeSensitivity {
+            ident: ident.to_string(),
+        })
+    }
+}
+
+impl Pretty for NegEdgeSensitivity {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write("negedge ");
+        formatter.write(&self.ident);
+    }
+}
+
+impl ToTokens for NegEdgeSensitivity {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let ident = format_ident!("{}", self.ident);
+        tokens.extend(quote! { negedge #ident });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct SensitivityList {
+    pub elements: Vec<Sensitivity>,
+}
+
+impl Parse for SensitivityList {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _at = input.parse::<Token![@]>()?;
+        let elements = input.parse::<ParenCommaList<Sensitivity>>()?;
+        Ok(SensitivityList {
+            elements: elements.inner.into_iter().collect(),
+        })
+    }
+}
+
+impl Pretty for SensitivityList {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write("@");
+        formatter.parenthesized(|f| {
+            f.comma_separated(self.elements.iter());
         });
     }
 }
 
-#[derive(syn_derive::Parse)]
-struct Always {
-    _always: kw::always,
-    sensitivity: SensitivityList,
-    body: Box<Stmt>,
-}
-
-impl From<&Always> for ast::Always {
-    fn from(value: &Always) -> Self {
-        let sensitivity = value
-            .sensitivity
-            .elements
-            .inner
-            .iter()
-            .map(|x| x.into())
-            .collect();
-        let body = Box::new(value.body.as_ref().into());
-        ast::Always { sensitivity, body }
-    }
-}
-
-#[derive(syn_derive::Parse)]
-struct LocalParam {
-    _localparam: kw::localparam,
-    target: Ident,
-    _eq: Token![=],
-    rhs: ConstExpr,
-}
-
-impl From<&LocalParam> for ast::LocalParam {
-    fn from(value: &LocalParam) -> Self {
-        ast::LocalParam {
-            target: value.target.to_string(),
-            rhs: (&value.rhs).into(),
-        }
-    }
-}
-
-enum ConstExpr {
-    LitVerilog(LitVerilog),
-    LitInt(LitInt),
-    LitStr(LitStr),
-}
-
-impl From<&ConstExpr> for ast::ConstExpr {
-    fn from(value: &ConstExpr) -> Self {
-        match value {
-            ConstExpr::LitVerilog(lit) => ast::ConstExpr::LitVerilog(lit.into()),
-            ConstExpr::LitInt(lit) => ast::ConstExpr::LitInt(lit.base10_parse::<i32>().unwrap()),
-            ConstExpr::LitStr(lit) => ast::ConstExpr::LitStr(lit.value()),
-        }
-    }
-}
-
-impl ToTokens for ConstExpr {
+impl ToTokens for SensitivityList {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        match self {
-            ConstExpr::LitVerilog(lit) => {
-                tokens.extend(quote! { vlog::const_verilog(#lit) });
-            }
-            ConstExpr::LitInt(lit) => {
-                tokens.extend(quote! { vlog::const_int(#lit) });
-            }
-            ConstExpr::LitStr(lit) => {
-                tokens.extend(quote! { vlog::const_str(#lit) });
-            }
-        }
+        let elements = &self.elements;
+        tokens.extend(quote! { @ ( #( #elements ),* ) });
     }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct Always {
+    pub sensitivity: SensitivityList,
+    pub body: Box<Stmt>,
+}
+
+impl Parse for Always {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _always = input.parse::<kw::always>()?;
+        let sensitivity = input.parse()?;
+        let body = input.parse()?;
+        Ok(Always {
+            sensitivity,
+            body: Box::new(body),
+        })
+    }
+}
+
+impl Pretty for Always {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write("always ");
+        self.sensitivity.pretty_print(formatter);
+        formatter.write(" ");
+        self.body.pretty_print(formatter);
+    }
+}
+
+impl ToTokens for Always {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let sensitivity = &self.sensitivity;
+        let body = &self.body;
+        tokens.extend(quote! { always #sensitivity #body });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct LocalParam {
+    pub target: String,
+    pub rhs: ConstExpr,
+}
+
+impl Parse for LocalParam {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _localparam = input.parse::<kw::localparam>()?;
+        let target = input.parse::<Ident>()?;
+        let _eq = input.parse::<Token![=]>()?;
+        let rhs = input.parse()?;
+        let _term = input.parse::<Token![;]>()?;
+        Ok(LocalParam {
+            target: target.to_string(),
+            rhs,
+        })
+    }
+}
+
+impl Pretty for LocalParam {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write("localparam ");
+        formatter.write(&self.target);
+        formatter.write(" = ");
+        self.rhs.pretty_print(formatter);
+    }
+}
+
+impl ToTokens for LocalParam {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let target = format_ident!("{}", self.target);
+        let rhs = &self.rhs;
+        tokens.extend(quote! { localparam #target = #rhs ; });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub enum ConstExpr {
+    LitVerilog(LitVerilog),
+    LitInt(i32),
+    LitStr(String),
 }
 
 impl Parse for ConstExpr {
@@ -1078,41 +1195,65 @@ impl Parse for ConstExpr {
         if input.fork().parse::<LitVerilog>().is_ok() {
             Ok(ConstExpr::LitVerilog(input.parse()?))
         } else if input.fork().parse::<LitInt>().is_ok() {
-            Ok(ConstExpr::LitInt(input.parse()?))
+            Ok(ConstExpr::LitInt(input.parse::<LitInt>()?.base10_parse()?))
         } else if input.fork().parse::<LitStr>().is_ok() {
-            Ok(ConstExpr::LitStr(input.parse()?))
+            Ok(ConstExpr::LitStr(input.parse::<LitStr>()?.value()))
         } else {
             Err(input.error("expected constant expression"))
         }
     }
 }
 
-struct ElseBranch {
-    _else_token: Token![else],
-    stmt: Box<Stmt>,
-}
-
-struct If {
-    _if_token: Token![if],
-    condition: Parenthesized<Box<Expr>>,
-    true_stmt: Box<Stmt>,
-    else_branch: Option<ElseBranch>,
-}
-
-impl From<&If> for ast::If {
-    fn from(value: &If) -> Self {
-        let condition = Box::new(value.condition.inner.as_ref().into());
-        let true_stmt = Box::new(value.true_stmt.as_ref().into());
-        let else_branch = value
-            .else_branch
-            .as_ref()
-            .map(|x| Box::new(x.stmt.as_ref().into()));
-        ast::If {
-            condition,
-            true_stmt,
-            else_branch,
+impl Pretty for ConstExpr {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        match self {
+            ConstExpr::LitVerilog(lit) => lit.pretty_print(formatter),
+            ConstExpr::LitInt(i) => formatter.write(&i.to_string()),
+            ConstExpr::LitStr(s) => formatter.write(&format!("\"{}\"", s)),
         }
     }
+}
+
+impl ToTokens for ConstExpr {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            ConstExpr::LitVerilog(lit) => lit.to_tokens(tokens),
+            ConstExpr::LitInt(i) => {
+                let i = LitInt::new(&i.to_string(), proc_macro2::Span::call_site());
+                tokens.extend(quote! { #i });
+            }
+            ConstExpr::LitStr(s) => {
+                let s = LitStr::new(s, proc_macro2::Span::call_site());
+                tokens.extend(quote! { #s });
+            }
+        }
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ElseBranch {
+    pub stmt: Box<Stmt>,
+}
+
+impl Pretty for ElseBranch {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write("else ");
+        self.stmt.pretty_print(formatter);
+    }
+}
+
+impl ToTokens for ElseBranch {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let stmt = &self.stmt;
+        tokens.extend(quote! { else #stmt });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct If {
+    pub condition: Box<Expr>,
+    pub true_stmt: Box<Stmt>,
+    pub else_branch: Option<ElseBranch>,
 }
 
 impl Parse for If {
@@ -1120,13 +1261,12 @@ impl Parse for If {
         let mut clauses = Vec::new();
         let mut stmt;
         loop {
-            let if_token: Token![if] = input.parse()?;
-            let condition = input.parse()?;
+            let _if_token: Token![if] = input.parse()?;
+            let condition = input.parse::<Parenthesized<Box<Expr>>>()?;
             let true_stmt = input.parse()?;
 
             stmt = If {
-                _if_token: if_token,
-                condition,
+                condition: condition.inner,
                 true_stmt,
                 else_branch: None,
             };
@@ -1135,16 +1275,14 @@ impl Parse for If {
                 break;
             }
 
-            let else_token: Token![else] = input.parse()?;
+            let _else_token: Token![else] = input.parse()?;
             if input.peek(Token![if]) {
                 stmt.else_branch = Some(ElseBranch {
-                    _else_token: else_token,
                     stmt: Box::new(Stmt::default()),
                 });
                 clauses.push(stmt);
             } else {
                 stmt.else_branch = Some(ElseBranch {
-                    _else_token: else_token,
                     stmt: input.parse()?,
                 });
                 break;
@@ -1154,7 +1292,6 @@ impl Parse for If {
         while let Some(mut prev) = clauses.pop() {
             *prev.else_branch.as_mut().unwrap().stmt = Stmt {
                 kind: StmtKind::If(stmt),
-                _terminator: None,
             };
             stmt = prev;
         }
@@ -1162,16 +1299,57 @@ impl Parse for If {
     }
 }
 
-enum AssignTarget {
-    Ident(Ident),
+impl Pretty for If {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write("if ");
+        formatter.parenthesized(|f| {
+            self.condition.pretty_print(f);
+        });
+        formatter.write(" ");
+        self.true_stmt.pretty_print(formatter);
+        if let Some(else_branch) = &self.else_branch {
+            formatter.write(" ");
+            else_branch.pretty_print(formatter);
+        }
+    }
+}
+
+impl ToTokens for If {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let condition = &self.condition;
+        let true_stmt = &self.true_stmt;
+        let else_branch = &self.else_branch;
+        tokens.extend(quote! { if ( #condition ) #true_stmt #else_branch });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub enum AssignTarget {
+    Ident(String),
     Index(ExprIndex),
 }
 
-impl From<&AssignTarget> for ast::AssignTarget {
-    fn from(value: &AssignTarget) -> Self {
-        match value {
-            AssignTarget::Ident(ident) => ast::AssignTarget::Ident(ident.to_string()),
-            AssignTarget::Index(expr) => ast::AssignTarget::Index(ast::Expr::Index(expr.into())),
+impl Parse for AssignTarget {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.peek(Ident) && input.peek2(token::Bracket) {
+            Ok(AssignTarget::Index(input.parse()?))
+        } else if input.peek(Ident) {
+            Ok(AssignTarget::Ident(input.parse::<Ident>()?.to_string()))
+        } else {
+            Err(input.error("expected assignment target"))
+        }
+    }
+}
+
+impl Pretty for AssignTarget {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        match self {
+            AssignTarget::Ident(ident) => {
+                formatter.write(ident);
+            }
+            AssignTarget::Index(index) => {
+                index.pretty_print(formatter);
+            }
         }
     }
 }
@@ -1180,91 +1358,144 @@ impl ToTokens for AssignTarget {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         match self {
             AssignTarget::Ident(ident) => {
-                tokens.extend(quote! {vlog::assign_target_ident(stringify!(#ident))});
+                let ident = format_ident!("{}", ident);
+                tokens.extend(quote! { #ident });
             }
-            AssignTarget::Index(expr) => {
-                tokens.extend(quote! {vlog::assign_target_index(#expr)});
+            AssignTarget::Index(index) => {
+                index.to_tokens(tokens);
             }
         }
     }
 }
 
-impl Parse for AssignTarget {
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct NonblockAssign {
+    pub target: AssignTarget,
+    pub rhs: Box<Expr>,
+}
+
+impl Parse for NonblockAssign {
     fn parse(input: ParseStream) -> Result<Self> {
-        if input.peek(Ident) && input.peek2(token::Bracket) {
-            Ok(AssignTarget::Index(input.parse()?))
-        } else if input.peek(Ident) {
-            Ok(AssignTarget::Ident(input.parse()?))
-        } else {
-            Err(input.error("expected assignment target"))
-        }
+        let target = input.parse()?;
+        let _left_arrow = input.parse::<LeftArrow>()?;
+        let rhs = input.parse()?;
+        Ok(NonblockAssign { target, rhs })
     }
 }
 
-#[derive(syn_derive::Parse)]
-struct NonblockAssign {
-    target: AssignTarget,
-    _left_arrow: LeftArrow,
-    rhs: Box<Expr>,
-}
-
-impl From<&NonblockAssign> for ast::Assign {
-    fn from(value: &NonblockAssign) -> Self {
-        let target = (&value.target).into();
-        let rhs = Box::new(value.rhs.as_ref().into());
-        ast::Assign { target, rhs }
+impl Pretty for NonblockAssign {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        self.target.pretty_print(formatter);
+        formatter.write(" <= ");
+        self.rhs.pretty_print(formatter);
     }
 }
 
-#[derive(syn_derive::Parse)]
-struct ContinuousAssign {
-    _kw_assign: kw::assign,
-    assign: Assign,
-}
-
-impl From<&ContinuousAssign> for ast::Assign {
-    fn from(value: &ContinuousAssign) -> Self {
-        (&value.assign).into()
+impl ToTokens for NonblockAssign {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let target = &self.target;
+        let rhs = &self.rhs;
+        tokens.extend(quote! { #target <= #rhs ; });
     }
 }
 
-#[derive(syn_derive::Parse)]
-struct Assign {
-    target: AssignTarget,
-    _eq: Token![=],
-    rhs: Box<Expr>,
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ContinuousAssign {
+    pub assign: Assign,
 }
 
-impl From<&Assign> for ast::Assign {
-    fn from(value: &Assign) -> Self {
-        let target = (&value.target).into();
-        let rhs = Box::new(value.rhs.as_ref().into());
-        ast::Assign { target, rhs }
+impl Parse for ContinuousAssign {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _kw_assign = input.parse::<kw::assign>()?;
+        let assign = input.parse()?;
+        Ok(ContinuousAssign { assign })
     }
 }
 
-#[derive(syn_derive::Parse)]
-struct ConcatAssign {
-    target: ExprConcat,
-    _eq: Token![=],
-    rhs: Box<Expr>,
-}
-
-impl From<&ConcatAssign> for ast::ConcatAssign {
-    fn from(value: &ConcatAssign) -> Self {
-        let target = value.target.elements.iter().map(|x| x.into()).collect();
-        let rhs = Box::new(value.rhs.as_ref().into());
-        ast::ConcatAssign { target, rhs }
+impl Pretty for ContinuousAssign {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write("assign ");
+        self.assign.pretty_print(formatter);
     }
 }
 
-enum Expr {
+impl ToTokens for ContinuousAssign {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let assign = &self.assign;
+        tokens.extend(quote! { assign #assign });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct Assign {
+    pub target: AssignTarget,
+    pub rhs: Box<Expr>,
+}
+
+impl Parse for Assign {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let target = input.parse()?;
+        let _eq = input.parse::<Token![=]>()?;
+        let rhs = input.parse()?;
+        Ok(Assign { target, rhs })
+    }
+}
+
+impl Pretty for Assign {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        self.target.pretty_print(formatter);
+        formatter.write(" = ");
+        self.rhs.pretty_print(formatter);
+    }
+}
+
+impl ToTokens for Assign {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let target = &self.target;
+        let rhs = &self.rhs;
+        tokens.extend(quote! { #target = #rhs ; });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ConcatAssign {
+    pub target: ExprConcat,
+    pub rhs: Box<Expr>,
+}
+
+impl Parse for ConcatAssign {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let target = input.parse()?;
+        let _eq = input.parse::<Token![=]>()?;
+        let rhs = input.parse()?;
+        Ok(ConcatAssign { target, rhs })
+    }
+}
+
+impl Pretty for ConcatAssign {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        self.target.pretty_print(formatter);
+        formatter.write(" = ");
+        self.rhs.pretty_print(formatter);
+    }
+}
+
+impl ToTokens for ConcatAssign {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let target = &self.target;
+        let rhs = &self.rhs;
+        tokens.extend(quote! { #target = #rhs ; });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub enum Expr {
     Binary(ExprBinary),
     Unary(ExprUnary),
     Constant(LitVerilog),
-    Literal(LitInt),
-    String(LitStr),
-    Ident(Ident),
+    Literal(i32),
+    String(String),
+    Ident(String),
     Paren(Box<Expr>),
     Ternary(ExprTernary),
     Concat(ExprConcat),
@@ -1273,98 +1504,63 @@ enum Expr {
     DynIndex(ExprDynIndex),
     Function(ExprFunction),
 }
+impl Parse for Expr {
+    fn parse(mut input: ParseStream) -> Result<Self> {
+        expr_bp(&mut input, 0)
+    }
+}
 
-impl From<&Expr> for ast::Expr {
-    fn from(value: &Expr) -> Self {
-        match value {
-            Expr::Binary(expr) => ast::Expr::Binary(expr.into()),
-            Expr::Unary(expr) => ast::Expr::Unary(expr.into()),
-            Expr::Constant(lit) => ast::Expr::Constant(lit.into()),
-            Expr::Literal(lit) => ast::Expr::Literal(lit.base10_parse::<i32>().unwrap()),
-            Expr::String(lit) => ast::Expr::String(lit.value()),
-            Expr::Ident(ident) => ast::Expr::Ident(ident.to_string()),
-            Expr::Paren(expr) => ast::Expr::Paren(Box::new(expr.as_ref().into())),
-            Expr::Ternary(expr) => ast::Expr::Ternary(expr.into()),
-            Expr::Concat(expr) => {
-                ast::Expr::Concat(expr.elements.iter().map(|x| x.into()).collect())
+impl Pretty for Expr {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        match self {
+            Expr::Binary(expr) => expr.pretty_print(formatter),
+            Expr::Unary(expr) => expr.pretty_print(formatter),
+            Expr::Constant(lit) => lit.pretty_print(formatter),
+            Expr::Literal(i) => formatter.write(&i.to_string()),
+            Expr::String(s) => formatter.write(&format!("\"{}\"", s)),
+            Expr::Ident(ident) => formatter.write(ident),
+            Expr::Paren(expr) => {
+                formatter.parenthesized(|f| expr.pretty_print(f));
             }
-            Expr::Replica(expr) => ast::Expr::Replica(expr.into()),
-            Expr::Index(expr) => ast::Expr::Index(expr.into()),
-            Expr::DynIndex(expr) => ast::Expr::DynIndex(expr.into()),
-            Expr::Function(expr) => ast::Expr::Function(expr.into()),
+            Expr::Ternary(expr) => expr.pretty_print(formatter),
+            Expr::Concat(expr) => expr.pretty_print(formatter),
+            Expr::Replica(expr) => expr.pretty_print(formatter),
+            Expr::Index(expr) => expr.pretty_print(formatter),
+            Expr::DynIndex(expr) => expr.pretty_print(formatter),
+            Expr::Function(expr) => expr.pretty_print(formatter),
         }
     }
 }
 
 impl ToTokens for Expr {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        tokens.extend(match self {
-            Expr::Binary(expr) => {
-                let lhs = &expr.lhs;
-                let op = &expr.op;
-                let rhs = &expr.rhs;
-                quote! {vlog::binary_expr(#lhs, #op, #rhs)}
+        match self {
+            Expr::Binary(expr) => expr.to_tokens(tokens),
+            Expr::Unary(expr) => expr.to_tokens(tokens),
+            Expr::Constant(lit) => lit.to_tokens(tokens),
+            Expr::Literal(i) => {
+                let i = LitInt::new(&i.to_string(), proc_macro2::Span::call_site());
+                tokens.extend(quote! { #i });
             }
-            Expr::Unary(expr) => {
-                let op = &expr.op;
-                let arg = &expr.arg;
-                quote! {vlog::unary_expr(#op, #arg)}
+            Expr::String(s) => {
+                let s = LitStr::new(s, proc_macro2::Span::call_site());
+                tokens.extend(quote! { #s });
             }
-            Expr::Constant(lit) => {
-                let width = &lit.width;
-                let value = &lit.lifetime.ident;
-                quote! {
-                    vlog::constant_expr(vlog::lit_verilog(#width, stringify!(#value)))
-                }
+            Expr::Ident(ident) => {
+                let ident = format_ident!("{}", ident);
+                tokens.extend(quote! { #ident });
             }
-            Expr::Literal(lit) => {
-                quote! {
-                    vlog::literal_expr(#lit)
-                }
+            Expr::Paren(expr) => {
+                let expr = &**expr;
+                tokens.extend(quote! { ( #expr ) });
             }
-            Expr::String(lit) => quote! {vlog::string_expr(#lit)},
-            Expr::Ident(ident) => quote! {vlog::ident_expr(stringify!(#ident))},
-            Expr::Paren(expr) => quote! {vlog::paren_expr(#expr)},
-            Expr::Ternary(expr) => {
-                let lhs = &expr.lhs;
-                let mhs = &expr.mhs;
-                let rhs = &expr.rhs;
-                quote! {vlog::ternary_expr(#lhs, #mhs, #rhs)}
-            }
-            Expr::Concat(expr) => {
-                let args = iter_tokens(expr.elements.iter());
-                quote! {vlog::concat_expr(#args)}
-            }
-            Expr::Replica(expr) => {
-                let count = &expr.inner.count;
-                let concatenation = iter_tokens(expr.inner.concatenation.elements.iter());
-                quote! {vlog::replica_expr(#count, #concatenation)}
-            }
-            Expr::Index(expr) => {
-                let target = &expr.target;
-                let msb = &expr.address.msb;
-                let lsb = option_tokens(expr.address.lsb.as_ref().map(|x| &x.1));
-                quote! {vlog::index_expr(stringify!(#target), #msb, #lsb)}
-            }
-            Expr::DynIndex(expr) => {
-                let target = &expr.target;
-                let base = &expr.address.base;
-                let op = &expr.address.op;
-                let width = &expr.address.width;
-                quote! {vlog::dyn_index_expr(stringify!(#target), #base, #op, #width)}
-            }
-            Expr::Function(expr) => {
-                let name = &expr.name;
-                let args = iter_tokens(expr.args.inner.iter());
-                quote! {vlog::function_expr(stringify!(#name), #args)}
-            }
-        })
-    }
-}
-
-impl Parse for Expr {
-    fn parse(mut input: ParseStream) -> Result<Self> {
-        expr_bp(&mut input, 0)
+            Expr::Ternary(expr) => expr.to_tokens(tokens),
+            Expr::Concat(expr) => expr.to_tokens(tokens),
+            Expr::Replica(expr) => expr.to_tokens(tokens),
+            Expr::Index(expr) => expr.to_tokens(tokens),
+            Expr::DynIndex(expr) => expr.to_tokens(tokens),
+            Expr::Function(expr) => expr.to_tokens(tokens),
+        }
     }
 }
 
@@ -1375,9 +1571,14 @@ fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
     let mut lhs = if lookahead.peek(LitInt) && input.peek2(Lifetime) {
         input.parse().map(Expr::Constant)?
     } else if lookahead.peek(LitInt) {
-        input.parse().map(Expr::Literal)?
+        input
+            .parse::<LitInt>()?
+            .base10_parse::<i32>()
+            .map(Expr::Literal)?
     } else if lookahead.peek(LitStr) {
-        input.parse().map(Expr::String)?
+        input
+            .parse::<LitStr>()
+            .map(|lit| Expr::String(lit.value()))?
     } else if input.fork().parse::<ExprFunction>().is_ok() {
         input.parse().map(Expr::Function)?
     } else if input.fork().parse::<ExprIndex>().is_ok() {
@@ -1385,7 +1586,7 @@ fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
     } else if input.fork().parse::<ExprDynIndex>().is_ok() {
         input.parse().map(Expr::DynIndex)?
     } else if lookahead.peek(Ident) {
-        input.parse().map(Expr::Ident)?
+        input.parse::<Ident>().map(|x| Expr::Ident(x.to_string()))?
     } else if lookahead.peek(token::Paren) {
         let content;
         parenthesized!(content in input);
@@ -1415,6 +1616,7 @@ fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
             || lookahead.peek(PlusColon)
             || lookahead.peek(MinusColon)
             || lookahead.peek(Token![;])
+            || lookahead.peek(kw::begin)
         {
             break;
         } else if lookahead.peek(Token![?]) {
@@ -1422,15 +1624,13 @@ fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
             if l_bp < min_bp {
                 break;
             }
-            let op = input.parse::<Token![?]>()?;
+            let _op = input.parse::<Token![?]>()?;
             let mhs = Box::new(expr_bp(input, 0)?);
-            let colon = input.parse::<Token![:]>()?;
+            let _colon = input.parse::<Token![:]>()?;
             let rhs = Box::new(expr_bp(input, r_bp)?);
             lhs = Expr::Ternary(ExprTernary {
                 lhs: Box::new(lhs),
-                _op: op,
                 mhs,
-                _colon: colon,
                 rhs,
             });
         } else {
@@ -1451,103 +1651,199 @@ fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
     Ok(lhs)
 }
 
-pub(crate) struct ExprBinary {
-    lhs: Box<Expr>,
-    op: BinaryOp,
-    rhs: Box<Expr>,
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ExprBinary {
+    pub lhs: Box<Expr>,
+    pub op: BinaryOp,
+    pub rhs: Box<Expr>,
 }
 
-impl From<&ExprBinary> for ast::ExprBinary {
-    fn from(value: &ExprBinary) -> Self {
-        ast::ExprBinary {
-            lhs: Box::new(value.lhs.as_ref().into()),
-            op: value.op.into(),
-            rhs: Box::new(value.rhs.as_ref().into()),
-        }
+impl Pretty for ExprBinary {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        self.lhs.pretty_print(formatter);
+        formatter.write(" ");
+        self.op.pretty_print(formatter);
+        formatter.write(" ");
+        self.rhs.pretty_print(formatter);
     }
 }
 
-pub(crate) struct ExprUnary {
-    op: UnaryOp,
-    arg: Box<Expr>,
-}
-
-impl From<&ExprUnary> for ast::ExprUnary {
-    fn from(value: &ExprUnary) -> Self {
-        ast::ExprUnary {
-            op: value.op.into(),
-            arg: Box::new(value.arg.as_ref().into()),
-        }
+impl ToTokens for ExprBinary {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let lhs = &self.lhs;
+        let op = &self.op;
+        let rhs = &self.rhs;
+        tokens.extend(quote! { #lhs #op #rhs });
     }
 }
 
-#[derive(syn_derive::Parse)]
-pub(crate) struct ExprConcat {
-    #[syn(braced)]
-    _brace: Brace,
-    #[syn(in = _brace)]
-    #[parse(Punctuated::parse_terminated)]
-    elements: Punctuated<Expr, Token![,]>,
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ExprUnary {
+    pub op: UnaryOp,
+    pub arg: Box<Expr>,
 }
 
-#[derive(syn_derive::Parse)]
-pub(crate) struct ExprReplicaInner {
-    count: LitInt,
-    concatenation: ExprConcat,
-}
-
-#[derive(syn_derive::Parse)]
-pub(crate) struct ExprReplica {
-    #[syn(braced)]
-    _brace: Brace,
-    #[syn(in = _brace)]
-    inner: ExprReplicaInner,
-}
-
-impl From<&ExprReplica> for ast::ExprReplica {
-    fn from(value: &ExprReplica) -> Self {
-        ast::ExprReplica {
-            count: value.inner.count.base10_parse::<usize>().unwrap(),
-            concatenation: value
-                .inner
-                .concatenation
-                .elements
-                .iter()
-                .map(|x| x.into())
-                .collect(),
-        }
+impl Pretty for ExprUnary {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        self.op.pretty_print(formatter);
+        self.arg.pretty_print(formatter);
     }
 }
 
-#[derive(syn_derive::Parse)]
-pub(crate) struct ExprFunction {
-    _dollar: Option<Token![$]>,
-    name: Ident,
-    args: ParenCommaList<Expr>,
-}
-
-impl From<&ExprFunction> for ast::ExprFunction {
-    fn from(value: &ExprFunction) -> Self {
-        ast::ExprFunction {
-            name: value.name.to_string(),
-            args: value.args.inner.iter().map(|x| x.into()).collect(),
-        }
+impl ToTokens for ExprUnary {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let op = &self.op;
+        let arg = &self.arg;
+        tokens.extend(quote! { #op #arg });
     }
 }
 
-#[derive(Copy, Clone, Debug)]
-enum DynOp {
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ExprConcat {
+    pub elements: Vec<Expr>,
+}
+
+impl Parse for ExprConcat {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        let _brace = braced!(content in input);
+        let elements = Punctuated::<Expr, Token![,]>::parse_terminated(&content)?;
+        Ok(ExprConcat {
+            elements: elements.into_iter().collect(),
+        })
+    }
+}
+
+impl Pretty for ExprConcat {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.braced(|f| {
+            f.comma_separated(self.elements.iter());
+        });
+    }
+}
+
+impl ToTokens for ExprConcat {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let elements = &self.elements;
+        tokens.extend(quote! { { #( #elements ),* } });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ExprReplicaInner {
+    pub count: u32,
+    pub concatenation: ExprConcat,
+}
+
+impl Parse for ExprReplicaInner {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let count: LitInt = input.parse()?;
+        let count = count.base10_parse::<u32>()?;
+        let concatenation: ExprConcat = input.parse()?;
+        Ok(ExprReplicaInner {
+            count,
+            concatenation,
+        })
+    }
+}
+
+impl Pretty for ExprReplicaInner {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.braced(|f| {
+            f.write(&self.count.to_string());
+            self.concatenation.pretty_print(f);
+        });
+    }
+}
+
+impl ToTokens for ExprReplicaInner {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let count = self.count;
+        let concatenation = &self.concatenation;
+        tokens.extend(quote! { { #count #concatenation } });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ExprReplica {
+    pub inner: ExprReplicaInner,
+}
+
+impl Parse for ExprReplica {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        let _brace = braced!(content in input);
+        let inner = content.parse()?;
+        Ok(ExprReplica { inner })
+    }
+}
+
+impl Pretty for ExprReplica {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        self.inner.pretty_print(formatter);
+    }
+}
+
+impl ToTokens for ExprReplica {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        self.inner.to_tokens(tokens);
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ExprFunction {
+    pub name: String,
+    pub args: Vec<Expr>,
+}
+
+impl Parse for ExprFunction {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let dollar = if input.peek(Token![$]) {
+            Some(input.parse::<Token![$]>()?)
+        } else {
+            None
+        };
+        let name = input.parse::<Ident>()?;
+        let args = input.parse::<ParenCommaList<Expr>>()?;
+        let name = if dollar.is_some() {
+            format!("${}", name)
+        } else {
+            name.to_string()
+        };
+        Ok(ExprFunction {
+            name: name.to_string(),
+            args: args.inner.into_iter().collect(),
+        })
+    }
+}
+
+impl Pretty for ExprFunction {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write(&self.name);
+        formatter.parenthesized(|f| {
+            f.comma_separated(self.args.iter());
+        });
+    }
+}
+
+impl ToTokens for ExprFunction {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        if self.name.starts_with('$') {
+            let ident = format_ident!("{}", &self.name[1..]);
+            tokens.extend(quote! { $ #ident });
+        } else {
+            let ident = format_ident!("{}", &self.name);
+            tokens.extend(quote! { #ident });
+        }
+        let args = &self.args;
+        tokens.extend(quote! { ( #( #args ),* ) });
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
+pub enum DynOp {
     PlusColon,
     MinusColon,
-}
-
-impl From<DynOp> for ast::DynOp {
-    fn from(value: DynOp) -> Self {
-        match value {
-            DynOp::PlusColon => ast::DynOp::PlusColon,
-            DynOp::MinusColon => ast::DynOp::MinusColon,
-        }
-    }
 }
 
 impl Parse for DynOp {
@@ -1564,56 +1860,114 @@ impl Parse for DynOp {
     }
 }
 
-impl ToTokens for DynOp {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        tokens.extend(match self {
-            DynOp::PlusColon => quote! {vlog::dyn_plus_colon()},
-            DynOp::MinusColon => quote! {vlog::dyn_minus_colon()},
-        })
-    }
-}
-
-#[derive(syn_derive::Parse)]
-struct ExprDynIndexInner {
-    base: Box<Expr>,
-    op: DynOp,
-    width: Box<Expr>,
-}
-
-#[derive(syn_derive::Parse)]
-struct ExprDynIndex {
-    target: Ident,
-    #[syn(bracketed)]
-    _bracket: Bracket,
-    #[syn(in = _bracket)]
-    address: ExprDynIndexInner,
-}
-
-impl From<&ExprDynIndex> for ast::ExprDynIndex {
-    fn from(value: &ExprDynIndex) -> Self {
-        ast::ExprDynIndex {
-            target: value.target.to_string(),
-            base: Box::new(value.address.base.as_ref().into()),
-            op: value.address.op.into(),
-            width: Box::new(value.address.width.as_ref().into()),
+impl Pretty for DynOp {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        match self {
+            DynOp::PlusColon => formatter.write("+:"),
+            DynOp::MinusColon => formatter.write("-:"),
         }
     }
 }
 
-struct ExprIndexAddress {
-    msb: Box<Expr>,
-    lsb: Option<Pair<Token![:], Box<Expr>>>,
+impl ToTokens for DynOp {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            DynOp::PlusColon => {
+                let op = PlusColon::default();
+                tokens.extend(quote! { #op });
+            }
+            DynOp::MinusColon => {
+                let op = MinusColon::default();
+                tokens.extend(quote! { #op });
+            }
+        }
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ExprDynIndexInner {
+    pub base: Box<Expr>,
+    pub op: DynOp,
+    pub width: Box<Expr>,
+}
+
+impl Parse for ExprDynIndexInner {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let base = input.parse()?;
+        let op = input.parse()?;
+        let width = input.parse()?;
+        Ok(ExprDynIndexInner { base, op, width })
+    }
+}
+
+impl Pretty for ExprDynIndexInner {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        self.base.pretty_print(formatter);
+        self.op.pretty_print(formatter);
+        self.width.pretty_print(formatter);
+    }
+}
+
+impl ToTokens for ExprDynIndexInner {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let base = &self.base;
+        let op = &self.op;
+        let width = &self.width;
+        tokens.extend(quote! { #base #op #width });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ExprDynIndex {
+    pub target: String,
+    pub address: ExprDynIndexInner,
+}
+
+impl Parse for ExprDynIndex {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let target = input.parse::<Ident>()?;
+        let content;
+        let _bracket = bracketed!(content in input);
+        let address = content.parse()?;
+        Ok(ExprDynIndex {
+            target: target.to_string(),
+            address,
+        })
+    }
+}
+
+impl Pretty for ExprDynIndex {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write(&self.target);
+        formatter.bracketed(|f| {
+            self.address.pretty_print(f);
+        });
+    }
+}
+
+impl ToTokens for ExprDynIndex {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let target = format_ident!("{}", self.target);
+        let address = &self.address;
+        tokens.extend(quote! { #target [ #address ] });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ExprIndexAddress {
+    pub msb: Box<Expr>,
+    pub lsb: Option<Box<Expr>>,
 }
 
 impl Parse for ExprIndexAddress {
     fn parse(input: ParseStream) -> Result<Self> {
         let msb = input.parse()?;
         if !input.is_empty() {
-            let colon = input.parse::<Token![:]>()?;
+            let _colon = input.parse::<Token![:]>()?;
             let lsb = input.parse()?;
             Ok(ExprIndexAddress {
                 msb,
-                lsb: Some(Pair(colon, lsb)),
+                lsb: Some(lsb),
             })
         } else {
             Ok(ExprIndexAddress { msb, lsb: None })
@@ -1621,59 +1975,91 @@ impl Parse for ExprIndexAddress {
     }
 }
 
-#[derive(syn_derive::Parse)]
-struct ExprIndex {
-    target: Ident,
-    #[syn(bracketed)]
-    _bracket: Bracket,
-    #[syn(in = _bracket)]
-    address: ExprIndexAddress,
+impl Pretty for ExprIndexAddress {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        self.msb.pretty_print(formatter);
+        if let Some(lsb) = &self.lsb {
+            formatter.write(":");
+            lsb.pretty_print(formatter);
+        }
+    }
 }
 
-impl From<&ExprIndex> for ast::ExprIndex {
-    fn from(value: &ExprIndex) -> Self {
-        ast::ExprIndex {
-            target: value.target.to_string(),
-            msb: Box::new(value.address.msb.as_ref().into()),
-            lsb: value
-                .address
-                .lsb
-                .as_ref()
-                .map(|x| Box::new(x.1.as_ref().into())),
+impl ToTokens for ExprIndexAddress {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let msb = &self.msb;
+        if let Some(lsb) = &self.lsb {
+            tokens.extend(quote! { #msb : #lsb });
+        } else {
+            tokens.extend(quote! { #msb });
         }
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ExprIndex {
+    pub target: String,
+    pub address: ExprIndexAddress,
+}
+
+impl Parse for ExprIndex {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let target = input.parse::<Ident>()?;
+        let content;
+        let _bracket = bracketed!(content in input);
+        let address = content.parse()?;
+        Ok(ExprIndex {
+            target: target.to_string(),
+            address,
+        })
+    }
+}
+
+impl Pretty for ExprIndex {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write(&self.target);
+        formatter.bracketed(|f| {
+            self.address.pretty_print(f);
+        });
     }
 }
 
 impl ToTokens for ExprIndex {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let target = &self.target;
-        let msb = &self.address.msb;
-        let lsb = option_tokens(self.address.lsb.as_ref().map(|x| &x.1));
-        tokens.extend(quote! {vlog::index_expr(stringify!(#target), #msb, #lsb)});
+        let target = format_ident!("{}", self.target);
+        let address = &self.address;
+        tokens.extend(quote! { #target [ #address ] });
     }
 }
 
-#[derive(syn_derive::Parse)]
-struct ExprTernary {
-    lhs: Box<Expr>,
-    _op: Token![?],
-    mhs: Box<Expr>,
-    _colon: Token![:],
-    rhs: Box<Expr>,
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ExprTernary {
+    pub lhs: Box<Expr>,
+    pub mhs: Box<Expr>,
+    pub rhs: Box<Expr>,
 }
 
-impl From<&ExprTernary> for ast::ExprTernary {
-    fn from(value: &ExprTernary) -> Self {
-        ast::ExprTernary {
-            lhs: Box::new(value.lhs.as_ref().into()),
-            mhs: Box::new(value.mhs.as_ref().into()),
-            rhs: Box::new(value.rhs.as_ref().into()),
-        }
+impl Pretty for ExprTernary {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        self.lhs.pretty_print(formatter);
+        formatter.write(" ? ");
+        self.mhs.pretty_print(formatter);
+        formatter.write(" : ");
+        self.rhs.pretty_print(formatter);
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum UnaryOp {
+impl ToTokens for ExprTernary {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let lhs = &self.lhs;
+        let mhs = &self.mhs;
+        let rhs = &self.rhs;
+        tokens.extend(quote! { #lhs ? #mhs : #rhs });
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Serialize, Deserialize)]
+pub enum UnaryOp {
     Plus,
     Minus,
     Bang,
@@ -1681,20 +2067,6 @@ enum UnaryOp {
     And,
     Or,
     Xor,
-}
-
-impl From<UnaryOp> for ast::UnaryOp {
-    fn from(value: UnaryOp) -> Self {
-        match value {
-            UnaryOp::Plus => ast::UnaryOp::Plus,
-            UnaryOp::Minus => ast::UnaryOp::Minus,
-            UnaryOp::Bang => ast::UnaryOp::Bang,
-            UnaryOp::Not => ast::UnaryOp::Not,
-            UnaryOp::And => ast::UnaryOp::And,
-            UnaryOp::Or => ast::UnaryOp::Or,
-            UnaryOp::Xor => ast::UnaryOp::Xor,
-        }
-    }
 }
 
 impl Parse for UnaryOp {
@@ -1726,17 +2098,45 @@ impl Parse for UnaryOp {
     }
 }
 
+impl Pretty for UnaryOp {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        match self {
+            UnaryOp::Plus => formatter.write("+"),
+            UnaryOp::Minus => formatter.write("-"),
+            UnaryOp::Bang => formatter.write("!"),
+            UnaryOp::Not => formatter.write("~"),
+            UnaryOp::And => formatter.write("&"),
+            UnaryOp::Or => formatter.write("|"),
+            UnaryOp::Xor => formatter.write("^"),
+        }
+    }
+}
+
 impl ToTokens for UnaryOp {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        tokens.extend(match self {
-            UnaryOp::Plus => quote! {vlog::unary_plus()},
-            UnaryOp::Minus => quote! {vlog::unary_minus()},
-            UnaryOp::Bang => quote! {vlog::unary_bang()},
-            UnaryOp::Not => quote! {vlog::unary_not()},
-            UnaryOp::And => quote! {vlog::unary_and()},
-            UnaryOp::Or => quote! {vlog::unary_or()},
-            UnaryOp::Xor => quote! {vlog::unary_xor()},
-        })
+        match self {
+            UnaryOp::Plus => {
+                tokens.extend(quote! { + });
+            }
+            UnaryOp::Minus => {
+                tokens.extend(quote! { - });
+            }
+            UnaryOp::Bang => {
+                tokens.extend(quote! { ! });
+            }
+            UnaryOp::Not => {
+                tokens.extend(quote! { ~ });
+            }
+            UnaryOp::And => {
+                tokens.extend(quote! { & });
+            }
+            UnaryOp::Or => {
+                tokens.extend(quote! { | });
+            }
+            UnaryOp::Xor => {
+                tokens.extend(quote! { ^ });
+            }
+        }
     }
 }
 
@@ -1746,8 +2146,8 @@ impl UnaryOp {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum BinaryOp {
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Serialize, Deserialize)]
+pub enum BinaryOp {
     Shl,
     SignedRightShift,
     Shr,
@@ -1768,33 +2168,6 @@ enum BinaryOp {
     Xor,
     Mod,
     Mul,
-}
-
-impl From<BinaryOp> for ast::BinaryOp {
-    fn from(value: BinaryOp) -> Self {
-        match value {
-            BinaryOp::Shl => ast::BinaryOp::Shl,
-            BinaryOp::SignedRightShift => ast::BinaryOp::SignedRightShift,
-            BinaryOp::Shr => ast::BinaryOp::Shr,
-            BinaryOp::ShortAnd => ast::BinaryOp::ShortAnd,
-            BinaryOp::ShortOr => ast::BinaryOp::ShortOr,
-            BinaryOp::CaseEq => ast::BinaryOp::CaseEq,
-            BinaryOp::CaseNe => ast::BinaryOp::CaseNe,
-            BinaryOp::Ne => ast::BinaryOp::Ne,
-            BinaryOp::Eq => ast::BinaryOp::Eq,
-            BinaryOp::Ge => ast::BinaryOp::Ge,
-            BinaryOp::Le => ast::BinaryOp::Le,
-            BinaryOp::Gt => ast::BinaryOp::Gt,
-            BinaryOp::Lt => ast::BinaryOp::Lt,
-            BinaryOp::Plus => ast::BinaryOp::Plus,
-            BinaryOp::Minus => ast::BinaryOp::Minus,
-            BinaryOp::And => ast::BinaryOp::And,
-            BinaryOp::Or => ast::BinaryOp::Or,
-            BinaryOp::Xor => ast::BinaryOp::Xor,
-            BinaryOp::Mod => ast::BinaryOp::Mod,
-            BinaryOp::Mul => ast::BinaryOp::Mul,
-        }
-    }
 }
 
 impl Parse for BinaryOp {
@@ -1866,30 +2239,100 @@ impl Parse for BinaryOp {
     }
 }
 
+impl Pretty for BinaryOp {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        match self {
+            BinaryOp::Shl => formatter.write("<<"),
+            BinaryOp::SignedRightShift => formatter.write(">>>"),
+            BinaryOp::Shr => formatter.write(">>"),
+            BinaryOp::ShortAnd => formatter.write("&&"),
+            BinaryOp::ShortOr => formatter.write("||"),
+            BinaryOp::CaseEq => formatter.write("==="),
+            BinaryOp::CaseNe => formatter.write("!=="),
+            BinaryOp::Ne => formatter.write("!="),
+            BinaryOp::Eq => formatter.write("=="),
+            BinaryOp::Ge => formatter.write(">="),
+            BinaryOp::Le => formatter.write("<="),
+            BinaryOp::Gt => formatter.write(">"),
+            BinaryOp::Lt => formatter.write("<"),
+            BinaryOp::Plus => formatter.write("+"),
+            BinaryOp::Minus => formatter.write("-"),
+            BinaryOp::And => formatter.write("&"),
+            BinaryOp::Or => formatter.write("|"),
+            BinaryOp::Xor => formatter.write("^"),
+            BinaryOp::Mod => formatter.write("%"),
+            BinaryOp::Mul => formatter.write("*"),
+        }
+    }
+}
+
 impl ToTokens for BinaryOp {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        tokens.extend(match self {
-            BinaryOp::Shl => quote! {vlog::binary_shl()},
-            BinaryOp::SignedRightShift => quote! {vlog::binary_signed_right_shift()},
-            BinaryOp::Shr => quote! {vlog::binary_shr()},
-            BinaryOp::ShortAnd => quote! {vlog::binary_short_and()},
-            BinaryOp::ShortOr => quote! {vlog::binary_short_or()},
-            BinaryOp::CaseEq => quote! {vlog::binary_case_eq()},
-            BinaryOp::CaseNe => quote! {vlog::binary_case_ne()},
-            BinaryOp::Ne => quote! {vlog::binary_ne()},
-            BinaryOp::Eq => quote! {vlog::binary_eq()},
-            BinaryOp::Ge => quote! {vlog::binary_ge()},
-            BinaryOp::Le => quote! {vlog::binary_le()},
-            BinaryOp::Gt => quote! {vlog::binary_gt()},
-            BinaryOp::Lt => quote! {vlog::binary_lt()},
-            BinaryOp::Plus => quote! {vlog::binary_plus()},
-            BinaryOp::Minus => quote! {vlog::binary_minus()},
-            BinaryOp::And => quote! {vlog::binary_and()},
-            BinaryOp::Or => quote! {vlog::binary_or()},
-            BinaryOp::Xor => quote! {vlog::binary_xor()},
-            BinaryOp::Mod => quote! {vlog::binary_mod()},
-            BinaryOp::Mul => quote! {vlog::binary_mul()},
-        })
+        match self {
+            BinaryOp::Shl => {
+                tokens.extend(quote! { << });
+            }
+            BinaryOp::SignedRightShift => {
+                let op = SignedRightShift::default();
+                tokens.extend(quote! { #op });
+            }
+            BinaryOp::Shr => {
+                tokens.extend(quote! { >> });
+            }
+            BinaryOp::ShortAnd => {
+                tokens.extend(quote! { && });
+            }
+            BinaryOp::ShortOr => {
+                tokens.extend(quote! { || });
+            }
+            BinaryOp::CaseEq => {
+                let op = CaseEqual::default();
+                tokens.extend(quote! { #op });
+            }
+            BinaryOp::CaseNe => {
+                let op = CaseUnequal::default();
+                tokens.extend(quote! { #op });
+            }
+            BinaryOp::Ne => {
+                tokens.extend(quote! { != });
+            }
+            BinaryOp::Eq => {
+                tokens.extend(quote! { == });
+            }
+            BinaryOp::Ge => {
+                tokens.extend(quote! { >= });
+            }
+            BinaryOp::Le => {
+                tokens.extend(quote! { <= });
+            }
+            BinaryOp::Gt => {
+                tokens.extend(quote! { > });
+            }
+            BinaryOp::Lt => {
+                tokens.extend(quote! { < });
+            }
+            BinaryOp::Plus => {
+                tokens.extend(quote! { + });
+            }
+            BinaryOp::Minus => {
+                tokens.extend(quote! { - });
+            }
+            BinaryOp::And => {
+                tokens.extend(quote! { & });
+            }
+            BinaryOp::Or => {
+                tokens.extend(quote! { | });
+            }
+            BinaryOp::Xor => {
+                tokens.extend(quote! { ^ });
+            }
+            BinaryOp::Mod => {
+                tokens.extend(quote! { % });
+            }
+            BinaryOp::Mul => {
+                tokens.extend(quote! { * });
+            }
+        }
     }
 }
 
@@ -1911,49 +2354,42 @@ impl BinaryOp {
 }
 const TERNARY_BINDING: (u8, u8) = (2, 1);
 
-#[derive(Debug, Clone, syn_derive::Parse)]
-pub(crate) struct LitVerilog {
-    width: LitInt,
-    lifetime: Lifetime,
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct LitVerilog {
+    pub width: u32,
+    pub value: String,
 }
 
-impl From<&LitVerilog> for ast::LitVerilog {
-    fn from(value: &LitVerilog) -> Self {
-        ast::LitVerilog {
-            width: value.width.base10_parse::<u32>().unwrap(),
-            value: value.lifetime.ident.to_string(),
-        }
+impl Parse for LitVerilog {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let width: LitInt = input.parse()?;
+        let lifetime: Lifetime = input.parse()?;
+        let width = width.base10_parse::<u32>()?;
+        let value = lifetime.ident.to_string();
+        Ok(LitVerilog { width, value })
+    }
+}
+
+impl Pretty for LitVerilog {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write(&self.width.to_string());
+        formatter.write("'");
+        formatter.write(&self.value);
     }
 }
 
 impl ToTokens for LitVerilog {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let width = &self.width;
-        let lifetime = &self.lifetime.ident;
-        tokens.extend(quote! {
-            vlog::lit_verilog(#width, stringify!(#lifetime).into())
-        })
+        let width = syn::Index::from(self.width as usize);
+        let lifetime =
+            syn::Lifetime::new(&format!("'{}", self.value), proc_macro2::Span::call_site());
+        tokens.extend(quote! { #width #lifetime });
     }
 }
 
+#[derive(Clone, PartialEq, Hash, Serialize, Deserialize)]
 pub struct ModuleList {
-    modules: Vec<ModuleDef>,
-}
-
-impl From<&ModuleList> for ast::ModuleList {
-    fn from(value: &ModuleList) -> Self {
-        let modules = value.modules.iter().map(|x| x.into()).collect();
-        ast::ModuleList(modules)
-    }
-}
-
-impl ToTokens for ModuleList {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let modules = vec_tokens(&self.modules);
-        tokens.extend(quote! {
-            vlog::module_list(#modules)
-        })
-    }
+    pub modules: Vec<ModuleDef>,
 }
 
 impl Parse for ModuleList {
@@ -1969,123 +2405,144 @@ impl Parse for ModuleList {
     }
 }
 
-pub struct ModuleDef {
-    _module: kw::module,
-    name: Ident,
-    args: Option<ParenCommaList<Port>>,
-    _semi: Token![;],
-    items: Vec<Item>,
-    _end_module: kw::endmodule,
+impl Pretty for ModuleList {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        for module in &self.modules {
+            module.pretty_print(formatter);
+            formatter.newline();
+        }
+    }
 }
 
-impl From<&ModuleDef> for ast::ModuleDef {
-    fn from(value: &ModuleDef) -> Self {
-        let name = value.name.to_string();
-        let args = value
-            .args
-            .iter()
-            .flat_map(|args| args.inner.iter())
-            .map(|x| x.into())
-            .collect();
-        let items = value.items.iter().map(|x| x.into()).collect();
-        ast::ModuleDef { name, args, items }
+impl ToTokens for ModuleList {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let modules = &self.modules;
+        tokens.extend(quote! { #( #modules )* });
+    }
+}
+
+impl std::fmt::Display for ModuleList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut fmt = crate::formatter::Formatter::new();
+        self.pretty_print(&mut fmt);
+        write!(f, "{}", fmt.finish())
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ModuleDef {
+    pub name: String,
+    pub args: Vec<Port>,
+    pub items: Vec<Item>,
+}
+
+impl Parse for ModuleDef {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _module = input.parse::<kw::module>()?;
+        let name = input.parse::<Ident>()?;
+        let args = if input.peek(token::Paren) {
+            Some(input.parse::<ParenCommaList<Port>>()?)
+        } else {
+            None
+        };
+        let _semi = input.parse::<Token![;]>()?;
+        let mut items = Vec::new();
+        while !input.peek(kw::endmodule) {
+            items.push(input.parse()?);
+        }
+        let _end_module = input.parse::<kw::endmodule>()?;
+        Ok(Self {
+            name: name.to_string(),
+            args: args.into_iter().flat_map(|x| x.inner.into_iter()).collect(),
+            items,
+        })
+    }
+}
+
+impl Pretty for ModuleDef {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write(&format!("module {}", self.name));
+        formatter.parenthesized(|formatter| {
+            formatter.comma_separated(&self.args);
+        });
+        formatter.write(";");
+        formatter.newline();
+        formatter.scoped(|formatter| {
+            formatter.lines(&self.items);
+        });
+        formatter.write("endmodule");
     }
 }
 
 impl ToTokens for ModuleDef {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = &self.name;
-        let args = iter_tokens(self.args.as_ref().iter().flat_map(|args| args.inner.iter()));
-        let items = vec_tokens(&self.items);
+        let name = format_ident!("{}", self.name);
+        let args = &self.args;
+        let items = &self.items;
         tokens.extend(quote! {
-            vlog::module_def(stringify!(#name), #args, #items)
-        })
+            module #name ( #( #args ),* );
+            #( #items )*
+            endmodule
+        });
     }
 }
 
-impl Parse for ModuleDef {
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct FunctionDef {
+    pub signed_width: SignedWidth,
+    pub name: String,
+    pub args: Vec<Port>,
+    pub items: Vec<Item>,
+}
+
+impl Parse for FunctionDef {
     fn parse(input: ParseStream) -> Result<Self> {
-        let module = input.parse()?;
-        let name = input.parse()?;
-        let args = if input.peek(token::Paren) {
-            Some(input.parse()?)
-        } else {
-            None
-        };
-        let semi = input.parse()?;
-        let mut items = Vec::new();
-        while !input.peek(kw::endmodule) {
+        let _function: kw::function = input.parse()?;
+        let signed_width = input.parse()?;
+        let name: Ident = input.parse()?;
+        let args: ParenCommaList<Port> = input.parse()?;
+        let _semi: Token![;] = input.parse()?;
+        let mut items: Vec<Item> = Vec::new();
+        while !input.peek(kw::endfunction) {
             items.push(input.parse()?);
         }
-        let end_module = input.parse()?;
-        Ok(Self {
-            _module: module,
-            name,
-            args,
-            _semi: semi,
+        let _end_function = input.parse::<kw::endfunction>()?;
+        Ok(FunctionDef {
+            signed_width,
+            name: name.to_string(),
+            args: args.inner.into_iter().collect(),
             items,
-            _end_module: end_module,
         })
     }
 }
 
-struct FunctionDef {
-    _function: kw::function,
-    signed_width: SignedWidth,
-    name: Ident,
-    args: ParenCommaList<Port>,
-    _semi: Token![;],
-    items: Vec<Item>,
-    _end_function: kw::endfunction,
-}
-
-impl From<&FunctionDef> for ast::FunctionDef {
-    fn from(value: &FunctionDef) -> Self {
-        let width = (&value.signed_width).into();
-        let name = value.name.to_string();
-        let args = value.args.inner.iter().map(|x| x.into()).collect();
-        let items = value.items.iter().map(|x| x.into()).collect();
-        ast::FunctionDef {
-            width,
-            name,
-            args,
-            items,
-        }
+impl Pretty for FunctionDef {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write(&format!("function "));
+        formatter.scoped(|formatter| {
+            self.signed_width.pretty_print(formatter);
+            formatter.write(&format!(" {}", self.name));
+            formatter.parenthesized(|f| f.comma_separated(&self.args));
+            formatter.write(";");
+            formatter.newline();
+            formatter.scoped(|f| {
+                f.lines(&self.items);
+            });
+        });
+        formatter.write("endfunction");
     }
 }
 
 impl ToTokens for FunctionDef {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let width = &self.signed_width;
-        let name = &self.name;
-        let args = iter_tokens(self.args.inner.iter());
-        let items = vec_tokens(&self.items);
+        let signed_width = &self.signed_width;
+        let name = format_ident!("{}", self.name);
+        let args = &self.args;
+        let items = &self.items;
         tokens.extend(quote! {
-            vlog::function_def(#width, stringify!(#name), #args, #items)
-        })
-    }
-}
-
-impl Parse for FunctionDef {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let function = input.parse()?;
-        let signed_width = input.parse()?;
-        let name = input.parse()?;
-        let args = input.parse()?;
-        let semi = input.parse()?;
-        let mut items = Vec::new();
-        while !input.peek(kw::endfunction) {
-            items.push(input.parse()?);
-        }
-        let end_function = input.parse()?;
-        Ok(FunctionDef {
-            _function: function,
-            signed_width,
-            name,
-            args,
-            _semi: semi,
-            items,
-            _end_function: end_function,
-        })
+            function #signed_width #name ( #( #args ),* );
+            #( #items )*
+            endfunction
+        });
     }
 }

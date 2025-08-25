@@ -1,1 +1,12 @@
-vlog :: declaration (vlog :: wire () , vlog :: signed (0 ..= 4) , stringify ! (baz))
+{
+  "kind": "Wire",
+  "signed_width": {
+    "Signed": {
+      "bit_range": {
+        "start": 4,
+        "end": 0
+      }
+    }
+  },
+  "name": "baz"
+}

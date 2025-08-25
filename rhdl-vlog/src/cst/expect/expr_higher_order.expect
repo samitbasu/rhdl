@@ -1,1 +1,14 @@
-vlog :: dyn_index_expr (stringify ! (h) , vlog :: ident_expr (stringify ! (a)) , vlog :: dyn_plus_colon () , vlog :: literal_expr (3))
+{
+  "DynIndex": {
+    "target": "h",
+    "address": {
+      "base": {
+        "Ident": "a"
+      },
+      "op": "PlusColon",
+      "width": {
+        "Literal": 3
+      }
+    }
+  }
+}

@@ -1,1 +1,826 @@
-vlog :: module_def (stringify ! (dut) , { let mut ret = Vec :: with_capacity (3usize) ; ret . push (vlog :: port (vlog :: input () , vlog :: declaration (vlog :: wire () , vlog :: unsigned (0 ..= 7) , stringify ! (arg_0)))) ; ret . push (vlog :: port (vlog :: input () , vlog :: declaration (vlog :: wire () , vlog :: unsigned (0 ..= 7) , stringify ! (arg_1)))) ; ret . push (vlog :: port (vlog :: output () , vlog :: declaration (vlog :: reg () , vlog :: unsigned (0 ..= 0) , stringify ! (out)))) ; ret } , { let mut ret = Vec :: with_capacity (18usize) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r0) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r1) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r2) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r3) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r4) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r5) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r6) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r7) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r8) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r9) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r10) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r11) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r12) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r13) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r14) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r15) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: reg () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (r16) , None)) ; ret }))) ; ret . push (vlog :: stmt_item (vlog :: always_stmt ({ let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: star ()) ; ret } , vlog :: block_stmt ({ let mut ret = Vec :: with_capacity (18usize) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r0)) , vlog :: index_expr (stringify ! (arg_0) , vlog :: literal_expr (0) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r1)) , vlog :: index_expr (stringify ! (arg_0) , vlog :: literal_expr (1) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r2)) , vlog :: index_expr (stringify ! (arg_0) , vlog :: literal_expr (2) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r3)) , vlog :: index_expr (stringify ! (arg_0) , vlog :: literal_expr (3) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r4)) , vlog :: index_expr (stringify ! (arg_0) , vlog :: literal_expr (4) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r5)) , vlog :: index_expr (stringify ! (arg_0) , vlog :: literal_expr (5) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r6)) , vlog :: index_expr (stringify ! (arg_0) , vlog :: literal_expr (6) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r7)) , vlog :: index_expr (stringify ! (arg_0) , vlog :: literal_expr (7) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r8)) , vlog :: index_expr (stringify ! (arg_1) , vlog :: literal_expr (0) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r9)) , vlog :: index_expr (stringify ! (arg_1) , vlog :: literal_expr (1) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r10)) , vlog :: index_expr (stringify ! (arg_1) , vlog :: literal_expr (2) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r11)) , vlog :: index_expr (stringify ! (arg_1) , vlog :: literal_expr (3) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r12)) , vlog :: index_expr (stringify ! (arg_1) , vlog :: literal_expr (4) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r13)) , vlog :: index_expr (stringify ! (arg_1) , vlog :: literal_expr (5) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r14)) , vlog :: index_expr (stringify ! (arg_1) , vlog :: literal_expr (6) , None))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (r15)) , vlog :: index_expr (stringify ! (arg_1) , vlog :: literal_expr (7) , None))) ; ret . push (vlog :: concat_assign_stmt ({ let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: ident_expr (stringify ! (r16))) ; ret } , vlog :: binary_expr (vlog :: function_expr (stringify ! (signed) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: concat_expr ({ let mut ret = Vec :: with_capacity (8usize) ; ret . push (vlog :: ident_expr (stringify ! (r7))) ; ret . push (vlog :: ident_expr (stringify ! (r6))) ; ret . push (vlog :: ident_expr (stringify ! (r5))) ; ret . push (vlog :: ident_expr (stringify ! (r4))) ; ret . push (vlog :: ident_expr (stringify ! (r3))) ; ret . push (vlog :: ident_expr (stringify ! (r2))) ; ret . push (vlog :: ident_expr (stringify ! (r1))) ; ret . push (vlog :: ident_expr (stringify ! (r0))) ; ret })) ; ret }) , vlog :: binary_ge () , vlog :: function_expr (stringify ! (signed) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: concat_expr ({ let mut ret = Vec :: with_capacity (8usize) ; ret . push (vlog :: ident_expr (stringify ! (r15))) ; ret . push (vlog :: ident_expr (stringify ! (r14))) ; ret . push (vlog :: ident_expr (stringify ! (r13))) ; ret . push (vlog :: ident_expr (stringify ! (r12))) ; ret . push (vlog :: ident_expr (stringify ! (r11))) ; ret . push (vlog :: ident_expr (stringify ! (r10))) ; ret . push (vlog :: ident_expr (stringify ! (r9))) ; ret . push (vlog :: ident_expr (stringify ! (r8))) ; ret })) ; ret })))) ; ret . push (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (out)) , vlog :: concat_expr ({ let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: ident_expr (stringify ! (r16))) ; ret }))) ; ret })))) ; ret })
+{
+  "name": "dut",
+  "args": [
+    {
+      "direction": "Input",
+      "decl": {
+        "kind": "Wire",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 7,
+              "end": 0
+            }
+          }
+        },
+        "name": "arg_0"
+      }
+    },
+    {
+      "direction": "Input",
+      "decl": {
+        "kind": "Wire",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 7,
+              "end": 0
+            }
+          }
+        },
+        "name": "arg_1"
+      }
+    },
+    {
+      "direction": "Output",
+      "decl": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "name": "out"
+      }
+    }
+  ],
+  "items": [
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r0",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r1",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r2",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r3",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r4",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r5",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r6",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r7",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r8",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r9",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r10",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r11",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r12",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r13",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r14",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r15",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Reg",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "r16",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Statement": {
+        "kind": {
+          "Always": {
+            "sensitivity": {
+              "elements": [
+                "Star"
+              ]
+            },
+            "body": {
+              "kind": {
+                "Block": {
+                  "body": [
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r0"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_0",
+                              "address": {
+                                "msb": {
+                                  "Literal": 0
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r1"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_0",
+                              "address": {
+                                "msb": {
+                                  "Literal": 1
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r2"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_0",
+                              "address": {
+                                "msb": {
+                                  "Literal": 2
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r3"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_0",
+                              "address": {
+                                "msb": {
+                                  "Literal": 3
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r4"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_0",
+                              "address": {
+                                "msb": {
+                                  "Literal": 4
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r5"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_0",
+                              "address": {
+                                "msb": {
+                                  "Literal": 5
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r6"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_0",
+                              "address": {
+                                "msb": {
+                                  "Literal": 6
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r7"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_0",
+                              "address": {
+                                "msb": {
+                                  "Literal": 7
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r8"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_1",
+                              "address": {
+                                "msb": {
+                                  "Literal": 0
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r9"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_1",
+                              "address": {
+                                "msb": {
+                                  "Literal": 1
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r10"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_1",
+                              "address": {
+                                "msb": {
+                                  "Literal": 2
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r11"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_1",
+                              "address": {
+                                "msb": {
+                                  "Literal": 3
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r12"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_1",
+                              "address": {
+                                "msb": {
+                                  "Literal": 4
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r13"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_1",
+                              "address": {
+                                "msb": {
+                                  "Literal": 5
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r14"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_1",
+                              "address": {
+                                "msb": {
+                                  "Literal": 6
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "r15"
+                          },
+                          "rhs": {
+                            "Index": {
+                              "target": "arg_1",
+                              "address": {
+                                "msb": {
+                                  "Literal": 7
+                                },
+                                "lsb": null
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "ConcatAssign": {
+                          "target": {
+                            "elements": [
+                              {
+                                "Ident": "r16"
+                              }
+                            ]
+                          },
+                          "rhs": {
+                            "Binary": {
+                              "lhs": {
+                                "Function": {
+                                  "name": "$signed",
+                                  "args": [
+                                    {
+                                      "Concat": {
+                                        "elements": [
+                                          {
+                                            "Ident": "r7"
+                                          },
+                                          {
+                                            "Ident": "r6"
+                                          },
+                                          {
+                                            "Ident": "r5"
+                                          },
+                                          {
+                                            "Ident": "r4"
+                                          },
+                                          {
+                                            "Ident": "r3"
+                                          },
+                                          {
+                                            "Ident": "r2"
+                                          },
+                                          {
+                                            "Ident": "r1"
+                                          },
+                                          {
+                                            "Ident": "r0"
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              "op": "Ge",
+                              "rhs": {
+                                "Function": {
+                                  "name": "$signed",
+                                  "args": [
+                                    {
+                                      "Concat": {
+                                        "elements": [
+                                          {
+                                            "Ident": "r15"
+                                          },
+                                          {
+                                            "Ident": "r14"
+                                          },
+                                          {
+                                            "Ident": "r13"
+                                          },
+                                          {
+                                            "Ident": "r12"
+                                          },
+                                          {
+                                            "Ident": "r11"
+                                          },
+                                          {
+                                            "Ident": "r10"
+                                          },
+                                          {
+                                            "Ident": "r9"
+                                          },
+                                          {
+                                            "Ident": "r8"
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "kind": {
+                        "Assign": {
+                          "target": {
+                            "Ident": "out"
+                          },
+                          "rhs": {
+                            "Concat": {
+                              "elements": [
+                                {
+                                  "Ident": "r16"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
