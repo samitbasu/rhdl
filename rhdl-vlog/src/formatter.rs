@@ -133,14 +133,14 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::cst;
+    use crate::ModuleList;
 
     use super::*;
 
     #[test]
     fn test_pretty_printing() {
         let expect = expect_test::expect_file!["cst/expect/pretty_dff_definition.expect"];
-        let synth = syn::parse_str::<cst::ModuleList>(
+        let synth = syn::parse_str::<ModuleList>(
             "
         module foo(input wire[2:0] clock_reset, input wire[7:0] i, output wire signed [7:0] o, inout wire baz);
            wire [0:0] clock;

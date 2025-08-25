@@ -1,8 +1,4 @@
-use crate::{
-    cst::{ModuleList, tests::common::test_parse},
-    formatter::Pretty,
-};
-use quote::quote;
+use crate::{ModuleList, formatter::Pretty, tests::test_parse};
 
 #[test]
 fn test_vlog_files() -> miette::Result<()> {
