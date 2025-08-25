@@ -4,22 +4,15 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-derive-syn-parse = "0.2.0"
 miette = { version = "7.6.0", features = ["fancy"] }
-prettyplease = "0.2.36"
-proc-macro2 = "1.0.97"
+proc-macro2 = { version = "1.0.97", default-features = false }
 quote = "1.0.40"
-ron = "0.10.1"
 serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.143"
 syn = { version = "2.0.104", features = ["extra-traits", "full"] }
 syn-miette = "0.3.0"
-syn_derive = "0.2.0"
-trybuild = "1.0.110"
 
 [dev-dependencies]
 expect-test = "1.5.1"
-prettyplease = "0.2.36"
 
 # Optional: Add coverage-specific configuration
 [profile.coverage]
