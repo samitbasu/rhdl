@@ -81,7 +81,10 @@ impl Formatter {
         let iter = items.into_iter();
         for item in iter {
             item.pretty_print(self);
-            if !self.contents.ends_with("end\n") {
+            if !(self.contents.ends_with("end")
+                || self.contents.ends_with("endcase")
+                || self.contents.ends_with("endfunction"))
+            {
                 self.write(";");
             }
             self.newline();
@@ -91,6 +94,11 @@ impl Formatter {
 
 pub trait Pretty {
     fn pretty_print(&self, formatter: &mut Formatter);
+    fn pretty(&self) -> String {
+        let mut formatter = Formatter::new();
+        self.pretty_print(&mut formatter);
+        formatter.finish()
+    }
 }
 
 impl<T> Pretty for &T
@@ -102,10 +110,30 @@ where
     }
 }
 
+impl<T> Pretty for Box<T>
+where
+    T: Pretty,
+{
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        (**self).pretty_print(formatter);
+    }
+}
+
+impl<T> Pretty for Option<T>
+where
+    T: Pretty,
+{
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        if let Some(value) = self {
+            value.pretty_print(formatter);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
-    use crate::{ast, cst};
+    use crate::cst;
 
     use super::*;
 
@@ -118,6 +146,7 @@ mod tests {
            wire [0:0] clock;
            wire [0:0] reset;
            reg [3:0] a, b, c;
+           reg [7:0] memory[15:0];
            wire foo;
            assign clock = clock_reset[0];
            assign wire = clock_reset[1];
@@ -167,9 +196,7 @@ mod tests {
 ",
         )
         .unwrap();
-        let synth: ast::ModuleList = (&synth).into();
-        let mut formatter = Formatter::new();
-        synth.pretty_print(&mut formatter);
-        expect.assert_eq(&formatter.finish());
+        let pretty = synth.pretty();
+        expect.assert_eq(&pretty);
     }
 }

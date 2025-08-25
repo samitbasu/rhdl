@@ -1,1 +1,10 @@
-vlog :: function_expr (stringify ! (signed) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: ident_expr (stringify ! (a))) ; ret })
+{
+  "Function": {
+    "name": "$signed",
+    "args": [
+      {
+        "Ident": "a"
+      }
+    ]
+  }
+}

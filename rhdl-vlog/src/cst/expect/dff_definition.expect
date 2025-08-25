@@ -1,1 +1,217 @@
-vlog :: module_def (stringify ! (foo) , { let mut ret = Vec :: with_capacity (3usize) ; ret . push (vlog :: port (vlog :: input () , vlog :: declaration (vlog :: wire () , vlog :: unsigned (0 ..= 2) , stringify ! (clock_reset)))) ; ret . push (vlog :: port (vlog :: input () , vlog :: declaration (vlog :: wire () , vlog :: unsigned (0 ..= 7) , stringify ! (i)))) ; ret . push (vlog :: port (vlog :: output () , vlog :: declaration (vlog :: wire () , vlog :: unsigned (0 ..= 7) , stringify ! (o)))) ; ret } , { let mut ret = Vec :: with_capacity (5usize) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: wire () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (clock) , None)) ; ret }))) ; ret . push (vlog :: declaration_item (vlog :: declaration_list (vlog :: wire () , vlog :: unsigned (0 ..= 0) , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: decl_kind (stringify ! (reset) , None)) ; ret }))) ; ret . push (vlog :: stmt_item (vlog :: continuous_assign_stmt (vlog :: assign_target_ident (stringify ! (clock)) , vlog :: index_expr (stringify ! (clock_reset) , vlog :: literal_expr (0) , None)))) ; ret . push (vlog :: stmt_item (vlog :: continuous_assign_stmt (vlog :: assign_target_ident (stringify ! (wire)) , vlog :: index_expr (stringify ! (clock_reset) , vlog :: literal_expr (1) , None)))) ; ret . push (vlog :: stmt_item (vlog :: always_stmt ({ let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: pos_edge (stringify ! (clock))) ; ret } , vlog :: block_stmt ({ let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: if_stmt (vlog :: ident_expr (stringify ! (reset)) , vlog :: block_stmt ({ let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: nonblock_assign_stmt (vlog :: assign_target_ident (stringify ! (o)) , vlog :: constant_expr (vlog :: lit_verilog (8 , stringify ! (b0))))) ; ret }) , Some (vlog :: block_stmt ({ let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: nonblock_assign_stmt (vlog :: assign_target_ident (stringify ! (o)) , vlog :: ident_expr (stringify ! (i)))) ; ret })))) ; ret })))) ; ret })
+{
+  "name": "foo",
+  "args": [
+    {
+      "direction": "Input",
+      "decl": {
+        "kind": "Wire",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 2,
+              "end": 0
+            }
+          }
+        },
+        "name": "clock_reset"
+      }
+    },
+    {
+      "direction": "Input",
+      "decl": {
+        "kind": "Wire",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 7,
+              "end": 0
+            }
+          }
+        },
+        "name": "i"
+      }
+    },
+    {
+      "direction": "Output",
+      "decl": {
+        "kind": "Wire",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 7,
+              "end": 0
+            }
+          }
+        },
+        "name": "o"
+      }
+    }
+  ],
+  "items": [
+    {
+      "Declaration": {
+        "kind": "Wire",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "clock",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Declaration": {
+        "kind": "Wire",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 0,
+              "end": 0
+            }
+          }
+        },
+        "items": [
+          {
+            "name": "reset",
+            "width": null
+          }
+        ]
+      }
+    },
+    {
+      "Statement": {
+        "kind": {
+          "ContinuousAssign": {
+            "assign": {
+              "target": {
+                "Ident": "clock"
+              },
+              "rhs": {
+                "Index": {
+                  "target": "clock_reset",
+                  "address": {
+                    "msb": {
+                      "Literal": 0
+                    },
+                    "lsb": null
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "Statement": {
+        "kind": {
+          "ContinuousAssign": {
+            "assign": {
+              "target": {
+                "Ident": "wire"
+              },
+              "rhs": {
+                "Index": {
+                  "target": "clock_reset",
+                  "address": {
+                    "msb": {
+                      "Literal": 1
+                    },
+                    "lsb": null
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "Statement": {
+        "kind": {
+          "Always": {
+            "sensitivity": {
+              "elements": [
+                {
+                  "PosEdge": {
+                    "ident": "clock"
+                  }
+                }
+              ]
+            },
+            "body": {
+              "kind": {
+                "Block": {
+                  "body": [
+                    {
+                      "kind": {
+                        "If": {
+                          "condition": {
+                            "Ident": "reset"
+                          },
+                          "true_stmt": {
+                            "kind": {
+                              "Block": {
+                                "body": [
+                                  {
+                                    "kind": {
+                                      "NonblockAssign": {
+                                        "target": {
+                                          "Ident": "o"
+                                        },
+                                        "rhs": {
+                                          "Constant": {
+                                            "width": 8,
+                                            "value": "b0"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "else_branch": {
+                            "stmt": {
+                              "kind": {
+                                "Block": {
+                                  "body": [
+                                    {
+                                      "kind": {
+                                        "NonblockAssign": {
+                                          "target": {
+                                            "Ident": "o"
+                                          },
+                                          "rhs": {
+                                            "Ident": "i"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

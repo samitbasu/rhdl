@@ -1,1 +1,48 @@
-vlog :: binary_expr (vlog :: binary_expr (vlog :: index_expr (stringify ! (a) , vlog :: literal_expr (3) , None) , vlog :: binary_plus () , vlog :: index_expr (stringify ! (b) , vlog :: literal_expr (5) , Some (vlog :: literal_expr (2)))) , vlog :: binary_minus () , vlog :: replica_expr (4 , { let mut ret = Vec :: with_capacity (1usize) ; ret . push (vlog :: ident_expr (stringify ! (w))) ; ret }))
+{
+  "Binary": {
+    "lhs": {
+      "Binary": {
+        "lhs": {
+          "Index": {
+            "target": "a",
+            "address": {
+              "msb": {
+                "Literal": 3
+              },
+              "lsb": null
+            }
+          }
+        },
+        "op": "Plus",
+        "rhs": {
+          "Index": {
+            "target": "b",
+            "address": {
+              "msb": {
+                "Literal": 5
+              },
+              "lsb": {
+                "Literal": 2
+              }
+            }
+          }
+        }
+      }
+    },
+    "op": "Minus",
+    "rhs": {
+      "Replica": {
+        "inner": {
+          "count": 4,
+          "concatenation": {
+            "elements": [
+              {
+                "Ident": "w"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

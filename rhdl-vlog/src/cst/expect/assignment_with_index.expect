@@ -1,1 +1,210 @@
-vlog :: module_def (stringify ! (foo) , { let mut ret = Vec :: with_capacity (3usize) ; ret . push (vlog :: port (vlog :: input () , vlog :: declaration (vlog :: wire () , vlog :: unsigned (0 ..= 7) , stringify ! (a)))) ; ret . push (vlog :: port (vlog :: input () , vlog :: declaration (vlog :: wire () , vlog :: unsigned (0 ..= 7) , stringify ! (b)))) ; ret . push (vlog :: port (vlog :: output () , vlog :: declaration (vlog :: wire () , vlog :: unsigned (0 ..= 7) , stringify ! (c)))) ; ret } , { let mut ret = Vec :: with_capacity (5usize) ; ret . push (vlog :: stmt_item (vlog :: assign_stmt (vlog :: assign_target_ident (stringify ! (c)) , vlog :: binary_expr (vlog :: index_expr (stringify ! (a) , vlog :: literal_expr (3) , None) , vlog :: binary_plus () , vlog :: index_expr (stringify ! (b) , vlog :: literal_expr (5) , Some (vlog :: literal_expr (2))))))) ; ret . push (vlog :: stmt_item (vlog :: nonblock_assign_stmt (vlog :: assign_target_ident (stringify ! (c)) , vlog :: binary_expr (vlog :: index_expr (stringify ! (a) , vlog :: literal_expr (3) , None) , vlog :: binary_plus () , vlog :: index_expr (stringify ! (b) , vlog :: literal_expr (5) , Some (vlog :: literal_expr (2))))))) ; ret . push (vlog :: stmt_item (vlog :: nonblock_assign_stmt (vlog :: assign_target_index (vlog :: index_expr (stringify ! (c) , vlog :: ident_expr (stringify ! (a)) , None)) , vlog :: ident_expr (stringify ! (b))))) ; ret . push (vlog :: stmt_item (vlog :: nonblock_assign_stmt (vlog :: assign_target_index (vlog :: index_expr (stringify ! (c) , vlog :: index_expr (stringify ! (a) , vlog :: literal_expr (3) , Some (vlog :: literal_expr (0))) , None)) , vlog :: ident_expr (stringify ! (b))))) ; ret . push (vlog :: stmt_item (vlog :: nonblock_assign_stmt (vlog :: assign_target_index (vlog :: index_expr (stringify ! (c) , vlog :: literal_expr (3) , Some (vlog :: literal_expr (0)))) , vlog :: ident_expr (stringify ! (a))))) ; ret })
+{
+  "name": "foo",
+  "args": [
+    {
+      "direction": "Input",
+      "decl": {
+        "kind": "Wire",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 7,
+              "end": 0
+            }
+          }
+        },
+        "name": "a"
+      }
+    },
+    {
+      "direction": "Input",
+      "decl": {
+        "kind": "Wire",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 7,
+              "end": 0
+            }
+          }
+        },
+        "name": "b"
+      }
+    },
+    {
+      "direction": "Output",
+      "decl": {
+        "kind": "Wire",
+        "signed_width": {
+          "Unsigned": {
+            "bit_range": {
+              "start": 7,
+              "end": 0
+            }
+          }
+        },
+        "name": "c"
+      }
+    }
+  ],
+  "items": [
+    {
+      "Statement": {
+        "kind": {
+          "Assign": {
+            "target": {
+              "Ident": "c"
+            },
+            "rhs": {
+              "Binary": {
+                "lhs": {
+                  "Index": {
+                    "target": "a",
+                    "address": {
+                      "msb": {
+                        "Literal": 3
+                      },
+                      "lsb": null
+                    }
+                  }
+                },
+                "op": "Plus",
+                "rhs": {
+                  "Index": {
+                    "target": "b",
+                    "address": {
+                      "msb": {
+                        "Literal": 5
+                      },
+                      "lsb": {
+                        "Literal": 2
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "Statement": {
+        "kind": {
+          "NonblockAssign": {
+            "target": {
+              "Ident": "c"
+            },
+            "rhs": {
+              "Binary": {
+                "lhs": {
+                  "Index": {
+                    "target": "a",
+                    "address": {
+                      "msb": {
+                        "Literal": 3
+                      },
+                      "lsb": null
+                    }
+                  }
+                },
+                "op": "Plus",
+                "rhs": {
+                  "Index": {
+                    "target": "b",
+                    "address": {
+                      "msb": {
+                        "Literal": 5
+                      },
+                      "lsb": {
+                        "Literal": 2
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "Statement": {
+        "kind": {
+          "NonblockAssign": {
+            "target": {
+              "Index": {
+                "target": "c",
+                "address": {
+                  "msb": {
+                    "Ident": "a"
+                  },
+                  "lsb": null
+                }
+              }
+            },
+            "rhs": {
+              "Ident": "b"
+            }
+          }
+        }
+      }
+    },
+    {
+      "Statement": {
+        "kind": {
+          "NonblockAssign": {
+            "target": {
+              "Index": {
+                "target": "c",
+                "address": {
+                  "msb": {
+                    "Index": {
+                      "target": "a",
+                      "address": {
+                        "msb": {
+                          "Literal": 3
+                        },
+                        "lsb": {
+                          "Literal": 0
+                        }
+                      }
+                    }
+                  },
+                  "lsb": null
+                }
+              }
+            },
+            "rhs": {
+              "Ident": "b"
+            }
+          }
+        }
+      }
+    },
+    {
+      "Statement": {
+        "kind": {
+          "NonblockAssign": {
+            "target": {
+              "Index": {
+                "target": "c",
+                "address": {
+                  "msb": {
+                    "Literal": 3
+                  },
+                  "lsb": {
+                    "Literal": 0
+                  }
+                }
+              }
+            },
+            "rhs": {
+              "Ident": "a"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

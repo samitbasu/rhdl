@@ -1,1 +1,71 @@
-vlog :: binary_expr (vlog :: binary_expr (vlog :: ident_expr (stringify ! (d)) , vlog :: binary_plus () , vlog :: literal_expr (3)) , vlog :: binary_plus () , vlog :: unary_expr (vlog :: unary_not () , vlog :: paren_expr (vlog :: binary_expr (vlog :: binary_expr (vlog :: unary_expr (vlog :: unary_xor () , vlog :: literal_expr (4)) , vlog :: binary_plus () , vlog :: binary_expr (vlog :: binary_expr (vlog :: binary_expr (vlog :: literal_expr (4) , vlog :: binary_mul () , vlog :: ident_expr (stringify ! (c))) , vlog :: binary_mul () , vlog :: literal_expr (6)) , vlog :: binary_mod () , vlog :: literal_expr (8))) , vlog :: binary_and () , vlog :: literal_expr (5)))))
+{
+  "Binary": {
+    "lhs": {
+      "Binary": {
+        "lhs": {
+          "Ident": "d"
+        },
+        "op": "Plus",
+        "rhs": {
+          "Literal": 3
+        }
+      }
+    },
+    "op": "Plus",
+    "rhs": {
+      "Unary": {
+        "op": "Not",
+        "arg": {
+          "Paren": {
+            "Binary": {
+              "lhs": {
+                "Binary": {
+                  "lhs": {
+                    "Unary": {
+                      "op": "Xor",
+                      "arg": {
+                        "Literal": 4
+                      }
+                    }
+                  },
+                  "op": "Plus",
+                  "rhs": {
+                    "Binary": {
+                      "lhs": {
+                        "Binary": {
+                          "lhs": {
+                            "Binary": {
+                              "lhs": {
+                                "Literal": 4
+                              },
+                              "op": "Mul",
+                              "rhs": {
+                                "Ident": "c"
+                              }
+                            }
+                          },
+                          "op": "Mul",
+                          "rhs": {
+                            "Literal": 6
+                          }
+                        }
+                      },
+                      "op": "Mod",
+                      "rhs": {
+                        "Literal": 8
+                      }
+                    }
+                  }
+                }
+              },
+              "op": "And",
+              "rhs": {
+                "Literal": 5
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

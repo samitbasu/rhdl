@@ -1,8 +1,9 @@
-use crate::cst::tests::common::test_parse_quote;
+use crate::cst::tests::common::{test_parse, test_parse_quote};
 use crate::cst::{
-    Declaration, Direction, Expr, HDLKind, LitVerilog, ModuleDef, Port, SignedWidth, Stmt,
-    WidthSpec,
+    Declaration, Direction, Expr, HDLKind, LitVerilog, ModuleDef, ModuleList, Port, SignedWidth,
+    Stmt, WidthSpec,
 };
+use crate::formatter::Pretty;
 
 #[test]
 fn test_to_tokens_signed_width() -> miette::Result<()> {
@@ -124,6 +125,8 @@ fn test_quote_parse_stmt_if() -> miette::Result<()> {
 begin
    if (a > 3)
       b = 4;
+   else if (a < 7)
+      b = 7;
    else
       c = b;
 end    
@@ -319,5 +322,106 @@ fn test_dut_signed_compare() -> miette::Result<()> {
 endmodule",
     )?;
     expect.assert_eq(&synth.to_string());
+    Ok(())
+}
+
+const KITCHEN_SINK: &str = r#"
+        module foo(input wire[2:0] clock_reset, input wire[7:0] i, output wire signed [7:0] o, inout wire baz);
+           wire [0:0] clock;
+           wire [0:0] reset;
+           reg [3:0] a, b, c;
+           reg [7:0] memory[15:0];
+           wire foo;
+           assign clock = clock_reset[0];
+           assign wire = clock_reset[1];
+           assign o = {i, i};
+           assign o = {3 {i}};
+           a[b +: 1] = clock;
+           a[1:0] = reset;
+           if (c <= 3) begin
+              {a, b} = c;
+           end
+           localparam cost = 42;
+           localparam bar = 16'd16;
+           localparam pie = "apple";
+           obj obj(.clk(clock), .reset(reset), .i(i), .o(o));
+           initial begin
+               o = 8'b0;
+               # 10;
+               o = add(8'b0, 8'b1) + !c;
+               o = (a > b) ? a : b[o -: 4];
+               $display("o = 2");
+               o = (a > b) && (b < 6);
+               o = (a == b) || (b == 3);
+               o = a >> 3;
+               o = a >>> 3;
+               o = a === 3;
+               o = a !== 4;
+               o = a | b;
+               o = a ^ b;
+               o = a != 3;
+               o = a << 2;
+               o = a >= b;
+               o = a % b;
+               o = a * b - c & d;
+               o = -b;
+               o = ~b;
+               o = &b;
+               o = |b;
+               o = ^b;
+               o = +b;
+           end
+           always @(posedge clock, negedge reset, foo, *) begin
+               if (reset) begin
+                  o <= 8'b0;
+                end else begin
+                   o <= i;
+                end
+           end
+           case (rega)
+            16'd0: result = 10'b0111111111;
+            16'd1: result = 10'b1011111111;
+            16'd2: result = 10'b1101111111;
+            16'd3: result = 10'b1110111111;
+            START: result = 10'b1110111111;
+            16'd4: result = 10'b1111011111;
+            16'd5: result = 10'b1111101111;
+            16'd6: result = 10'b1111110111;
+            16'd7: result = 10'b1111111011;
+            16'd8: result = 10'b1111111101;
+            16'd9: result = 10'b1111111110;
+            default: result = 10'bx;
+          endcase
+          function [3:0] add(input wire[3:0] a, input wire[3:0] b);
+            begin
+              add = a + b;
+            end
+          endfunction
+        endmodule
+"#;
+
+#[test]
+fn test_parse_kitchen_sink() -> miette::Result<()> {
+    let expect = expect_test::expect_file!["../expect/kitchen_sink.expect"];
+    let synth = test_parse_quote::<ModuleList>(KITCHEN_SINK)?;
+    expect.assert_eq(&synth.to_string());
+    Ok(())
+}
+
+#[test]
+fn test_pretty_kitchen_sink() -> miette::Result<()> {
+    let expect = expect_test::expect_file!["../expect/kitchen_sink_pretty.expect"];
+    let synth = syn::parse_str::<ModuleDef>(KITCHEN_SINK).unwrap();
+    expect.assert_eq(&synth.pretty());
+    Ok(())
+}
+
+#[test]
+fn test_pretty_kitchen_idempotence() -> miette::Result<()> {
+    let synth = test_parse::<ModuleDef>(KITCHEN_SINK)?;
+    let pretty = synth.pretty();
+    let synth2 = test_parse::<ModuleDef>(&pretty)?;
+    let pretty2 = synth2.pretty();
+    assert_eq!(pretty, pretty2);
     Ok(())
 }
