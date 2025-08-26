@@ -1,13 +1,15 @@
 [workspace]
 resolver = "2"
 members = [
-    "rhdl",
-    #    "rhdl-bits",
-    "rhdl-macro-core",
-    #    "rhdl-core",
-    "rhdl-macro",
-    "rhdl-fpga",
-    "rhdl-trace-type", "rhdl-bsp",
-    "rhdl-vlog"
-    #    "rhdl-typenum",
+    "crates/rhdl",
+    "crates/rhdl-bits",
+    "crates/rhdl-bsp",
+    "crates/rhdl-core",
+    "crates/rhdl-fpga",
+    "crates/rhdl-macro",
+    "crates/rhdl-macro-core",
+    "crates/rhdl-trace-type",
+    "crates/rhdl-typenum",
+    "crates/rhdl-vlog",
+    "crates/rhdl",
 ]
