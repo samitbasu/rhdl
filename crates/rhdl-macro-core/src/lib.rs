@@ -5,7 +5,6 @@ mod digital_enum;
 mod kernel;
 pub use kernel::hdl_kernel;
 mod circuit;
-mod suffix;
 pub use circuit::derive_circuit;
 mod circuit_dq;
 pub use circuit_dq::derive_circuit_dq;

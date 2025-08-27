@@ -5,7 +5,6 @@ pub(crate) mod check_rhif_type;
 pub(crate) mod constant_propagation;
 pub(crate) mod dead_code_elimination;
 pub(crate) mod lower_dynamic_indices_with_constant_arguments;
-pub(crate) mod lower_index_to_copy;
 pub(crate) mod lower_inferred_casts;
 pub(crate) mod lower_inferred_retimes;
 pub(crate) mod partial_initialization_check;
