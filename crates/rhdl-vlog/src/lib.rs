@@ -2476,18 +2476,6 @@ pub struct ModuleDef {
     pub items: Vec<Item>,
 }
 
-pub fn module_def(
-    name: &str,
-    args: impl IntoIterator<Item = Port>,
-    items: impl IntoIterator<Item = Item>,
-) -> ModuleDef {
-    ModuleDef {
-        name: name.to_string(),
-        args: args.into_iter().collect(),
-        items: items.into_iter().collect(),
-    }
-}
-
 impl Parse for ModuleDef {
     fn parse(input: ParseStream) -> Result<Self> {
         let _module = input.parse::<kw::module>()?;
@@ -2545,20 +2533,6 @@ pub struct FunctionDef {
     pub name: String,
     pub args: Vec<Port>,
     pub items: Vec<Item>,
-}
-
-pub fn function_def(
-    signed_width: SignedWidth,
-    name: &str,
-    args: impl IntoIterator<Item = Port>,
-    items: impl IntoIterator<Item = Item>,
-) -> FunctionDef {
-    FunctionDef {
-        signed_width,
-        name: name.to_string(),
-        args: args.into_iter().collect(),
-        items: items.into_iter().collect(),
-    }
 }
 
 impl Parse for FunctionDef {
