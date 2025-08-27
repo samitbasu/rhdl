@@ -1,7 +1,7 @@
 use std::ops::Shr;
 use std::ops::ShrAssign;
 
-use crate::rhdl_bits::signed_dyn_bits::SignedDynBits;
+use crate::signed_dyn_bits::SignedDynBits;
 
 use super::BitWidth;
 use super::bits_impl::Bits;
@@ -203,7 +203,7 @@ impl Shr<u128> for SignedDynBits {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::rhdl_bits::bitwidth::*;
+    use crate::bitwidth::*;
 
     #[test]
     fn test_shr_bits() {

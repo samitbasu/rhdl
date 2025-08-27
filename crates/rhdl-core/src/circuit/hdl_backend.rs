@@ -1,16 +1,16 @@
 use std::collections::BTreeMap;
 
-use crate::rhdl_core::hdl::{
+use crate::hdl::{
     ast::{
         component_instance, connection, continuous_assignment, function_call, id, index,
         unsigned_width, Declaration, Direction, HDLKind, Module, Port, Statement,
     },
     builder::generate_verilog,
 };
-use crate::rhdl_core::types::path::bit_range;
-use crate::rhdl_core::types::path::Path;
-use crate::rhdl_core::Digital;
-use crate::rhdl_core::{Circuit, HDLDescriptor, RHDLError, Synchronous};
+use crate::types::path::bit_range;
+use crate::types::path::Path;
+use crate::Digital;
+use crate::{Circuit, HDLDescriptor, RHDLError, Synchronous};
 
 pub(crate) fn maybe_port_wire(dir: Direction, num_bits: usize, name: &str) -> Option<Port> {
     (num_bits != 0).then(|| Port {

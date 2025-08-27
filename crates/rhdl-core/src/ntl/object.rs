@@ -1,14 +1,12 @@
 use crate::{
-    prelude::{BitX, HDLDescriptor, Kind},
-    rhdl_core::{
-        ast::source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
-        common::symtab::{RegisterId, SymbolTable},
-        ntl::{
-            spec::{OpCode, Wire, WireKind},
-            visit::visit_object_wires_mut,
-        },
-        rhif::object::SourceDetails,
+    BitX, HDLDescriptor, Kind,
+    ast::source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
+    common::symtab::{RegisterId, SymbolTable},
+    ntl::{
+        spec::{OpCode, Wire, WireKind},
+        visit::visit_object_wires_mut,
     },
+    rhif::object::SourceDetails,
 };
 use std::hash::Hash;
 use std::hash::Hasher;

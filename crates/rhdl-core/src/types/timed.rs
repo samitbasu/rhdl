@@ -1,4 +1,4 @@
-use crate::rhdl_core::{Digital, Kind};
+use crate::{Digital, Kind};
 
 pub trait Timed: Digital {
     fn static_kind() -> Kind {

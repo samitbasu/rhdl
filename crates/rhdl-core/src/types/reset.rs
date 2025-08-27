@@ -1,4 +1,4 @@
-use crate::rhdl_core::{bitx::BitX, Digital, Kind};
+use crate::{bitx::BitX, Digital, Kind};
 
 #[derive(PartialEq, Clone, Copy, Debug, Default)]
 pub struct Reset(bool);

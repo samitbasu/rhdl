@@ -1,19 +1,14 @@
 use crate::{
-    prelude::{Kind, Path},
-    rhdl_core::{
-        RHDLError, TypedBits,
-        ast::source::source_location::SourceLocation,
-        common::symtab::LiteralId,
-        compiler::mir::error::ICE,
-        rtl::{
-            Object,
-            object::LocatedOpCode,
-            spec::{
-                AluBinary, Binary, Cast, CastKind, Concat, Index, OpCode, Operand, OperandKind,
-            },
-        },
-        types::bit_string::BitString,
+    Kind, RHDLError, TypedBits,
+    ast::source::source_location::SourceLocation,
+    common::symtab::LiteralId,
+    compiler::mir::error::ICE,
+    rtl::{
+        Object,
+        object::LocatedOpCode,
+        spec::{AluBinary, Binary, Cast, CastKind, Concat, Index, OpCode, Operand, OperandKind},
     },
+    types::{bit_string::BitString, path::Path},
 };
 
 use super::pass::Pass;

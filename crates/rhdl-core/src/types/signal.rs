@@ -1,6 +1,6 @@
-use crate::rhdl_bits::{BitWidth, Bits};
+use rhdl_bits::{BitWidth, Bits};
 
-use crate::rhdl_core::{BitX, Digital, Domain, Kind, Timed};
+use crate::{BitX, Digital, Domain, Kind, Timed};
 use rhdl_trace_type as rtt;
 
 #[derive(Clone, Copy, Debug, PartialEq)]

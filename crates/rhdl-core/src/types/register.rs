@@ -1,6 +1,6 @@
-use crate::rhdl_bits::{BitWidth, Bits, SignedBits};
+use rhdl_bits::{BitWidth, Bits, SignedBits};
 
-use crate::rhdl_core::{Digital, Kind};
+use crate::{Digital, Kind};
 
 pub trait Register: Digital {
     fn static_kind() -> Kind {

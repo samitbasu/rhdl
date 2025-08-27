@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     RHDLError,
     rtl::{Object, spec::OpCode},
 };

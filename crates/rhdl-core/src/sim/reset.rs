@@ -1,4 +1,4 @@
-use crate::rhdl_core::Digital;
+use crate::Digital;
 
 use super::ResetOrData;
 
@@ -81,7 +81,7 @@ where
 mod tests {
 
     use super::*;
-    use crate::rhdl_bits::alias::*;
+    use rhdl_bits::alias::*;
 
     #[test]
     fn test_stream_on_iterator() {

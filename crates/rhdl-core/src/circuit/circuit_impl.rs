@@ -1,9 +1,6 @@
 use crate::{
-    prelude::Module,
-    rhdl_core::{
-        circuit::yosys::run_yosys_synth, digital_fn::DigitalFn2, error::RHDLError,
-        ntl::hdl::generate_hdl, DigitalFn, Timed,
-    },
+    DigitalFn, Timed, circuit::yosys::run_yosys_synth, digital_fn::DigitalFn2, error::RHDLError,
+    hdl::ast::Module, ntl::hdl::generate_hdl,
 };
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};

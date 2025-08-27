@@ -1,9 +1,6 @@
-use miette::{Diagnostic, SourceSpan};
-use petgraph::algo::DfsSpace;
-
 use crate::{
-    prelude::Synchronous,
-    rhdl_core::{
+    Synchronous,
+    {
         SourcePool,
         ntl::{
             graph::{GraphMode, WriteSource, make_net_graph},
@@ -11,6 +8,9 @@ use crate::{
         },
     },
 };
+use miette::{Diagnostic, SourceSpan};
+use petgraph::algo::DfsSpace;
+use std::collections::hash_map::RandomState;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -69,7 +69,7 @@ pub fn no_combinatorial_paths<T: Synchronous>(uut: &T) -> miette::Result<()> {
                     op_node,
                     Some(&mut space),
                 ) {
-                    let path = petgraph::algo::all_simple_paths::<Vec<_>, _>(
+                    let path = petgraph::algo::all_simple_paths::<Vec<_>, _, RandomState>(
                         &dep.graph, input_node, op_node, 1, None,
                     )
                     .next()

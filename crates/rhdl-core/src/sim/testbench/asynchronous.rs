@@ -1,6 +1,6 @@
 use rhdl_trace_type::RTT;
 
-use crate::rhdl_core::{
+use crate::{
     hdl::ast::{
         assert, assign, bit_string, component_instance, connection, declaration, delay, display,
         dump_file, dump_vars, finish, id, initial, unsigned_width, Direction, HDLKind, Module,
@@ -165,7 +165,7 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         T: Circuit,
         T: CircuitIO<I = I, O = O>,
     {
-        let module = crate::rhdl_core::ntl::hdl::generate_hdl("dut", &uut.descriptor("uut")?.ntl)?;
+        let module = crate::ntl::hdl::generate_hdl("dut", &uut.descriptor("uut")?.ntl)?;
         self.build_test_module(&module, options)
     }
 }

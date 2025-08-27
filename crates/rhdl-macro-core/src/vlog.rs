@@ -24,11 +24,11 @@ fn parse_and_encode<T: Parse + Serialize>(
 }
 
 pub fn modules(input: TokenStream) -> Result<TokenStream> {
-    parse_and_encode::<rhdl_vlog::cst::ModuleList>("ModuleList", input)
+    parse_and_encode::<rhdl_vlog::ModuleList>("ModuleList", input)
 }
 
 pub fn module(input: TokenStream) -> Result<TokenStream> {
-    parse_and_encode::<rhdl_vlog::cst::ModuleDef>("ModuleDef", input)
+    parse_and_encode::<rhdl_vlog::ModuleDef>("ModuleDef", input)
 }
 
 #[cfg(test)]

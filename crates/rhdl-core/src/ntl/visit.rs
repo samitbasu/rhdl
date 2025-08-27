@@ -1,4 +1,4 @@
-use crate::rhdl_core::{common::sense::Sense, ntl::Object};
+use crate::{common::sense::Sense, ntl::Object};
 
 use super::spec::*;
 

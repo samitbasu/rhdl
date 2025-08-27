@@ -1,9 +1,12 @@
-use crate::prelude::{
-    clock, reset, signal, trace_time, ClockPosEdgeExt, Domain, MergeExt, Signal, TimedStreamExt,
-};
-use crate::prelude::{Circuit, CircuitIO, TimedSample};
-use crate::prelude::{ClockReset, Digital};
-use crate::rhdl_core::types::clock_reset::clock_reset;
+use crate::sim::clock_pos_edge::ClockPosEdgeExt;
+use crate::sim::merge::MergeExt;
+use crate::sim::reset::TimedStreamExt;
+use crate::types::clock_reset::clock_reset;
+use crate::types::reset::reset;
+use crate::types::signal::signal;
+use crate::{Circuit, CircuitIO, TimedSample};
+use crate::{ClockReset, Digital};
+use crate::{Domain, Signal, clock::clock, trace_time};
 
 fn neg_edge<D: Domain>(prev_cr: Signal<ClockReset, D>, curr_cr: Signal<ClockReset, D>) -> bool {
     let prev_cr = prev_cr.val();
@@ -48,8 +51,8 @@ where
     std::iter::from_fn(move || {
         if let Some(event) = sequence.next() {
             trace_time(event.time);
-            let red_cr = signal(event.value.0 .0);
-            let blue_cr = signal(event.value.1 .0);
+            let red_cr = signal(event.value.0.0);
+            let blue_cr = signal(event.value.1.0);
             let mut input = prev_input;
             injector(red_cr, blue_cr, &mut input);
             if neg_edge(prev_red_cr, red_cr) {

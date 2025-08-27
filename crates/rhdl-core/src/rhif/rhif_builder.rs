@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     Color, TypedBits,
     ast::ast_impl::WrapOp,
     rhif::spec::{

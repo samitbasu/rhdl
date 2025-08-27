@@ -1,5 +1,5 @@
-use crate::rhdl_core::ntl;
-use crate::rhdl_core::{
+use crate::ntl;
+use crate::{
     CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, Synchronous, SynchronousDQ,
     SynchronousIO,
     digital_fn::NoKernel3,
@@ -48,7 +48,7 @@ where
 
     fn sim(
         &self,
-        clock_reset: crate::rhdl_core::ClockReset,
+        clock_reset: crate::ClockReset,
         input: Self::I,
         state: &mut Self::S,
     ) -> Self::O {
@@ -74,7 +74,7 @@ where
     fn descriptor(
         &self,
         name: &str,
-    ) -> Result<crate::rhdl_core::CircuitDescriptor, crate::rhdl_core::RHDLError> {
+    ) -> Result<crate::CircuitDescriptor, crate::RHDLError> {
         let a_name = format!("{name}_a");
         let b_name = format!("{name}_b");
         let desc_a = self.a.descriptor(&a_name)?;
@@ -127,7 +127,7 @@ where
     fn hdl(
         &self,
         name: &str,
-    ) -> Result<crate::rhdl_core::HDLDescriptor, crate::rhdl_core::RHDLError> {
+    ) -> Result<crate::HDLDescriptor, crate::RHDLError> {
         let mut module = Module {
             name: name.into(),
             description: self.description(),

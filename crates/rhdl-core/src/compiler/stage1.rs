@@ -1,6 +1,6 @@
 use log::info;
 
-use crate::rhdl_core::{
+use crate::{
     compiler::{
         mir::{compiler::compile_mir, infer::infer},
         rhif_passes::{

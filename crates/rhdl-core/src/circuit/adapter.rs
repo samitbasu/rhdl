@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain, Kind,
     RHDLError, Signal, Synchronous, Timed,
     bitx::BitX,
@@ -45,7 +45,7 @@ impl<I: Digital, D: Domain> Timed for AdapterInput<I, D> {}
 
 impl<I: Digital, D: Domain> Digital for AdapterInput<I, D> {
     const BITS: usize = <Signal<ClockReset, D> as Digital>::BITS + <Signal<I, D> as Digital>::BITS;
-    fn static_kind() -> crate::rhdl_core::Kind {
+    fn static_kind() -> crate::Kind {
         Kind::make_struct(
             "AdapterInput",
             vec![
@@ -148,7 +148,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         format!("Asynchronous adaptor for {}", self.circuit.description())
     }
 
-    fn hdl(&self, name: &str) -> Result<crate::rhdl_core::HDLDescriptor, RHDLError> {
+    fn hdl(&self, name: &str) -> Result<crate::HDLDescriptor, RHDLError> {
         let mut module = Module {
             name: name.into(),
             description: self.description(),
@@ -178,7 +178,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         );
         module.statements.push(child_decl);
         let child_hdl = self.circuit.hdl(child_name)?;
-        Ok(crate::rhdl_core::HDLDescriptor {
+        Ok(crate::HDLDescriptor {
             name: child_name.into(),
             body: module,
             children: [("c".into(), child_hdl)].into(),

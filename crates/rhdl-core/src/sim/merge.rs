@@ -1,4 +1,4 @@
-use crate::rhdl_core::{Digital, TimedSample};
+use crate::{Digital, TimedSample};
 
 pub struct Merge<A, B, S: Digital, T: Digital, F> {
     stream1: A,
@@ -135,11 +135,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::rhdl_bits::alias::*;
+    use rhdl_bits::alias::*;
     use expect_test::expect_file;
     use std::iter::once;
 
-    use crate::rhdl_core::{
+    use crate::{
         sim::{clock_pos_edge::ClockPosEdgeExt, reset::TimedStreamExt, ResetOrData},
         timed_sample,
     };

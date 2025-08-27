@@ -1,21 +1,19 @@
 use crate::{
-    prelude::BitString,
-    rhdl_core::{
-        RHDLError,
-        ast::source::source_location::SourceLocation,
-        bitx::BitX,
-        compiler::mir::error::{ICE, RHDLCompileError},
-        error::rhdl_error,
-        hdl::ast::{
-            self, CaseItem, Function, HDLKind, assign, concatenate, constant, declaration, id,
-            index, index_bit, input_reg, literal, repeat, unary,
-        },
-        rtl::{
-            self,
-            object::LocatedOpCode,
-            spec::{AluUnary, CaseArgument, CastKind, Operand},
-        },
+    RHDLError,
+    ast::source::source_location::SourceLocation,
+    bitx::BitX,
+    compiler::mir::error::{ICE, RHDLCompileError},
+    error::rhdl_error,
+    hdl::ast::{
+        self, CaseItem, Function, HDLKind, assign, concatenate, constant, declaration, id, index,
+        index_bit, input_reg, literal, repeat, unary,
     },
+    rtl::{
+        self,
+        object::LocatedOpCode,
+        spec::{AluUnary, CaseArgument, CastKind, Operand},
+    },
+    types::bit_string::BitString,
 };
 
 use rtl::spec as tl;
@@ -286,7 +284,7 @@ impl TranslationContext<'_> {
     }
 }
 
-fn translate(object: &crate::rhdl_core::rtl::Object) -> Result<Function> {
+fn translate(object: &crate::rtl::Object) -> Result<Function> {
     let context = TranslationContext {
         func: Function {
             name: format!("kernel_{}", object.name),
@@ -301,6 +299,6 @@ fn translate(object: &crate::rhdl_core::rtl::Object) -> Result<Function> {
     context.translate_kernel_for_object()
 }
 
-pub fn generate_verilog(object: &crate::rhdl_core::rtl::Object) -> Result<Function> {
+pub fn generate_verilog(object: &crate::rtl::Object) -> Result<Function> {
     translate(object)
 }

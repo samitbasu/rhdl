@@ -1,4 +1,4 @@
-use crate::rhdl_core::{Digital, TimedSample};
+use crate::{Digital, TimedSample};
 
 pub struct EdgeTime<T, I, F> {
     iter: I,

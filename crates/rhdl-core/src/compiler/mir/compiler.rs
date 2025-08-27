@@ -14,51 +14,51 @@ use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use crate::rhdl_core::KernelFnKind;
-use crate::rhdl_core::Kind;
-use crate::rhdl_core::TypedBits;
-use crate::rhdl_core::ast::ast_impl;
-use crate::rhdl_core::ast::ast_impl::{
+use crate::KernelFnKind;
+use crate::Kind;
+use crate::TypedBits;
+use crate::ast::ast_impl;
+use crate::ast::ast_impl::{
     Arm, ArmKind, BitsKind, Block, ExprArray, ExprAssign, ExprBinary, ExprBits, ExprBlock,
     ExprCall, ExprCast, ExprField, ExprForLoop, ExprIf, ExprIfLet, ExprIndex, ExprMatch,
     ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct, ExprTry, ExprTuple, ExprTypedBits,
     ExprUnary, FieldValue, Local, NodeId, Pat, PatKind, Stmt, StmtKind, WrapOp,
 };
-use crate::rhdl_core::ast::source::builder::build_spanned_source_for_kernel;
-use crate::rhdl_core::ast::source::spanned_source::SpannedSource;
-use crate::rhdl_core::ast::visit::Visitor;
-use crate::rhdl_core::builder::BinOp;
-use crate::rhdl_core::builder::UnOp;
-use crate::rhdl_core::common::symtab::LiteralId;
-use crate::rhdl_core::common::symtab::SymbolTable;
-use crate::rhdl_core::compiler::ascii;
-use crate::rhdl_core::compiler::display_ast::pretty_print_statement;
-use crate::rhdl_core::compiler::stage1::CompilationMode;
-use crate::rhdl_core::compiler::stage1::compile;
-use crate::rhdl_core::error::RHDLError;
-use crate::rhdl_core::kernel::Kernel;
-use crate::rhdl_core::rhif;
-use crate::rhdl_core::rhif::Object;
-use crate::rhdl_core::rhif::object::LocatedOpCode;
-use crate::rhdl_core::rhif::object::SymbolMap;
-use crate::rhdl_core::rhif::rhif_builder::{
+use crate::ast::source::builder::build_spanned_source_for_kernel;
+use crate::ast::source::spanned_source::SpannedSource;
+use crate::ast::visit::Visitor;
+use crate::builder::BinOp;
+use crate::builder::UnOp;
+use crate::common::symtab::LiteralId;
+use crate::common::symtab::SymbolTable;
+use crate::compiler::ascii;
+use crate::compiler::display_ast::pretty_print_statement;
+use crate::compiler::stage1::CompilationMode;
+use crate::compiler::stage1::compile;
+use crate::error::RHDLError;
+use crate::kernel::Kernel;
+use crate::rhif;
+use crate::rhif::Object;
+use crate::rhif::object::LocatedOpCode;
+use crate::rhif::object::SymbolMap;
+use crate::rhif::rhif_builder::{
     op_as_bits_inferred, op_as_signed_inferred, op_cast, op_resize, op_resize_inferred, op_retime,
     op_wrap,
 };
-use crate::rhdl_core::rhif::spec::AluUnary;
-use crate::rhdl_core::rhif::spec::CaseArgument;
-use crate::rhdl_core::rhif::spec::FuncId;
-use crate::rhdl_core::rhif::spec::Member;
-use crate::rhdl_core::rhif::spec::SlotKind;
-use crate::rhdl_core::rhif::{
+use crate::rhif::spec::AluUnary;
+use crate::rhif::spec::CaseArgument;
+use crate::rhif::spec::FuncId;
+use crate::rhif::spec::Member;
+use crate::rhif::spec::SlotKind;
+use crate::rhif::{
     rhif_builder::{
         op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
         op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
     },
     spec::AluBinary,
 };
-use crate::rhdl_core::types::path::Path;
-use crate::rhdl_core::{
+use crate::types::path::Path;
+use crate::{
     ast::ast_impl::{Expr, ExprKind, ExprLit, FunctionId},
     rhif::spec::{OpCode, Slot},
 };
@@ -385,7 +385,7 @@ impl<'a> MirContext<'a> {
                         op_index(
                             element_rhs,
                             rhs,
-                            crate::rhdl_core::types::path::Path::default().tuple_index(ndx),
+                            crate::types::path::Path::default().tuple_index(ndx),
                         ),
                         pat.id,
                     );
@@ -409,7 +409,7 @@ impl<'a> MirContext<'a> {
                         op_index(
                             element_rhs,
                             rhs,
-                            crate::rhdl_core::types::path::Path::default().tuple_index(ndx),
+                            crate::types::path::Path::default().tuple_index(ndx),
                         ),
                         pat.id,
                     );
@@ -424,7 +424,7 @@ impl<'a> MirContext<'a> {
                         op_index(
                             element_rhs,
                             rhs,
-                            crate::rhdl_core::types::path::Path::default().index(ndx),
+                            crate::types::path::Path::default().index(ndx),
                         ),
                         pat.id,
                     );
@@ -550,7 +550,7 @@ impl<'a> MirContext<'a> {
                     op_index(
                         disc,
                         value,
-                        crate::rhdl_core::types::path::Path::default().discriminant(),
+                        crate::types::path::Path::default().discriminant(),
                     ),
                     arm.id,
                 );
@@ -577,7 +577,7 @@ impl<'a> MirContext<'a> {
 
                 let disc_as_i64 = discriminant.as_i64()?;
                 let path =
-                    crate::rhdl_core::types::path::Path::default().payload_by_value(disc_as_i64);
+                    crate::types::path::Path::default().payload_by_value(disc_as_i64);
                 let payload = self.reg(arm_enum.pat.id);
                 self.op(op_index(payload, target, path), arm_enum.pat.id);
                 self.initialize_local(&arm_enum.pat, payload)?;
@@ -927,7 +927,7 @@ impl<'a> MirContext<'a> {
     //  - The path corresponding to `[n]`
     //  - The place to store the result of splicing `a[n]<-b` in a
     // new binding of the name `a`.
-    fn expr_lhs(&mut self, expr: &Expr) -> Result<(Rebind, crate::rhdl_core::types::path::Path)> {
+    fn expr_lhs(&mut self, expr: &Expr) -> Result<(Rebind, crate::types::path::Path)> {
         match &expr.kind {
             ExprKind::Path(path) => {
                 let name = path_as_ident(&path.path).ok_or_else(|| {
@@ -939,7 +939,7 @@ impl<'a> MirContext<'a> {
                     )
                 })?;
                 let rebind = self.rebind(name, expr.id)?;
-                Ok((rebind, crate::rhdl_core::types::path::Path::default()))
+                Ok((rebind, crate::types::path::Path::default()))
             }
             ExprKind::Field(field) => {
                 let (rebind, path) = self.expr_lhs(&field.expr)?;
@@ -1125,7 +1125,7 @@ impl<'a> MirContext<'a> {
             op_index(
                 lhs,
                 arg,
-                crate::rhdl_core::types::path::Path::default().dynamic(index),
+                crate::types::path::Path::default().dynamic(index),
             ),
             id,
         );
@@ -1150,7 +1150,7 @@ impl<'a> MirContext<'a> {
             op_index(
                 discriminant,
                 target,
-                crate::rhdl_core::types::path::Path::default().discriminant(),
+                crate::types::path::Path::default().discriminant(),
             ),
             id,
         );
@@ -1333,7 +1333,7 @@ impl<'a> MirContext<'a> {
             op_index(
                 lhs,
                 arg,
-                crate::rhdl_core::types::path::Path::default()
+                crate::types::path::Path::default()
                     .payload_by_value(1)
                     .tuple_index(0),
             ),
@@ -1343,7 +1343,7 @@ impl<'a> MirContext<'a> {
             op_index(
                 is_good,
                 arg,
-                crate::rhdl_core::types::path::Path::default().discriminant(),
+                crate::types::path::Path::default().discriminant(),
             ),
             id,
         );

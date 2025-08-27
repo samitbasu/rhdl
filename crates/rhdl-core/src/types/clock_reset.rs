@@ -1,4 +1,4 @@
-use crate::rhdl_core::{Clock, Digital, Kind, Reset, bitx::BitX};
+use crate::{Clock, Digital, Kind, Reset, bitx::BitX};
 
 use super::kind::Field;
 

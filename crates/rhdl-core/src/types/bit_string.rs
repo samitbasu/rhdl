@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     Kind, RHDLError, TypedBits,
     bitx::{BitX, bitx_string},
 };

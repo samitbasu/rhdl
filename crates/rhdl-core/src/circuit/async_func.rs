@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     compile_design,
     digital_fn::{DigitalFn1, NoKernel2},
     hdl::{

@@ -1,6 +1,6 @@
 use crate::{
-    prelude::Kind,
-    rhdl_core::{
+    Kind,
+    {
         bitx::BitX,
         rtl::spec::{AluBinary, AluUnary},
         types::bit_string::BitString,

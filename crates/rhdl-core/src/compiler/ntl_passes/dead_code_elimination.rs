@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use crate::{
-    prelude::RHDLError,
-    rhdl_core::{
+    RHDLError,
+    {
         common::symtab::RegisterId,
         ntl::{
             Object,

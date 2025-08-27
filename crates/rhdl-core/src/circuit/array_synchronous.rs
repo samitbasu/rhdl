@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::rhdl_core::{
+use crate::{
     CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous,
     SynchronousDQ, SynchronousIO,
     digital_fn::NoKernel3,
@@ -32,7 +32,7 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
     type S = [T::S; N];
 
     fn init(&self) -> Self::S {
-        array_init::array_init(|i| self[i].init())
+        core::array::from_fn(|i| self[i].init())
     }
 
     fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
@@ -54,10 +54,7 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
     // This requires a custom implementation because the default implementation
     // assumes that the children of the current circuit are named with field names
     // as part of a struct.
-    fn descriptor(
-        &self,
-        name: &str,
-    ) -> Result<crate::rhdl_core::CircuitDescriptor, crate::rhdl_core::RHDLError> {
+    fn descriptor(&self, name: &str) -> Result<crate::CircuitDescriptor, crate::RHDLError> {
         let mut builder = ntl::Builder::new(name);
         let cr_kind: Kind = ClockReset::static_kind();
         let input_kind: Kind = Self::I::static_kind();

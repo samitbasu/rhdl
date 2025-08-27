@@ -1,7 +1,7 @@
 use log::debug;
 use std::collections::{BTreeMap, HashSet};
 
-use crate::rhdl_core::{
+use crate::{
     Color, Kind,
     ast::source::source_location::SourceLocation,
     compiler::mir::{

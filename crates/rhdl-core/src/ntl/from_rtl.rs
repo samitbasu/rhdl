@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 
-use crate::core::ntl;
-use crate::core::rtl;
-use crate::prelude::BitX;
-use crate::rhdl_core::ast::source::source_location::SourceLocation;
-use crate::rhdl_core::ntl::object::WireDetails;
-use crate::rhdl_core::ntl::spec::Binary;
-use crate::rhdl_core::ntl::spec::Not;
-use crate::rhdl_core::ntl::spec::Select;
-use crate::rhdl_core::ntl::spec::Unary;
-use crate::rhdl_core::ntl::spec::Vector;
-use crate::rhdl_core::ntl::spec::Wire;
+use crate::BitX;
+use crate::ast::source::source_location::SourceLocation;
+use crate::ntl;
+use crate::ntl::object::WireDetails;
+use crate::ntl::spec::Binary;
+use crate::ntl::spec::Not;
+use crate::ntl::spec::Select;
+use crate::ntl::spec::Unary;
+use crate::ntl::spec::Vector;
+use crate::ntl::spec::Wire;
+use crate::rtl;
 
 use ntl::spec as bt;
 use rtl::spec as tl;

@@ -1,6 +1,6 @@
-use crate::rhdl_bits::{BitWidth, Bits};
+use rhdl_bits::{BitWidth, Bits};
 
-use crate::rhdl_core::{Digital, Kind, bitx::BitX, trace::bit::TraceBit};
+use crate::{Digital, Kind, bitx::BitX, trace::bit::TraceBit};
 
 use super::kind::Field;
 

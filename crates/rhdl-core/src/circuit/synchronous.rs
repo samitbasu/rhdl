@@ -1,9 +1,7 @@
 use crate::{
-    prelude::Module,
-    rhdl_core::{
-        circuit::yosys::run_yosys_synth, digital_fn::DigitalFn3, error::RHDLError,
-        ntl::hdl::generate_hdl, CircuitDescriptor, ClockReset, Digital, DigitalFn, HDLDescriptor,
-    },
+    CircuitDescriptor, ClockReset, Digital, DigitalFn, HDLDescriptor,
+    circuit::yosys::run_yosys_synth, digital_fn::DigitalFn3, error::RHDLError, hdl::ast::Module,
+    ntl::hdl::generate_hdl,
 };
 
 pub trait SynchronousDQ: 'static + Sized + Clone {

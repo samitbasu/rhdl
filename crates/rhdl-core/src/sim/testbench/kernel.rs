@@ -1,7 +1,7 @@
 use log::debug;
 use std::iter::once;
 
-use crate::rhdl_core::{
+use crate::{
     Digital, DigitalFn, RHDLError, TypedBits,
     compiler::{
         driver::{compile_design_stage1, compile_design_stage2},
@@ -372,7 +372,7 @@ where
 fn test_kernel_vm_and_verilog_with_mode<K, F, Args, T0>(
     uut: F,
     vals: impl Iterator<Item = Args> + Clone,
-    mode: crate::rhdl_core::CompilationMode,
+    mode: crate::CompilationMode,
 ) -> Result<(), RHDLError>
 where
     F: Testable<Args, T0>,
@@ -392,7 +392,7 @@ where
     for input in vm_inputs {
         let args_for_vm = input.vec_tb();
         let expected = uut.apply(input).typed_bits();
-        let actual = crate::rhdl_core::rhif::vm::execute(&design, args_for_vm)?;
+        let actual = crate::rhif::vm::execute(&design, args_for_vm)?;
         if expected.bits != actual.bits {
             return Err(RHDLError::VerilogVerificationErrorTyped { expected, actual });
         }
@@ -406,7 +406,7 @@ where
             .map(|x| x.into())
             .collect::<Vec<_>>();
         let expected: BitString = uut.apply(input).typed_bits().into();
-        let actual = crate::rhdl_core::rtl::vm::execute(&rtl, args_for_rtl)?;
+        let actual = crate::rtl::vm::execute(&rtl, args_for_rtl)?;
         if expected.bits() != actual.bits() {
             return Err(RHDLError::VerilogVerificationErrorRTL { expected, actual });
         }
@@ -442,7 +442,7 @@ where
     test_kernel_vm_and_verilog_with_mode::<K, F, Args, T0>(
         uut,
         vals,
-        crate::rhdl_core::CompilationMode::Asynchronous,
+        crate::CompilationMode::Asynchronous,
     )
 }
 
@@ -459,6 +459,6 @@ where
     test_kernel_vm_and_verilog_with_mode::<K, F, Args, T0>(
         uut,
         vals,
-        crate::rhdl_core::CompilationMode::Synchronous,
+        crate::CompilationMode::Synchronous,
     )
 }

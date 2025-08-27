@@ -3,29 +3,29 @@ use std::collections::BTreeMap;
 use fnv::FnvHashMap;
 use log::debug;
 
-use crate::rhdl_bits::alias::b8;
+use rhdl_bits::alias::b8;
 
-use crate::rhdl_core::Digital;
-use crate::rhdl_core::TypedBits;
-use crate::rhdl_core::ast::ast_impl::WrapOp;
-use crate::rhdl_core::ast::source::source_location::SourceLocation;
-use crate::rhdl_core::common::symtab::SymbolTable;
-use crate::rhdl_core::error::rhdl_error;
-use crate::rhdl_core::rhif::object::SourceDetails;
-use crate::rhdl_core::rhif::spec::{AluBinary, Slot};
-use crate::rhdl_core::rtl::remap::remap_operands;
-use crate::rhdl_core::rtl::spec::OperandKind;
-use crate::rhdl_core::rtl::spec::{CastKind, Concat, Operand};
-use crate::rhdl_core::rtl::symbols::SymbolMap;
-use crate::rhdl_core::types::bit_string::BitString;
-use crate::rhdl_core::types::path::{Path, PathElement, PathError, bit_range, sub_kind};
-use crate::rhdl_core::{Kind, rtl};
-use crate::rhdl_core::{RHDLError, rhif};
+use crate::Digital;
+use crate::TypedBits;
+use crate::ast::ast_impl::WrapOp;
+use crate::ast::source::source_location::SourceLocation;
+use crate::common::symtab::SymbolTable;
+use crate::error::rhdl_error;
+use crate::rhif::object::SourceDetails;
+use crate::rhif::spec::{AluBinary, Slot};
+use crate::rtl::remap::remap_operands;
+use crate::rtl::spec::OperandKind;
+use crate::rtl::spec::{CastKind, Concat, Operand};
+use crate::rtl::symbols::SymbolMap;
+use crate::types::bit_string::BitString;
+use crate::types::path::{Path, PathElement, PathError, bit_range, sub_kind};
+use crate::{Kind, rtl};
+use crate::{RHDLError, rhif};
 
-use crate::rhdl_core::rhif::spec as hf;
-use crate::rhdl_core::rtl::spec as tl;
+use crate::rhif::spec as hf;
+use crate::rtl::spec as tl;
 
-use crate::rhdl_core::compiler::mir::error::{ICE, RHDLCompileError};
+use crate::compiler::mir::error::{ICE, RHDLCompileError};
 
 type Result<T> = std::result::Result<T, RHDLError>;
 

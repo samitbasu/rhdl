@@ -279,8 +279,9 @@ macro_rules! impl_assigned_signed_op {
 macro_rules! test_binop {
     ($op: tt, $wrap: path, $val1: expr, $val2: expr) => {
         {
-            use $crate::rhdl_bits::alias::*;
-            use $crate::rhdl_bits::bits;
+            use $crate::alias::*;
+            use $crate::bits;
+            use $crate::consts::*;
             // We will generate some test data
             let x : b8 = bits($val1);
             let y : u128 = $val2;

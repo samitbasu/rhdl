@@ -3,7 +3,7 @@ use std::ops::{BitAnd, BitAndAssign};
 use crate::{impl_assign_op, impl_binop};
 
 use super::bits_impl::bits_masked;
-use super::{bits_impl::Bits, dyn_bits::DynBits, BitWidth};
+use super::{BitWidth, bits_impl::Bits, dyn_bits::DynBits};
 
 impl_binop!(BitAnd, bitand, u128::bitand);
 impl_assign_op!(BitAndAssign, bitand_assign, u128::bitand);
@@ -11,7 +11,7 @@ impl_assign_op!(BitAndAssign, bitand_assign, u128::bitand);
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{rhdl_bits::bitwidth::*, test_binop};
+    use crate::{bitwidth::*, test_binop};
 
     #[test]
     fn test_and() {
@@ -34,7 +34,7 @@ mod test {
         let result = 0b1111_0000 & bits;
         assert_eq!(result.val, 0b1101_0000_u128);
         let mut bits: Bits<U128> = 0.into();
-        bits = crate::rhdl_bits::test::set_bit(bits, 127, true);
+        bits = crate::test::set_bit(bits, 127, true);
         let result = bits & bits;
         assert_eq!(result.val, 1_u128 << 127);
         let bits: Bits<U54> = 0b1101_1010.into();
@@ -56,7 +56,7 @@ mod test {
         bits &= 0b1111_0000;
         assert_eq!(bits.val, 0b1101_0000_u128);
         let mut bits: Bits<U128> = 0.into();
-        bits = crate::rhdl_bits::test::set_bit(bits, 127, true);
+        bits = crate::test::set_bit(bits, 127, true);
         bits &= bits;
         assert_eq!(bits.val, 1_u128 << 127);
         let mut bits: Bits<U54> = 0b1101_1010.into();

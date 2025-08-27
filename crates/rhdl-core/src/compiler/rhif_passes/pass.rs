@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     ast::source::source_location::SourceLocation,
     compiler::mir::error::{RHDLCompileError, ICE},
     error::{rhdl_error, RHDLError},

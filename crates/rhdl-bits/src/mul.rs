@@ -4,16 +4,16 @@ use crate::{impl_binop, impl_signed_binop};
 
 use super::dyn_bits::DynBits;
 use super::signed_dyn_bits::SignedDynBits;
-use super::{bits_impl::bits_masked, signed_bits_impl::signed_wrapped, BitWidth, Bits, SignedBits};
+use super::{BitWidth, Bits, SignedBits, bits_impl::bits_masked, signed_bits_impl::signed_wrapped};
 
 impl_binop!(Mul, mul, u128::wrapping_mul);
 impl_signed_binop!(Mul, mul, i128::wrapping_mul);
 
 #[cfg(test)]
 mod tests {
-    use crate::rhdl_bits::bits;
-    use crate::rhdl_bits::bits_impl::bits_masked;
-    use crate::rhdl_bits::bitwidth::*;
+    use crate::bits;
+    use crate::bits_impl::bits_masked;
+    use crate::bitwidth::*;
     use crate::test_binop;
 
     #[test]

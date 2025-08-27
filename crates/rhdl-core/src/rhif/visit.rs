@@ -1,4 +1,4 @@
-use crate::rhdl_core::{common::sense::Sense, rhif::Object};
+use crate::{common::sense::Sense, rhif::Object};
 
 use super::spec::*;
 

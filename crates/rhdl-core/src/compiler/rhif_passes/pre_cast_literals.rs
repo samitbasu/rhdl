@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::rhdl_core::{
+use crate::{
     common::symtab::LiteralId,
     error::RHDLError,
     rhif::{

@@ -1,4 +1,4 @@
-use crate::rhdl_core::bitx::BitX;
+use crate::bitx::BitX;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TraceBit {

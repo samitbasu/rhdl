@@ -1,6 +1,6 @@
 use internment::Intern;
 
-use crate::rhdl_core::{
+use crate::{
     TypedBits,
     bitx::BitX,
     error::{RHDLError, rhdl_error},
@@ -469,8 +469,8 @@ impl Kind {
         if enumerate.discriminant_layout
             != Kind::make_discriminant_layout(
                 1,
-                crate::rhdl_core::DiscriminantAlignment::Msb,
-                crate::rhdl_core::DiscriminantType::Unsigned,
+                crate::DiscriminantAlignment::Msb,
+                crate::DiscriminantType::Unsigned,
             )
         {
             return false;
@@ -492,8 +492,8 @@ impl Kind {
         if enumerate.discriminant_layout
             != Kind::make_discriminant_layout(
                 1,
-                crate::rhdl_core::DiscriminantAlignment::Msb,
-                crate::rhdl_core::DiscriminantType::Unsigned,
+                crate::DiscriminantAlignment::Msb,
+                crate::DiscriminantType::Unsigned,
             )
         {
             return false;
@@ -502,6 +502,6 @@ impl Kind {
     }
 
     pub fn svg(&self, name: &str) -> svg::Document {
-        crate::core::svg_grid(self, name)
+        crate::svg_grid(self, name)
     }
 }

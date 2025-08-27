@@ -1,8 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use crate::rhdl_core::{
-    Kind, ast::ast_impl::*, kernel::Kernel, rhif::spec::Member, util::IndentingFormatter,
-};
+use crate::{Kind, ast::ast_impl::*, kernel::Kernel, rhif::spec::Member, util::IndentingFormatter};
 use anyhow::Result;
 
 #[derive(Default)]

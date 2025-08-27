@@ -1,12 +1,12 @@
 use std::ops::Shl;
 use std::ops::ShlAssign;
 
-use super::bits_impl::bits_masked;
+use super::BitWidth;
 use super::bits_impl::Bits;
+use super::bits_impl::bits_masked;
 use super::dyn_bits::DynBits;
 use super::signed_bits_impl::SignedBits;
 use super::signed_dyn_bits::SignedDynBits;
-use super::BitWidth;
 
 // Note! When reviewing this code remember that wrapping is not the same
 // as rotate.
@@ -204,7 +204,7 @@ impl Shl<u128> for SignedDynBits {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::rhdl_bits::bitwidth::*;
+    use crate::bitwidth::*;
 
     #[test]
     fn test_shl_bits() {

@@ -6,13 +6,13 @@ use crate::impl_assigned_signed_op;
 use crate::impl_binop;
 use crate::impl_signed_binop;
 
-use super::bits_impl::bits_masked;
-use super::bits_impl::Bits;
-use super::dyn_bits::DynBits;
-use super::signed_bits_impl::signed_wrapped;
-use super::signed_bits_impl::SignedBits;
-use super::signed_dyn_bits::SignedDynBits;
 use super::BitWidth;
+use super::bits_impl::Bits;
+use super::bits_impl::bits_masked;
+use super::dyn_bits::DynBits;
+use super::signed_bits_impl::SignedBits;
+use super::signed_bits_impl::signed_wrapped;
+use super::signed_dyn_bits::SignedDynBits;
 // By default, all add operations are wrapping.
 
 impl_binop!(Add, add, u128::wrapping_add);
@@ -23,7 +23,7 @@ impl_assigned_signed_op!(AddAssign, add_assign, i128::wrapping_add);
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::rhdl_bits::bitwidth::*;
+    use crate::bitwidth::*;
     use crate::test_binop;
 
     #[test]
@@ -44,7 +44,7 @@ mod test {
         let result = bits + bits + bits;
         assert_eq!(result.val, (b_val as u8).wrapping_mul(3) as u128);
         let mut bits: Bits<U124> = 0.into();
-        bits = crate::rhdl_bits::test::set_bit(bits, 123, true);
+        bits = crate::test::set_bit(bits, 123, true);
         bits = (bits + bits).resize();
         let result = bits;
         assert_eq!(result.val, 0_u128);
@@ -61,7 +61,7 @@ mod test {
         bits = (bits + bits).resize();
         assert_eq!(bits.val, ((218 * 4) as u128) & 0xff);
         let mut bits: Bits<U126> = 0.into();
-        bits = crate::rhdl_bits::test::set_bit(bits, 125, true);
+        bits = crate::test::set_bit(bits, 125, true);
         bits = (bits + bits).resize();
         assert_eq!(bits.val, 0_u128);
         let mut bits: Bits<U54> = 0b1101_1010.into();

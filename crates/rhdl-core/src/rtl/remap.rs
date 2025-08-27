@@ -1,4 +1,4 @@
-use crate::rhdl_core::rtl::visit::visit_operands_mut;
+use crate::rtl::visit::visit_operands_mut;
 
 use super::spec::{OpCode, Operand};
 

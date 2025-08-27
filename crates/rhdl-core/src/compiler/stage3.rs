@@ -1,8 +1,8 @@
 use log::info;
 
 use crate::{
-    prelude::RHDLError,
-    rhdl_core::{
+    RHDLError,
+    {
         compiler::ntl_passes::{
             check_for_undriven::CheckForUndriven, constant_propagation::ConstantPropagationPass,
             constant_reg_elimination::ConstantRegisterElimination,

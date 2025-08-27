@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::{
-    prelude::{BitX, RHDLError},
-    rhdl_core::{
+    {BitX, RHDLError},
+    {
         common::symtab::Symbol,
         compiler::ntl_passes::pass::Pass,
         ntl::{Object, spec::Wire, visit::visit_object_wires_mut},

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use super::pass::Pass;
-use crate::rhdl_core::{
+use crate::{
     compiler::mir::error::ICE,
     error::RHDLError,
     rhif::{

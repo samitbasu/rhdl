@@ -1,12 +1,12 @@
 use std::collections::HashSet;
 
-use crate::rhdl_core::{
+use crate::{
+    RHDLError,
     rtl::{
+        Object,
         remap::remap_operands,
         spec::{OpCode, Operand},
-        Object,
     },
-    RHDLError,
 };
 
 use super::pass::Pass;

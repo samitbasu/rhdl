@@ -1,6 +1,6 @@
 use crate::{
-    prelude::BitString,
-    rhdl_core::common::symtab::{Symbol, SymbolKind},
+    common::symtab::{Symbol, SymbolKind},
+    types::bit_string::BitString,
 };
 
 #[derive(Clone, PartialEq, Hash)]

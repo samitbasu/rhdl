@@ -22,15 +22,15 @@
 
 use proc_macro2::Literal;
 use proc_macro2::TokenStream;
+use quote::ToTokens;
 use quote::format_ident;
 use quote::quote;
-use quote::ToTokens;
+use syn::Ident;
 use syn::bracketed;
 use syn::parenthesized;
 use syn::parse::Parse;
 use syn::parse::ParseStream;
 use syn::token;
-use syn::Ident;
 
 #[derive(Debug)]
 enum PathSegment {
@@ -45,7 +45,7 @@ impl ToTokens for PathSegment {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
             PathSegment::Default => {
-                quote! {    rhdl::rhdl_core::types::path::Path::default() }.to_tokens(tokens);
+                quote! {    rhdl::core::types::path::Path::default() }.to_tokens(tokens);
             }
             PathSegment::Field(fieldname) => {
                 quote! {field(#fieldname)}.to_tokens(tokens);

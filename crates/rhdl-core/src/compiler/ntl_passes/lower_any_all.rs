@@ -1,9 +1,9 @@
 use crate::{
-    prelude::{BitX, RHDLError},
-    rhdl_core::ntl::{
+    ntl::{
         Object,
         spec::{OpCode, Unary, UnaryOp, assign},
     },
+    {BitX, RHDLError},
 };
 
 use super::pass::Pass;

@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
-use crate::rhdl_bits::{consts::U128, consts::U32, consts::U64, BitWidth, Bits, SignedBits};
+use rhdl_bits::{consts::U128, consts::U32, consts::U64, BitWidth, Bits, SignedBits};
 
-use crate::rhdl_core::{
+use crate::{
     bitx::{bitx_vec, BitX},
     trace::bit::TraceBit,
     DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
@@ -117,7 +117,7 @@ impl<T: Digital> Digital for Option<T> {
         rtt::make_enum(
             &format!("Option::<{}>", std::any::type_name::<T>()),
             vec![
-                rtt::make_variant("None", crate::rhdl_core::TraceType::Empty, 0),
+                rtt::make_variant("None", crate::TraceType::Empty, 0),
                 rtt::make_variant("Some", rtt::make_tuple(vec![T::static_trace_type()]), 1),
             ],
             rtt::DiscriminantLayout {
@@ -602,8 +602,8 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
 mod test {
 
     use super::*;
-    use crate::rhdl_bits::{alias::*, consts::U3};
-    use crate::rhdl_core::{
+    use rhdl_bits::{alias::*, consts::U3};
+    use crate::{
         rtt::test::kind_to_trace,
         types::kind::{DiscriminantAlignment, Variant},
     };
@@ -671,7 +671,7 @@ mod test {
                     Kind::make_discriminant_layout(
                         3,
                         DiscriminantAlignment::Lsb,
-                        crate::rhdl_core::types::kind::DiscriminantType::Unsigned,
+                        crate::types::kind::DiscriminantType::Unsigned,
                     ),
                 )
             }
@@ -680,32 +680,32 @@ mod test {
             }
             fn bin(self) -> Vec<BitX> {
                 let raw = match self {
-                    Self::None => bitx_vec(&crate::rhdl_bits::bits::<U3>(0).to_bools()),
+                    Self::None => bitx_vec(&rhdl_bits::bits::<U3>(0).to_bools()),
                     Self::Bool(b) => {
-                        let mut v = bitx_vec(&crate::rhdl_bits::bits::<U3>(1).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<U3>(1).to_bools());
                         v.extend(b.bin());
                         v
                     }
                     Self::Tuple(b, c) => {
-                        let mut v = bitx_vec(&crate::rhdl_bits::bits::<U3>(2).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<U3>(2).to_bools());
                         v.extend(b.bin());
                         v.extend(c.bin());
                         v
                     }
                     Self::Array([b, c, d]) => {
-                        let mut v = bitx_vec(&crate::rhdl_bits::bits::<U3>(3).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<U3>(3).to_bools());
                         v.extend(b.bin());
                         v.extend(c.bin());
                         v.extend(d.bin());
                         v
                     }
                     Self::Strct { a, b } => {
-                        let mut v = bitx_vec(&crate::rhdl_bits::bits::<U3>(4).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<U3>(4).to_bools());
                         v.extend(a.bin());
                         v.extend(b.bin());
                         v
                     }
-                    Self::Invalid => bitx_vec(&crate::rhdl_bits::bits::<U3>(5).to_bools()),
+                    Self::Invalid => bitx_vec(&rhdl_bits::bits::<U3>(5).to_bools()),
                 };
                 if raw.len() < self.kind().bits() {
                     let missing = self.kind().bits() - raw.len();
@@ -724,7 +724,7 @@ mod test {
         assert_eq!(Mixed::BITS, Mixed::static_kind().bits());
         println!("{:?}", Mixed::None.bin());
         println!("{:?}", Mixed::Bool(true).bin());
-        let svg = crate::rhdl_core::svg_grid(&Mixed::static_kind(), "val");
+        let svg = crate::svg_grid(&Mixed::static_kind(), "val");
         svg::save("mixed.svg", &svg).unwrap();
     }
 
@@ -781,7 +781,7 @@ mod test {
                     Kind::make_discriminant_layout(
                         3,
                         DiscriminantAlignment::Lsb,
-                        crate::rhdl_core::types::kind::DiscriminantType::Unsigned,
+                        crate::types::kind::DiscriminantType::Unsigned,
                     ),
                 )
             }
@@ -790,12 +790,12 @@ mod test {
             }
             fn bin(self) -> Vec<BitX> {
                 bitx_vec(&match self {
-                    Self::Init => crate::rhdl_bits::bits::<U3>(0).to_bools(),
-                    Self::Boot => crate::rhdl_bits::bits::<U3>(1).to_bools(),
-                    Self::Running => crate::rhdl_bits::bits::<U3>(2).to_bools(),
-                    Self::Stop => crate::rhdl_bits::bits::<U3>(3).to_bools(),
-                    Self::Boom => crate::rhdl_bits::bits::<U3>(4).to_bools(),
-                    Self::Invalid => crate::rhdl_bits::bits::<U3>(5).to_bools(),
+                    Self::Init => rhdl_bits::bits::<U3>(0).to_bools(),
+                    Self::Boot => rhdl_bits::bits::<U3>(1).to_bools(),
+                    Self::Running => rhdl_bits::bits::<U3>(2).to_bools(),
+                    Self::Stop => rhdl_bits::bits::<U3>(3).to_bools(),
+                    Self::Boom => rhdl_bits::bits::<U3>(4).to_bools(),
+                    Self::Invalid => rhdl_bits::bits::<U3>(5).to_bools(),
                 })
             }
             fn dont_care() -> Self {
@@ -806,7 +806,7 @@ mod test {
         let val = State::Boom;
         assert_eq!(
             val.bin(),
-            bitx_vec(&crate::rhdl_bits::bits::<U3>(4).to_bools())
+            bitx_vec(&rhdl_bits::bits::<U3>(4).to_bools())
         );
         assert_eq!(
             val.kind(),
@@ -847,7 +847,7 @@ mod test {
                 Kind::make_discriminant_layout(
                     3,
                     DiscriminantAlignment::Lsb,
-                    crate::rhdl_core::types::kind::DiscriminantType::Unsigned,
+                    crate::types::kind::DiscriminantType::Unsigned,
                 ),
             )
         );

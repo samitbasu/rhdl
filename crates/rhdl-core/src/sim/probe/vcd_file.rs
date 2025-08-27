@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::rhdl_core::{
+use crate::{
     trace::db::{with_trace_db, TraceDBGuard},
     trace_init_db, Digital, TimedSample,
 };

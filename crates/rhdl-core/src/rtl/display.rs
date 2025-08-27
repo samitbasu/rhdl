@@ -1,4 +1,4 @@
-use crate::rhdl_core::{rtl::spec::CastKind, util::splice};
+use crate::{rtl::spec::CastKind, util::splice};
 
 use super::spec::{
     AluBinary, AluUnary, Assign, Binary, Case, Cast, Concat, Index, OpCode, Select, Splice, Unary,

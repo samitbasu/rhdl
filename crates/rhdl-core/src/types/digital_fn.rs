@@ -1,8 +1,8 @@
 #![allow(clippy::type_complexity)]
 
-use crate::rhdl_bits::BitWidth;
+use rhdl_bits::BitWidth;
 
-pub use crate::rhdl_core::{kernel::KernelFnKind, Digital, Kind};
+pub use crate::{kernel::KernelFnKind, Digital, Kind};
 
 pub trait DigitalFn {
     fn kernel_fn() -> Option<KernelFnKind> {
@@ -167,7 +167,7 @@ where
     F::describe()
 }
 
-impl<N> DigitalFn for crate::rhdl_bits::Bits<N>
+impl<N> DigitalFn for rhdl_bits::Bits<N>
 where
     N: BitWidth,
 {
@@ -176,7 +176,7 @@ where
     }
 }
 
-impl<N> DigitalFn for crate::rhdl_bits::SignedBits<N>
+impl<N> DigitalFn for rhdl_bits::SignedBits<N>
 where
     N: BitWidth,
 {
@@ -185,7 +185,7 @@ where
     }
 }
 
-impl<N> DigitalFn for crate::rhdl_bits::bits<N>
+impl<N> DigitalFn for rhdl_bits::bits<N>
 where
     N: BitWidth,
 {
@@ -194,7 +194,7 @@ where
     }
 }
 
-impl<N> DigitalFn for crate::rhdl_bits::signed<N>
+impl<N> DigitalFn for rhdl_bits::signed<N>
 where
     N: BitWidth,
 {

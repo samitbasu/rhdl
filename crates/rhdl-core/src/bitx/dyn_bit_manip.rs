@@ -2,7 +2,7 @@ use num_bigint::BigUint;
 use num_bigint::{BigInt, Sign};
 use std::iter::repeat;
 
-use crate::rhdl_core::bitx::{bitx_vec, BitX};
+use crate::bitx::{bitx_vec, BitX};
 
 pub fn to_bigint(bits: &[BitX]) -> Option<BigInt> {
     let bits = bits

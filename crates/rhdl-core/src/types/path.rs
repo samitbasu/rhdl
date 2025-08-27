@@ -6,12 +6,12 @@ use std::iter::once;
 use std::ops::Range;
 use thiserror::Error;
 
-use crate::rhdl_core::DiscriminantAlignment;
-use crate::rhdl_core::Kind;
-use crate::rhdl_core::error::RHDLError;
-use crate::rhdl_core::error::rhdl_error;
-use crate::rhdl_core::rhif::spec::Member;
-use crate::rhdl_core::rhif::spec::Slot;
+use crate::DiscriminantAlignment;
+use crate::Kind;
+use crate::error::RHDLError;
+use crate::error::rhdl_error;
+use crate::rhif::spec::Member;
+use crate::rhif::spec::Slot;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum PathError {
@@ -558,7 +558,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                         }
                     };
                     kind = if enumerate.discriminant_layout.ty
-                        == crate::rhdl_core::DiscriminantType::Signed
+                        == crate::DiscriminantType::Signed
                     {
                         Kind::make_signed(enumerate.discriminant_layout.width)
                     } else {
@@ -626,7 +626,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
 
 #[cfg(test)]
 mod tests {
-    use crate::rhdl_core::{
+    use crate::{
         Kind,
         common::symtab::SymbolTable,
         rhif::spec::SlotKind,
@@ -660,8 +660,8 @@ mod tests {
             ],
             DiscriminantLayout {
                 width: 8,
-                alignment: crate::rhdl_core::DiscriminantAlignment::Lsb,
-                ty: crate::rhdl_core::DiscriminantType::Unsigned,
+                alignment: crate::DiscriminantAlignment::Lsb,
+                ty: crate::DiscriminantType::Unsigned,
             },
         );
         let mut bit_mask = vec![false; kind.bits()];

@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::rhdl_core::{
+use crate::{
     error::RHDLError,
     rhif::{
         remap::remap_slots,

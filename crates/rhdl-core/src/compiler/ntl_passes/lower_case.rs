@@ -1,8 +1,8 @@
 use super::pass::Pass;
 
-use crate::core::ntl::object::*;
-use crate::core::ntl::spec::*;
-use crate::prelude::RHDLError;
+use crate::RHDLError;
+use crate::ntl::object::*;
+use crate::ntl::spec::*;
 
 pub struct LowerCase;
 

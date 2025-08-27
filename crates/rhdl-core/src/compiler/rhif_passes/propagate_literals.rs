@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::{
-    prelude::RHDLError,
-    rhdl_core::rhif::{
+    RHDLError,
+    rhif::{
         Object,
         spec::{Assign, OpCode, Slot},
         visit::visit_object_slots_mut,

@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     clock::clock, clock_reset, timed_sample, types::reset::reset, Clock, ClockReset, Digital,
     TimedSample,
 };
@@ -160,7 +160,7 @@ where
 mod tests {
 
     use super::*;
-    use crate::rhdl_bits::alias::*;
+    use rhdl_bits::alias::*;
 
     fn expected() -> Vec<TimedSample<(ClockReset, b8)>> {
         vec![

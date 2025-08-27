@@ -1,7 +1,7 @@
 // Check a RHIF object for type correctness.
 use log::debug;
 
-use crate::rhdl_core::{
+use crate::{
     Kind,
     ast::{ast_impl::WrapOp, source::source_location::SourceLocation},
     compiler::mir::error::ICE,

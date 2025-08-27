@@ -1,6 +1,6 @@
 use miette::{MietteError, SourceCode, SourceSpan, SpanContents};
 
-use crate::rhdl_core::ast::ast_impl::FunctionId;
+use crate::ast::ast_impl::FunctionId;
 use std::{collections::BTreeMap, hash::Hash, ops::Range};
 
 use super::spanned_source::SpannedSource;

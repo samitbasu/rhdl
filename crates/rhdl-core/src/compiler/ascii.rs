@@ -2,9 +2,9 @@
 // print it to a string.  The AST is formatted
 // using indented text.
 
-use crate::rhdl_core::ast::ast_impl::*;
-use crate::rhdl_core::kernel::Kernel;
-use crate::rhdl_core::rhif::spec::Member;
+use crate::ast::ast_impl::*;
+use crate::kernel::Kernel;
+use crate::rhif::spec::Member;
 use anyhow::Result;
 
 #[derive(Default)]
@@ -25,7 +25,7 @@ pub fn render_statement_to_string(stmt: &Stmt) -> Result<String> {
 }
 
 impl AsciiRenderer {
-    pub fn render(&mut self, ast: &crate::rhdl_core::ast::ast_impl::KernelFn) -> Result<String> {
+    pub fn render(&mut self, ast: &crate::ast::ast_impl::KernelFn) -> Result<String> {
         self.render_kernel(ast)?;
         Ok(self.buffer.clone())
     }
@@ -40,7 +40,7 @@ impl AsciiRenderer {
         }
     }
 
-    fn render_block(&mut self, block: &crate::rhdl_core::ast::ast_impl::Block) -> Result<()> {
+    fn render_block(&mut self, block: &crate::ast::ast_impl::Block) -> Result<()> {
         self.push(&format!("block {:?}", block.id));
         self.indent += 1;
         for stmt in &block.stmts {
@@ -49,7 +49,7 @@ impl AsciiRenderer {
         self.indent -= 1;
         Ok(())
     }
-    fn render_stmt(&mut self, stmt: &crate::rhdl_core::ast::ast_impl::Stmt) -> Result<()> {
+    fn render_stmt(&mut self, stmt: &crate::ast::ast_impl::Stmt) -> Result<()> {
         self.push(&format!("stmt {:?}", stmt.id,));
         self.indent += 1;
         match &stmt.kind {

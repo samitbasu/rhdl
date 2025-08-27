@@ -2,7 +2,7 @@
 // To use this, impl Visitor on a data structure, and then pass it to the appropriate top
 // level walk_ function.
 
-use crate::rhdl_core::{ast::ast_impl::*, error::RHDLError};
+use crate::{ast::ast_impl::*, error::RHDLError};
 
 type Result<T> = std::result::Result<T, RHDLError>;
 

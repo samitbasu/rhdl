@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use crate::{
-    prelude::RHDLError,
-    rhdl_core::{
+    RHDLError,
+    {
         common::symtab::RegisterId,
         error::rhdl_error,
         ntl::{Object, error::NetListError, spec::WireKind, visit::visit_wires},
@@ -37,8 +37,7 @@ impl Pass for CheckForUndriven {
                     if let Some(reg) = op.reg() {
                         if !written_set.contains(&reg) {
                             err = Some(NetListError {
-                                cause:
-                                    crate::rhdl_core::ntl::error::NetListICE::UndrivenNetlistNode,
+                                cause: crate::ntl::error::NetListICE::UndrivenNetlistNode,
                                 src: input.code.source(),
                                 elements: lop
                                     .loc

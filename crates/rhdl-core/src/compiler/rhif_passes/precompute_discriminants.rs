@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     common::symtab::SymbolTable,
     error::RHDLError,
     rhif::{

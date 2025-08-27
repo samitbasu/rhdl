@@ -9,7 +9,7 @@ use std::{
 use rhdl_trace_type::{RTT, TraceType};
 use smallvec::SmallVec;
 
-use crate::rhdl_core::Digital;
+use crate::Digital;
 
 use super::{
     bit::TraceBit,
@@ -443,9 +443,9 @@ pub fn trace(key: impl TraceKey, value: &impl Digital) {
 
 #[cfg(test)]
 mod tests {
-    use crate::rhdl_bits::alias::*;
+    use rhdl_bits::alias::*;
 
-    use crate::rhdl_core::{
+    use crate::{
         Digital, DiscriminantAlignment, Kind,
         bitx::{BitX, bitx_vec},
         rtt::test::kind_to_trace,
@@ -524,7 +524,7 @@ mod tests {
                     Kind::make_discriminant_layout(
                         3,
                         DiscriminantAlignment::Lsb,
-                        crate::rhdl_core::types::kind::DiscriminantType::Unsigned,
+                        crate::types::kind::DiscriminantType::Unsigned,
                     ),
                 )
             }
@@ -585,13 +585,13 @@ mod tests {
             "a",
             &Mixed::Strct {
                 a: true,
-                b: crate::rhdl_bits::bits(5),
+                b: rhdl_bits::bits(5),
             },
         );
         trace_time(300);
         trace("a", &Mixed::Bool(false));
         trace_time(400);
-        trace("a", &Mixed::Tuple(true, crate::rhdl_bits::bits(3)));
+        trace("a", &Mixed::Tuple(true, rhdl_bits::bits(3)));
         trace_time(500);
 
         let mut vcd = vec![];

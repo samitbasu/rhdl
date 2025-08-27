@@ -1,9 +1,9 @@
 use std::ops::Add;
 
-use crate::rhdl_typenum::prelude::*;
+use rhdl_typenum::prelude::*;
 
 use super::{
-    dyn_bits::DynBits, signed, signed_dyn_bits::SignedDynBits, BitWidth, Bits, SignedBits,
+    BitWidth, Bits, SignedBits, dyn_bits::DynBits, signed, signed_dyn_bits::SignedDynBits,
 };
 
 pub trait XSub<Rhs = Self> {
@@ -156,7 +156,7 @@ impl XSub<SignedDynBits> for SignedDynBits {
 #[cfg(test)]
 mod tests {
 
-    use crate::rhdl_bits::bits;
+    use crate::bits;
 
     use super::*;
 

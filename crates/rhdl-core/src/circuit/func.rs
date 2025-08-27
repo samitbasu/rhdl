@@ -1,17 +1,14 @@
 use crate::{
-    prelude::{trace, trace_pop_path, trace_push_path},
-    rhdl_core::{
-        compile_design,
-        digital_fn::{DigitalFn2, NoKernel3},
-        hdl::{
-            ast::{continuous_assignment, function_call, id, Direction, Module},
-            builder::generate_verilog,
-        },
-        ntl::from_rtl::build_ntl_from_rtl,
-        rtl::Object,
-        CircuitDescriptor, ClockReset, CompilationMode, Digital, DigitalFn, HDLDescriptor, Kind,
-        RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
+    CircuitDescriptor, ClockReset, CompilationMode, Digital, DigitalFn, HDLDescriptor, Kind,
+    RHDLError, Synchronous, SynchronousDQ, SynchronousIO, compile_design,
+    digital_fn::{DigitalFn2, NoKernel3},
+    hdl::{
+        ast::{Direction, Module, continuous_assignment, function_call, id},
+        builder::generate_verilog,
     },
+    ntl::from_rtl::build_ntl_from_rtl,
+    rtl::Object,
+    trace, trace_pop_path, trace_push_path,
 };
 
 use super::hdl_backend::maybe_port_wire;

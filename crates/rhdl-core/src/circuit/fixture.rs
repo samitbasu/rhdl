@@ -1,13 +1,11 @@
 use super::{circuit_impl::Circuit, hdl_backend::maybe_decl_wire};
 use crate::{
-    prelude::{
-        BitX, CircuitIO, Digital, Direction, HDLKind, Kind, Module, Path, RHDLError, Timed,
-        bit_range,
+    BitX, CircuitIO, Digital, Kind, RHDLError, Timed,
+    hdl::ast::{
+        Direction, HDLKind, Module, Port, SignedWidth, Statement, component_instance, connection,
+        id,
     },
-    rhdl_core::{
-        hdl::ast::{Port, SignedWidth, Statement, component_instance, connection, id},
-        types::path::leaf_paths,
-    },
+    types::path::{Path, bit_range, leaf_paths},
 };
 use miette::Diagnostic;
 use serde::Serialize;

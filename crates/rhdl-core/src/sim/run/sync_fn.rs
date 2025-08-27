@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     clock::clock, clock_reset, sim::ResetOrData, timed_sample, trace, trace_time,
     types::reset::reset, Clock, ClockReset, Digital, Synchronous, SynchronousIO, TimedSample,
 };

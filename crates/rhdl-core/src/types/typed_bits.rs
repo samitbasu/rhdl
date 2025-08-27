@@ -2,15 +2,15 @@ use std::iter::{once, repeat};
 
 use internment::Intern;
 
-use crate::rhdl_core::Color;
-use crate::rhdl_core::ast::ast_impl::WrapOp;
-use crate::rhdl_core::bitx::dyn_bit_manip::bits_shr_signed;
-use crate::rhdl_core::bitx::dyn_bit_manip::{
+use crate::Color;
+use crate::ast::ast_impl::WrapOp;
+use crate::bitx::dyn_bit_manip::bits_shr_signed;
+use crate::bitx::dyn_bit_manip::{
     bit_neg, bit_not, bits_and, bits_or, bits_shl, bits_shr, bits_xor, full_add, full_sub,
 };
-use crate::rhdl_core::bitx::{BitX, bitx_string};
-use crate::rhdl_core::error::{RHDLError, rhdl_error};
-use crate::rhdl_core::{
+use crate::bitx::{BitX, bitx_string};
+use crate::error::{RHDLError, rhdl_error};
+use crate::{
     Kind,
     types::path::{Path, bit_range, sub_kind},
 };
@@ -902,9 +902,9 @@ fn write_tuple(tuple: &Tuple, bits: &[BitX], f: &mut std::fmt::Formatter<'_>) ->
 
 #[cfg(test)]
 mod tests {
-    use crate::rhdl_bits::{alias::*, bits, consts::U2};
+    use rhdl_bits::{alias::*, bits, consts::U2};
 
-    use crate::rhdl_core::{
+    use crate::{
         Digital, DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
         bitx::{BitX, bitx_vec},
     };
@@ -974,25 +974,22 @@ mod tests {
                 )
             }
             fn static_trace_type() -> rhdl_trace_type::TraceType {
-                crate::rhdl_core::rtt::test::kind_to_trace(&Self::static_kind())
+                crate::rtt::test::kind_to_trace(&Self::static_kind())
             }
             fn bin(self) -> Vec<BitX> {
                 self.kind().pad(match self {
                     Self::A(_0) => {
-                        let mut v =
-                            bitx_vec(&crate::rhdl_bits::bits::<U2>(0i64 as u128).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<U2>(0i64 as u128).to_bools());
                         v.extend(_0.bin());
                         v
                     }
                     Self::B { foo } => {
-                        let mut v =
-                            bitx_vec(&crate::rhdl_bits::bits::<U2>(1i64 as u128).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<U2>(1i64 as u128).to_bools());
                         v.extend(foo.bin());
                         v
                     }
                     Self::C(_0) => {
-                        let mut v =
-                            bitx_vec(&crate::rhdl_bits::bits::<U2>(2i64 as u128).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<U2>(2i64 as u128).to_bools());
                         v.extend(_0.bin());
                         v
                     }
@@ -1000,9 +997,9 @@ mod tests {
             }
             fn discriminant(self) -> TypedBits {
                 match self {
-                    Self::A(_0) => crate::rhdl_bits::bits::<U2>(0i64 as u128).typed_bits(),
-                    Self::B { foo: _ } => crate::rhdl_bits::bits::<U2>(1i64 as u128).typed_bits(),
-                    Self::C(_0) => crate::rhdl_bits::bits::<U2>(2i64 as u128).typed_bits(),
+                    Self::A(_0) => rhdl_bits::bits::<U2>(0i64 as u128).typed_bits(),
+                    Self::B { foo: _ } => rhdl_bits::bits::<U2>(1i64 as u128).typed_bits(),
+                    Self::C(_0) => rhdl_bits::bits::<U2>(2i64 as u128).typed_bits(),
                 }
             }
             fn variant_kind(self) -> Kind {
@@ -1047,7 +1044,7 @@ mod tests {
                 )
             }
             fn static_trace_type() -> rhdl_trace_type::TraceType {
-                crate::rhdl_core::rtt::test::kind_to_trace(&Self::static_kind())
+                crate::rtt::test::kind_to_trace(&Self::static_kind())
             }
             fn bin(self) -> Vec<BitX> {
                 [self.0.bin(), self.1.bin(), self.2.bin()].concat()
@@ -1081,7 +1078,7 @@ mod tests {
                 )
             }
             fn static_trace_type() -> rhdl_trace_type::TraceType {
-                crate::rhdl_core::rtt::test::kind_to_trace(&Self::static_kind())
+                crate::rtt::test::kind_to_trace(&Self::static_kind())
             }
             fn bin(self) -> Vec<BitX> {
                 [self.a.bin(), self.b.bin(), self.c.bin()].concat()
@@ -1099,37 +1096,55 @@ mod tests {
         assert_eq!(Foo::BITS, Foo::static_kind().bits());
         assert_eq!(Bar::BITS, Bar::static_kind().bits());
 
+        let a_expect = expect_test::expect![[r#"
+            47_b8
+        "#]];
         let a = b8(0x47).typed_bits();
-        assert_eq!(format!("{a:?}"), "47_b8");
+        a_expect.assert_debug_eq(&a);
+        let c_expect = expect_test::expect![[r#"
+            (12_b8, 80_b8, false)
+        "#]];
         let c = (b8(0x12), b8(0x80), false).typed_bits();
-        assert_eq!(format!("{c:?}"), "(12_b8, 80_b8, false)");
+        c_expect.assert_debug_eq(&c);
+        let b_expect = expect_test::expect![[r#"
+            -83_s32
+        "#]];
         let b = (s32(-0x53)).typed_bits();
-        assert_eq!(format!("{b:?}"), "-83_s32");
+        b_expect.assert_debug_eq(&b);
+        let d_expect = expect_test::expect![[r#"
+            [1_b8, 3_b8, 4_b8]
+        "#]];
         let d = [b8(1), b8(3), b8(4)].typed_bits();
-        assert_eq!(format!("{d:?}"), "[1_b8, 3_b8, 4_b8]");
+        d_expect.assert_debug_eq(&d);
+        let e_expect = expect_test::expect![[r#"
+            Foo {a: 47_b8, b: 80_b8, c: true}
+        "#]];
         let e = Foo {
             a: b8(0x47),
             b: b8(0x80),
             c: true,
         }
         .typed_bits();
-        assert_eq!(format!("{e:?}"), "Foo {a: 47_b8, b: 80_b8, c: true}");
+        e_expect.assert_debug_eq(&e);
         let e = Bar(b8(0x47), b8(0x80), true).typed_bits();
-        assert_eq!(format!("{e:?}"), "Bar {0: 47_b8, 1: 80_b8, 2: true}");
+        let e_expect = expect_test::expect![[r#"
+            Bar {0: 47_b8, 1: 80_b8, 2: true}
+        "#]];
+        e_expect.assert_debug_eq(&e);
         let d = [
             Bar(b8(0x47), b8(0x80), true),
             Bar(b8(0x42), b8(0x13), false),
         ]
         .typed_bits();
-        assert_eq!(
-            format!("{d:?}"),
-            "[Bar {0: 47_b8, 1: 80_b8, 2: true}, Bar {0: 42_b8, 1: 13_b8, 2: false}]"
-        );
+        let d_expect = expect_test::expect![[r#"
+            [Bar {0: 47_b8, 1: 80_b8, 2: true}, Bar {0: 42_b8, 1: 13_b8, 2: false}]
+        "#]];
+        d_expect.assert_debug_eq(&d);
         let h = Baz::A(Bar(b8(0x47), b8(0x80), true)).typed_bits();
-        assert_eq!(
-            format!("{h:?}"),
-            "rhdl::rhdl_core::types::typed_bits::tests::Baz::A(Bar {0: 47_b8, 1: 80_b8, 2: true})"
-        );
+        let h_expect = expect_test::expect![[r#"
+            rhdl_core::types::typed_bits::tests::Baz::A(Bar {0: 47_b8, 1: 80_b8, 2: true})
+        "#]];
+        h_expect.assert_debug_eq(&h);
     }
 
     #[test]

@@ -1,14 +1,13 @@
+use rhdl_bits::alias::{b128, s128};
+
 use crate::{
-    rhdl_bits::alias::{b128, s128},
-    rhdl_core::{
-        common::symtab::{Symbol, SymbolTable},
-        rhif::object::SourceDetails,
-    },
+    common::symtab::{Symbol, SymbolTable},
+    rhif::object::SourceDetails,
 };
 use log::{debug, trace};
 use std::collections::BTreeMap;
 
-use crate::rhdl_core::{
+use crate::{
     Digital, Kind, TypedBits,
     ast::{
         ast_impl::{ExprLit, WrapOp},
@@ -728,10 +727,10 @@ impl<'a> MirTypeInference<'a> {
                     let discriminant = enumerate.template.discriminant()?.as_i64()?;
                     for field in &enumerate.fields {
                         let path = match &field.member {
-                            crate::rhdl_core::rhif::spec::Member::Named(name) => {
+                            crate::rhif::spec::Member::Named(name) => {
                                 Path::default().payload_by_value(discriminant).field(name)
                             }
-                            crate::rhdl_core::rhif::spec::Member::Unnamed(ndx) => Path::default()
+                            crate::rhif::spec::Member::Unnamed(ndx) => Path::default()
                                 .payload_by_value(discriminant)
                                 .tuple_index(*ndx as usize),
                         };

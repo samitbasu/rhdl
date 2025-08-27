@@ -1,6 +1,6 @@
-use crate::rhdl_bits::bits_impl::bits_masked;
+use crate::bits_impl::bits_masked;
 
-use super::{signed_dyn_bits::SignedDynBits, BitWidth, Bits};
+use super::{BitWidth, Bits, signed_dyn_bits::SignedDynBits};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DynBits {

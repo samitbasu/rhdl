@@ -1,8 +1,8 @@
 use std::ops::Range;
 
 use crate::{
-    prelude::Path,
-    rhdl_core::common::symtab::{LiteralId, Symbol, SymbolKind},
+    common::symtab::{LiteralId, Symbol, SymbolKind},
+    types::path::Path,
 };
 
 #[derive(Clone, PartialEq, Hash)]
@@ -57,23 +57,23 @@ pub enum AluBinary {
     Gt,
 }
 
-impl From<AluBinary> for crate::rhdl_core::rhif::spec::AluBinary {
+impl From<AluBinary> for crate::rhif::spec::AluBinary {
     fn from(op: AluBinary) -> Self {
         match op {
-            AluBinary::Add => crate::rhdl_core::rhif::spec::AluBinary::Add,
-            AluBinary::Sub => crate::rhdl_core::rhif::spec::AluBinary::Sub,
-            AluBinary::Mul => crate::rhdl_core::rhif::spec::AluBinary::Mul,
-            AluBinary::BitXor => crate::rhdl_core::rhif::spec::AluBinary::BitXor,
-            AluBinary::BitAnd => crate::rhdl_core::rhif::spec::AluBinary::BitAnd,
-            AluBinary::BitOr => crate::rhdl_core::rhif::spec::AluBinary::BitOr,
-            AluBinary::Shl => crate::rhdl_core::rhif::spec::AluBinary::Shl,
-            AluBinary::Shr => crate::rhdl_core::rhif::spec::AluBinary::Shr,
-            AluBinary::Eq => crate::rhdl_core::rhif::spec::AluBinary::Eq,
-            AluBinary::Lt => crate::rhdl_core::rhif::spec::AluBinary::Lt,
-            AluBinary::Le => crate::rhdl_core::rhif::spec::AluBinary::Le,
-            AluBinary::Ne => crate::rhdl_core::rhif::spec::AluBinary::Ne,
-            AluBinary::Ge => crate::rhdl_core::rhif::spec::AluBinary::Ge,
-            AluBinary::Gt => crate::rhdl_core::rhif::spec::AluBinary::Gt,
+            AluBinary::Add => crate::rhif::spec::AluBinary::Add,
+            AluBinary::Sub => crate::rhif::spec::AluBinary::Sub,
+            AluBinary::Mul => crate::rhif::spec::AluBinary::Mul,
+            AluBinary::BitXor => crate::rhif::spec::AluBinary::BitXor,
+            AluBinary::BitAnd => crate::rhif::spec::AluBinary::BitAnd,
+            AluBinary::BitOr => crate::rhif::spec::AluBinary::BitOr,
+            AluBinary::Shl => crate::rhif::spec::AluBinary::Shl,
+            AluBinary::Shr => crate::rhif::spec::AluBinary::Shr,
+            AluBinary::Eq => crate::rhif::spec::AluBinary::Eq,
+            AluBinary::Lt => crate::rhif::spec::AluBinary::Lt,
+            AluBinary::Le => crate::rhif::spec::AluBinary::Le,
+            AluBinary::Ne => crate::rhif::spec::AluBinary::Ne,
+            AluBinary::Ge => crate::rhif::spec::AluBinary::Ge,
+            AluBinary::Gt => crate::rhif::spec::AluBinary::Gt,
         }
     }
 }
@@ -98,17 +98,17 @@ pub enum AluUnary {
     Val,
 }
 
-impl From<AluUnary> for crate::rhdl_core::rhif::spec::AluUnary {
+impl From<AluUnary> for crate::rhif::spec::AluUnary {
     fn from(op: AluUnary) -> Self {
         match op {
-            AluUnary::Neg => crate::rhdl_core::rhif::spec::AluUnary::Neg,
-            AluUnary::Not => crate::rhdl_core::rhif::spec::AluUnary::Not,
-            AluUnary::All => crate::rhdl_core::rhif::spec::AluUnary::All,
-            AluUnary::Any => crate::rhdl_core::rhif::spec::AluUnary::Any,
-            AluUnary::Xor => crate::rhdl_core::rhif::spec::AluUnary::Xor,
-            AluUnary::Signed => crate::rhdl_core::rhif::spec::AluUnary::Signed,
-            AluUnary::Unsigned => crate::rhdl_core::rhif::spec::AluUnary::Unsigned,
-            AluUnary::Val => crate::rhdl_core::rhif::spec::AluUnary::Val,
+            AluUnary::Neg => crate::rhif::spec::AluUnary::Neg,
+            AluUnary::Not => crate::rhif::spec::AluUnary::Not,
+            AluUnary::All => crate::rhif::spec::AluUnary::All,
+            AluUnary::Any => crate::rhif::spec::AluUnary::Any,
+            AluUnary::Xor => crate::rhif::spec::AluUnary::Xor,
+            AluUnary::Signed => crate::rhif::spec::AluUnary::Signed,
+            AluUnary::Unsigned => crate::rhif::spec::AluUnary::Unsigned,
+            AluUnary::Val => crate::rhif::spec::AluUnary::Val,
         }
     }
 }

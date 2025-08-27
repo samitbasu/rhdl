@@ -1,4 +1,4 @@
-use crate::rhdl_core::{RHDLError, hdl::ast::Module};
+use crate::{RHDLError, hdl::ast::Module};
 
 pub struct TestModule(Module);
 
@@ -14,7 +14,6 @@ impl std::fmt::Display for TestModule {
     }
 }
 
-#[cfg(feature = "iverilog")]
 impl TestModule {
     pub fn run_iverilog(&self) -> Result<(), RHDLError> {
         use rand::random;
