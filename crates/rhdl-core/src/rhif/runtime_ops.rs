@@ -1,9 +1,9 @@
 use num_bigint::BigInt;
 
-use crate::rhdl_core::bitx::dyn_bit_manip::{from_bigint, from_biguint, to_bigint, to_biguint};
-use crate::rhdl_core::error::rhdl_error;
-use crate::rhdl_core::types::error::DynamicTypeError;
-use crate::rhdl_core::{Digital, Kind, RHDLError, TypedBits};
+use crate::bitx::dyn_bit_manip::{from_bigint, from_biguint, to_bigint, to_biguint};
+use crate::error::rhdl_error;
+use crate::types::error::DynamicTypeError;
+use crate::{Digital, Kind, RHDLError, TypedBits};
 
 use super::spec::{AluBinary, AluUnary};
 
@@ -158,7 +158,7 @@ fn xmul(a: TypedBits, b: TypedBits) -> Result<TypedBits, RHDLError> {
 }
 
 pub fn binary(
-    op: crate::rhdl_core::rhif::spec::AluBinary,
+    op: crate::rhif::spec::AluBinary,
     arg1: TypedBits,
     arg2: TypedBits,
 ) -> Result<TypedBits, RHDLError> {

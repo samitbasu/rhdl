@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     RHDLError, TypedBits,
     ast::source::source_location::SourceLocation,
     common::symtab::LiteralId,
@@ -30,7 +30,7 @@ fn propagate_binary(
     if let (Operand::Literal(arg1), Operand::Literal(arg2)) = (arg1, arg2) {
         let arg1_val = obj.symtab[&arg1].clone();
         let arg2_val = obj.symtab[&arg2].clone();
-        let result: TypedBits = crate::rhdl_core::rtl::runtime_ops::binary(op, arg1_val, arg2_val)?;
+        let result: TypedBits = crate::rtl::runtime_ops::binary(op, arg1_val, arg2_val)?;
         let details = obj.symtab[&lhs].clone();
         let result = obj.symtab.lit(result, details);
         Ok(LocatedOpCode {
@@ -58,7 +58,7 @@ fn propagate_unary(
     let Unary { lhs, op, arg1 } = params;
     if let Operand::Literal(arg1) = arg1 {
         let arg_val = obj.symtab[&arg1].clone();
-        let result = crate::rhdl_core::rtl::runtime_ops::unary(op, arg_val)?;
+        let result = crate::rtl::runtime_ops::unary(op, arg_val)?;
         let details = obj.symtab[&lhs].clone();
         let result = obj.symtab.lit(result, details);
         Ok(LocatedOpCode {
@@ -139,7 +139,7 @@ fn propagate_case(
 
 fn propagate_cast(
     loc: SourceLocation,
-    cast: crate::rhdl_core::rtl::spec::Cast,
+    cast: crate::rtl::spec::Cast,
     obj: &mut Object,
 ) -> Result<LocatedOpCode, RHDLError> {
     let Cast {

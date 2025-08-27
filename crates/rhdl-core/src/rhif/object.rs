@@ -5,13 +5,13 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::ops::Range;
 
-use crate::rhdl_core::SourcePool;
-use crate::rhdl_core::ast::KernelFlags;
-use crate::rhdl_core::ast::source::source_location::SourceLocation;
-use crate::rhdl_core::ast::source::spanned_source_set::SpannedSourceSet;
-use crate::rhdl_core::common::symtab::{RegisterId, SymbolTable};
-use crate::rhdl_core::rhif::spec::SlotKind;
-use crate::rhdl_core::{
+use crate::SourcePool;
+use crate::ast::KernelFlags;
+use crate::ast::source::source_location::SourceLocation;
+use crate::ast::source::spanned_source_set::SpannedSourceSet;
+use crate::common::symtab::{RegisterId, SymbolTable};
+use crate::rhif::spec::SlotKind;
+use crate::{
     Kind, TypedBits,
     ast::ast_impl::{FunctionId, NodeId},
     rhif::spec::Slot,

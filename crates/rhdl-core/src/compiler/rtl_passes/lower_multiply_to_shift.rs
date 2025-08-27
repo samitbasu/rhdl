@@ -1,7 +1,7 @@
-use crate::rhdl_bits::alias::b8;
+use rhdl_bits::alias::b8;
 
-use crate::rhdl_core::TypedBits;
-use crate::rhdl_core::{
+use crate::TypedBits;
+use crate::{
     Digital, RHDLError,
     rtl::spec::AluBinary,
     rtl::{

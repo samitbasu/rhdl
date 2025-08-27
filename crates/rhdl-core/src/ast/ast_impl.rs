@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     DigitalSignature, Kind, kernel::KernelFnKind, rhif::spec::Member, types::typed_bits::TypedBits,
 };
 

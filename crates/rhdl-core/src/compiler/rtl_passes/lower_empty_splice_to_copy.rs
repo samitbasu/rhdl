@@ -1,9 +1,9 @@
-use crate::rhdl_core::{
-    rtl::{
-        spec::{Assign, OpCode},
-        Object,
-    },
+use crate::{
     RHDLError,
+    rtl::{
+        Object,
+        spec::{Assign, OpCode},
+    },
 };
 
 use super::pass::Pass;

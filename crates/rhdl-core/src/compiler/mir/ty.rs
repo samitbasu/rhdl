@@ -5,8 +5,8 @@ use std::{
 };
 
 use crate::{
-    prelude::RHDLError,
-    rhdl_core::{
+    RHDLError,
+    {
         Color, DiscriminantAlignment, DiscriminantType, Kind,
         ast::source::source_location::SourceLocation,
         rhif::spec::Member,
@@ -292,7 +292,7 @@ impl AppTypeKind for AppEnum {
             .into_iter()
             .map(|(v, t)| {
                 let kind = context.into_kind(t)?;
-                Ok(crate::rhdl_core::types::kind::Variant {
+                Ok(crate::types::kind::Variant {
                     name: v.name.into(),
                     kind,
                     discriminant: v.discriminant,
@@ -1224,7 +1224,7 @@ impl UnifyContext {
 mod tests {
     use log::debug;
 
-    use crate::rhdl_core::ast::ast_impl::NodeId;
+    use crate::ast::ast_impl::NodeId;
 
     use super::*;
 

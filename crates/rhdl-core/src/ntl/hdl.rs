@@ -1,26 +1,26 @@
 use std::collections::BTreeSet;
 use std::collections::HashSet;
 
-use crate::prelude::Module;
-use crate::prelude::RHDLError;
-use crate::rhdl_core::ast::source::source_location::SourceLocation;
-use crate::rhdl_core::error::rhdl_error;
-use crate::rhdl_core::hdl;
-use crate::rhdl_core::hdl::ast;
-use crate::rhdl_core::hdl::ast::CaseItem;
-use crate::rhdl_core::ntl::Object;
-use crate::rhdl_core::ntl::error::NetListError;
-use crate::rhdl_core::ntl::error::NetListICE;
-use crate::rhdl_core::ntl::object::BlackBoxMode;
-use crate::rhdl_core::ntl::spec;
-use crate::rhdl_core::ntl::spec::BlackBox;
-use crate::rhdl_core::ntl::spec::CaseEntry;
-use crate::rhdl_core::ntl::spec::OpCode;
-use crate::rhdl_core::ntl::spec::VectorOp;
-use crate::rhdl_core::ntl::spec::Wire;
-use crate::rhdl_core::ntl::visit::visit_wires;
-use crate::rhdl_core::rtl::spec::AluBinary;
-use crate::rhdl_core::rtl::spec::AluUnary;
+use crate::RHDLError;
+use crate::ast::source::source_location::SourceLocation;
+use crate::error::rhdl_error;
+use crate::hdl;
+use crate::hdl::ast;
+use crate::hdl::ast::CaseItem;
+use crate::hdl::ast::Module;
+use crate::ntl::Object;
+use crate::ntl::error::NetListError;
+use crate::ntl::error::NetListICE;
+use crate::ntl::object::BlackBoxMode;
+use crate::ntl::spec;
+use crate::ntl::spec::BlackBox;
+use crate::ntl::spec::CaseEntry;
+use crate::ntl::spec::OpCode;
+use crate::ntl::spec::VectorOp;
+use crate::ntl::spec::Wire;
+use crate::ntl::visit::visit_wires;
+use crate::rtl::spec::AluBinary;
+use crate::rtl::spec::AluUnary;
 
 struct NetListHDLBuilder<'a> {
     ntl: &'a Object,
@@ -153,12 +153,12 @@ impl<'a> NetListHDLBuilder<'a> {
         let arg1 = self.opex_v(&op.arg1);
         let arg2 = self.opex_v(&op.arg2);
         let arg1 = if op.signed {
-            ast::unary(crate::rhdl_core::rtl::spec::AluUnary::Signed, arg1)
+            ast::unary(crate::rtl::spec::AluUnary::Signed, arg1)
         } else {
             arg1
         };
         let arg2 = if op.signed {
-            ast::unary(crate::rhdl_core::rtl::spec::AluUnary::Signed, arg2)
+            ast::unary(crate::rtl::spec::AluUnary::Signed, arg2)
         } else {
             arg2
         };
@@ -173,10 +173,7 @@ impl<'a> NetListHDLBuilder<'a> {
         let target = self.reg(op.lhs, location)?;
         self.push_body(ast::assign(
             &target,
-            ast::unary(
-                crate::rhdl_core::rtl::spec::AluUnary::Not,
-                self.opex(op.arg),
-            ),
+            ast::unary(crate::rtl::spec::AluUnary::Not, self.opex(op.arg)),
         ));
         Ok(())
     }

@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, ops::Range};
 
-use crate::rhdl_core::ast::ast_impl::FunctionId;
+use crate::ast::ast_impl::FunctionId;
 
 use super::{
     source_location::SourceLocation, source_pool::SourcePool, spanned_source::SpannedSource,

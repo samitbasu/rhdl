@@ -9,3 +9,11 @@ rhdl-core = { version = "0.1.0", path = "../rhdl-core" }
 rhdl-macro = { version = "0.0.3", path = "../rhdl-macro" }
 rhdl-trace-type = { version = "0.1.0", path = "../rhdl-trace-type" }
 rhdl-typenum = { version = "0.1.0", path = "../rhdl-typenum" }
+
+[dev-dependencies]
+anyhow = "1.0.99"
+expect-test = "1.5.1"
+itertools = "0.14.0"
+miette = "7.6.0"
+rand = "0.9.2"
+svg = "0.18.0"

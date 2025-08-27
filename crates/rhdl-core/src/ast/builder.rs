@@ -1,13 +1,13 @@
 use std::cell::Cell;
 use std::hash::{Hash, Hasher};
 
-pub use crate::rhdl_core::ast::ast_impl::BinOp;
-pub use crate::rhdl_core::ast::ast_impl::UnOp;
-use crate::rhdl_core::kernel::KernelFnKind;
-use crate::rhdl_core::rhif::spec::Member;
-use crate::rhdl_core::types::typed_bits::TypedBits;
-use crate::rhdl_core::{Color, Digital, DigitalSignature};
-use crate::rhdl_core::{Kind, ast::ast_impl::*};
+pub use crate::ast::ast_impl::BinOp;
+pub use crate::ast::ast_impl::UnOp;
+use crate::kernel::KernelFnKind;
+use crate::rhif::spec::Member;
+use crate::types::typed_bits::TypedBits;
+use crate::{Color, Digital, DigitalSignature};
+use crate::{Kind, ast::ast_impl::*};
 
 #[derive(Default)]
 pub struct ASTBuilder {

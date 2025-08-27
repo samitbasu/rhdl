@@ -1,4 +1,4 @@
-use crate::rhdl_core::rhif::spec::{
+use crate::rhif::spec::{
     Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, FieldValue, Index, OpCode, Repeat,
     Retime, Select, Slot, Splice, Struct, Tuple, Unary,
 };

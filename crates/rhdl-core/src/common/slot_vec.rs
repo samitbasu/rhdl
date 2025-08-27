@@ -232,7 +232,7 @@ macro_rules! new_key_type {
 
 pub use new_key_type;
 
-use crate::prelude::RHDLError;
+use crate::RHDLError;
 
 #[cfg(test)]
 mod tests {

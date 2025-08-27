@@ -1,7 +1,7 @@
-use crate::rhdl_core::{
-    compiler::mir::error::ICE,
-    rtl::{spec::OpCode, Object},
+use crate::{
     RHDLError,
+    compiler::mir::error::ICE,
+    rtl::{Object, spec::OpCode},
 };
 
 use super::pass::Pass;

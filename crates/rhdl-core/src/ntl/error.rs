@@ -3,7 +3,7 @@ use std::fmt::Display;
 use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
-use crate::rhdl_core::SourcePool;
+use crate::SourcePool;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum NetListICE {

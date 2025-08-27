@@ -1,4 +1,4 @@
-use crate::rhdl_core::hdl::ast::Module;
+use crate::hdl::ast::Module;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Hash)]

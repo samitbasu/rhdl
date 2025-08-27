@@ -1,6 +1,6 @@
 use crate::{
-    prelude::RHDLError,
-    rhdl_core::{
+    RHDLError,
+    {
         ast::source::source_location::SourceLocation,
         compiler::mir::error::{ICE, RHDLCompileError},
         error::rhdl_error,

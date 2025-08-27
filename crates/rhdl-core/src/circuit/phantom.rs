@@ -1,9 +1,6 @@
 use crate::{
-    prelude::{
-        CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, Module, NoKernel3, RHDLError,
-        Synchronous, SynchronousDQ, SynchronousIO,
-    },
-    rhdl_core::ntl,
+    CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous,
+    SynchronousDQ, SynchronousIO, digital_fn::NoKernel3, hdl::ast::Module, ntl,
 };
 
 impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
@@ -13,7 +10,7 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
 
     fn sim(
         &self,
-        _clock_reset: crate::prelude::ClockReset,
+        _clock_reset: crate::ClockReset,
         _input: Self::I,
         _state: &mut Self::S,
     ) -> Self::O {

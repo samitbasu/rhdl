@@ -1,4 +1,4 @@
-use crate::rhdl_core::{Clock, ClockReset, Digital, TimedSample};
+use crate::{Clock, ClockReset, Digital, TimedSample};
 
 /// This probe collects samples a stream of values _before_ a
 /// positive clock edge.  You must provide a closure that extracts
@@ -68,8 +68,8 @@ where
 mod tests {
 
     use super::super::ext::SynchronousProbeExt;
-    use crate::rhdl_bits::alias::*;
-    use crate::rhdl_core::sim::{clock_pos_edge::ClockPosEdgeExt, reset::TimedStreamExt};
+    use rhdl_bits::alias::*;
+    use crate::sim::{clock_pos_edge::ClockPosEdgeExt, reset::TimedStreamExt};
 
     #[test]
     fn test_before_pos_edge() {

@@ -1,7 +1,7 @@
 use internment::Intern;
 
 // RHDL Intermediate Form (RHIF).
-use crate::rhdl_core::{
+use crate::{
     Color, Kind, TypedBits,
     ast::ast_impl::WrapOp,
     common::symtab::{Symbol, SymbolKind},

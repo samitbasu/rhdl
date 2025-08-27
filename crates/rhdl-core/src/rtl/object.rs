@@ -4,15 +4,15 @@ use std::hash::Hasher;
 
 use fnv::FnvHasher;
 
-use crate::rhdl_core::Kind;
-use crate::rhdl_core::TypedBits;
-use crate::rhdl_core::ast::ast_impl::{FunctionId, NodeId};
-use crate::rhdl_core::ast::source::source_location::SourceLocation;
-use crate::rhdl_core::common::symtab::RegisterId;
-use crate::rhdl_core::common::symtab::SymbolTable;
-use crate::rhdl_core::rhif::object::SourceDetails;
-use crate::rhdl_core::rtl::spec::OperandKind;
-use crate::rhdl_core::types::bit_string::BitString;
+use crate::Kind;
+use crate::TypedBits;
+use crate::ast::ast_impl::{FunctionId, NodeId};
+use crate::ast::source::source_location::SourceLocation;
+use crate::common::symtab::RegisterId;
+use crate::common::symtab::SymbolTable;
+use crate::rhif::object::SourceDetails;
+use crate::rtl::spec::OperandKind;
+use crate::types::bit_string::BitString;
 
 use super::spec::{OpCode, Operand};
 use super::symbols::SymbolMap;

@@ -1,19 +1,19 @@
 // Given a Kind, attempt to translate it into a RHDL Trace Type
 // This is the "Default" implementation, which can be overridden
 // by a particular DIGITAL type as needed.
-use crate::rhdl_core::types::kind;
+use crate::types::kind;
 use rhdl_trace_type as rtt;
 
-impl From<crate::rhdl_core::Color> for rtt::Color {
-    fn from(color: crate::rhdl_core::Color) -> Self {
+impl From<crate::Color> for rtt::Color {
+    fn from(color: crate::Color) -> Self {
         match color {
-            crate::rhdl_core::Color::Red => rtt::Color::Red,
-            crate::rhdl_core::Color::Orange => rtt::Color::Orange,
-            crate::rhdl_core::Color::Yellow => rtt::Color::Yellow,
-            crate::rhdl_core::Color::Green => rtt::Color::Green,
-            crate::rhdl_core::Color::Blue => rtt::Color::Blue,
-            crate::rhdl_core::Color::Indigo => rtt::Color::Indigo,
-            crate::rhdl_core::Color::Violet => rtt::Color::Violet,
+            crate::Color::Red => rtt::Color::Red,
+            crate::Color::Orange => rtt::Color::Orange,
+            crate::Color::Yellow => rtt::Color::Yellow,
+            crate::Color::Green => rtt::Color::Green,
+            crate::Color::Blue => rtt::Color::Blue,
+            crate::Color::Indigo => rtt::Color::Indigo,
+            crate::Color::Violet => rtt::Color::Violet,
         }
     }
 }
@@ -49,7 +49,7 @@ impl From<kind::DiscriminantLayout> for rtt::DiscriminantLayout {
 #[cfg(test)]
 pub(crate) mod test {
     use super::*;
-    use crate::rhdl_core::Kind;
+    use crate::Kind;
     use rhdl_trace_type as rtt;
     use rhdl_trace_type::TraceType;
     pub(crate) fn kind_to_trace(kind: &Kind) -> TraceType {

@@ -1,6 +1,6 @@
 use rhdl_trace_type::RTT;
 
-use crate::rhdl_core::{
+use crate::{
     clock_reset,
     hdl::ast::{
         assert, assign, bit_string, component_instance, connection, declaration, delay, display,
@@ -188,7 +188,7 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
         T: Synchronous,
         T: SynchronousIO<I = I, O = O>,
     {
-        let module = crate::rhdl_core::ntl::hdl::generate_hdl("dut", &uut.descriptor("uut")?.ntl)?;
+        let module = crate::ntl::hdl::generate_hdl("dut", &uut.descriptor("uut")?.ntl)?;
         self.build_test_module(&module, options)
     }
 }

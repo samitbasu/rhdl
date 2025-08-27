@@ -1,7 +1,7 @@
 use super::signed_bits_impl::signed_wrapped;
 
 use super::signed_dyn_bits::SignedDynBits;
-use super::{signed_bits_impl::SignedBits, BitWidth};
+use super::{BitWidth, signed_bits_impl::SignedBits};
 use std::ops::Neg;
 
 impl<N: BitWidth> Neg for SignedBits<N> {
@@ -24,8 +24,8 @@ impl Neg for SignedDynBits {
 
 #[cfg(test)]
 mod test {
-    use crate::rhdl_bits::bitwidth::*;
-    use crate::rhdl_bits::signed_bits_impl::SignedBits;
+    use crate::bitwidth::*;
+    use crate::signed_bits_impl::SignedBits;
 
     #[test]
     fn test_neg_wrapping() {

@@ -1,4 +1,4 @@
-use crate::rhdl_core::{Clock, Digital, TimedSample};
+use crate::{Clock, Digital, TimedSample};
 
 pub struct GlitchCheck<T, I, F> {
     clk: Clock,

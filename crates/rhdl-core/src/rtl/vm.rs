@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     RHDLError, TypedBits,
     ast::source::source_location::SourceLocation,
     bitx::BitX,

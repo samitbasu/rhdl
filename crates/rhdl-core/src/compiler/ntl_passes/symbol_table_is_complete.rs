@@ -1,6 +1,6 @@
 use crate::{
-    prelude::RHDLError,
-    rhdl_core::{
+    RHDLError,
+    {
         compiler::mir::error::ICE,
         ntl::{Object, visit::visit_wires},
     },

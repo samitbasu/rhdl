@@ -2,7 +2,7 @@ use internment::Intern;
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::rhdl_core::{Kind, TypedBits, types::path::Path};
+use crate::{Kind, TypedBits, types::path::Path};
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum DynamicTypeError {

@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     bitx::{bitx_string, BitX},
     hdl::ast::Events,
     rtl::spec::AluBinary,

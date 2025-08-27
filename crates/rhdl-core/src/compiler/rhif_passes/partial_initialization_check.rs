@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use log::trace;
 
-use crate::rhdl_core::{
+use crate::{
     BitX, RHDLError, TypedBits,
     ast::{KernelFlags, source::source_location::SourceLocation},
     compiler::mir::error::RHDLPartialInitializationError,

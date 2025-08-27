@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     rhif::spec::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
         FieldValue, Index, Member, OpCode, Repeat, Splice, Struct, Tuple, Unary,

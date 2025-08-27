@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     RHDLError,
     compiler::{
         lower_rhif_to_rtl::compile_to_rtl,
@@ -31,7 +31,7 @@ fn wrap_pass<P: Pass>(obj: rtl::Object) -> Result<rtl::Object> {
     P::run(obj)
 }
 
-pub(crate) fn compile(object: &crate::rhdl_core::rhif::Object) -> Result<rtl::Object> {
+pub(crate) fn compile(object: &crate::rhif::Object) -> Result<rtl::Object> {
     let mut rtl = compile_to_rtl(object)?;
     let mut hash = rtl.hash_value();
     loop {

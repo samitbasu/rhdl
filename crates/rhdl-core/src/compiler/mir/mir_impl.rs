@@ -4,7 +4,7 @@ use std::{
     ops::Range,
 };
 
-use crate::rhdl_core::{
+use crate::{
     Kind,
     ast::{
         KernelFlags,

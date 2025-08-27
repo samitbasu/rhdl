@@ -386,7 +386,7 @@ pub mod kind_svg {
 
 #[cfg(test)]
 mod test {
-    use crate::rhdl_core::{
+    use crate::{
         DiscriminantType, TypedBits,
         types::kind::{Field, Variant},
     };
@@ -711,8 +711,8 @@ mod test {
 
     #[test]
     fn test_result_recognized() {
-        use crate::rhdl_bits::alias::*;
-        use crate::rhdl_core::Digital;
+        use rhdl_bits::alias::*;
+        use crate::Digital;
         let a = std::result::Result::<b8, b8>::Ok(b8(42)).typed_bits();
         assert!(a.kind.is_result());
         let b = std::result::Result::<b4, ()>::Err(()).typed_bits();

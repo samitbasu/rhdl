@@ -1,7 +1,8 @@
 use std::ops::Add;
 
-use super::{dyn_bits::DynBits, signed, BitWidth, Bits, SignedBits};
-use crate::{rhdl_bits::signed_dyn_bits::SignedDynBits, rhdl_typenum::prelude::*};
+use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits, signed};
+use crate::signed_dyn_bits::SignedDynBits;
+use rhdl_typenum::prelude::*;
 
 pub trait XNeg {
     type Output;

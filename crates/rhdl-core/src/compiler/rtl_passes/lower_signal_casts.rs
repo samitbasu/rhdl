@@ -1,11 +1,11 @@
-use crate::rhdl_core::{
+use crate::{
+    RHDLError,
     rtl::spec::AluUnary,
     rtl::{
+        Object,
         object::LocatedOpCode,
         spec::{Assign, OpCode, Unary},
-        Object,
     },
-    RHDLError,
 };
 
 use super::pass::Pass;

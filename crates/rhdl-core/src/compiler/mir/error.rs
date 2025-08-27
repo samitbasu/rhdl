@@ -3,7 +3,7 @@ use std::fmt::Display;
 use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
-use crate::rhdl_core::{
+use crate::{
     Kind, RHDLError, SourcePool, TypedBits,
     ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
     builder::BinOp,
@@ -213,7 +213,7 @@ pub enum ICE {
     DynamicIndexHasLiteral { path: Path },
     #[error("Multiple writes to a single register {op:?}")]
     MultipleWritesToRegister {
-        op: crate::rhdl_core::ntl::spec::Wire,
+        op: crate::ntl::spec::Wire,
     },
     #[error("Symbol table is incomplete")]
     IncompleteSymbolTable,

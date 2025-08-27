@@ -1,16 +1,16 @@
-use crate::rhdl_core::ast::ast_impl::WrapOp;
-use crate::rhdl_core::ast::source::source_location::SourceLocation;
-use crate::rhdl_core::common::slot_vec::SlotKey;
-use crate::rhdl_core::compiler::mir::error::{ICE, RHDLCompileError};
-use crate::rhdl_core::error::rhdl_error;
-use crate::rhdl_core::rhif::object::{Object, SourceDetails};
-use crate::rhdl_core::rhif::spec::{
+use crate::ast::ast_impl::WrapOp;
+use crate::ast::source::source_location::SourceLocation;
+use crate::common::slot_vec::SlotKey;
+use crate::compiler::mir::error::{ICE, RHDLCompileError};
+use crate::error::rhdl_error;
+use crate::rhif::object::{Object, SourceDetails};
+use crate::rhif::spec::{
     Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec, Index, Member, OpCode, Repeat,
     Slot, Struct, Tuple, Unary,
 };
-use crate::rhdl_core::types::path::Path;
-use crate::rhdl_core::{BitX, TypedBits};
-use crate::rhdl_core::{Kind, RHDLError};
+use crate::types::path::Path;
+use crate::{BitX, TypedBits};
+use crate::{Kind, RHDLError};
 
 use super::object::LocatedOpCode;
 use super::runtime_ops::{array, binary, tuple, unary};
@@ -54,7 +54,7 @@ impl VMState<'_> {
         let mut result = Path::default();
         for element in path.iter() {
             match element {
-                crate::rhdl_core::types::path::PathElement::DynamicIndex(slot) => {
+                crate::types::path::PathElement::DynamicIndex(slot) => {
                     let slot = self.read(*slot, loc)?;
                     let ndx = slot.as_i64()?;
                     result = result.index(ndx as usize);

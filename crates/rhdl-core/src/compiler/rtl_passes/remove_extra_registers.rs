@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::rhdl_core::{
+use crate::{
     RHDLError,
     common::{symtab::RegisterId, unify_key::EnaKey},
     rtl::{

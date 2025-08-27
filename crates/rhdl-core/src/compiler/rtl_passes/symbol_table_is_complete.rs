@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     RHDLError,
     compiler::mir::error::ICE,
     rtl::{Object, visit::visit_object_operands},

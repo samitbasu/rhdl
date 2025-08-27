@@ -1,17 +1,14 @@
-use crate::core::types::digital::Digital;
-use crate::prelude::{Circuit, ClockReset, Kind};
-use crate::rhdl_core::common::symtab::RegisterId;
-use crate::rhdl_core::ntl::object::WireDetails;
-use crate::rhdl_core::ntl::spec::{self, Assign, BlackBoxId, WireKind};
+use crate::common::symtab::RegisterId;
+use crate::ntl::object::WireDetails;
+use crate::ntl::spec::{self, Assign, BlackBoxId, WireKind};
+use crate::types::digital::Digital;
+use crate::{Circuit, ClockReset, Kind, RHDLError, Synchronous};
 use crate::{
-    prelude::{RHDLError, Synchronous},
-    rhdl_core::{
-        ast::source::spanned_source_set::SpannedSourceSet,
-        compiler::optimize_ntl,
-        ntl::{
-            object::{BlackBox, BlackBoxMode, LocatedOpCode, Object},
-            spec::{OpCode, Wire},
-        },
+    ast::source::spanned_source_set::SpannedSourceSet,
+    compiler::optimize_ntl,
+    ntl::{
+        object::{BlackBox, BlackBoxMode, LocatedOpCode, Object},
+        spec::{OpCode, Wire},
     },
 };
 

@@ -1,11 +1,10 @@
 use super::circuit_impl::Circuit;
-use crate::prelude::ClockReset;
-use crate::rhdl_core::Kind;
-use crate::rhdl_core::ntl::from_rtl::build_ntl_from_rtl;
-use crate::rhdl_core::rtl::Object;
-use crate::rhdl_core::types::digital::Digital;
-use crate::rhdl_core::types::path::{Path, bit_range};
-use crate::rhdl_core::{CompilationMode, RHDLError, Synchronous, compile_design};
+use crate::Kind;
+use crate::ntl::from_rtl::build_ntl_from_rtl;
+use crate::rtl::Object;
+use crate::types::digital::Digital;
+use crate::types::path::{Path, bit_range};
+use crate::{CompilationMode, RHDLError, Synchronous, compile_design};
 use std::collections::BTreeMap;
 
 // A few notes on the circuit descriptor struct
@@ -23,7 +22,7 @@ pub struct CircuitDescriptor {
     pub d_kind: Kind,
     pub q_kind: Kind,
     pub rtl: Option<Object>,
-    pub ntl: crate::core::ntl::object::Object,
+    pub ntl: crate::ntl::object::Object,
     pub children: BTreeMap<String, CircuitDescriptor>,
 }
 
@@ -49,7 +48,7 @@ pub fn build_descriptor<C: Circuit>(
     name: &str,
     children: BTreeMap<String, CircuitDescriptor>,
 ) -> Result<CircuitDescriptor, RHDLError> {
-    use crate::core::ntl;
+    use crate::ntl;
     let module = compile_design::<C::Kernel>(CompilationMode::Asynchronous)?;
     // Build the netlist
     // First construct the netlist for the update function
@@ -146,7 +145,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     name: &str,
     children: BTreeMap<String, CircuitDescriptor>,
 ) -> Result<CircuitDescriptor, RHDLError> {
-    use crate::core::ntl;
+    use crate::ntl;
     let module = compile_design::<C::Kernel>(CompilationMode::Synchronous)?;
     // Build the netlist
     // First construct the netlist for the update function
@@ -163,7 +162,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     let input_kind: Kind = C::I::static_kind();
     // The inputs to the circuit are [cr, I], the output is [O]
     // Allocate these as inputs to the netlist
-    let top_cr = builder.add_input(ClockReset::static_kind());
+    let top_cr = builder.add_input(crate::ClockReset::static_kind());
     let top_i = builder.add_input(input_kind);
     let top_o = builder.allocate_outputs(output_kind);
     // Link in the update code.

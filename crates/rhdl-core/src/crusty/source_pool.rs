@@ -1,7 +1,7 @@
 use miette::{MietteError, SourceCode, SourceSpan, SpanContents};
 use std::{collections::HashMap, ops::Range, sync::Arc};
 
-use crate::rhdl_core::{
+use crate::{
     ast::ast_impl::FunctionId,
     rhif::{object::SourceLocation, spanned_source::SpannedSource},
 };

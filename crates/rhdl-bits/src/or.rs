@@ -4,10 +4,10 @@ use std::ops::BitOrAssign;
 use crate::impl_assign_op;
 use crate::impl_binop;
 
-use super::bits_impl::bits_masked;
-use super::bits_impl::Bits;
-use super::dyn_bits::DynBits;
 use super::BitWidth;
+use super::bits_impl::Bits;
+use super::bits_impl::bits_masked;
+use super::dyn_bits::DynBits;
 
 impl_binop!(BitOr, bitor, u128::bitor);
 impl_assign_op!(BitOrAssign, bitor_assign, u128::bitor);
@@ -15,7 +15,7 @@ impl_assign_op!(BitOrAssign, bitor_assign, u128::bitor);
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{rhdl_bits::bitwidth::*, test_binop};
+    use crate::{bitwidth::*, test_binop};
 
     #[test]
     fn test_or() {
@@ -38,7 +38,7 @@ mod test {
         let result = 0b1111_0000 | bits;
         assert_eq!(result.val, 0b1111_1010_u128);
         let mut bits: Bits<U128> = 0.into();
-        bits = crate::rhdl_bits::test::set_bit(bits, 127, true);
+        bits = crate::test::set_bit(bits, 127, true);
         let result = bits | bits;
         assert_eq!(result.val, 1_u128 << 127);
         let bits: Bits<U54> = 0b1101_1010.into();

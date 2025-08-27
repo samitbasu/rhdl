@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 use ena::unify::InPlaceUnificationTable;
 
 use crate::{
-    prelude::RHDLError,
-    rhdl_core::{
+    RHDLError,
+    {
         common::{symtab::RegisterId, unify_key::EnaKey},
         compiler::ntl_passes::pass::Pass,
         ntl::{

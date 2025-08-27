@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::pass::Pass;
-use crate::rhdl_core::{
+use crate::{
     common::{symtab::RegisterId, unify_key::EnaKey},
     error::RHDLError,
     rhif::{

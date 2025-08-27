@@ -1,4 +1,4 @@
-pub use crate::rhdl_typenum::prelude::*;
+pub use rhdl_typenum::prelude::*;
 
 pub trait BitWidth: Copy + Clone + Default + PartialEq + Eq + 'static {
     const BITS: usize;
@@ -14,7 +14,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::BitWidth;
-    use crate::rhdl_typenum::prelude::*;
+    use rhdl_typenum::prelude::*;
     use seq_macro::seq;
 
     // Check that Const<N> : BitWidth for all N s.t. N <= 128

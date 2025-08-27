@@ -5,9 +5,9 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::spanned::Spanned;
 
-use crate::rhdl_core::ast::ast_impl::{KernelFn, NodeId};
+use crate::ast::ast_impl::{KernelFn, NodeId};
 
-use crate::rhdl_core::ast::ast_impl as ast;
+use crate::ast::ast_impl as ast;
 
 use super::spanned_source::SpannedSource;
 

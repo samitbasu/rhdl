@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::rhdl_core::{
+use crate::{
     SourcePool,
     ast::{
         ast_impl::FunctionId,

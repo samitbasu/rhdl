@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     error::RHDLError,
     rhif::{
         spec::{Assign, OpCode},

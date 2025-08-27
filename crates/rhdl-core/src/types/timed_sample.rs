@@ -1,4 +1,4 @@
-use crate::rhdl_core::Digital;
+use crate::Digital;
 
 #[derive(Copy, Clone, Debug, PartialEq, Hash)]
 pub struct TimedSample<T: Digital> {

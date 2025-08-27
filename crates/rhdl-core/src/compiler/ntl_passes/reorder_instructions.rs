@@ -1,19 +1,17 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 
 use crate::{
-    prelude::{Path, RHDLError, bit_range},
-    rhdl_core::{
-        common::symtab::RegisterId,
-        compiler::mir::error::ICE,
-        error::rhdl_error,
-        ntl::{
-            Object,
-            error::NetLoopError,
-            spec::{OpCode, Wire, WireKind},
-            visit::visit_wires,
-        },
-        types::path::leaf_paths,
+    RHDLError,
+    common::symtab::RegisterId,
+    compiler::mir::error::ICE,
+    error::rhdl_error,
+    ntl::{
+        Object,
+        error::NetLoopError,
+        spec::{OpCode, Wire, WireKind},
+        visit::visit_wires,
     },
+    types::path::{Path, bit_range, leaf_paths},
 };
 
 use super::pass::Pass;

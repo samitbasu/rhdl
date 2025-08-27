@@ -2,7 +2,7 @@ use log::debug;
 use std::collections::BTreeMap;
 
 use super::pass::Pass;
-use crate::rhdl_core::{
+use crate::{
     Kind, TypedBits,
     compiler::mir::ty::SignFlag,
     error::RHDLError,

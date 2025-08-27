@@ -1,7 +1,7 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::prelude::{HDLDescriptor, RHDLError};
+use crate::{HDLDescriptor, RHDLError};
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum YosysSynthError {

@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     trace, trace_time, ClockReset, RHDLError, Synchronous, SynchronousIO, TimedSample,
 };
 

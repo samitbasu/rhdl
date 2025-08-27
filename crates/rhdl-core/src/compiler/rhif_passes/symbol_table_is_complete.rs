@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     compiler::mir::error::ICE,
     error::RHDLError,
     rhif::{Object, visit::visit_object_slots},

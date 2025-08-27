@@ -1,7 +1,8 @@
+use rhdl_typenum::prelude::*;
+
 use super::{
-    bits, dyn_bits::DynBits, signed, signed_dyn_bits::SignedDynBits, BitWidth, Bits, SignedBits,
+    BitWidth, Bits, SignedBits, bits, dyn_bits::DynBits, signed, signed_dyn_bits::SignedDynBits,
 };
-use crate::rhdl_typenum::prelude::*;
 use std::ops::Add;
 
 pub trait XAdd<Rhs = Self> {

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::rhdl_core::{
+use crate::{
     Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, Digital, HDLDescriptor, Kind, RHDLError,
     digital_fn::NoKernel2,
     hdl::ast::{Direction, Module, Statement, component_instance, connection, index},
@@ -26,7 +26,7 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
     type S = [T::S; N];
 
     fn init(&self) -> Self::S {
-        array_init::array_init(|i| self[i].init())
+        core::array::from_fn(|i| self[i].init())
     }
 
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {

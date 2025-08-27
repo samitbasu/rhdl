@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use petgraph::graph::NodeIndex;
 
-use crate::rhdl_core::{
+use crate::{
     common::symtab::RegisterId,
     ntl::{
         Object,

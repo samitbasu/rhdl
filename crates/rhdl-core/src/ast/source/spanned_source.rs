@@ -1,4 +1,4 @@
-use crate::rhdl_core::ast::ast_impl::{FunctionId, NodeId};
+use crate::ast::ast_impl::{FunctionId, NodeId};
 use std::hash::Hash;
 use std::{
     collections::{BTreeMap, HashMap},

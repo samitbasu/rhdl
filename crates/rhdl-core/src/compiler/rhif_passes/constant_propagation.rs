@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     RHDLError, TypedBits,
     ast::source::source_location::SourceLocation,
     rhif::{
@@ -504,8 +504,8 @@ impl Pass for ConstantPropagation {
         "RHIF constant propogation"
     }
     fn run(
-        mut input: crate::rhdl_core::rhif::Object,
-    ) -> Result<crate::rhdl_core::rhif::Object, crate::rhdl_core::RHDLError> {
+        mut input: crate::rhif::Object,
+    ) -> Result<crate::rhif::Object, crate::RHDLError> {
         let ops = std::mem::take(&mut input.ops);
         input.ops = ops
             .into_iter()

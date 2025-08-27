@@ -3,7 +3,7 @@
 // level walk_mut_ function.
 // This version allows you to mutate the ast as you traverse it.
 
-use crate::rhdl_core::{ast::ast_impl::*, error::RHDLError};
+use crate::{ast::ast_impl::*, error::RHDLError};
 
 type Result<T> = std::result::Result<T, RHDLError>;
 pub trait VisitorMut {

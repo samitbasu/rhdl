@@ -1,12 +1,10 @@
 use crate::{
-    prelude::{Kind, Path, bit_range},
-    rhdl_core::{
-        ntl::{
-            object::Object,
-            spec::{Assign, Binary, OpCode, Wire},
-        },
-        types::path::leaf_paths,
+    Kind,
+    ntl::{
+        object::Object,
+        spec::{Assign, Binary, OpCode, Wire},
     },
+    types::path::{Path, bit_range, leaf_paths},
 };
 
 fn vec_disp(f: &mut std::fmt::Formatter<'_>, data: &[Wire]) -> std::fmt::Result {

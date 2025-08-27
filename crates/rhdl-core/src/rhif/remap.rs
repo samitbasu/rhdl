@@ -1,4 +1,4 @@
-use crate::rhdl_core::rhif::{
+use crate::rhif::{
     spec::{OpCode, Slot},
     visit::visit_slots_mut,
 };

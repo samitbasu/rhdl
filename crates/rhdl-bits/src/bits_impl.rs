@@ -2,7 +2,7 @@
 use std::ops::{Add, Sub};
 
 use super::{BitWidth, dyn_bits::DynBits, signed, signed_bits_impl::SignedBits};
-use crate::rhdl_bits::bitwidth::*;
+use crate::bitwidth::*;
 use seq_macro::seq;
 /// The [Bits] type is a fixed-sized bit vector.  It is meant to
 /// imitate the behavior of bit vectors in hardware.  Due to the
@@ -84,14 +84,14 @@ seq!(N in 1..=128 {
 /// Helper function for creating a bits value from
 /// a constant.
 /// ```
-/// # use rhdl::bits::{consts::U8, Bits, bits};
+/// # use rhdl_bits::{consts::U8, Bits, bits};
 /// let value : Bits<U8> = bits(0b1010_1010);
 /// assert_eq!(value, 0b1010_1010);
 /// ```
 /// Because the function is `const`, you can use it a constant
 /// context:
 /// ```
-/// # use rhdl::bits::{consts::U8, Bits, bits};
+/// # use rhdl_bits::{consts::U8, Bits, bits};
 /// const VALUE : Bits<U8> = bits(0b1010_1010);
 /// ```
 pub const fn bits<N: BitWidth>(value: u128) -> Bits<N> {
@@ -122,7 +122,7 @@ impl<N: BitWidth> Bits<N> {
     };
     /// Return a [Bits] value with all bits set to 1.
     /// ```
-    /// # use rhdl::bits::{consts::U8, Bits};
+    /// # use rhdl_bits::{consts::U8, Bits};
     /// let bits = Bits::<U8>::mask();
     /// assert_eq!(bits, 0xFF);
     /// ```

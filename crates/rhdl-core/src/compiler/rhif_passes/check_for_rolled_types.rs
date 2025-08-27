@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     Kind,
     ast::source::source_location::SourceLocation,
     compiler::mir::error::{RHDLSyntaxError, Syntax},

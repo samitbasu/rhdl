@@ -1,9 +1,6 @@
 use crate::{
-    prelude::{BitX, Digital, Kind, Path},
-    rhdl_core::{
-        Color, TypedBits,
-        types::path::{PathElement, sub_kind},
-    },
+    BitX, Color, Digital, Kind, TypedBits,
+    types::path::{Path, PathElement, sub_kind},
 };
 
 // We want to take a series of time/bool values and turn it into an SVG thing.
@@ -922,7 +919,7 @@ fn tree_view(root: &str, labels: &[&str]) -> Box<[IndentedLabel]> {
 mod tests {
     use expect_test::expect_file;
 
-    use crate::prelude::{b4, b8};
+    use rhdl_bits::alias::*;
 
     use super::*;
 

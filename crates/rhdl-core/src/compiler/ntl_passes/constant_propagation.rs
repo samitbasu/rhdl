@@ -1,21 +1,19 @@
 use crate::{
-    prelude::{BitString, RHDLError},
-    rhdl_core::{
-        TypedBits,
-        ast::source::source_location::SourceLocation,
-        ntl::{
-            Object,
-            object::LocatedOpCode,
-            spec::{
-                Binary, BinaryOp, Case, CaseEntry, Not, OpCode, Unary, UnaryOp, Vector, VectorOp,
-                Wire, assign,
-            },
-        },
-        rtl::{
-            runtime_ops::{binary, unary},
-            spec::{AluBinary, AluUnary},
+    RHDLError, TypedBits,
+    ast::source::source_location::SourceLocation,
+    ntl::{
+        Object,
+        object::LocatedOpCode,
+        spec::{
+            Binary, BinaryOp, Case, CaseEntry, Not, OpCode, Unary, UnaryOp, Vector, VectorOp, Wire,
+            assign,
         },
     },
+    rtl::{
+        runtime_ops::{binary, unary},
+        spec::{AluBinary, AluUnary},
+    },
+    types::bit_string::BitString,
 };
 
 use super::pass::Pass;

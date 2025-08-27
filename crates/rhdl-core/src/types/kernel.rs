@@ -1,4 +1,4 @@
-use crate::rhdl_core::{
+use crate::{
     ast::ast_impl::{self, WrapOp},
     Color, TypedBits,
 };

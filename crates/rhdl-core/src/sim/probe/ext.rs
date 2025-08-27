@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::rhdl_core::{Clock, ClockReset, Digital, TimedSample};
+use crate::{Clock, ClockReset, Digital, TimedSample};
 
 use super::{
     edges::{edge_time, EdgeTime},

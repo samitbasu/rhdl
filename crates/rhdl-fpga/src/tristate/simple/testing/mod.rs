@@ -50,7 +50,7 @@ mod tests {
             .join("vcd")
             .join("tristate");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["0f867cb3b4bbb022c836ff8ec7a4722a537256e93c7253902d3fa67bd7fe16ab"];
+        let expect = expect!["59a2bf639acc8833b79e00e5168fbe4a451826448fbdea105d9aa395ab9976a9"];
         let digest = vcd.dump_to_file(root.join("basic.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
