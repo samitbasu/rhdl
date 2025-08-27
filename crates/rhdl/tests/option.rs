@@ -339,13 +339,6 @@ fn test_option_result_nested_option_result_destructure_simple() -> miette::Resul
         _UNUSED,
     }
 
-    #[derive(PartialEq, Default, Digital)]
-    pub enum ResponseCode {
-        #[default]
-        OKAY = 0,
-        _UNUSED,
-    }
-
     type Result = std::result::Result<(), AXI4Error>;
 
     #[kernel]

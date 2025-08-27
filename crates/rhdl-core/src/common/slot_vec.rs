@@ -195,52 +195,36 @@ impl<T, I: SlotKey> IndexMut<&I> for SlotVec<T, I> {
     }
 }
 
-#[macro_export]
-macro_rules! new_key_type {
-    ($name:ident,$abbrev:literal) => {
-        #[derive(Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
-        pub struct $name {
-            id: u64,
-            index: usize,
-        }
-
-        impl SlotKey for $name {
-            fn new(id: u64, index: usize) -> $name {
-                $name { id, index }
-            }
-            fn id(self) -> u64 {
-                self.id
-            }
-            fn index(self) -> usize {
-                self.index
-            }
-        }
-
-        impl std::fmt::Display for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}{}", $abbrev, self.index)
-            }
-        }
-
-        impl std::fmt::Debug for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}{}", $abbrev, self.index)
-            }
-        }
-    };
-}
-
-pub use new_key_type;
-
 use crate::RHDLError;
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
-    new_key_type!(Left, "l");
+    #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+    struct Left {
+        id: u64,
+        index: usize,
+    }
 
-    new_key_type!(Right, "r");
+    impl SlotKey for Left {
+        fn new(id: u64, index: usize) -> Self {
+            Self { id, index }
+        }
+        fn id(self) -> u64 {
+            self.id
+        }
+        fn index(self) -> usize {
+            self.index
+        }
+    }
+
+    impl std::fmt::Display for Left {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "l{}", self.index)
+        }
+    }
 
     #[test]
     fn test_simple_indexing() {
