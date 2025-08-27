@@ -1,4 +1,8 @@
+pub mod builder;
 pub mod formatter;
+
+// Re-export builder functions for convenient access
+pub use builder::*;
 
 use crate::formatter::{Formatter, Pretty};
 use quote::{ToTokens, format_ident, quote};
@@ -135,6 +139,10 @@ pub struct BitRange {
     pub end: u32,
 }
 
+pub fn bit_range(start: u32, end: u32) -> BitRange {
+    BitRange { start, end }
+}
+
 impl Parse for BitRange {
     fn parse(input: ParseStream) -> Result<Self> {
         let start = input.parse::<LitInt>()?;
@@ -167,6 +175,16 @@ pub struct WidthSpec {
     pub bit_range: BitRange,
 }
 
+pub fn width_spec(bit_range: BitRange) -> WidthSpec {
+    WidthSpec { bit_range }
+}
+
+impl From<BitRange> for WidthSpec {
+    fn from(bit_range: BitRange) -> Self {
+        WidthSpec { bit_range }
+    }
+}
+
 impl Parse for WidthSpec {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
@@ -195,6 +213,12 @@ impl ToTokens for WidthSpec {
 pub enum SignedWidth {
     Signed(WidthSpec),
     Unsigned(WidthSpec),
+}
+
+impl From<WidthSpec> for SignedWidth {
+    fn from(width_spec: WidthSpec) -> Self {
+        SignedWidth::Unsigned(width_spec)
+    }
 }
 
 impl Parse for SignedWidth {
@@ -943,6 +967,13 @@ impl ToTokens for Block {
 pub struct DynamicSplice {
     pub lhs: Box<ExprDynIndex>,
     pub rhs: Box<Expr>,
+}
+
+pub fn dynamic_splice(lhs: ExprDynIndex, rhs: Expr) -> DynamicSplice {
+    DynamicSplice {
+        lhs: Box::new(lhs),
+        rhs: Box::new(rhs),
+    }
 }
 
 impl Parse for DynamicSplice {
@@ -2445,6 +2476,18 @@ pub struct ModuleDef {
     pub items: Vec<Item>,
 }
 
+pub fn module_def(
+    name: &str,
+    args: impl IntoIterator<Item = Port>,
+    items: impl IntoIterator<Item = Item>,
+) -> ModuleDef {
+    ModuleDef {
+        name: name.to_string(),
+        args: args.into_iter().collect(),
+        items: items.into_iter().collect(),
+    }
+}
+
 impl Parse for ModuleDef {
     fn parse(input: ParseStream) -> Result<Self> {
         let _module = input.parse::<kw::module>()?;
@@ -2502,6 +2545,20 @@ pub struct FunctionDef {
     pub name: String,
     pub args: Vec<Port>,
     pub items: Vec<Item>,
+}
+
+pub fn function_def(
+    signed_width: SignedWidth,
+    name: &str,
+    args: impl IntoIterator<Item = Port>,
+    items: impl IntoIterator<Item = Item>,
+) -> FunctionDef {
+    FunctionDef {
+        signed_width,
+        name: name.to_string(),
+        args: args.into_iter().collect(),
+        items: items.into_iter().collect(),
+    }
 }
 
 impl Parse for FunctionDef {
