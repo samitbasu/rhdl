@@ -1,13 +1,9 @@
 use crate::{
-    RHDLError,
+    RHDLError, TypedBits,
     ast::source::source_location::SourceLocation,
     bitx::BitX,
     compiler::mir::error::{ICE, RHDLCompileError},
     error::rhdl_error,
-    hdl::ast::{
-        self, CaseItem, Function, HDLKind, assign, concatenate, constant, declaration, id, index,
-        index_bit, input_reg, literal, repeat, unary,
-    },
     rtl::{
         self,
         object::LocatedOpCode,
@@ -15,14 +11,29 @@ use crate::{
     },
     types::bit_string::BitString,
 };
-
+use quote::{format_ident, quote};
+use rhdl_vlog::{self as vlog, vlog_expr_quote, vlog_item_quote};
 use rtl::spec as tl;
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
 struct TranslationContext<'a> {
-    func: Function,
+    func: vlog::FunctionDef,
     rtl: &'a rtl::Object,
+}
+
+impl From<&TypedBits> for vlog::LitVerilog {
+    fn from(tb: &TypedBits) -> Self {
+        let bits = "'b"
+            .chars()
+            .chain(tb.bits.iter().map(|b| match b {
+                BitX::Zero => '0',
+                BitX::One => '1',
+                BitX::X => 'X',
+            }))
+            .collect::<String>();
+        vlog::lit_verilog(tb.bits.len() as u32, &bits)
+    }
 }
 
 impl TranslationContext<'_> {
@@ -32,6 +43,12 @@ impl TranslationContext<'_> {
             src: self.rtl.symbols.source(),
             err_span: self.rtl.symbols.span(id).into(),
         })
+    }
+    fn add_item(&mut self, item: vlog::Item) {
+        self.func.items.push(item);
+    }
+    fn op_ident(&self, op: Operand) -> syn::Ident {
+        format_ident!("{}", self.rtl.op_name(op))
     }
     /// Cast the argument ot the desired width, considering the result a signed value.
     /// The cast length must be less than or equal to the argument length, or an ICE is raised.
@@ -46,50 +63,44 @@ impl TranslationContext<'_> {
                 id,
             ));
         }
-        let lhs = self.rtl.op_name(cast.lhs);
-        let arg = self.rtl.op_name(cast.arg);
-        let cast = index(&arg, 0..cast.len);
-        let signed = unary(AluUnary::Signed, cast);
-        self.func.block.push(assign(&lhs, signed));
+        let lhs = self.op_ident(cast.lhs);
+        let arg = self.op_ident(cast.arg);
+        let msb = syn::Index::from(cast.len - 1);
+        self.add_item(vlog_item_quote! { #lhs[#msb:0] = $signed(#arg) });
         Ok(())
     }
     /// Cast the argument to the desired width, with no error and no sign extension
     fn translate_resize_unsigned(&mut self, cast: &tl::Cast) {
         let arg_kind = self.rtl.kind(cast.arg);
-        let lhs = self.rtl.op_name(cast.lhs);
-        let arg = self.rtl.op_name(cast.arg);
+        let lhs = self.op_ident(cast.lhs);
+        let arg = self.op_ident(cast.arg);
+        let msb = syn::Index::from(cast.len - 1);
         // Truncation case
         if cast.len <= arg_kind.bits() {
-            self.func.block.push(assign(&lhs, index(&arg, 0..cast.len)));
+            self.add_item(vlog_item_quote! { #lhs = #arg[#msb:0] });
         } else {
             // zero extend
-            let num_z = cast.len - arg_kind.bits();
-            let prefix = repeat(constant(BitX::Zero), num_z);
-            self.func
-                .block
-                .push(assign(&lhs, concatenate(vec![prefix, id(&arg)])));
+            let num_z = syn::Index::from(cast.len - arg_kind.bits());
+            let prefix = vlog_expr_quote!( { #num_z { 1'b0 } }  );
+            self.add_item(vlog_item_quote! { #lhs = { #prefix, #arg } });
         }
     }
     /// Cast the argument to the desired width, with sign extension if needed.
     fn translate_resize_signed(&mut self, cast: &tl::Cast) {
         let arg_kind = self.rtl.kind(cast.arg);
-        let lhs = self.rtl.op_name(cast.lhs);
-        let arg = self.rtl.op_name(cast.arg);
+        let lhs = self.op_ident(cast.lhs);
+        let arg = self.op_ident(cast.arg);
         // Truncation case
         if cast.len <= arg_kind.bits() {
-            self.func.block.push(assign(
-                &lhs,
-                unary(AluUnary::Signed, index(&arg, 0..cast.len)),
-            ));
+            // lhs = $signed(arg[cast.len:0])
+            let msb = syn::Index::from(cast.len - 1);
+            self.add_item(vlog_item_quote! { #lhs = $signed(#arg[#msb:0]) });
         } else {
             // sign extend
-            let num_s = cast.len - arg_kind.bits();
-            let sign_bit = index_bit(&arg, arg_kind.bits().saturating_sub(1));
-            let prefix = repeat(sign_bit, num_s);
-            self.func.block.push(assign(
-                &lhs,
-                unary(AluUnary::Signed, concatenate(vec![prefix, id(&arg)])),
-            ));
+            let num_s = syn::Index::from(cast.len - arg_kind.bits());
+            let sign_bit = syn::Index::from(arg_kind.bits().saturating_sub(1));
+            // #lhs = $signed({ {#num_s{arg[#sign_bit]}}, #arg })
+            self.add_item(vlog_item_quote! { #lhs = $signed({ {#num_s{#arg[#sign_bit]}}, #arg }) });
         }
     }
     fn translate_resize(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
@@ -121,96 +132,105 @@ impl TranslationContext<'_> {
         }
     }
     fn translate_assign(&mut self, assign: &tl::Assign) -> Result<()> {
-        self.func.block.push(ast::assign(
-            &self.rtl.op_name(assign.lhs),
-            id(&self.rtl.op_name(assign.rhs)),
-        ));
+        // #lhs = #rhs
+        let lhs = self.op_ident(assign.lhs);
+        let rhs = self.op_ident(assign.rhs);
+        self.add_item(vlog_item_quote! { #lhs = #rhs });
         Ok(())
     }
     fn translate_binary(&mut self, binary: &tl::Binary) -> Result<()> {
-        self.func.block.push(ast::assign(
-            &self.rtl.op_name(binary.lhs),
-            ast::binary(
-                binary.op,
-                id(&self.rtl.op_name(binary.arg1)),
-                id(&self.rtl.op_name(binary.arg2)),
-            ),
-        ));
+        let lhs = self.op_ident(binary.lhs);
+        let arg1 = self.op_ident(binary.arg1);
+        let arg2 = self.op_ident(binary.arg2);
+        let op = match binary.op {
+            tl::AluBinary::Add => vlog::kw_ops::BinaryOp::Plus,
+            tl::AluBinary::Sub => vlog::kw_ops::BinaryOp::Minus,
+            tl::AluBinary::Mul => vlog::kw_ops::BinaryOp::Mul,
+            tl::AluBinary::BitXor => vlog::kw_ops::BinaryOp::Xor,
+            tl::AluBinary::BitAnd => vlog::kw_ops::BinaryOp::And,
+            tl::AluBinary::BitOr => vlog::kw_ops::BinaryOp::Or,
+            tl::AluBinary::Shl => vlog::kw_ops::BinaryOp::Shl,
+            tl::AluBinary::Shr => vlog::kw_ops::BinaryOp::SignedRightShift,
+            tl::AluBinary::Eq => vlog::kw_ops::BinaryOp::Eq,
+            tl::AluBinary::Lt => vlog::kw_ops::BinaryOp::Lt,
+            tl::AluBinary::Le => vlog::kw_ops::BinaryOp::Le,
+            tl::AluBinary::Ne => vlog::kw_ops::BinaryOp::Ne,
+            tl::AluBinary::Ge => vlog::kw_ops::BinaryOp::Ge,
+            tl::AluBinary::Gt => vlog::kw_ops::BinaryOp::Gt,
+        };
+        self.add_item(vlog_item_quote! { #lhs = #arg1 #op #arg2 });
         Ok(())
     }
     fn translate_case(&mut self, case: &tl::Case) -> Result<()> {
-        let discriminant = id(&self.rtl.op_name(case.discriminant));
-        let lhs = self.rtl.op_name(case.lhs);
-        let table = case
-            .table
-            .iter()
-            .map(|(arg, value)| {
-                let item = match arg {
-                    CaseArgument::Literal(lit) => {
-                        let lit = (&self.rtl.symtab[lit]).into();
-                        CaseItem::Literal(lit)
-                    }
-                    CaseArgument::Wild => CaseItem::Wild,
-                };
-                let assign = assign(&lhs, id(&self.rtl.op_name(*value)));
-                (item, assign)
-            })
-            .collect();
-        self.func.block.push(ast::case(discriminant, table));
+        let discriminant = self.op_ident(case.discriminant);
+        let lhs = self.op_ident(case.lhs);
+        let table = case.table.iter().map(|(arg, value)| {
+            let value = self.op_ident(*value);
+            match arg {
+                CaseArgument::Literal(lit) => {
+                    let lit = self.rtl.symtab[lit].into();
+                    quote! { #lit : #lhs = #value }
+                }
+                CaseArgument::Wild => quote! { default : #lhs = #value },
+            }
+        });
+        self.add_item(vlog_item_quote! {
+            case (#discriminant)
+                #(#table;)*
+            endcase
+        });
         Ok(())
     }
     fn translate_concat(&mut self, concat: &tl::Concat) -> Result<()> {
-        let args = concat
-            .args
-            .iter()
-            .rev()
-            .map(|arg| id(&self.rtl.op_name(*arg)))
-            .collect::<Vec<_>>();
-        let lhs = self.rtl.op_name(concat.lhs);
-        self.func.block.push(assign(&lhs, concatenate(args)));
+        let args = concat.args.iter().rev().map(|arg| self.op_ident(*arg));
+        let lhs = self.op_ident(concat.lhs);
+        self.add_item(vlog_item_quote! { #lhs = { #(#args),* } });
         Ok(())
     }
     fn translate_index(&mut self, index: &tl::Index) -> Result<()> {
-        let lhs = self.rtl.op_name(index.lhs);
-        let arg = self.rtl.op_name(index.arg);
-        self.func
-            .block
-            .push(assign(&lhs, ast::index(&arg, index.bit_range.clone())));
+        let lhs = self.op_ident(index.lhs);
+        let arg = self.op_ident(index.arg);
+        let range: vlog::BitRange = (&index.bit_range).into();
+        self.add_item(vlog_item_quote! { #lhs = #arg[#range] });
         Ok(())
     }
     fn translate_select(&mut self, select: &tl::Select) -> Result<()> {
-        let lhs = self.rtl.op_name(select.lhs);
-        let cond = self.rtl.op_name(select.cond);
-        let true_value = self.rtl.op_name(select.true_value);
-        let false_value = self.rtl.op_name(select.false_value);
-        self.func.block.push(assign(
-            &lhs,
-            ast::select(id(&cond), id(&true_value), id(&false_value)),
-        ));
+        let lhs = self.op_ident(select.lhs);
+        let cond = self.op_ident(select.cond);
+        let true_value = self.op_ident(select.true_value);
+        let false_value = self.op_ident(select.false_value);
+        self.add_item(vlog_item_quote! {
+            #lhs = #cond ? #true_value : #false_value
+        });
         Ok(())
     }
     fn translate_splice(&mut self, splice: &tl::Splice) -> Result<()> {
-        let lhs = self.rtl.op_name(splice.lhs);
-        let orig = self.rtl.op_name(splice.orig);
-        let value = self.rtl.op_name(splice.value);
-        self.func.block.push(ast::splice(
-            &lhs,
-            id(&orig),
-            splice.bit_range.clone(),
-            id(&value),
-        ));
+        let lhs = self.op_ident(splice.lhs);
+        let orig = self.op_ident(splice.orig);
+        let value = self.op_ident(splice.value);
+        let range: vlog::BitRange = (&splice.bit_range).into();
+        self.add_item(vlog_item_quote! { #lhs = #orig });
+        self.add_item(vlog_item_quote! { #lhs[#range] = #value });
         Ok(())
     }
     fn translate_unary(&mut self, unary: &tl::Unary) -> Result<()> {
-        let lhs = self.rtl.op_name(unary.lhs);
-        let arg1 = self.rtl.op_name(unary.arg1);
-        self.func
-            .block
-            .push(assign(&lhs, ast::unary(unary.op, id(&arg1))));
+        let lhs = self.op_ident(unary.lhs);
+        let arg1 = self.op_ident(unary.arg1);
+        self.add_item(match unary.op {
+            AluUnary::Neg => vlog_item_quote! {#lhs = -#arg1},
+            AluUnary::Not => vlog_item_quote! {#lhs = ~#arg1},
+            AluUnary::All => vlog_item_quote! {#lhs = &#arg1},
+            AluUnary::Any => vlog_item_quote! {#lhs = |#arg1|},
+            AluUnary::Xor => vlog_item_quote! {#lhs = ^#arg1},
+            AluUnary::Signed => vlog_item_quote! {#lhs = $signed(#arg1)},
+            AluUnary::Unsigned => vlog_item_quote! {#lhs = $unsigned(#arg1)},
+            AluUnary::Val => vlog_item_quote! {#lhs = #arg1},
+        });
         Ok(())
     }
     fn translate_comment(&mut self, comment: &str) -> Result<()> {
-        self.func.block.push(ast::comment(comment));
+        // TODO - FIXME
+        //self.func.block.push(ast::comment(comment));
         Ok(())
     }
     fn translate_op(&mut self, lop: &LocatedOpCode) -> Result<()> {
@@ -250,7 +270,7 @@ impl TranslationContext<'_> {
                 let alias = self.rtl.op_alias(Operand::Register(rid));
                 declaration(
                     HDLKind::Reg,
-                    &self.rtl.op_name(Operand::Register(rid)),
+                    &self.op_ident(Operand::Register(rid)),
                     kind.into(),
                     alias,
                 )
@@ -263,14 +283,14 @@ impl TranslationContext<'_> {
             .iter_lit()
             .map(|(lit, (tb, _))| {
                 let bs: BitString = tb.into();
-                literal(&self.rtl.op_name(Operand::Literal(lit)), &bs)
+                literal(&self.op_ident(Operand::Literal(lit)), &bs)
             })
             .collect::<Vec<_>>();
         self.func.literals = literals;
         // Bind the argument registers
         for (ndx, reg) in self.rtl.arguments.iter().enumerate() {
             if let Some(reg) = reg {
-                let reg_name = self.rtl.op_name(Operand::Register(*reg));
+                let reg_name = self.op_ident(Operand::Register(*reg));
                 let arg_name = format!("arg_{ndx}");
                 self.func.block.push(assign(&reg_name, id(&arg_name)));
             }
@@ -278,7 +298,7 @@ impl TranslationContext<'_> {
         self.translate_block(&self.rtl.ops)?;
         self.func.block.push(assign(
             &self.func.name,
-            id(&self.rtl.op_name(self.rtl.return_register)),
+            id(&self.op_ident(self.rtl.return_register)),
         ));
         Ok(self.func)
     }

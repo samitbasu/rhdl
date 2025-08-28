@@ -104,6 +104,15 @@ pub struct BitRange {
     pub end: u32,
 }
 
+impl From<&std::ops::Range<usize>> for BitRange {
+    fn from(r: &std::ops::Range<usize>) -> Self {
+        BitRange {
+            start: r.start as u32,
+            end: r.end as u32,
+        }
+    }
+}
+
 impl Parse for BitRange {
     fn parse(input: ParseStream) -> Result<Self> {
         let start = input.parse::<LitInt>()?;

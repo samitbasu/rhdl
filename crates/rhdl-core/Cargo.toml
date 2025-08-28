@@ -14,7 +14,7 @@ miette = "7.6.0"
 num-bigint = "0.4.6"
 petgraph = "0.8.2"
 proc-macro2 = "1.0.101"
-quote = "1.0.40"
+quote = { version = "1.0.40", default-features = false }
 rand = "0.9.2"
 regex = "1.11.2"
 rhdl-bits = { version = "0.1.0", path = "../rhdl-bits" }
