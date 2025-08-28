@@ -227,6 +227,17 @@ pub fn index_expr(target: &str, msb: Expr, lsb: Option<Box<Expr>>) -> Expr {
     })
 }
 
+/// Create an index expression from a range (non-inclusive)
+pub fn index_range(target: &str, range: std::ops::Range<usize>) -> Expr {
+    Expr::Index(ExprIndex {
+        target: target.to_string(),
+        address: ExprIndexAddress {
+            msb: Box::new(Expr::Literal((range.end - 1) as i32)),
+            lsb: Some(Box::new(Expr::Literal(range.start as i32))),
+        },
+    })
+}
+
 /// Creates a ternary expression (condition ? true_expr : false_expr)
 pub fn ternary(condition: Expr, true_expr: Expr, false_expr: Expr) -> Expr {
     Expr::Ternary(ExprTernary {
@@ -291,6 +302,10 @@ pub fn case_line(item: CaseItem, stmt: Stmt) -> CaseLine {
 // =============================================================================
 // Statement constructor functions
 // =============================================================================
+
+pub fn target_name(name: &str) -> AssignTarget {
+    AssignTarget::Ident(name.to_string())
+}
 
 /// Creates an assign statement
 pub fn assign_stmt(target: AssignTarget, rhs: Expr) -> StmtKind {
