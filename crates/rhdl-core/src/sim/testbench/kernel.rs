@@ -1,4 +1,5 @@
 use log::debug;
+use rhdl_vlog::Pretty;
 use std::iter::once;
 
 use crate::{
@@ -7,18 +8,13 @@ use crate::{
         driver::{compile_design_stage1, compile_design_stage2},
         optimize_ntl,
     },
-    hdl::{
-        ast::{
-            Declaration, Function, HDLKind, Module, Statement, assert, assign, bit_string,
-            component_instance, connection, continuous_assignment, declaration, delay, display,
-            finish, function_call, id, initial, unsigned_width,
-        },
-        builder::generate_verilog,
-    },
+    hdl::builder::generate_verilog,
     ntl::{from_rtl::build_ntl_from_rtl, hdl::generate_hdl},
     sim::test_module::TestModule,
     types::bit_string::BitString,
 };
+
+use rhdl_vlog as vlog;
 
 pub trait TestArg {
     fn vec_tb(&self) -> Vec<TypedBits>;
@@ -288,7 +284,11 @@ where
     }
 }
 
-fn test_module<F, Args, T0>(uut: &F, desc: Function, vals: impl Iterator<Item = Args>) -> TestModule
+fn test_module<F, Args, T0>(
+    uut: &F,
+    desc: vlog::FunctionDef,
+    vals: impl Iterator<Item = Args>,
+) -> TestModule
 where
     F: Testable<Args, T0>,
     T0: Digital,
@@ -412,9 +412,9 @@ where
         }
     }
     debug!("Generating Verilog to run external checks");
-    let hdl = generate_verilog(&rtl)?;
-    debug!("{}", hdl.as_verilog());
-    let tm = test_module(&uut, hdl, vals.clone());
+    let vlog = generate_verilog(&rtl)?;
+    debug!("{}", vlog.pretty());
+    let tm = test_module(&uut, vlog, vals.clone());
     tm.run_iverilog()?;
     debug!("Generating netlist from rtl");
     let ntl = build_ntl_from_rtl(&rtl);

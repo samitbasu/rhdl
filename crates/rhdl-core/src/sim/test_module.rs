@@ -1,9 +1,10 @@
-use crate::{RHDLError, hdl::ast::Module};
+use crate::RHDLError;
+use rhdl_vlog as vlog;
 
-pub struct TestModule(Module);
+pub struct TestModule(vlog::ModuleList);
 
-impl From<Module> for TestModule {
-    fn from(m: Module) -> Self {
+impl From<vlog::ModuleList> for TestModule {
+    fn from(m: vlog::ModuleList) -> Self {
         Self(m)
     }
 }
@@ -16,7 +17,6 @@ impl std::fmt::Display for TestModule {
 
 impl TestModule {
     pub fn run_iverilog(&self) -> Result<(), RHDLError> {
-        use rand::random;
         let d = tempfile::tempdir()?;
         // Write the test bench to a file
         let d_path = d.path();

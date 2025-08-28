@@ -291,25 +291,5 @@ impl ToTokens for FunctionDef {
     }
 }
 
-#[macro_export]
-macro_rules! vlog_item_quote {
-    ($($item:tt)*) => {
-        {
-            let val : rhdl_vlog::Item = syn::parse_quote! { $($item)* };
-            val
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! vlog_expr_quote {
-    ($($item:tt)*) => {
-        {
-            let val : rhdl_vlog::Expr = syn::parse_quote! { $($item)* };
-            val
-        }
-    };
-}
-
 #[cfg(test)]
 mod tests;
