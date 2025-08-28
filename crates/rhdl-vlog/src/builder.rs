@@ -8,9 +8,29 @@
 //! - Collection parameters use `impl IntoIterator<Item=T>` for flexibility
 //! - `impl From` traits provide idiomatic conversions for common cases
 
-use crate::*;
+use crate::{
+    atoms::{NegEdgeSensitivity, PosEdgeSensitivity, Sensitivity, SensitivityList},
+    expr::{
+        ExprBinary, ExprDynIndexInner, ExprFunction, ExprIndexAddress, ExprReplica,
+        ExprReplicaInner, ExprTernary, ExprUnary,
+    },
+    stmt::{
+        Always, Assign, AssignTarget, Block, Case, CaseItem, CaseLine, ConcatAssign, Connection,
+        ConstExpr, ContinuousAssign, Delay, DynamicSplice, ElseBranch, FunctionCall, If, Instance,
+        LocalParam, NonblockAssign, StmtKind,
+    },
+    *,
+};
 
 // Atom constructors
+
+pub fn bit_range(start: u32, end: u32) -> BitRange {
+    BitRange { start, end }
+}
+
+pub fn width_spec(bit_range: BitRange) -> WidthSpec {
+    WidthSpec { bit_range }
+}
 
 pub fn signed_width_spec(width_spec: WidthSpec) -> SignedWidth {
     SignedWidth::Signed(width_spec)
@@ -86,6 +106,18 @@ impl From<Stmt> for ElseBranch {
         ElseBranch {
             stmt: Box::new(stmt),
         }
+    }
+}
+
+impl From<BitRange> for WidthSpec {
+    fn from(bit_range: BitRange) -> Self {
+        WidthSpec { bit_range }
+    }
+}
+
+impl From<WidthSpec> for SignedWidth {
+    fn from(width_spec: WidthSpec) -> Self {
+        SignedWidth::Unsigned(width_spec)
     }
 }
 
