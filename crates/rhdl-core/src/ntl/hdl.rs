@@ -1,13 +1,11 @@
 use std::collections::BTreeSet;
 use std::collections::HashSet;
 
+use crate::BitX;
 use crate::RHDLError;
 use crate::ast::source::source_location::SourceLocation;
 use crate::error::rhdl_error;
 use crate::hdl;
-use crate::hdl::ast;
-use crate::hdl::ast::CaseItem;
-use crate::hdl::ast::Module;
 use crate::ntl::Object;
 use crate::ntl::error::NetListError;
 use crate::ntl::error::NetListICE;
@@ -19,16 +17,56 @@ use crate::ntl::spec::OpCode;
 use crate::ntl::spec::VectorOp;
 use crate::ntl::spec::Wire;
 use crate::ntl::visit::visit_wires;
-use crate::rtl::spec::AluBinary;
-use crate::rtl::spec::AluUnary;
+use crate::types::bit_string::BitString;
+
+use proc_macro2::TokenStream;
+use quote::format_ident;
+use quote::quote;
+use rhdl_vlog as vlog;
+use rhdl_vlog::BitRange;
+use syn::parse_quote;
 
 struct NetListHDLBuilder<'a> {
     ntl: &'a Object,
-    instances: Vec<ast::Statement>,
-    body: Vec<ast::Statement>,
-    decls: Vec<ast::Declaration>,
+    body: Vec<vlog::Stmt>,
+    instances: Vec<vlog::stmt::Instance>,
     name: String,
     temporary_counter: usize,
+}
+
+impl From<BitX> for vlog::LitVerilog {
+    fn from(bit: BitX) -> Self {
+        match bit {
+            BitX::Zero => vlog::lit_verilog(1, "'b0"),
+            BitX::One => vlog::lit_verilog(1, "'b1"),
+            BitX::X => vlog::lit_verilog(1, "'bX"),
+        }
+    }
+}
+
+impl From<&BitString> for vlog::LitVerilog {
+    fn from(bit: &BitString) -> Self {
+        vlog::lit_verilog(
+            bit.len() as u32,
+            &std::iter::once('\'')
+                .chain(std::iter::once('b'))
+                .chain(bit.bits().iter().map(|b| match b {
+                    BitX::Zero => '0',
+                    BitX::One => '1',
+                    BitX::X => 'X',
+                }))
+                .collect::<String>(),
+        )
+    }
+}
+
+fn unsigned_width(width: usize) -> vlog::SignedWidth {
+    vlog::SignedWidth::Unsigned(vlog::WidthSpec {
+        bit_range: BitRange {
+            start: 0,
+            end: width as u32 - 1,
+        },
+    })
 }
 
 impl<'a> NetListHDLBuilder<'a> {
@@ -36,28 +74,29 @@ impl<'a> NetListHDLBuilder<'a> {
         Self {
             ntl,
             body: vec![],
-            decls: vec![],
             instances: vec![],
             name: name.into(),
             temporary_counter: 0,
         }
     }
-    fn opex(&self, operand: Wire) -> ast::Expression {
-        use ast::id;
+    fn opex(&self, operand: Wire) -> vlog::Expr {
         match operand {
-            Wire::Literal(lid) => id(&format!("1'b{}", self.ntl.symtab[lid])),
-            Wire::Register(rid) => id(&rid.to_string()),
+            Wire::Literal(lid) => {
+                let val = self.ntl.symtab[lid];
+                vlog::Expr::Constant(val.into())
+            }
+            Wire::Register(rid) => vlog::Expr::Ident(rid.to_string()),
         }
     }
-    fn opex_v(&self, operands: &[Wire]) -> ast::Expression {
-        ast::concatenate(
-            operands
+    fn opex_v(&self, operands: &[Wire]) -> vlog::Expr {
+        vlog::Expr::Concat(vlog::ExprConcat {
+            elements: operands
                 .iter()
                 .rev()
                 .copied()
                 .map(|x| self.opex(x))
                 .collect(),
-        )
+        })
     }
     fn raise_ice(&self, cause: NetListICE, location: Option<SourceLocation>) -> RHDLError {
         rhdl_error(NetListError {
@@ -69,9 +108,16 @@ impl<'a> NetListHDLBuilder<'a> {
                 .collect(),
         })
     }
-    fn reg(&self, operand: Wire, location: Option<SourceLocation>) -> Result<String, RHDLError> {
+    fn reg(
+        &self,
+        operand: Wire,
+        location: Option<SourceLocation>,
+    ) -> Result<syn::Ident, RHDLError> {
         if let Some(rid) = operand.reg() {
-            Ok(rid.to_string())
+            Ok(syn::Ident::new(
+                &rid.to_string(),
+                proc_macro2::Span::call_site(),
+            ))
         } else {
             Err(self.raise_ice(NetListICE::ExpectedRegisterNotConstant, location))
         }
@@ -80,16 +126,16 @@ impl<'a> NetListHDLBuilder<'a> {
         &self,
         operands: &[Wire],
         location: Option<SourceLocation>,
-    ) -> Result<String, RHDLError> {
+    ) -> Result<TokenStream, RHDLError> {
         let args = operands
             .iter()
             .rev() // <--- Super important!  Concat operator is MSB -> LSB
             .map(|&op| self.reg(op, location))
-            .collect::<Result<Vec<String>, RHDLError>>()?;
-        Ok(format!("{{ {} }}", args.join(",")))
+            .collect::<Result<Vec<syn::Ident>, RHDLError>>()?;
+        Ok(quote! { { #(#args),* } })
     }
-    fn push_body(&mut self, statement: ast::Statement) {
-        self.body.push(statement);
+    fn add_stmt(&mut self, stmt: vlog::Stmt) {
+        self.body.push(stmt);
     }
     fn select_op(
         &mut self,
@@ -97,13 +143,11 @@ impl<'a> NetListHDLBuilder<'a> {
         location: Option<SourceLocation>,
     ) -> Result<(), RHDLError> {
         let target = self.reg(op.lhs, location)?;
-        self.push_body(ast::assign(
-            &target,
-            ast::select(
-                self.opex(op.selector),
-                self.opex(op.true_case),
-                self.opex(op.false_case),
-            ),
+        let selector = self.opex(op.selector);
+        let true_case = self.opex(op.true_case);
+        let false_case = self.opex(op.false_case);
+        self.add_stmt(parse_quote!(
+            #target = #selector ? #true_case : #false_case
         ));
         Ok(())
     }
@@ -113,7 +157,10 @@ impl<'a> NetListHDLBuilder<'a> {
         location: Option<SourceLocation>,
     ) -> Result<(), RHDLError> {
         let target = self.reg(op.lhs, location)?;
-        self.push_body(ast::assign(&target, self.opex(op.rhs)));
+        let rhs = self.opex(op.rhs);
+        self.add_stmt(parse_quote!(
+            #target = #rhs
+        ));
         Ok(())
     }
     fn binary_op(
@@ -123,12 +170,15 @@ impl<'a> NetListHDLBuilder<'a> {
     ) -> Result<(), RHDLError> {
         let target = self.reg(op.lhs, location)?;
         let alu = match op.op {
-            spec::BinaryOp::Xor => AluBinary::BitXor,
-            spec::BinaryOp::And => AluBinary::BitAnd,
-            spec::BinaryOp::Or => AluBinary::BitOr,
+            spec::BinaryOp::Xor => vlog::BinaryOp::Xor,
+            spec::BinaryOp::And => vlog::BinaryOp::And,
+            spec::BinaryOp::Or => vlog::BinaryOp::Or,
         };
-        let expr = ast::binary(alu, self.opex(op.arg1), self.opex(op.arg2));
-        self.push_body(ast::assign(&target, expr));
+        let arg1 = self.opex(op.arg1);
+        let arg2 = self.opex(op.arg2);
+        self.add_stmt(parse_quote!(
+            #target = #arg1 #alu #arg2
+        ));
         Ok(())
     }
     fn vector_op(
@@ -138,31 +188,31 @@ impl<'a> NetListHDLBuilder<'a> {
     ) -> Result<(), RHDLError> {
         let target = self.reg_v(&op.lhs, location)?;
         let alu = match op.op {
-            VectorOp::Add => AluBinary::Add,
-            VectorOp::Sub => AluBinary::Sub,
-            VectorOp::Mul => AluBinary::Mul,
-            VectorOp::Eq => AluBinary::Eq,
-            VectorOp::Ne => AluBinary::Ne,
-            VectorOp::Lt => AluBinary::Lt,
-            VectorOp::Le => AluBinary::Le,
-            VectorOp::Gt => AluBinary::Gt,
-            VectorOp::Ge => AluBinary::Ge,
-            VectorOp::Shl => AluBinary::Shl,
-            VectorOp::Shr => AluBinary::Shr,
+            VectorOp::Add => vlog::BinaryOp::Plus,
+            VectorOp::Sub => vlog::BinaryOp::Minus,
+            VectorOp::Mul => vlog::BinaryOp::Mul,
+            VectorOp::Eq => vlog::BinaryOp::Eq,
+            VectorOp::Ne => vlog::BinaryOp::Ne,
+            VectorOp::Lt => vlog::BinaryOp::Lt,
+            VectorOp::Le => vlog::BinaryOp::Le,
+            VectorOp::Gt => vlog::BinaryOp::Gt,
+            VectorOp::Ge => vlog::BinaryOp::Ge,
+            VectorOp::Shl => vlog::BinaryOp::Shl,
+            VectorOp::Shr => vlog::BinaryOp::SignedRightShift,
         };
         let arg1 = self.opex_v(&op.arg1);
         let arg2 = self.opex_v(&op.arg2);
         let arg1 = if op.signed {
-            ast::unary(crate::rtl::spec::AluUnary::Signed, arg1)
+            parse_quote! { $signed(#arg1) }
         } else {
             arg1
         };
         let arg2 = if op.signed {
-            ast::unary(crate::rtl::spec::AluUnary::Signed, arg2)
+            parse_quote! { $signed(#arg2) }
         } else {
             arg2
         };
-        self.push_body(ast::assign(&target, ast::binary(alu, arg1, arg2)));
+        self.add_stmt(parse_quote! { #target = #arg1 #alu #arg2 });
         Ok(())
     }
     fn not_op(
@@ -171,10 +221,10 @@ impl<'a> NetListHDLBuilder<'a> {
         location: Option<SourceLocation>,
     ) -> Result<(), RHDLError> {
         let target = self.reg(op.lhs, location)?;
-        self.push_body(ast::assign(
-            &target,
-            ast::unary(crate::rtl::spec::AluUnary::Not, self.opex(op.arg)),
-        ));
+        let arg = self.opex(op.arg);
+        self.add_stmt(parse_quote! {
+            #target = ~(#arg)
+        });
         Ok(())
     }
     fn case_op(
@@ -182,21 +232,23 @@ impl<'a> NetListHDLBuilder<'a> {
         op: &spec::Case,
         location: Option<SourceLocation>,
     ) -> Result<(), RHDLError> {
-        let target = self.reg(op.lhs, location)?;
         let discriminant = self.opex_v(&op.discriminant);
-        let table = op
-            .entries
-            .iter()
-            .map(|(entry, operand)| {
-                let item = match entry {
-                    CaseEntry::Literal(value) => CaseItem::Literal(value.clone()),
-                    CaseEntry::WildCard => CaseItem::Wild,
-                };
-                let statement = ast::assign(&target, self.opex(*operand));
-                (item, statement)
-            })
-            .collect();
-        self.push_body(ast::case(discriminant, table));
+        let lhs = self.reg(op.lhs, location)?;
+        let table = op.entries.iter().map(|(entry, operand)| {
+            let value = self.opex(*operand);
+            match entry {
+                CaseEntry::Literal(lit) => {
+                    let lit: vlog::LitVerilog = lit.into();
+                    quote! { #lit : #lhs = #value }
+                }
+                CaseEntry::WildCard => quote! { default : #lhs = #value },
+            }
+        });
+        self.add_stmt(parse_quote! {
+            case (#discriminant)
+                #(#table;)*
+            endcase
+        });
         Ok(())
     }
     fn unary_op(
@@ -207,37 +259,39 @@ impl<'a> NetListHDLBuilder<'a> {
         let target = self.reg_v(&op.lhs, location)?;
         let arg = self.opex_v(&op.arg);
         let alu = match op.op {
-            spec::UnaryOp::All => AluUnary::All,
-            spec::UnaryOp::Any => AluUnary::Any,
-            spec::UnaryOp::Neg => AluUnary::Neg,
-            spec::UnaryOp::Xor => AluUnary::Xor,
+            spec::UnaryOp::All => vlog::UnaryOp::And,
+            spec::UnaryOp::Any => vlog::UnaryOp::Or,
+            spec::UnaryOp::Neg => vlog::UnaryOp::Minus,
+            spec::UnaryOp::Xor => vlog::UnaryOp::Xor,
         };
-        self.push_body(ast::assign(&target, ast::unary(alu, arg)));
+        self.add_stmt(parse_quote!(#target = #alu #arg));
         Ok(())
     }
     fn black_box_op(&mut self, black_box: &BlackBox) -> Result<(), RHDLError> {
         let bb_core = &self.ntl.black_boxes[black_box.code.raw()];
         let out = self.opex_v(&black_box.lhs);
-        let mut connections = vec![hdl::ast::connection("o", out)];
+        let mut connections: Vec<vlog::stmt::Connection> = vec![parse_quote! { .o(#out) }];
         match bb_core.mode {
             BlackBoxMode::Asynchronous => {
                 let i = self.opex_v(&black_box.arg[0]);
-                connections.push(hdl::ast::connection("i", i));
+                connections.push(parse_quote! { .i(#i) });
             }
             BlackBoxMode::Synchronous => {
                 let cr = self.opex_v(&black_box.arg[0]);
                 let i = self.opex_v(&black_box.arg[1]);
-                connections.push(hdl::ast::connection("clock_reset", cr));
-                connections.push(hdl::ast::connection("i", i));
+                connections.push(parse_quote! { .clock_reset(#cr) });
+                connections.push(parse_quote! { .i(#i) });
             }
         }
         let core_id = self.temporary_counter;
         self.temporary_counter += 1;
-        self.instances.push(hdl::ast::component_instance(
-            &bb_core.code.name,
-            &format!("bb_{core_id}"),
-            connections,
-        ));
+        let core_name = format_ident!("{}", bb_core.code.name);
+        let instance_name = format_ident!("bb_{}", core_id);
+        self.instances.push(parse_quote! {
+            #core_name #instance_name (
+                #(#connections)*
+            )
+        });
         Ok(())
     }
     fn op_code(
@@ -252,7 +306,8 @@ impl<'a> NetListHDLBuilder<'a> {
             spec::OpCode::Vector(vector) => self.vector_op(vector, location),
             spec::OpCode::Case(case) => self.case_op(case, location),
             spec::OpCode::Comment(comment) => {
-                self.push_body(ast::comment(comment));
+                // TODO - FIXME
+                // self.add_item(ast::comment(comment));
                 Ok(())
             }
             spec::OpCode::Select(select) => self.select_op(select, location),
@@ -261,7 +316,8 @@ impl<'a> NetListHDLBuilder<'a> {
             spec::OpCode::Unary(unary) => self.unary_op(unary, location),
         }
     }
-    fn build(mut self) -> Result<Module, RHDLError> {
+    fn build(mut self) -> Result<vlog::ModuleList, RHDLError> {
+        // Declare the input ports
         let ports = self
             .ntl
             .inputs
@@ -269,21 +325,17 @@ impl<'a> NetListHDLBuilder<'a> {
             .enumerate()
             .flat_map(|(ndx, x)| {
                 (!x.is_empty()).then(|| {
-                    ast::port(
-                        &format!("arg_{ndx}"),
-                        ast::Direction::Input,
-                        ast::HDLKind::Wire,
-                        ast::unsigned_width(x.len()),
-                    )
+                    let name = format_ident!("arg_{ndx}");
+                    let width = unsigned_width(x.len());
+                    parse_quote! { input wire #width #name }
                 })
             })
-            .chain(std::iter::once(ast::port(
-                "out",
-                ast::Direction::Output,
-                ast::HDLKind::Reg,
-                ast::unsigned_width(self.ntl.outputs.len()),
-            )))
-            .collect();
+            .chain(std::iter::once({
+                let name = format_ident!("out");
+                let width = unsigned_width(self.ntl.outputs.len());
+                parse_quote! { output reg #width #name }
+            }))
+            .collect::<Vec<vlog::Port>>();
         let mut registers = BTreeSet::default();
         for lop in &self.ntl.ops {
             visit_wires(&lop.op, |_sense, op| {
@@ -303,50 +355,36 @@ impl<'a> NetListHDLBuilder<'a> {
         let mut declarations = registers
             .difference(&wires)
             .map(|ndx| {
-                ast::declaration(
-                    ast::HDLKind::Reg,
-                    &ndx.to_string(),
-                    ast::unsigned_width(1),
-                    None,
-                )
+                let name = format_ident!("{}", ndx.to_string());
+                parse_quote! {reg #name}
             })
             .chain(wires.iter().map(|ndx| {
-                ast::declaration(
-                    ast::HDLKind::Wire,
-                    &ndx.to_string(),
-                    ast::unsigned_width(1),
-                    None,
-                )
+                let name = format_ident!("{}", ndx.to_string());
+                parse_quote! {wire #name}
             }))
-            .collect::<Vec<_>>();
+            .collect::<Vec<vlog::Declaration>>();
         // Connect the input registers to their module input names
         for (ndx, arg) in self.ntl.inputs.iter().enumerate() {
             for (bit, &reg) in arg.iter().enumerate() {
-                self.push_body(ast::assign(
-                    &self.reg(Wire::Register(reg), None)?,
-                    ast::index_bit(&format!("arg_{ndx}"), bit),
-                ))
+                let target = self.reg(Wire::Register(reg), None)?;
+                let bit = syn::Index::from(bit);
+                let arg = format_ident!("arg_{ndx}");
+                self.add_stmt(parse_quote! {assign #target = #arg[#bit]})
             }
         }
         let submodules = self
             .ntl
             .black_boxes
             .iter()
-            .map(|bb| bb.code.as_module())
-            .collect();
+            .flat_map(|bb| bb.code.as_module().into_iter())
+            .collect::<Vec<vlog::ModuleDef>>();
         for lop in &self.ntl.ops {
             self.op_code(&lop.op, None)?;
         }
-        let output_bits = ast::concatenate(
-            self.ntl
-                .outputs
-                .iter()
-                .rev()
-                .copied()
-                .map(|t| self.opex(t))
-                .collect(),
-        );
-        self.push_body(ast::assign("out", output_bits));
+        let outputs = self.ntl.outputs.iter().rev().copied().map(|t| self.opex(t));
+        let output_bits: vlog::Expr = parse_quote! { { #(#outputs),* } };
+        let out = format_ident!("out");
+        self.add_stmt(parse_quote! { #out = #output_bits });
         // Check if any of the inputs are used by the body of the module
         let input_set = self.ntl.inputs.iter().flatten().collect::<HashSet<_>>();
         let inputs_used = self.ntl.ops.iter().any(|lop| {
@@ -368,24 +406,34 @@ impl<'a> NetListHDLBuilder<'a> {
                     false
                 }
             });
-        let mut statements = std::mem::take(&mut self.instances);
-        if inputs_used {
-            statements.push(ast::always(vec![ast::Events::Star], self.body));
+        let instances = &self.instances;
+        let body = self.body;
+        let body: vlog::Item = if inputs_used {
+            parse_quote! {
+                always @(*) begin
+                    #(#body;)*
+                end
+            }
         } else {
-            statements.push(ast::initial(self.body));
-        }
-        declarations.extend(self.decls);
-        Ok(Module {
-            name: self.name,
-            ports,
-            declarations,
-            statements,
-            submodules,
-            ..Default::default()
+            parse_quote! {
+                initial begin
+                    #(#body;)*
+                end
+            }
+        };
+        let name = format_ident!("{}", self.name);
+        Ok(parse_quote! {
+            module #name(#(#ports,)*);
+            #(#declarations)*
+            #(#instances)*
+            #body
+            endmodule;
+
+            #(#submodules)*
         })
     }
 }
 
-pub(crate) fn generate_hdl(module_name: &str, ntl: &Object) -> Result<Module, RHDLError> {
+pub(crate) fn generate_hdl(module_name: &str, ntl: &Object) -> Result<vlog::ModuleList, RHDLError> {
     NetListHDLBuilder::new(module_name, ntl).build()
 }

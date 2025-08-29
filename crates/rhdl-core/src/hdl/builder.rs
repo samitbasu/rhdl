@@ -11,7 +11,7 @@ use crate::{
     },
 };
 use quote::{format_ident, quote};
-use rhdl_vlog::{self as vlog};
+use rhdl_vlog as vlog;
 use rtl::spec as tl;
 use syn::parse_quote;
 
@@ -184,7 +184,7 @@ impl TranslationContext<'_> {
             let value = self.op_ident(*value);
             match arg {
                 CaseArgument::Literal(lit) => {
-                    let lit = self.rtl.symtab[lit].into();
+                    let lit: vlog::LitVerilog = (&self.rtl.symtab[lit]).into();
                     quote! { #lit : #lhs = #value }
                 }
                 CaseArgument::Wild => quote! { default : #lhs = #value },
