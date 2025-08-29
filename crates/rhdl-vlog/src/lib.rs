@@ -136,6 +136,12 @@ pub struct ModuleList {
     pub modules: Vec<ModuleDef>,
 }
 
+impl ModuleList {
+    pub fn into_iter(self) -> impl Iterator<Item = ModuleDef> {
+        self.modules.into_iter()
+    }
+}
+
 impl Parse for ModuleList {
     fn parse(input: ParseStream) -> Result<Self> {
         let mut modules = Vec::new();
