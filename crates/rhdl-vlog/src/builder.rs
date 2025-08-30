@@ -61,6 +61,15 @@ pub fn lit_verilog(width: u32, value: &str) -> LitVerilog {
     }
 }
 
+pub fn unsigned_width(width: usize) -> SignedWidth {
+    SignedWidth::Unsigned(WidthSpec {
+        bit_range: BitRange {
+            start: 0,
+            end: width as u32 - 1,
+        },
+    })
+}
+
 // =============================================================================
 // Impl From traits for idiomatic conversions
 // =============================================================================
@@ -163,6 +172,17 @@ pub fn sensitivity_list(elements: impl IntoIterator<Item = Sensitivity>) -> Sens
     SensitivityList {
         elements: elements.into_iter().collect(),
     }
+}
+
+pub fn maybe_port_wire(dir: Direction, num_bits: usize, name: &str) -> Option<Port> {
+    (num_bits != 0).then(|| Port {
+        direction: dir,
+        decl: Declaration {
+            kind: HDLKind::Wire,
+            name: name.into(),
+            signed_width: Some(unsigned_width(num_bits)),
+        },
+    })
 }
 
 // =============================================================================

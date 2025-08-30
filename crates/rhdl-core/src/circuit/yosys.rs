@@ -1,4 +1,5 @@
 use miette::Diagnostic;
+use rhdl_vlog::Pretty;
 use thiserror::Error;
 
 use crate::{HDLDescriptor, RHDLError};
@@ -23,7 +24,7 @@ pub enum YosysSynthError {
 
 pub fn run_yosys_synth(hdl: HDLDescriptor) -> Result<(), RHDLError> {
     let module = hdl.as_module();
-    let verilog = module.as_verilog();
+    let verilog = module.pretty();
     let d = tempfile::tempdir()?;
     let d_path = d.path();
     std::fs::write(d_path.join("top.v"), &verilog)?;

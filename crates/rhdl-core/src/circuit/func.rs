@@ -1,17 +1,17 @@
+use quote::format_ident;
+use syn::parse_quote;
+
 use crate::{
     CircuitDescriptor, ClockReset, CompilationMode, Digital, DigitalFn, HDLDescriptor, Kind,
     RHDLError, Synchronous, SynchronousDQ, SynchronousIO, compile_design,
     digital_fn::{DigitalFn2, NoKernel3},
-    hdl::{
-        ast::{Direction, Module, continuous_assignment, function_call, id},
-        builder::generate_verilog,
-    },
+    hdl::builder::generate_verilog,
     ntl::from_rtl::build_ntl_from_rtl,
     rtl::Object,
     trace, trace_pop_path, trace_push_path,
 };
 
-use super::hdl_backend::maybe_port_wire;
+use rhdl_vlog::{self as vlog, maybe_port_wire};
 
 #[derive(Clone)]
 pub struct Func<I: Digital, O: Digital> {
@@ -72,30 +72,24 @@ impl<I: Digital, O: Digital> Synchronous for Func<I, O> {
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let descriptor = self.descriptor(name)?;
         let module_name = &descriptor.unique_name;
-        let mut module = Module {
-            name: module_name.clone(),
-            description: self.description(),
-            ..Default::default()
-        };
-        module.ports = [
-            maybe_port_wire(Direction::Input, 2, "clock_reset"),
-            maybe_port_wire(Direction::Input, Self::I::bits(), "i"),
-            maybe_port_wire(Direction::Output, Self::O::bits(), "o"),
-        ]
-        .into_iter()
-        .flatten()
-        .collect();
-        let verilog = generate_verilog(descriptor.rtl.as_ref().unwrap())?;
+        let module_ident = format_ident!("{}", module_name);
+        let ports = [
+            maybe_port_wire(vlog::Direction::Input, 2, "clock_reset"),
+            maybe_port_wire(vlog::Direction::Input, Self::I::bits(), "i"),
+            maybe_port_wire(vlog::Direction::Output, Self::O::bits(), "o"),
+        ];
+        let function_def = generate_verilog(descriptor.rtl.as_ref().unwrap())?;
+        let func_name = format_ident!("{}", function_def.name);
         // Call the verilog function with (clock_reset, i, q), if they exist.
-        let clock_reset = Some(id("clock_reset"));
-        let i_bind = (Self::I::bits() != 0).then(|| id("i"));
-        let fn_call = function_call(
-            &verilog.name,
-            vec![clock_reset, i_bind].into_iter().flatten().collect(),
-        );
-        let fn_call = continuous_assignment("o", fn_call);
-        module.statements.push(fn_call);
-        module.functions.push(verilog);
+        let clock_reset = Some(format_ident!("clock_reset"));
+        let i_bind = (Self::I::bits() != 0).then(|| format_ident!("i"));
+        let fn_args = [clock_reset, i_bind];
+        let module: vlog::ModuleDef = parse_quote! {
+            module #module_ident(#(#ports),*);
+                assign o = #func_name(#(#fn_args),*);
+                #function_def
+            endmodule
+        };
         Ok(HDLDescriptor {
             name: module_name.into(),
             body: module,

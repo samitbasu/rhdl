@@ -60,15 +60,6 @@ impl From<&BitString> for vlog::LitVerilog {
     }
 }
 
-fn unsigned_width(width: usize) -> vlog::SignedWidth {
-    vlog::SignedWidth::Unsigned(vlog::WidthSpec {
-        bit_range: BitRange {
-            start: 0,
-            end: width as u32 - 1,
-        },
-    })
-}
-
 impl<'a> NetListHDLBuilder<'a> {
     fn new(name: &'_ str, ntl: &'a Object) -> Self {
         Self {
@@ -326,13 +317,13 @@ impl<'a> NetListHDLBuilder<'a> {
             .flat_map(|(ndx, x)| {
                 (!x.is_empty()).then(|| {
                     let name = format_ident!("arg_{ndx}");
-                    let width = unsigned_width(x.len());
+                    let width = vlog::unsigned_width(x.len());
                     parse_quote! { input wire #width #name }
                 })
             })
             .chain(std::iter::once({
                 let name = format_ident!("out");
-                let width = unsigned_width(self.ntl.outputs.len());
+                let width = vlog::unsigned_width(self.ntl.outputs.len());
                 parse_quote! { output reg #width #name }
             }))
             .collect::<Vec<vlog::Port>>();
