@@ -1,8 +1,9 @@
 use crate::{
     CircuitDescriptor, ClockReset, Digital, DigitalFn, HDLDescriptor,
-    circuit::yosys::run_yosys_synth, digital_fn::DigitalFn3, error::RHDLError, hdl::ast::Module,
+    circuit::yosys::run_yosys_synth, digital_fn::DigitalFn3, error::RHDLError,
     ntl::hdl::generate_hdl,
 };
+use rhdl_vlog as vlog;
 
 pub trait SynchronousDQ: 'static + Sized + Clone {
     type D: Digital;
@@ -35,7 +36,7 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO {
         run_yosys_synth(self.hdl("top")?)
     }
 
-    fn netlist_hdl(&self, name: &str) -> Result<Module, RHDLError> {
+    fn netlist_hdl(&self, name: &str) -> Result<vlog::ModuleList, RHDLError> {
         let descriptor = self.descriptor(name)?;
         generate_hdl(name, &descriptor.ntl)
     }

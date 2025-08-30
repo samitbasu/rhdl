@@ -1,7 +1,10 @@
 use crate::{
     CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous,
-    SynchronousDQ, SynchronousIO, digital_fn::NoKernel3, hdl::ast::Module, ntl,
+    SynchronousDQ, SynchronousIO, digital_fn::NoKernel3, ntl,
 };
+
+use quote::format_ident;
+use syn::parse_quote;
 
 impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
     type S = ();
@@ -41,9 +44,10 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
 
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = self.descriptor(name)?.unique_name;
-        let module = Module {
-            name: module_name.clone(),
-            ..Default::default()
+        let module_ident = format_ident!("{}", module_name);
+        let module = parse_quote! {
+            module #module_ident;
+            endmodule
         };
         Ok(HDLDescriptor {
             name: module_name,
