@@ -10,10 +10,10 @@ pub struct HDLDescriptor {
 
 impl HDLDescriptor {
     pub fn as_module(&self) -> rhdl_vlog::ModuleList {
-        let mut module = self.body.clone();
-        module
-            .submodules
-            .extend(self.children.values().map(HDLDescriptor::as_module));
-        module
+        let mut modules = vec![self.body.clone()];
+        for child in self.children.values() {
+            modules.extend(child.as_module().into_iter());
+        }
+        rhdl_vlog::ModuleList { modules }
     }
 }
