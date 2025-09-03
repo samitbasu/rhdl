@@ -4,16 +4,10 @@ use crate::Digital;
 use crate::types::path::Path;
 use crate::types::path::bit_range;
 use crate::{Circuit, HDLDescriptor, RHDLError, Synchronous};
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
 use rhdl_vlog as vlog;
-
-pub(crate) fn maybe_decl_wire(num_bits: usize, name: &str) -> Option<Declaration> {
-    (num_bits != 0).then(|| Declaration {
-        kind: HDLKind::Wire,
-        name: name.into(),
-        width: unsigned_width(num_bits),
-        alias: None,
-    })
-}
+use syn::parse_quote;
 
 pub fn build_hdl<C: Circuit>(
     circuit: &C,
@@ -22,29 +16,15 @@ pub fn build_hdl<C: Circuit>(
 ) -> Result<HDLDescriptor, RHDLError> {
     let descriptor = circuit.descriptor(name)?;
     let outputs = C::O::bits();
-
-    let module_name = &descriptor.unique_name;
-    let mut module = Module {
-        name: module_name.clone(),
-        description: circuit.description(),
-        ..Default::default()
-    };
-    module.ports = [
-        maybe_port_wire(Direction::Input, C::I::bits(), "i"),
-        maybe_port_wire(Direction::Output, C::O::bits(), "o"),
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
-    module.declarations.extend(
-        [
-            maybe_decl_wire(C::O::bits() + C::D::bits(), "od"),
-            maybe_decl_wire(C::D::bits(), "d"),
-            maybe_decl_wire(C::Q::bits(), "q"),
-        ]
-        .into_iter()
-        .flatten(),
-    );
+    let ports = [
+        vlog::maybe_port_wire(vlog::Direction::Input, C::I::bits(), "i"),
+        vlog::maybe_port_wire(vlog::Direction::Output, C::O::bits(), "o"),
+    ];
+    let declarations = [
+        vlog::maybe_decl_wire(C::O::bits() + C::D::bits(), "od"),
+        vlog::maybe_decl_wire(C::D::bits(), "d"),
+        vlog::maybe_decl_wire(C::Q::bits(), "q"),
+    ];
     let d_kind = C::D::static_kind();
     let q_kind = C::Q::static_kind();
     let child_decls = descriptor
@@ -56,42 +36,45 @@ pub fn build_hdl<C: Circuit>(
             let child_path = Path::default().field(local_name);
             let (d_range, _) = bit_range(d_kind, &child_path)?;
             let (q_range, _) = bit_range(q_kind, &child_path)?;
-            let input_binding =
-                (!d_range.is_empty()).then(|| connection("i", index("d", d_range.clone())));
-            let output_binding =
-                (!q_range.is_empty()).then(|| connection("o", index("q", q_range.clone())));
-            let component_name = &descriptor.unique_name;
-            Ok(component_instance(
-                component_name,
-                &format!("c{ndx}"),
-                [input_binding, output_binding]
-                    .into_iter()
-                    .flatten()
-                    .collect(),
-            ))
+            let input_binding = vlog::maybe_connect("i", "d", d_range);
+            let output_binding = vlog::maybe_connect("o", "q", q_range);
+            let component_name = format_ident!("{}", descriptor.unique_name);
+            let component_instance = format_ident!("c{ndx}");
+            Ok(quote! {
+                #component_name #component_instance(
+                    #input_binding
+                    #output_binding
+                );
+            })
         })
-        .collect::<Result<Vec<Statement>, RHDLError>>()?;
-    let verilog = generate_verilog(descriptor.rtl.as_ref().unwrap())?;
+        .collect::<Result<Vec<TokenStream>, RHDLError>>()?;
+    let kernel = descriptor
+        .rtl
+        .as_ref()
+        .ok_or(RHDLError::FunctionNotSynthesizable)?
+        .as_vlog()?;
     // Call the verilog function with (i, q), if they exist.
-    let i_bind = (C::I::bits() != 0).then(|| id("i"));
-    let q_bind = (C::Q::bits() != 0).then(|| id("q"));
-    let fn_call = function_call(
-        &verilog.name,
-        vec![i_bind, q_bind].into_iter().flatten().collect(),
-    );
-    let fn_call = continuous_assignment("od", fn_call);
-    let o_bind = continuous_assignment("o", index("od", 0..outputs));
-    let d_bind = (C::D::bits() != 0)
-        .then(|| continuous_assignment("d", index("od", outputs..(C::D::bits() + outputs))));
-    module.statements.push(o_bind);
-    module.statements.extend(child_decls);
-    module.statements.push(fn_call);
-    if let Some(d_bind) = d_bind {
-        module.statements.push(d_bind);
-    }
-    module.functions.push(verilog);
+    let i_bind = (C::I::bits() != 0).then(|| format_ident!("i"));
+    let q_bind = (C::Q::bits() != 0).then(|| format_ident!("q"));
+    let kernel_name = format_ident!("{}", kernel.name);
+    let module_ident = format_ident!("{}", descriptor.unique_name);
+    let output_range: vlog::BitRange = (0..outputs).into();
+    let d_bind = (C::D::bits() != 0).then(|| {
+        let d_range: vlog::BitRange = (outputs..(C::D::bits() + outputs)).into();
+        quote! {assign d = od[#d_range];}
+    });
+    let module: vlog::ModuleDef = parse_quote! {
+        module #module_ident(#(#ports),*);
+            #(#declarations)*
+            assign o = od[#output_range];
+            #(#child_decls)*
+            #d_bind
+            assign od = #kernel_name(#i_bind, #q_bind);
+            #kernel
+        endmodule
+    };
     Ok(HDLDescriptor {
-        name: module_name.into(),
+        name: descriptor.unique_name.into(),
         body: module,
         children,
     })
@@ -106,30 +89,16 @@ pub fn build_synchronous_hdl<C: Synchronous>(
 ) -> Result<HDLDescriptor, RHDLError> {
     let descriptor = circuit.descriptor(name)?;
     let outputs = C::O::bits();
-
-    let module_name = &descriptor.unique_name;
-    let mut module = Module {
-        name: module_name.clone(),
-        description: circuit.description(),
-        ..Default::default()
-    };
-    module.ports = [
-        maybe_port_wire(Direction::Input, 2, "clock_reset"),
-        maybe_port_wire(Direction::Input, C::I::bits(), "i"),
-        maybe_port_wire(Direction::Output, C::O::bits(), "o"),
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
-    module.declarations.extend(
-        [
-            maybe_decl_wire(C::O::bits() + C::D::bits(), "od"),
-            maybe_decl_wire(C::D::bits(), "d"),
-            maybe_decl_wire(C::Q::bits(), "q"),
-        ]
-        .into_iter()
-        .flatten(),
-    );
+    let ports = [
+        vlog::maybe_port_wire(vlog::Direction::Input, 2, "clock_reset"),
+        vlog::maybe_port_wire(vlog::Direction::Input, C::I::bits(), "i"),
+        vlog::maybe_port_wire(vlog::Direction::Output, C::O::bits(), "o"),
+    ];
+    let declarations = [
+        vlog::maybe_decl_wire(C::O::bits() + C::D::bits(), "od"),
+        vlog::maybe_decl_wire(C::D::bits(), "d"),
+        vlog::maybe_decl_wire(C::Q::bits(), "q"),
+    ];
     let d_kind = C::D::static_kind();
     let q_kind = C::Q::static_kind();
     let child_decls = descriptor
@@ -141,53 +110,46 @@ pub fn build_synchronous_hdl<C: Synchronous>(
             let child_path = Path::default().field(local_name);
             let (d_range, _) = bit_range(d_kind, &child_path)?;
             let (q_range, _) = bit_range(q_kind, &child_path)?;
-            let input_binding = if d_range.is_empty() {
-                None
-            } else {
-                Some(connection("i", index("d", d_range.clone())))
-            };
-            let output_binding = if q_range.is_empty() {
-                None
-            } else {
-                Some(connection("o", index("q", q_range.clone())))
-            };
-            let component_name = &descriptor.unique_name;
-            let cr_binding = Some(connection("clock_reset", id("clock_reset")));
-            Ok(component_instance(
-                component_name,
-                &format!("c{ndx}"),
-                [cr_binding, input_binding, output_binding]
-                    .into_iter()
-                    .flatten()
-                    .collect(),
-            ))
+            let input_binding = vlog::maybe_connect("i", "d", d_range);
+            let output_binding = vlog::maybe_connect("o", "q", q_range);
+            let component_name = format_ident!("{}", descriptor.unique_name);
+            let component_instance = format_ident!("c{ndx}");
+            Ok(quote! {
+                #component_name #component_instance(
+                    .clock_reset(clock_reset),
+                    #input_binding,
+                    #output_binding,
+                )
+            })
         })
-        .collect::<Result<Vec<Statement>, RHDLError>>()?;
-    let verilog = generate_verilog(descriptor.rtl.as_ref().unwrap())?;
+        .collect::<Result<Vec<TokenStream>, RHDLError>>()?;
+    let kernel = descriptor
+        .rtl
+        .as_ref()
+        .ok_or(RHDLError::FunctionNotSynthesizable)?
+        .as_vlog()?;
     // Call the verilog function with (clock_reset, i, q), if they exist.
-    let clock_reset = Some(id("clock_reset"));
-    let i_bind = (C::I::bits() != 0).then(|| id("i"));
-    let q_bind = (C::Q::bits() != 0).then(|| id("q"));
-    let fn_call = function_call(
-        &verilog.name,
-        vec![clock_reset, i_bind, q_bind]
-            .into_iter()
-            .flatten()
-            .collect(),
-    );
-    let fn_call = continuous_assignment("od", fn_call);
-    let o_bind = continuous_assignment("o", index("od", 0..outputs));
-    let d_bind = (C::D::bits() != 0)
-        .then(|| continuous_assignment("d", index("od", outputs..(C::D::bits() + outputs))));
-    module.statements.push(o_bind);
-    module.statements.extend(child_decls);
-    module.statements.push(fn_call);
-    if let Some(d_bind) = d_bind {
-        module.statements.push(d_bind);
-    }
-    module.functions.push(verilog);
+    let i_bind = (C::I::bits() != 0).then(|| format_ident!("i"));
+    let q_bind = (C::Q::bits() != 0).then(|| format_ident!("q"));
+    let kernel_name = format_ident!("{}", kernel.name);
+    let module_ident = format_ident!("{}", descriptor.unique_name);
+    let output_range: vlog::BitRange = (0..outputs).into();
+    let d_bind = (C::D::bits() != 0).then(|| {
+        let d_range: vlog::BitRange = (outputs..(C::D::bits() + outputs)).into();
+        quote! {assign d = od[#d_range];}
+    });
+    let module: vlog::ModuleDef = parse_quote! {
+        module #module_ident(#(#ports),*);
+            #(#declarations)*
+            assign o = od[#output_range];
+            #(#child_decls)*
+            #d_bind
+            assign od = #kernel_name(clock_reset, #i_bind, #q_bind);
+            #kernel
+        endmodule
+    };
     Ok(HDLDescriptor {
-        name: module_name.into(),
+        name: descriptor.unique_name.into(),
         body: module,
         children,
     })

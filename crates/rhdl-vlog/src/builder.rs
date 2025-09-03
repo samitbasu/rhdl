@@ -8,6 +8,8 @@
 //! - Collection parameters use `impl IntoIterator<Item=T>` for flexibility
 //! - `impl From` traits provide idiomatic conversions for common cases
 
+use syn::parse_quote;
+
 use crate::{
     atoms::{NegEdgeSensitivity, PosEdgeSensitivity, Sensitivity, SensitivityList},
     expr::{
@@ -191,6 +193,27 @@ pub fn maybe_port_wire(dir: Direction, num_bits: usize, name: &str) -> Option<Po
             name: name.into(),
             signed_width: Some(unsigned_width(num_bits)),
         },
+    })
+}
+
+pub fn maybe_decl_wire(num_bits: usize, name: &str) -> Option<Declaration> {
+    (num_bits != 0).then(|| Declaration {
+        kind: HDLKind::Wire,
+        name: name.into(),
+        signed_width: Some(unsigned_width(num_bits)),
+    })
+}
+
+pub fn maybe_connect(
+    target: &str,
+    source: &str,
+    range: std::ops::Range<usize>,
+) -> Option<Connection> {
+    (range.start != range.end).then(|| {
+        let target = format_ident!("{target}");
+        let source = format_ident!("{source}");
+        let range: BitRange = range.into();
+        parse_quote!(.#target(#source[#range]))
     })
 }
 

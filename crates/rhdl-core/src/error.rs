@@ -62,8 +62,8 @@ pub enum RHDLError {
     NoOutputsError,
     #[error("syn parsing error: {0}")]
     SynError(#[from] syn::Error),
-    #[error("Top module export error: {0}")]
-    ExportError(#[from] crate::circuit::fixture::ExportError),
+    // TODO - FIXME    #[error("Top module export error: {0}")]
+    //    ExportError(#[from] crate::circuit::fixture::ExportError),
     #[error("This module is not synthesizable")]
     NotSynthesizable,
     #[error("Yosys synthesis error: {0}")]

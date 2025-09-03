@@ -4,12 +4,13 @@ use crate::{
     CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous,
     SynchronousDQ, SynchronousIO,
     digital_fn::NoKernel3,
-    hdl::ast::{Direction, Module, Statement, component_instance, connection, id, index},
     ntl, trace_pop_path, trace_push_path,
     types::path::{Path, bit_range},
 };
-
-use super::hdl_backend::maybe_port_wire;
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
+use rhdl_vlog as vlog;
+use syn::parse_quote;
 
 // Blanket implementation for an array of synchronous circuits.
 impl<T: SynchronousIO, const N: usize> SynchronousIO for [T; N] {
@@ -96,12 +97,6 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let descriptor = self.descriptor(name)?;
         let module_name = &descriptor.unique_name;
-        let mut module = Module {
-            name: module_name.clone(),
-            description: self.description(),
-            ..Default::default()
-        };
-
         let children = (0..N)
             .map(|ndx| {
                 let name = format!("{name}_{ndx}");
@@ -109,14 +104,11 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
                 Ok((name, hdl))
             })
             .collect::<Result<BTreeMap<String, HDLDescriptor>, RHDLError>>()?;
-        module.ports = [
-            maybe_port_wire(Direction::Input, 2, "clock_reset"),
-            maybe_port_wire(Direction::Input, Self::I::bits(), "i"),
-            maybe_port_wire(Direction::Output, Self::O::bits(), "o"),
-        ]
-        .into_iter()
-        .flatten()
-        .collect();
+        let ports = [
+            vlog::maybe_port_wire(vlog::Direction::Input, 2, "clock_reset"),
+            vlog::maybe_port_wire(vlog::Direction::Input, Self::I::bits(), "i"),
+            vlog::maybe_port_wire(vlog::Direction::Output, Self::O::bits(), "o"),
+        ];
         let i_kind = Self::I::static_kind();
         let o_kind = Self::O::static_kind();
         let child_decls = descriptor
@@ -127,23 +119,23 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
                 let child_path = Path::default().index(ndx);
                 let (i_range, _) = bit_range(i_kind, &child_path)?;
                 let (o_range, _) = bit_range(o_kind, &child_path)?;
-                let cr_binding = Some(connection("clock_reset", id("clock_reset")));
-                let input_binding =
-                    (!i_range.is_empty()).then(|| connection("i", index("i", i_range.clone())));
-                let output_binding =
-                    (!o_range.is_empty()).then(|| connection("o", index("o", o_range.clone())));
-                let component_name = &descriptor.unique_name;
-                Ok(component_instance(
-                    component_name,
-                    &format!("c{ndx}"),
-                    [cr_binding, input_binding, output_binding]
-                        .into_iter()
-                        .flatten()
-                        .collect(),
-                ))
+                let input_binding = vlog::maybe_connect("i", "i", i_range);
+                let output_binding = vlog::maybe_connect("o", "o", o_range);
+                let component_ident = format_ident!("{}", descriptor.unique_name);
+                let component_instance = format_ident!("c{ndx}");
+                Ok(quote! { #component_ident #component_instance(
+                    .clock_reset(clock_reset)
+                    #input_binding
+                    #output_binding
+                ); })
             })
-            .collect::<Result<Vec<Statement>, RHDLError>>()?;
-        module.statements.extend(child_decls);
+            .collect::<Result<Vec<TokenStream>, RHDLError>>()?;
+        let module_ident = format_ident!("{}", module_name);
+        let module: vlog::ModuleDef = parse_quote! {
+            module #module_ident(#(#ports),*);
+                #(#child_decls)*
+            endmodule
+        };
         Ok(HDLDescriptor {
             name: module_name.into(),
             body: module,
