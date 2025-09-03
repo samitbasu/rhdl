@@ -77,6 +77,8 @@ pub enum RHDLError {
     #[error("Type Inference Error")]
     #[diagnostic(transparent)]
     TypeInferenceError(#[from] Box<UnifyError>),
+    #[error("Function is not synthesizable")]
+    FunctionNotSynthesizable,
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

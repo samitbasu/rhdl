@@ -3,15 +3,14 @@ use crate::{
     RHDLError, Signal, Synchronous, Timed,
     bitx::BitX,
     digital_fn::NoKernel2,
-    hdl::ast::{
-        Direction, Module, component_instance, concatenate, connection, id, index, index_bit,
-    },
     ntl,
     types::{kind::Field, signal::signal},
 };
 
-use super::hdl_backend::maybe_port_wire;
+use quote::{format_ident, quote};
 use rhdl_trace_type as rtt;
+use rhdl_vlog::{self as vlog, maybe_port_wire};
+use syn::parse_quote;
 
 // An adapter allows you to use a Synchronous circuit in an Asynchronous context.
 #[derive(Clone)]
@@ -149,35 +148,27 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
     }
 
     fn hdl(&self, name: &str) -> Result<crate::HDLDescriptor, RHDLError> {
-        let mut module = Module {
-            name: name.into(),
-            description: self.description(),
-            ..Default::default()
-        };
-        module.ports = [
-            maybe_port_wire(Direction::Input, <Self as CircuitIO>::I::bits(), "i"),
-            maybe_port_wire(Direction::Output, <Self as CircuitIO>::O::bits(), "o"),
-        ]
-        .into_iter()
-        .flatten()
-        .collect();
+        let ports = [
+            maybe_port_wire(vlog::Direction::Input, <Self as CircuitIO>::I::bits(), "i"),
+            maybe_port_wire(vlog::Direction::Output, <Self as CircuitIO>::O::bits(), "o"),
+        ];
         let child_name = &format!("{name}_inner");
         let child = self.circuit.descriptor(child_name)?;
-        let clock_reset = concatenate(vec![index_bit("i", 1), index_bit("i", 0)]);
-        let cr_connection = Some(connection("clock_reset", clock_reset));
-        let input_connection = (!child.input_kind.is_empty())
-            .then(|| connection("i", index("i", 2..(2 + child.input_kind.bits()))));
-        let output_connection = Some(connection("o", id("o")));
-        let child_decl = component_instance(
-            &child.unique_name,
-            "c",
-            vec![cr_connection, input_connection, output_connection]
-                .into_iter()
-                .flatten()
-                .collect(),
-        );
-        module.statements.push(child_decl);
         let child_hdl = self.circuit.hdl(child_name)?;
+        let name_ident = format_ident!("{name}");
+        let input_connection = if !child.input_kind.is_empty() {
+            let lsb = syn::Index::from(2);
+            let msb = syn::Index::from((2 + child.input_kind.bits()).saturating_sub(1));
+            quote! {, .i(i[#msb:#lsb])}
+        } else {
+            quote! {}
+        };
+        let child_unique_name_ident = format_ident!("{}", child.unique_name);
+        let module: vlog::ModuleDef = parse_quote! {
+            module #name_ident(#(#ports),*);
+                #child_unique_name_ident c(.clock_reset(i[1:0]) #input_connection, .o(o))
+            endmodule
+        };
         Ok(crate::HDLDescriptor {
             name: child_name.into(),
             body: module,

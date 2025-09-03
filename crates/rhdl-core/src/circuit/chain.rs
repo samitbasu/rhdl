@@ -1,16 +1,15 @@
+use quote::{format_ident, quote};
+use rhdl_vlog::declaration;
+use syn::parse_quote;
+
 use crate::ntl;
 use crate::{
     CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, Synchronous, SynchronousDQ,
-    SynchronousIO,
-    digital_fn::NoKernel3,
-    hdl::ast::{
-        Declaration, Direction, HDLKind, Module, component_instance, connection, id, unsigned_width,
-    },
-    trace_pop_path, trace_push_path,
+    SynchronousIO, digital_fn::NoKernel3, trace_pop_path, trace_push_path,
 };
+use rhdl_vlog as vlog;
+use rhdl_vlog::{maybe_port_wire, unsigned_width};
 use std::collections::BTreeMap;
-
-use super::hdl_backend::maybe_port_wire;
 
 #[derive(Clone)]
 pub struct Chain<A, B> {
@@ -46,12 +45,7 @@ where
         (self.a.init(), self.b.init())
     }
 
-    fn sim(
-        &self,
-        clock_reset: crate::ClockReset,
-        input: Self::I,
-        state: &mut Self::S,
-    ) -> Self::O {
+    fn sim(&self, clock_reset: crate::ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
         trace_push_path("chain");
         trace_push_path("a");
         let p = self.a.sim(clock_reset, input, &mut state.0);
@@ -71,10 +65,7 @@ where
         )
     }
 
-    fn descriptor(
-        &self,
-        name: &str,
-    ) -> Result<crate::CircuitDescriptor, crate::RHDLError> {
+    fn descriptor(&self, name: &str) -> Result<crate::CircuitDescriptor, crate::RHDLError> {
         let a_name = format!("{name}_a");
         let b_name = format!("{name}_b");
         let desc_a = self.a.descriptor(&a_name)?;
@@ -124,62 +115,41 @@ where
         Ok(desc)
     }
 
-    fn hdl(
-        &self,
-        name: &str,
-    ) -> Result<crate::HDLDescriptor, crate::RHDLError> {
-        let mut module = Module {
-            name: name.into(),
-            description: self.description(),
-            ..Default::default()
-        };
+    fn hdl(&self, name: &str) -> Result<crate::HDLDescriptor, crate::RHDLError> {
+        let ports = [
+            maybe_port_wire(vlog::Direction::Input, <A as SynchronousIO>::I::bits(), "i"),
+            maybe_port_wire(
+                vlog::Direction::Output,
+                <B as SynchronousIO>::O::bits(),
+                "o",
+            ),
+        ];
         let input_kind = <A as SynchronousIO>::I::static_kind();
         let pipe_kind = <A as SynchronousIO>::O::static_kind();
-        module.ports = [
-            maybe_port_wire(Direction::Input, 2, "clock_reset"),
-            maybe_port_wire(Direction::Input, <A as SynchronousIO>::I::bits(), "i"),
-            maybe_port_wire(Direction::Output, <B as SynchronousIO>::O::bits(), "o"),
-        ]
-        .into_iter()
-        .flatten()
-        .collect();
-        module.declarations.push(Declaration {
-            kind: HDLKind::Wire,
-            name: "pipe".into(),
-            width: unsigned_width(pipe_kind.bits()),
-            alias: None,
-        });
-        let a_name = &format!("{name}_a");
-        let b_name = &format!("{name}_b");
-        // Add the two child components.
+        let pipe = declaration(
+            vlog::HDLKind::Wire,
+            Some(unsigned_width(pipe_kind.bits())),
+            "pipe",
+        );
+        let a_name = format!("{}_a", name);
+        let b_name = format!("{}_b", name);
+        let a_ident = format_ident!("{}_a", name);
+        let b_ident = format_ident!("{}_b", name);
         let a_input_binding = if input_kind.is_empty() {
-            None
+            quote! {}
         } else {
-            Some(connection("i", id("i")))
+            quote! {.i(i)}
         };
-        let cr_binding = Some(connection("clock_reset", id("clock_reset")));
-        let b_output_binding = Some(connection("o", id("o")));
-        let a_p_binding = Some(connection("o", id("pipe")));
-        let b_i_binding = Some(connection("i", id("pipe")));
-        let a_instance = component_instance(
-            a_name,
-            "a",
-            [cr_binding.clone(), a_input_binding.clone(), a_p_binding]
-                .into_iter()
-                .flatten()
-                .collect(),
-        );
-        let b_instance = component_instance(
-            b_name,
-            "b",
-            [cr_binding, b_i_binding, b_output_binding]
-                .into_iter()
-                .flatten()
-                .collect(),
-        );
-        let a_hdl = self.a.hdl(a_name)?;
-        let b_hdl = self.b.hdl(b_name)?;
-        module.statements.extend([a_instance, b_instance]);
+        let module_ident = format_ident!("{name}");
+        let module: vlog::ModuleDef = parse_quote! {
+            module #module_ident(input wire [1:0] clock_reset, #(#ports,)*);
+                #pipe
+                #a_ident a(.clock_reset(clock_reset), .o(pipe), #a_input_binding);
+                #b_ident b(.clock_reset(clock_reset), .i(pipe), .o(o));
+            endmodule
+        };
+        let a_hdl = self.a.hdl(&a_name)?;
+        let b_hdl = self.b.hdl(&b_name)?;
         Ok(HDLDescriptor {
             name: name.into(),
             body: module,
