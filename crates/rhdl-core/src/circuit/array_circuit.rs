@@ -3,12 +3,14 @@ use std::collections::BTreeMap;
 use crate::{
     Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, Digital, HDLDescriptor, Kind, RHDLError,
     digital_fn::NoKernel2,
-    hdl::ast::{Direction, Module, Statement, component_instance, connection, index},
     ntl, trace_pop_path, trace_push_path,
     types::path::{Path, bit_range},
 };
 
-use super::hdl_backend::maybe_port_wire;
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
+use rhdl_vlog as vlog;
+use syn::parse_quote;
 
 // Blanket implementation for an array of circuits.
 impl<T: CircuitIO, const N: usize> CircuitIO for [T; N] {
@@ -84,12 +86,7 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let descriptor = self.descriptor(name)?;
         let module_name = &descriptor.unique_name;
-        let mut module = Module {
-            name: module_name.clone(),
-            description: self.description(),
-            ..Default::default()
-        };
-
+        let module_ident = format_ident!("{module_name}");
         let children = (0..N)
             .map(|ndx| {
                 let name = format!("{name}_{ndx}");
@@ -97,14 +94,10 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
                 Ok((name, hdl))
             })
             .collect::<Result<BTreeMap<String, HDLDescriptor>, RHDLError>>()?;
-        module.ports = [
-            maybe_port_wire(Direction::Input, Self::I::bits(), "i"),
-            maybe_port_wire(Direction::Output, Self::O::bits(), "o"),
-        ]
-        .into_iter()
-        .flatten()
-        .collect();
-
+        let ports = [
+            vlog::maybe_port_wire(vlog::Direction::Input, Self::I::bits(), "i"),
+            vlog::maybe_port_wire(vlog::Direction::Output, Self::O::bits(), "o"),
+        ];
         let i_kind = Self::I::static_kind();
         let o_kind = Self::O::static_kind();
         let child_decls = descriptor
@@ -115,22 +108,22 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
                 let child_path = Path::default().index(ndx);
                 let (i_range, _) = bit_range(i_kind, &child_path)?;
                 let (o_range, _) = bit_range(o_kind, &child_path)?;
-                let input_binding =
-                    (!i_range.is_empty()).then(|| connection("i", index("i", i_range.clone())));
-                let output_binding =
-                    (!o_range.is_empty()).then(|| connection("o", index("o", o_range.clone())));
-                let component_name = &descriptor.unique_name;
-                Ok(component_instance(
-                    component_name,
-                    &format!("c{ndx}"),
-                    [input_binding, output_binding]
-                        .into_iter()
-                        .flatten()
-                        .collect(),
-                ))
+                let i_range_empty = i_range.is_empty();
+                let o_range_empty = o_range.is_empty();
+                let i_range_vlog: vlog::BitRange = i_range.into();
+                let o_range_vlog: vlog::BitRange = o_range.into();
+                let input_binding = (!i_range_empty).then(|| quote! {.i(i[#i_range_vlog])});
+                let output_binding = (!o_range_empty).then(|| quote! {.o(o[#o_range_vlog])});
+                let component_name = format_ident!("{}", descriptor.unique_name);
+                let instance_name = format_ident!("c{ndx}");
+                Ok(quote! { #component_name #instance_name(#input_binding, #output_binding) })
             })
-            .collect::<Result<Vec<Statement>, RHDLError>>()?;
-        module.statements.extend(child_decls);
+            .collect::<Result<Vec<TokenStream>, RHDLError>>()?;
+        let module: vlog::ModuleDef = parse_quote! {
+            module #module_ident(#(#ports,)*);
+                #(#child_decls);*
+            endmodule
+        };
         Ok(HDLDescriptor {
             name: module_name.into(),
             body: module,

@@ -130,6 +130,15 @@ impl From<WidthSpec> for SignedWidth {
     }
 }
 
+impl From<std::ops::Range<usize>> for BitRange {
+    fn from(value: std::ops::Range<usize>) -> Self {
+        BitRange {
+            start: value.start as u32,
+            end: value.end.saturating_sub(1) as u32,
+        }
+    }
+}
+
 // Declaration constructors
 
 pub fn declaration(kind: HDLKind, signed_width: Option<SignedWidth>, name: &str) -> Declaration {

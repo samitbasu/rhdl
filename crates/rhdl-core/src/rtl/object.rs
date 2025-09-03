@@ -5,17 +5,20 @@ use std::hash::Hasher;
 use fnv::FnvHasher;
 
 use crate::Kind;
+use crate::RHDLError;
 use crate::TypedBits;
 use crate::ast::ast_impl::{FunctionId, NodeId};
 use crate::ast::source::source_location::SourceLocation;
 use crate::common::symtab::RegisterId;
 use crate::common::symtab::SymbolTable;
+use crate::hdl::builder::generate_verilog;
 use crate::rhif::object::SourceDetails;
 use crate::rtl::spec::OperandKind;
 use crate::types::bit_string::BitString;
 
 use super::spec::{OpCode, Operand};
 use super::symbols::SymbolMap;
+use rhdl_vlog as vlog;
 
 #[derive(Clone, Hash)]
 pub struct LocatedOpCode {
@@ -71,6 +74,10 @@ impl Object {
             Operand::Literal(lid) => self.symtab[lid].kind,
             Operand::Register(rid) => self.symtab[rid],
         }
+    }
+
+    pub fn as_vlog(&self) -> Result<vlog::FunctionDef, RHDLError> {
+        generate_verilog(self)
     }
 }
 
