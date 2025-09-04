@@ -1,8 +1,9 @@
 use crate::{
-    BitX, HDLDescriptor, Kind,
+    BitX, HDLDescriptor, Kind, RHDLError,
     ast::source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
     common::symtab::{RegisterId, SymbolTable},
     ntl::{
+        hdl::generate_hdl,
         spec::{OpCode, Wire, WireKind},
         visit::visit_object_wires_mut,
     },
@@ -73,6 +74,9 @@ impl Object {
         } else {
             None
         }
+    }
+    pub fn as_vlog(&self, name: &str) -> Result<rhdl_vlog::ModuleList, RHDLError> {
+        generate_hdl(name, self)
     }
 }
 

@@ -20,6 +20,12 @@ pub enum HDLKind {
     Reg,
 }
 
+impl HDLKind {
+    pub fn is_reg(&self) -> bool {
+        matches!(self, HDLKind::Reg)
+    }
+}
+
 impl Parse for HDLKind {
     fn parse(input: ParseStream) -> Result<Self> {
         let lookahead = input.lookahead1();

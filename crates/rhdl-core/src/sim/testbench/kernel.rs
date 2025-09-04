@@ -1,6 +1,5 @@
 use log::debug;
 use rhdl_vlog::Pretty;
-use std::iter::once;
 
 use crate::{
     Digital, DigitalFn, RHDLError, TypedBits,
@@ -8,13 +7,62 @@ use crate::{
         driver::{compile_design_stage1, compile_design_stage2},
         optimize_ntl,
     },
-    hdl::builder::generate_verilog,
-    ntl::{from_rtl::build_ntl_from_rtl, hdl::generate_hdl},
+    ntl::from_rtl::build_ntl_from_rtl,
     sim::test_module::TestModule,
     types::bit_string::BitString,
 };
 
+use quote::{format_ident, quote};
 use rhdl_vlog as vlog;
+use syn::parse_quote;
+
+fn maybe_assign(target: &str, value: &TypedBits) -> Option<vlog::Stmt> {
+    (!value.is_empty()).then(|| {
+        let target = format_ident!("{target}");
+        let value: vlog::LitVerilog = value.into();
+        parse_quote! { #target = #value }
+    })
+}
+
+fn assert_stmt(left: TypedBits, right: &str, msg: &str) -> vlog::Stmt {
+    let left: vlog::LitVerilog = (&left).into();
+    let right = format_ident!("{right}");
+    let message = format!("ASSERTION FAILED 0x%0h !== 0x%0h CASE {msg}");
+    parse_quote! {
+        if (#left) !== (#right) begin
+            $display(#message, #left, #right);
+            $finish;
+        end
+    }
+}
+
+fn build_test_case(
+    args: impl IntoIterator<Item = TypedBits>,
+    q: TypedBits,
+    ndx: usize,
+) -> vlog::stmt::StmtList {
+    let arguments = args
+        .into_iter()
+        .enumerate()
+        .flat_map(|(ndx, arg)| maybe_assign(&format!("arg_{ndx}"), &arg));
+    let delay = vlog::delay_stmt(0);
+    let assertion = assert_stmt(q, "out", &ndx.to_string());
+    parse_quote! {
+        #(#arguments;)*
+        #delay;
+        #assertion;
+    }
+}
+
+fn decl_list(q_len: usize, arg_sizes: &[usize]) -> Vec<vlog::Declaration> {
+    std::iter::once(vlog::wire_decl("out", vlog::unsigned_width(q_len)))
+        .chain(
+            arg_sizes.iter().enumerate().map(|(ndx, &size)| {
+                vlog::reg_decl(&format!("arg_{ndx}"), vlog::unsigned_width(size))
+            }),
+        )
+        .collect()
+}
 
 pub trait TestArg {
     fn vec_tb(&self) -> Vec<TypedBits>;
@@ -70,12 +118,8 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital, T4: Digital> TestArg
 
 pub trait Testable<Args, T1> {
     fn apply(&self, args: Args) -> T1;
-    fn declaration() -> Vec<Declaration>;
-    fn test_case(&self, args: Args, ndx: usize) -> Vec<Statement>;
-}
-
-fn maybe_assign(target: &str, value: &BitString) -> Option<Statement> {
-    (!value.is_empty()).then(|| assign(target, bit_string(value)))
+    fn declaration() -> Vec<vlog::Declaration>;
+    fn test_case(&self, args: Args, ndx: usize) -> vlog::stmt::StmtList;
 }
 
 impl<F, Q, T0> Testable<(T0,), Q> for F
@@ -88,25 +132,13 @@ where
         let (t0,) = args;
         (*self)(t0)
     }
-    fn declaration() -> Vec<Declaration> {
-        vec![
-            declaration(HDLKind::Wire, "out", unsigned_width(Q::bits()), None),
-            declaration(HDLKind::Reg, "arg_0", unsigned_width(T0::bits()), None),
-        ]
+    fn declaration() -> Vec<vlog::Declaration> {
+        decl_list(Q::bits(), &[T0::bits()])
     }
-    fn test_case(&self, args: (T0,), ndx: usize) -> Vec<Statement> {
+    fn test_case(&self, args: (T0,), ndx: usize) -> vlog::stmt::StmtList {
         let (t0,) = args;
-        let b0: BitString = t0.typed_bits().into();
-        let arg0 = maybe_assign("arg_0", &b0);
         let q = self.apply(args);
-        let q: BitString = q.typed_bits().into();
-        let d1 = delay(0);
-        let assertion = assert(bit_string(&q), id("out"), &ndx.to_string());
-        // Create a vector of statements, with arg0, d1, and assertion, if arg0 is non-empty.  Otherwise, leave it out.
-        arg0.into_iter()
-            .chain(once(d1))
-            .chain(once(assertion))
-            .collect()
+        build_test_case([t0.typed_bits()], q.typed_bits(), ndx)
     }
 }
 
@@ -121,28 +153,13 @@ where
         let (t0, t1) = args;
         (*self)(t0, t1)
     }
-    fn declaration() -> Vec<Declaration> {
-        vec![
-            declaration(HDLKind::Wire, "out", unsigned_width(Q::bits()), None),
-            declaration(HDLKind::Reg, "arg_0", unsigned_width(T0::bits()), None),
-            declaration(HDLKind::Reg, "arg_1", unsigned_width(T1::bits()), None),
-        ]
+    fn declaration() -> Vec<vlog::Declaration> {
+        decl_list(Q::bits(), &[T0::bits(), T1::bits()])
     }
-    fn test_case(&self, args: (T0, T1), ndx: usize) -> Vec<Statement> {
+    fn test_case(&self, args: (T0, T1), ndx: usize) -> vlog::stmt::StmtList {
         let (t0, t1) = args;
-        let b0: BitString = t0.typed_bits().into();
-        let b1: BitString = t1.typed_bits().into();
-        let arg0 = maybe_assign("arg_0", &b0);
-        let arg1 = maybe_assign("arg_1", &b1);
         let q = self.apply(args);
-        let q: BitString = q.typed_bits().into();
-        let d1 = delay(0);
-        let assertion = assert(bit_string(&q), id("out"), &ndx.to_string());
-        arg0.into_iter()
-            .chain(arg1)
-            .chain(once(d1))
-            .chain(once(assertion))
-            .collect()
+        build_test_case([t0.typed_bits(), t1.typed_bits()], q.typed_bits(), ndx)
     }
 }
 
@@ -158,32 +175,17 @@ where
         let (t0, t1, t2) = args;
         (*self)(t0, t1, t2)
     }
-    fn declaration() -> Vec<Declaration> {
-        vec![
-            declaration(HDLKind::Wire, "out", unsigned_width(Q::bits()), None),
-            declaration(HDLKind::Reg, "arg_0", unsigned_width(T0::bits()), None),
-            declaration(HDLKind::Reg, "arg_1", unsigned_width(T1::bits()), None),
-            declaration(HDLKind::Reg, "arg_2", unsigned_width(T2::bits()), None),
-        ]
+    fn declaration() -> Vec<vlog::Declaration> {
+        decl_list(Q::bits(), &[T0::bits(), T1::bits(), T2::bits()])
     }
-    fn test_case(&self, args: (T0, T1, T2), ndx: usize) -> Vec<Statement> {
+    fn test_case(&self, args: (T0, T1, T2), ndx: usize) -> vlog::stmt::StmtList {
         let (t0, t1, t2) = args;
-        let b0: BitString = t0.typed_bits().into();
-        let b1: BitString = t1.typed_bits().into();
-        let b2: BitString = t2.typed_bits().into();
-        let arg0 = maybe_assign("arg_0", &b0);
-        let arg1 = maybe_assign("arg_1", &b1);
-        let arg2 = maybe_assign("arg_2", &b2);
         let q = self.apply(args);
-        let q: BitString = q.typed_bits().into();
-        let d1 = delay(0);
-        let assertion = assert(bit_string(&q), id("out"), &ndx.to_string());
-        arg0.into_iter()
-            .chain(arg1)
-            .chain(arg2)
-            .chain(once(d1))
-            .chain(once(assertion))
-            .collect()
+        build_test_case(
+            [t0.typed_bits(), t1.typed_bits(), t2.typed_bits()],
+            q.typed_bits(),
+            ndx,
+        )
     }
 }
 
@@ -200,36 +202,22 @@ where
         let (t0, t1, t2, t3) = args;
         (*self)(t0, t1, t2, t3)
     }
-    fn declaration() -> Vec<Declaration> {
-        vec![
-            declaration(HDLKind::Wire, "out", unsigned_width(Q::bits()), None),
-            declaration(HDLKind::Reg, "arg_0", unsigned_width(T0::bits()), None),
-            declaration(HDLKind::Reg, "arg_1", unsigned_width(T1::bits()), None),
-            declaration(HDLKind::Reg, "arg_2", unsigned_width(T2::bits()), None),
-            declaration(HDLKind::Reg, "arg_3", unsigned_width(T3::bits()), None),
-        ]
+    fn declaration() -> Vec<vlog::Declaration> {
+        decl_list(Q::bits(), &[T0::bits(), T1::bits(), T2::bits(), T3::bits()])
     }
-    fn test_case(&self, args: (T0, T1, T2, T3), ndx: usize) -> Vec<Statement> {
+    fn test_case(&self, args: (T0, T1, T2, T3), ndx: usize) -> vlog::stmt::StmtList {
         let (t0, t1, t2, t3) = args;
-        let b0: BitString = t0.typed_bits().into();
-        let b1: BitString = t1.typed_bits().into();
-        let b2: BitString = t2.typed_bits().into();
-        let b3: BitString = t3.typed_bits().into();
-        let arg0 = maybe_assign("arg_0", &b0);
-        let arg1 = maybe_assign("arg_1", &b1);
-        let arg2 = maybe_assign("arg_2", &b2);
-        let arg3 = maybe_assign("arg_3", &b3);
         let q = self.apply(args);
-        let q: BitString = q.typed_bits().into();
-        let d1 = delay(0);
-        let assertion = assert(bit_string(&q), id("out"), &ndx.to_string());
-        arg0.into_iter()
-            .chain(arg1)
-            .chain(arg2)
-            .chain(arg3)
-            .chain(once(d1))
-            .chain(once(assertion))
-            .collect()
+        build_test_case(
+            [
+                t0.typed_bits(),
+                t1.typed_bits(),
+                t2.typed_bits(),
+                t3.typed_bits(),
+            ],
+            q.typed_bits(),
+            ndx,
+        )
     }
 }
 
@@ -247,40 +235,26 @@ where
         let (t0, t1, t2, t3, t4) = args;
         (*self)(t0, t1, t2, t3, t4)
     }
-    fn declaration() -> Vec<Declaration> {
-        vec![
-            declaration(HDLKind::Wire, "out", unsigned_width(Q::bits()), None),
-            declaration(HDLKind::Reg, "arg_0", unsigned_width(T0::bits()), None),
-            declaration(HDLKind::Reg, "arg_1", unsigned_width(T1::bits()), None),
-            declaration(HDLKind::Reg, "arg_2", unsigned_width(T2::bits()), None),
-            declaration(HDLKind::Reg, "arg_3", unsigned_width(T3::bits()), None),
-            declaration(HDLKind::Reg, "arg_4", unsigned_width(T4::bits()), None),
-        ]
+    fn declaration() -> Vec<vlog::Declaration> {
+        decl_list(
+            Q::bits(),
+            &[T0::bits(), T1::bits(), T2::bits(), T3::bits(), T4::bits()],
+        )
     }
-    fn test_case(&self, args: (T0, T1, T2, T3, T4), ndx: usize) -> Vec<Statement> {
+    fn test_case(&self, args: (T0, T1, T2, T3, T4), ndx: usize) -> vlog::stmt::StmtList {
         let (t0, t1, t2, t3, t4) = args;
-        let b0: BitString = t0.typed_bits().into();
-        let b1: BitString = t1.typed_bits().into();
-        let b2: BitString = t2.typed_bits().into();
-        let b3: BitString = t3.typed_bits().into();
-        let b4: BitString = t4.typed_bits().into();
-        let arg0 = maybe_assign("arg_0", &b0);
-        let arg1 = maybe_assign("arg_1", &b1);
-        let arg2 = maybe_assign("arg_2", &b2);
-        let arg3 = maybe_assign("arg_3", &b3);
-        let arg4 = maybe_assign("arg_4", &b4);
         let q = self.apply(args);
-        let q: BitString = q.typed_bits().into();
-        let d1 = delay(0);
-        let assertion = assert(bit_string(&q), id("out"), &ndx.to_string());
-        arg0.into_iter()
-            .chain(arg1)
-            .chain(arg2)
-            .chain(arg3)
-            .chain(arg4)
-            .chain(once(d1))
-            .chain(once(assertion))
-            .collect()
+        build_test_case(
+            [
+                t0.typed_bits(),
+                t1.typed_bits(),
+                t2.typed_bits(),
+                t3.typed_bits(),
+                t4.typed_bits(),
+            ],
+            q.typed_bits(),
+            ndx,
+        )
     }
 }
 
@@ -293,34 +267,28 @@ where
     F: Testable<Args, T0>,
     T0: Digital,
 {
-    let name = &desc.name;
+    let name = format_ident!("{}", desc.name);
     let decls = F::declaration();
     let arguments = decls
         .iter()
-        .filter(|x| x.kind == HDLKind::Reg)
-        .filter(|x| !x.width.is_empty())
-        .map(|x| id(&x.name))
-        .collect();
-    let instance = continuous_assignment("out", function_call(name, arguments));
-    let mut num_cases = 0;
-    let mut cases = vals
-        .inspect(|_| {
-            num_cases += 1;
-        })
+        .filter(|x| x.kind.is_reg())
+        .map(|x| format_ident!("{}", &x.name));
+    let cases = vals
         .enumerate()
-        .flat_map(|(ndx, arg)| uut.test_case(arg, ndx))
-        .collect::<Vec<_>>();
-    cases.push(display("TESTBENCH OK", vec![]));
-    cases.push(finish());
-    let top = Module {
-        name: "testbench".into(),
-        description: format!("Autogenerated testbench for {name}"),
-        declarations: decls,
-        statements: vec![instance, initial(cases)],
-        functions: vec![desc],
-        ..Default::default()
+        .flat_map(|(ndx, arg)| uut.test_case(arg, ndx).0);
+    let module: vlog::ModuleList = parse_quote! {
+        module testbench;
+            #(#decls)*
+            assign out = #name(#(#arguments,)*);
+            initial begin
+                #(#cases)*
+                $display("TESTBENCH OK");
+                $finish;
+            end
+            #desc
+        endmodule
     };
-    top.into()
+    module.into()
 }
 
 // In general, a netlist cannot be reduced to a pure function, as it may contain internal
@@ -329,44 +297,35 @@ where
 // module for the netlist.  That has to go elsewhere.
 fn test_module_for_netlist<F, Args, T0>(
     uut: F,
-    desc: Module,
+    desc: vlog::ModuleList,
     vals: impl Iterator<Item = Args>,
 ) -> TestModule
 where
     F: Testable<Args, T0>,
     T0: Digital,
 {
-    let name = &desc.name;
+    let name = format_ident!("dut");
     let decls = F::declaration();
-    let instance = component_instance(
-        name,
-        "t",
-        decls
-            .iter()
-            .filter(|&decl| !decl.width.is_empty())
-            .map(|decl| connection(&decl.name, id(&decl.name)))
-            .collect(),
-    );
-    let mut statements = vec![];
-    let mut num_cases = 0;
-    statements.extend(
-        vals.inspect(|_| {
-            num_cases += 1;
-        })
+    let connections = decls.iter().map(|decl| {
+        let name = format_ident!("{}", decl.name);
+        quote! {.#name(#name)}
+    });
+    let cases = vals
         .enumerate()
-        .flat_map(|(ndx, arg)| uut.test_case(arg, ndx)),
-    );
-    statements.push(display("TESTBENCH OK", vec![]));
-    statements.push(finish());
-    let top = Module {
-        name: "testbench".into(),
-        description: format!("Autogenerated testbench for {name}"),
-        declarations: decls,
-        statements: vec![instance, initial(statements)],
-        submodules: vec![desc],
-        ..Default::default()
+        .flat_map(|(ndx, arg)| uut.test_case(arg, ndx).0);
+    let module: vlog::ModuleList = parse_quote! {
+        module testbench;
+            #(#decls)*
+            #name t(#(#connections),*);
+            initial begin
+                #(#cases)*
+                $display("TESTBENCH OK");
+                $finish;
+            end
+        endmodule
+        #desc
     };
-    top.into()
+    module.into()
 }
 
 fn test_kernel_vm_and_verilog_with_mode<K, F, Args, T0>(
@@ -412,7 +371,7 @@ where
         }
     }
     debug!("Generating Verilog to run external checks");
-    let vlog = generate_verilog(&rtl)?;
+    let vlog = rtl.as_vlog()?;
     debug!("{}", vlog.pretty());
     let tm = test_module(&uut, vlog, vals.clone());
     tm.run_iverilog()?;
@@ -421,7 +380,7 @@ where
     let ntl = optimize_ntl(ntl)?;
     debug!("{rtl:?}");
     debug!("{ntl:?}");
-    let desc = generate_hdl("dut", &ntl)?;
+    let desc = ntl.as_vlog("dut")?;
     let tm = test_module_for_netlist(uut, desc, vals);
     debug!("Running netlist test");
     debug!("{}", tm);

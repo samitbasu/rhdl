@@ -151,6 +151,22 @@ pub fn declaration(kind: HDLKind, signed_width: Option<SignedWidth>, name: &str)
     }
 }
 
+pub fn wire_decl(name: &str, width: SignedWidth) -> Declaration {
+    Declaration {
+        kind: HDLKind::Wire,
+        signed_width: Some(width),
+        name: name.to_string(),
+    }
+}
+
+pub fn reg_decl(name: &str, width: SignedWidth) -> Declaration {
+    Declaration {
+        kind: HDLKind::Reg,
+        signed_width: Some(width),
+        name: name.to_string(),
+    }
+}
+
 pub fn declaration_list(
     kind: HDLKind,
     signed_width: Option<SignedWidth>,
