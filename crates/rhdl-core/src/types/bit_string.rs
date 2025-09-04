@@ -3,10 +3,25 @@ use crate::{
     bitx::{BitX, bitx_string},
 };
 
+use rhdl_vlog as vlog;
+
 #[derive(Clone, PartialEq, Hash)]
 pub enum BitString {
     Signed(Vec<BitX>),
     Unsigned(Vec<BitX>),
+}
+
+impl From<&BitString> for vlog::LitVerilog {
+    fn from(value: &BitString) -> Self {
+        let bits = value.bits();
+        let len = bits.len();
+        let sign_base = if value.is_signed() { "sb" } else { "b" };
+        let s: String = match value {
+            BitString::Signed(bits) => bitx_string(bits),
+            BitString::Unsigned(bits) => bitx_string(bits),
+        };
+        vlog::lit_verilog(len as u32, &format!("'{}{}", sign_base, s))
+    }
 }
 
 impl From<&BitString> for Kind {

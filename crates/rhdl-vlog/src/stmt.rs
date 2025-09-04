@@ -420,6 +420,27 @@ impl ToTokens for Instance {
 }
 
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct StmtList(pub Vec<Stmt>);
+
+impl Parse for StmtList {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut stmts = Vec::new();
+        while !input.is_empty() {
+            stmts.push(input.parse()?);
+        }
+        Ok(StmtList(stmts))
+    }
+}
+
+impl Pretty for StmtList {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.scoped(|f| {
+            f.lines(&self.0);
+        });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Block {
     pub body: Vec<Stmt>,
 }
