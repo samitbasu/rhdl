@@ -202,6 +202,25 @@ fn test_quote_parse_module_def() -> miette::Result<()> {
 }
 
 #[test]
+fn test_case_uneq() -> miette::Result<()> {
+    let expect = expect_test::expect![[r#"
+        if ((32'b123) !== (junk)) begin
+           $display("ASSERTION FAILED 0x%0h !== 0x%0h CASE foo", 32'b123, junk);
+           $finish;
+        end"#]];
+    let synth = test_parse_quote::<Stmt>(
+        "
+    if ((32'b123) !== (junk)) begin
+        $display(\"ASSERTION FAILED 0x%0h !== 0x%0h CASE foo\", 32'b123, junk);
+        $finish;
+    end
+    ",
+    )?;
+    expect.assert_eq(&synth.to_string());
+    Ok(())
+}
+
+#[test]
 fn test_assignment_with_index() -> miette::Result<()> {
     let expect = expect_test::expect![[r#"
         module foo(input wire [7:0] a, input wire [7:0] b, output wire [7:0] c);

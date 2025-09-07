@@ -119,7 +119,10 @@ impl Parse for UnaryOp {
             let _: Token![^] = input.parse()?;
             Ok(UnaryOp::Xor)
         } else {
-            Err(input.error("expected unary operator"))
+            Err(input.error(format!(
+                "expected unary operator, found {:?}",
+                input.fork().parse::<proc_macro2::TokenTree>()
+            )))
         }
     }
 }
@@ -214,11 +217,25 @@ impl Parse for BinaryOp {
         } else if lookahead.peek(Token![||]) {
             let _: Token![||] = input.parse()?;
             Ok(BinaryOp::ShortOr)
-        } else if lookahead.peek(CaseEqual) {
-            let _: CaseEqual = input.parse()?;
+        } else if lookahead.peek(CaseEqual)
+            || (lookahead.peek(Token![==]) && input.peek2(Token![=]))
+        {
+            if lookahead.peek(Token![==]) {
+                let _: Token![==] = input.parse()?;
+                let _: Token![=] = input.parse()?;
+            } else {
+                let _: CaseEqual = input.parse()?;
+            }
             Ok(BinaryOp::CaseEq)
-        } else if lookahead.peek(CaseUnequal) {
-            let _: CaseUnequal = input.parse()?;
+        } else if lookahead.peek(CaseUnequal)
+            || (lookahead.peek(Token![!=]) && input.peek2(Token![=]))
+        {
+            if lookahead.peek(Token![!=]) {
+                let _: Token![!=] = input.parse()?;
+                let _: Token![=] = input.parse()?;
+            } else {
+                let _: CaseUnequal = input.parse()?;
+            }
             Ok(BinaryOp::CaseNe)
         } else if lookahead.peek(Token![!=]) {
             let _: Token![!=] = input.parse()?;

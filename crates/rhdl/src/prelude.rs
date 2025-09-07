@@ -22,10 +22,6 @@ pub use rhdl_core::circuit::synchronous::SynchronousIO;
 pub use rhdl_core::compile_design;
 pub use rhdl_core::compiler::driver::compile_design_stage1;
 pub use rhdl_core::error::RHDLError;
-pub use rhdl_core::hdl::ast::{Direction, Events, HDLKind, non_blocking_assignment};
-pub use rhdl_core::hdl::ast::{
-    always, assign, bit_string, continuous_assignment, id, if_statement, initial, port,
-};
 pub use rhdl_core::rhif::spec::OpCode;
 pub use rhdl_core::rtl::Object;
 pub use rhdl_core::rtl::vm::execute;
@@ -66,11 +62,7 @@ pub use rhdl_core::types::signal::signal;
 pub use rhdl_core::types::timed::Timed;
 pub use rhdl_core::types::timed_sample::TimedSample;
 pub use rhdl_core::types::timed_sample::timed_sample;
-pub use rhdl_core::{
-    hdl::ast::{Module, signed_width, unsigned_width},
-    types::bit_string::BitString,
-    util::hash_id,
-};
+pub use rhdl_core::{types::bit_string::BitString, util::hash_id};
 pub use rhdl_macro::Circuit;
 pub use rhdl_macro::CircuitDQ;
 pub use rhdl_macro::Digital;
@@ -90,12 +82,13 @@ pub use rhdl_core::bitx::bitx_parse;
 pub use rhdl_core::bitx::bitx_string;
 pub use rhdl_core::bitx_vec;
 pub use rhdl_core::circuit::drc;
-pub use rhdl_core::circuit::fixture::Driver;
+/* pub use rhdl_core::circuit::fixture::Driver;
 pub use rhdl_core::circuit::fixture::ExportError;
 pub use rhdl_core::circuit::fixture::Fixture;
 pub use rhdl_core::circuit::fixture::MountPoint;
 pub use rhdl_core::circuit::fixture::passthrough_input_driver;
 pub use rhdl_core::circuit::fixture::passthrough_output_driver;
+ */
 pub use rhdl_core::const_max;
 pub use rhdl_core::sim::clock_pos_edge::ClockPosEdgeExt;
 pub use rhdl_core::sim::merge::MergeExt;

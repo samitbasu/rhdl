@@ -24,6 +24,9 @@ impl HDLKind {
     pub fn is_reg(&self) -> bool {
         matches!(self, HDLKind::Reg)
     }
+    pub fn is_wire(&self) -> bool {
+        matches!(self, HDLKind::Wire)
+    }
 }
 
 impl Parse for HDLKind {
@@ -64,6 +67,18 @@ pub enum Direction {
     Input,
     Output,
     Inout,
+}
+
+impl Direction {
+    pub fn is_input(&self) -> bool {
+        matches!(self, Direction::Input)
+    }
+    pub fn is_output(&self) -> bool {
+        matches!(self, Direction::Output)
+    }
+    pub fn is_inout(&self) -> bool {
+        matches!(self, Direction::Inout)
+    }
 }
 
 impl Parse for Direction {
@@ -121,9 +136,9 @@ impl From<&std::ops::Range<usize>> for BitRange {
 
 impl Parse for BitRange {
     fn parse(input: ParseStream) -> Result<Self> {
-        let start = input.parse::<LitInt>()?;
-        let _ = input.parse::<Token![:]>()?;
         let end = input.parse::<LitInt>()?;
+        let _ = input.parse::<Token![:]>()?;
+        let start = input.parse::<LitInt>()?;
         let start = start.base10_parse::<u32>()?;
         let end = end.base10_parse::<u32>()?;
         Ok(BitRange { start, end })
@@ -132,9 +147,9 @@ impl Parse for BitRange {
 
 impl Pretty for BitRange {
     fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
-        formatter.write(&self.start.to_string());
-        formatter.write(":");
         formatter.write(&self.end.to_string());
+        formatter.write(":");
+        formatter.write(&self.start.to_string());
     }
 }
 
@@ -142,13 +157,19 @@ impl ToTokens for BitRange {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let start = syn::Index::from(self.start as usize);
         let end = syn::Index::from(self.end as usize);
-        tokens.extend(quote! { #start : #end });
+        tokens.extend(quote! { #end : #start });
     }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct WidthSpec {
     pub bit_range: BitRange,
+}
+
+impl WidthSpec {
+    pub fn len(&self) -> usize {
+        (self.bit_range.start - self.bit_range.end + 1) as usize
+    }
 }
 
 impl Parse for WidthSpec {
@@ -179,6 +200,14 @@ impl ToTokens for WidthSpec {
 pub enum SignedWidth {
     Signed(WidthSpec),
     Unsigned(WidthSpec),
+}
+
+impl SignedWidth {
+    pub fn len(&self) -> usize {
+        match self {
+            SignedWidth::Signed(width) | SignedWidth::Unsigned(width) => width.len(),
+        }
+    }
 }
 
 impl Parse for SignedWidth {
@@ -310,6 +339,12 @@ pub struct Declaration {
     pub name: String,
 }
 
+impl Declaration {
+    pub fn width(&self) -> usize {
+        self.signed_width.as_ref().map(|w| w.len()).unwrap_or(1)
+    }
+}
+
 impl Parse for Declaration {
     fn parse(input: ParseStream) -> Result<Self> {
         let kind = input.parse()?;
@@ -352,6 +387,12 @@ pub struct Port {
     pub decl: Declaration,
 }
 
+impl Port {
+    pub fn width(&self) -> usize {
+        self.decl.width()
+    }
+}
+
 impl Parse for Port {
     fn parse(input: ParseStream) -> Result<Self> {
         let direction = input.parse()?;
@@ -377,7 +418,7 @@ impl ToTokens for Port {
     }
 }
 
-#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize, Debug)]
 pub struct LitVerilog {
     pub width: u32,
     pub value: String,

@@ -7,6 +7,7 @@
 
 use itertools::iproduct;
 use rhdl::prelude::*;
+use test_log::test;
 
 #[cfg(test)]
 mod common;

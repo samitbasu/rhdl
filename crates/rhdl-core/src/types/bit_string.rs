@@ -20,7 +20,7 @@ impl From<&BitString> for vlog::LitVerilog {
             BitString::Signed(bits) => bitx_string(bits),
             BitString::Unsigned(bits) => bitx_string(bits),
         };
-        vlog::lit_verilog(len as u32, &format!("'{}{}", sign_base, s))
+        vlog::lit_verilog(len as u32, &format!("{}{}", sign_base, s))
     }
 }
 

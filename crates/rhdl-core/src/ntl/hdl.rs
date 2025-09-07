@@ -44,22 +44,6 @@ impl From<BitX> for vlog::LitVerilog {
     }
 }
 
-impl From<&BitString> for vlog::LitVerilog {
-    fn from(bit: &BitString) -> Self {
-        vlog::lit_verilog(
-            bit.len() as u32,
-            &std::iter::once('\'')
-                .chain(std::iter::once('b'))
-                .chain(bit.bits().iter().map(|b| match b {
-                    BitX::Zero => '0',
-                    BitX::One => '1',
-                    BitX::X => 'X',
-                }))
-                .collect::<String>(),
-        )
-    }
-}
-
 impl<'a> NetListHDLBuilder<'a> {
     fn new(name: &'_ str, ntl: &'a Object) -> Self {
         Self {

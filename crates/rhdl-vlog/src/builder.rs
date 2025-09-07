@@ -220,6 +220,14 @@ pub fn maybe_decl_wire(num_bits: usize, name: &str) -> Option<Declaration> {
     })
 }
 
+pub fn maybe_decl_reg(num_bits: usize, name: &str) -> Option<Declaration> {
+    (num_bits != 0).then(|| Declaration {
+        kind: HDLKind::Reg,
+        name: name.into(),
+        signed_width: Some(unsigned_width(num_bits)),
+    })
+}
+
 pub fn maybe_connect(
     target: &str,
     source: &str,
