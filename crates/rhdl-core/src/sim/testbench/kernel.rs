@@ -29,7 +29,7 @@ fn assert_stmt(left: TypedBits, right: &str, msg: &str) -> vlog::Stmt {
     let right = format_ident!("{right}");
     let message = format!("ASSERTION FAILED 0x%0h !== 0x%0h CASE {msg}");
     parse_quote! {
-        if (#left) !== (#right) begin
+        if ((#left) !== (#right)) begin
             $display(#message, #left, #right);
             $finish;
         end
@@ -48,8 +48,8 @@ fn build_test_case(
     let delay = vlog::delay_stmt(0);
     let assertion = assert_stmt(q, "out", &ndx.to_string());
     parse_quote! {
-        #(#arguments;)*
-        #delay;
+        #(#arguments)*
+        #delay ;
         #assertion;
     }
 }
@@ -278,16 +278,17 @@ where
         .flat_map(|(ndx, arg)| uut.test_case(arg, ndx).0);
     let module: vlog::ModuleList = parse_quote! {
         module testbench;
-            #(#decls)*
+            #(#decls;)*
             assign out = #name(#(#arguments,)*);
             initial begin
-                #(#cases)*
+                #(#cases;)*
                 $display("TESTBENCH OK");
                 $finish;
             end
             #desc
         endmodule
     };
+    log::info!("Generated test module:\n{}", module.pretty());
     module.into()
 }
 

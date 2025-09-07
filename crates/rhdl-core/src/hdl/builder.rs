@@ -11,7 +11,7 @@ use crate::{
     },
 };
 use quote::{format_ident, quote};
-use rhdl_vlog as vlog;
+use rhdl_vlog::{self as vlog, stmt::StmtKind};
 use rtl::spec as tl;
 use syn::parse_quote;
 
@@ -19,12 +19,13 @@ type Result<T> = std::result::Result<T, RHDLError>;
 
 struct TranslationContext<'a> {
     func: vlog::FunctionDef,
+    body: Vec<vlog::Stmt>,
     rtl: &'a rtl::Object,
 }
 
 impl From<&TypedBits> for vlog::LitVerilog {
     fn from(tb: &TypedBits) -> Self {
-        let bits = "'b"
+        let bits = "b"
             .chars()
             .chain(tb.bits.iter().map(|b| match b {
                 BitX::Zero => '0',
@@ -33,6 +34,12 @@ impl From<&TypedBits> for vlog::LitVerilog {
             }))
             .collect::<String>();
         vlog::lit_verilog(tb.bits.len() as u32, &bits)
+    }
+}
+
+impl From<TypedBits> for vlog::LitVerilog {
+    fn from(tb: TypedBits) -> Self {
+        (&tb).into()
     }
 }
 
@@ -60,8 +67,8 @@ impl TranslationContext<'_> {
             err_span: self.rtl.symbols.span(id).into(),
         })
     }
-    fn add_item(&mut self, item: vlog::Item) {
-        self.func.items.push(item);
+    fn add_stmt(&mut self, stmt: vlog::Stmt) {
+        self.body.push(stmt);
     }
     fn op_ident(&self, op: Operand) -> syn::Ident {
         format_ident!("{}", self.rtl.op_name(op))
@@ -82,7 +89,7 @@ impl TranslationContext<'_> {
         let lhs = self.op_ident(cast.lhs);
         let arg = self.op_ident(cast.arg);
         let msb = syn::Index::from(cast.len - 1);
-        self.add_item(parse_quote! { #lhs[#msb:0] = $signed(#arg) });
+        self.add_stmt(parse_quote! { #lhs[#msb:0] = $signed(#arg) });
         Ok(())
     }
     /// Cast the argument to the desired width, with no error and no sign extension
@@ -93,12 +100,12 @@ impl TranslationContext<'_> {
         let msb = syn::Index::from(cast.len - 1);
         // Truncation case
         if cast.len <= arg_kind.bits() {
-            self.add_item(parse_quote! { #lhs = #arg[#msb:0] });
+            self.add_stmt(parse_quote! { #lhs = #arg[#msb:0] });
         } else {
             // zero extend
             let num_z = syn::Index::from(cast.len - arg_kind.bits());
             let prefix: vlog::Expr = parse_quote!( { #num_z { 1'b0 } }  );
-            self.add_item(parse_quote! { #lhs = { #prefix, #arg } });
+            self.add_stmt(parse_quote! { #lhs = { #prefix, #arg } });
         }
     }
     /// Cast the argument to the desired width, with sign extension if needed.
@@ -110,13 +117,13 @@ impl TranslationContext<'_> {
         if cast.len <= arg_kind.bits() {
             // lhs = $signed(arg[cast.len:0])
             let msb = syn::Index::from(cast.len - 1);
-            self.add_item(parse_quote! { #lhs = $signed(#arg[#msb:0]) });
+            self.add_stmt(parse_quote! { #lhs = $signed(#arg[#msb:0]) });
         } else {
             // sign extend
             let num_s = syn::Index::from(cast.len - arg_kind.bits());
             let sign_bit = syn::Index::from(arg_kind.bits().saturating_sub(1));
             // #lhs = $signed({ {#num_s{arg[#sign_bit]}}, #arg })
-            self.add_item(parse_quote! { #lhs = $signed({ {#num_s{#arg[#sign_bit]}}, #arg }) });
+            self.add_stmt(parse_quote! { #lhs = $signed({ {#num_s{#arg[#sign_bit]}}, #arg }) });
         }
     }
     fn translate_resize(&mut self, cast: &tl::Cast, id: SourceLocation) -> Result<()> {
@@ -151,7 +158,7 @@ impl TranslationContext<'_> {
         // #lhs = #rhs
         let lhs = self.op_ident(assign.lhs);
         let rhs = self.op_ident(assign.rhs);
-        self.add_item(parse_quote! { #lhs = #rhs });
+        self.add_stmt(parse_quote! { #lhs = #rhs });
         Ok(())
     }
     fn translate_binary(&mut self, binary: &tl::Binary) -> Result<()> {
@@ -174,7 +181,7 @@ impl TranslationContext<'_> {
             tl::AluBinary::Ge => vlog::kw_ops::BinaryOp::Ge,
             tl::AluBinary::Gt => vlog::kw_ops::BinaryOp::Gt,
         };
-        self.add_item(parse_quote! { #lhs = #arg1 #op #arg2 });
+        self.add_stmt(parse_quote! { #lhs = #arg1 #op #arg2 });
         Ok(())
     }
     fn translate_case(&mut self, case: &tl::Case) -> Result<()> {
@@ -190,7 +197,7 @@ impl TranslationContext<'_> {
                 CaseArgument::Wild => quote! { default : #lhs = #value },
             }
         });
-        self.add_item(parse_quote! {
+        self.add_stmt(parse_quote! {
             case (#discriminant)
                 #(#table;)*
             endcase
@@ -200,14 +207,14 @@ impl TranslationContext<'_> {
     fn translate_concat(&mut self, concat: &tl::Concat) -> Result<()> {
         let args = concat.args.iter().rev().map(|arg| self.op_ident(*arg));
         let lhs = self.op_ident(concat.lhs);
-        self.add_item(parse_quote! { #lhs = { #(#args),* } });
+        self.add_stmt(parse_quote! { #lhs = { #(#args),* } });
         Ok(())
     }
     fn translate_index(&mut self, index: &tl::Index) -> Result<()> {
         let lhs = self.op_ident(index.lhs);
         let arg = self.op_ident(index.arg);
         let range: vlog::BitRange = (&index.bit_range).into();
-        self.add_item(parse_quote! { #lhs = #arg[#range] });
+        self.add_stmt(parse_quote! { #lhs = #arg[#range] });
         Ok(())
     }
     fn translate_select(&mut self, select: &tl::Select) -> Result<()> {
@@ -215,7 +222,7 @@ impl TranslationContext<'_> {
         let cond = self.op_ident(select.cond);
         let true_value = self.op_ident(select.true_value);
         let false_value = self.op_ident(select.false_value);
-        self.add_item(parse_quote! {
+        self.add_stmt(parse_quote! {
             #lhs = #cond ? #true_value : #false_value
         });
         Ok(())
@@ -225,14 +232,14 @@ impl TranslationContext<'_> {
         let orig = self.op_ident(splice.orig);
         let value = self.op_ident(splice.value);
         let range: vlog::BitRange = (&splice.bit_range).into();
-        self.add_item(parse_quote! { #lhs = #orig });
-        self.add_item(parse_quote! { #lhs[#range] = #value });
+        self.add_stmt(parse_quote! { #lhs = #orig });
+        self.add_stmt(parse_quote! { #lhs[#range] = #value });
         Ok(())
     }
     fn translate_unary(&mut self, unary: &tl::Unary) -> Result<()> {
         let lhs = self.op_ident(unary.lhs);
         let arg1 = self.op_ident(unary.arg1);
-        self.add_item(match unary.op {
+        self.add_stmt(match unary.op {
             AluUnary::Neg => parse_quote! {#lhs = -#arg1},
             AluUnary::Not => parse_quote! {#lhs = ~#arg1},
             AluUnary::All => parse_quote! {#lhs = &#arg1},
@@ -295,7 +302,7 @@ impl TranslationContext<'_> {
                 let alias = self.rtl.op_alias(Operand::Register(rid));
                 let name = self.op_ident(Operand::Register(rid));
                 let width: vlog::SignedWidth = (*kind).into();
-                parse_quote! { reg #width #name }
+                parse_quote! { reg #width #name;}
             })
             .collect::<Vec<vlog::Item>>();
         // Declare the literals for the function
@@ -308,7 +315,7 @@ impl TranslationContext<'_> {
                 let name = self.op_ident(Operand::Literal(lit));
                 let value: vlog::LitVerilog = tb.into();
                 parse_quote! {
-                    localparam #value #name
+                    localparam #name = #value;
                 }
             })
             .collect::<Vec<vlog::Item>>();
@@ -320,15 +327,17 @@ impl TranslationContext<'_> {
             if let Some(reg) = reg {
                 let reg_name = self.op_ident(Operand::Register(*reg));
                 let arg_name = format_ident!("arg_{ndx}");
-                self.func.items.push(parse_quote! { #reg_name = #arg_name });
+                self.add_stmt(parse_quote! { #reg_name = #arg_name });
             }
         }
         self.translate_block(&self.rtl.ops)?;
         let ret_reg = self.op_ident(self.rtl.return_register);
         let ret_name = format_ident!("{}", self.func.name);
-        self.add_item(parse_quote! {
+        self.add_stmt(parse_quote! {
             #ret_name = #ret_reg
         });
+        let block = vlog::block_stmt(self.body);
+        self.func.items.push(vlog::Item::Statement(block.into()));
         Ok(self.func)
     }
 }
@@ -341,6 +350,7 @@ fn translate(object: &crate::rtl::Object) -> Result<vlog::FunctionDef> {
             args: vec![],
             items: vec![],
         },
+        body: vec![],
         rtl: object,
     };
     context.translate_kernel_for_object()

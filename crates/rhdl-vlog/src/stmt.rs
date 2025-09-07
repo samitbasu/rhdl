@@ -453,7 +453,10 @@ impl Parse for Block {
             if input.peek(kw::end) {
                 break;
             }
-            body.push(input.parse()?);
+            let stmt = input.parse::<Stmt>()?;
+            if !matches!(stmt.kind, StmtKind::Noop) {
+                body.push(stmt);
+            }
         }
         let _end = input.parse::<kw::end>()?;
         Ok(Self { body })
