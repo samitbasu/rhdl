@@ -56,11 +56,16 @@ fn build_test_case(
 
 fn decl_list(q_len: usize, arg_sizes: &[usize]) -> Vec<vlog::Declaration> {
     std::iter::once(vlog::wire_decl("out", vlog::unsigned_width(q_len)))
-        .chain(
-            arg_sizes.iter().enumerate().map(|(ndx, &size)| {
-                vlog::reg_decl(&format!("arg_{ndx}"), vlog::unsigned_width(size))
-            }),
-        )
+        .chain(arg_sizes.iter().enumerate().filter_map(|(ndx, &size)| {
+            if size != 0 {
+                Some(vlog::reg_decl(
+                    &format!("arg_{ndx}"),
+                    vlog::unsigned_width(size),
+                ))
+            } else {
+                None
+            }
+        }))
         .collect()
 }
 
@@ -279,7 +284,7 @@ where
     let module: vlog::ModuleList = parse_quote! {
         module testbench;
             #(#decls;)*
-            assign out = #name(#(#arguments,)*);
+            assign out = #name(#(#arguments),*);
             initial begin
                 #(#cases;)*
                 $display("TESTBENCH OK");
@@ -288,7 +293,7 @@ where
             #desc
         endmodule
     };
-    log::info!("Generated test module:\n{}", module.pretty());
+    log::debug!("Generated test module:\n{}", module.pretty());
     module.into()
 }
 
@@ -316,7 +321,7 @@ where
         .flat_map(|(ndx, arg)| uut.test_case(arg, ndx).0);
     let module: vlog::ModuleList = parse_quote! {
         module testbench;
-            #(#decls)*
+            #(#decls;)*
             #name t(#(#connections),*);
             initial begin
                 #(#cases)*

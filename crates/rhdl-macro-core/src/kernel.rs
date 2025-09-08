@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use inflections::Inflect;
 use quote::{format_ident, quote};
 use syn::{
-    parse::Parser, punctuated::Punctuated, spanned::Spanned, token::Comma, FnArg, Ident, Pat,
-    PatType, Path, ReturnType, Token,
+    FnArg, Ident, Pat, PatType, Path, ReturnType, Token, parse::Parser, punctuated::Punctuated,
+    spanned::Spanned, token::Comma,
 };
 
 // use crate::suffix::CustomSuffix;
@@ -174,14 +174,14 @@ fn rewrite_pattern_to_use_dont_care_for_bindings(pat: &syn::Pat) -> TS {
                 .elems
                 .iter()
                 .map(rewrite_pattern_to_use_dont_care_for_bindings);
-            quote! { [#(#elems),*] }
+            quote! { [#(#elems,)*] }
         }
         Pat::Tuple(tuple) => {
             let elems = tuple
                 .elems
                 .iter()
                 .map(rewrite_pattern_to_use_dont_care_for_bindings);
-            quote! { (#(#elems),*) }
+            quote! { (#(#elems,)*) }
         }
         Pat::Struct(struct_) => {
             let path = &struct_.path;
@@ -190,7 +190,7 @@ fn rewrite_pattern_to_use_dont_care_for_bindings(pat: &syn::Pat) -> TS {
                 let field_pat = rewrite_pattern_to_use_dont_care_for_bindings(&x.pat);
                 quote!( #field_name: #field_pat)
             });
-            quote! { #path {#(#fields),*} }
+            quote! { #path {#(#fields,)*} }
         }
         Pat::TupleStruct(tuple) => {
             let path = &tuple.path;
@@ -198,7 +198,7 @@ fn rewrite_pattern_to_use_dont_care_for_bindings(pat: &syn::Pat) -> TS {
                 .elems
                 .iter()
                 .map(rewrite_pattern_to_use_dont_care_for_bindings);
-            quote! { #path (#(#elems),*) }
+            quote! { #path (#(#elems,)*) }
         }
         Pat::Type(ty) => rewrite_pattern_to_use_dont_care_for_bindings(&ty.pat),
         Pat::Wild(_) => quote! { Digital::dont_care() },
@@ -561,7 +561,7 @@ impl Context {
                     return Err(syn::Error::new(
                         arg.span(),
                         "Unsupported receiver in rhdl kernel function",
-                    ))
+                    ));
                 }
                 syn::FnArg::Typed(pat) => {
                     self.add_scoped_binding(&pat.pat)?;
@@ -884,7 +884,9 @@ impl Context {
             if (x.args.len() != 1) || (TURBO_METHODS.iter().all(|x| method != x)) {
                 return Err(syn::Error::new(
                     x.span(),
-                    format!("Unsupported turbofish in rhdl kernel function - only {TURBO_METHODS:?} are supported")
+                    format!(
+                        "Unsupported turbofish in rhdl kernel function - only {TURBO_METHODS:?} are supported"
+                    ),
                 ));
             }
             let x = x.args.iter().next().unwrap();
@@ -1428,7 +1430,7 @@ impl Context {
                 return Err(syn::Error::new(
                     arguments.span(),
                     "Unsupported path arguments in rhdl kernel function",
-                ))
+                ));
             }
         };
         Ok(quote! {
@@ -1500,7 +1502,7 @@ impl Context {
                 return Err(syn::Error::new(
                     unary.span(),
                     "Unsupported unary operator in rhdl kernel function",
-                ))
+                ));
             }
         };
         let expr = self.expr(&unary.expr)?;
@@ -1539,7 +1541,7 @@ impl Context {
                 return Err(syn::Error::new(
                     binary.span(),
                     "Unsupported binary operator in rhdl kernel function",
-                ))
+                ));
             }
         };
         let left = self.expr(&binary.left)?;

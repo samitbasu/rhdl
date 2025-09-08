@@ -1,5 +1,6 @@
 use common::exhaustive;
 use rhdl::{core::ntl::spec::OpCode, prelude::*};
+use test_log::test;
 
 pub mod common;
 

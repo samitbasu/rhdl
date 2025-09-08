@@ -40,7 +40,7 @@ impl Pass for RemoveExtraRegistersPass {
             reg_map.iter().map(|(&op, &key)| (key, op)).collect();
         // Loop over the operands, and for every operand that is an assignment,
         // union the arguments in the table
-        log::info!("Remove extra registers: {input:?}");
+        log::debug!("Remove extra registers: {input:?}");
         for op in &input.ops {
             if let OpCode::Assign(assign) = &op.op {
                 if let (Some(lhs_reg), Some(rhs_reg)) = (assign.lhs.reg(), assign.rhs.reg()) {

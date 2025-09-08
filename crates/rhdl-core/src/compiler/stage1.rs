@@ -1,4 +1,4 @@
-use log::info;
+use log::debug;
 
 use crate::{
     compiler::{
@@ -32,9 +32,9 @@ use crate::{
 type Result<T> = std::result::Result<T, RHDLError>;
 
 fn wrap_pass<P: Pass>(obj: Object) -> Result<Object> {
-    info!("Running Stage 1 Compiler Pass {}", P::description());
+    debug!("Running Stage 1 Compiler Pass {}", P::description());
     let obj = P::run(obj)?;
-    info!("Pass complete - checking symbol table");
+    debug!("Pass complete - checking symbol table");
     let obj = SymbolTableIsComplete::run(obj)?;
     Ok(obj)
 }
@@ -67,7 +67,7 @@ pub(crate) fn compile(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
         hash = new_hash;
     }
     if matches!(mode, CompilationMode::Asynchronous) {
-        info!(
+        debug!(
             "Running Stage 1 Compiler Pass {}",
             CheckClockDomain::description()
         );
@@ -96,17 +96,17 @@ pub(crate) fn compile(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
         }
         hash = new_hash;
     }
-    info!(
+    debug!(
         "Running Stage 1 Compiler Pass {}",
         TypeCheckPass::description()
     );
     obj = TypeCheckPass::run(obj)?;
-    info!(
+    debug!(
         "Running Stage 1 Compiler Pass {}",
         DataFlowCheckPass::description()
     );
     obj = DataFlowCheckPass::run(obj)?;
-    info!(
+    debug!(
         "Running Stage 1 Compiler Pass {}",
         PartialInitializationCheck::description()
     );

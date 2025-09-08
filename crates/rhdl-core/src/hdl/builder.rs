@@ -27,7 +27,7 @@ impl From<&TypedBits> for vlog::LitVerilog {
     fn from(tb: &TypedBits) -> Self {
         let bits = "b"
             .chars()
-            .chain(tb.bits.iter().map(|b| match b {
+            .chain(tb.bits.iter().rev().map(|b| match b {
                 BitX::Zero => '0',
                 BitX::One => '1',
                 BitX::X => 'X',
@@ -181,6 +181,7 @@ impl TranslationContext<'_> {
             tl::AluBinary::Ge => vlog::kw_ops::BinaryOp::Ge,
             tl::AluBinary::Gt => vlog::kw_ops::BinaryOp::Gt,
         };
+        log::trace!("Translating binary op: {lhs} = {arg1} {op:?} {arg2}");
         self.add_stmt(parse_quote! { #lhs = #arg1 #op #arg2 });
         Ok(())
     }
@@ -243,7 +244,7 @@ impl TranslationContext<'_> {
             AluUnary::Neg => parse_quote! {#lhs = -#arg1},
             AluUnary::Not => parse_quote! {#lhs = ~#arg1},
             AluUnary::All => parse_quote! {#lhs = &#arg1},
-            AluUnary::Any => parse_quote! {#lhs = |#arg1|},
+            AluUnary::Any => parse_quote! {#lhs = |#arg1},
             AluUnary::Xor => parse_quote! {#lhs = ^#arg1},
             AluUnary::Signed => parse_quote! {#lhs = $signed(#arg1)},
             AluUnary::Unsigned => parse_quote! {#lhs = $unsigned(#arg1)},

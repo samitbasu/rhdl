@@ -120,7 +120,7 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
             })
             .collect::<Result<Vec<TokenStream>, RHDLError>>()?;
         let module: vlog::ModuleDef = parse_quote! {
-            module #module_ident(#(#ports,)*);
+            module #module_ident(#(#ports),*);
                 #(#child_decls);*
             endmodule
         };

@@ -142,7 +142,7 @@ where
         };
         let module_ident = format_ident!("{name}");
         let module: vlog::ModuleDef = parse_quote! {
-            module #module_ident(input wire [1:0] clock_reset, #(#ports,)*);
+            module #module_ident(input wire [1:0] clock_reset, #(#ports),*);
                 #pipe
                 #a_ident a(.clock_reset(clock_reset), .o(pipe), #a_input_binding);
                 #b_ident b(.clock_reset(clock_reset), .i(pipe), .o(o));

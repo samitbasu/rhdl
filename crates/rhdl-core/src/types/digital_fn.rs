@@ -2,7 +2,7 @@
 
 use rhdl_bits::BitWidth;
 
-pub use crate::{kernel::KernelFnKind, Digital, Kind};
+pub use crate::{Digital, Kind, kernel::KernelFnKind};
 
 pub trait DigitalFn {
     fn kernel_fn() -> Option<KernelFnKind> {
@@ -142,7 +142,7 @@ macro_rules! describable {
             {
                 fn describe() -> DigitalSignature {
                     DigitalSignature {
-                        arguments: vec![$($arg::static_kind(),)*],
+                        arguments: vec![$($arg::static_kind()),*],
                         ret: $res::static_kind(),
                     }
                 }

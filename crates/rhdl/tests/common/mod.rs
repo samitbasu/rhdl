@@ -28,6 +28,14 @@ pub fn tuple_pair_b8_red() -> impl Iterator<Item = (Signal<b8, Red>, Signal<b8, 
     })
 }
 
+pub fn tuple_pair_b4_red() -> impl Iterator<Item = (Signal<b4, Red>, Signal<b4, Red>)> + Clone {
+    exhaustive::<U4>().into_iter().flat_map(|x| {
+        exhaustive::<U4>()
+            .into_iter()
+            .map(move |y| (red(x), red(y)))
+    })
+}
+
 pub fn tuple_pair_s8_red() -> impl Iterator<Item = (Signal<s8, Red>, Signal<s8, Red>)> + Clone {
     exhaustive::<U8>().into_iter().flat_map(|x| {
         exhaustive::<U8>()
