@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{spanned::Spanned, Data, DeriveInput};
+use syn::{Data, DeriveInput, spanned::Spanned};
 
 use crate::utils::FieldSet;
 
@@ -46,7 +46,7 @@ fn define_init_fn(field_set: &FieldSet) -> TokenStream {
         fn init(&self) -> Self::S {
             (
                 <<Self as rhdl::core::SynchronousDQ>::Q as rhdl::core::Digital>::dont_care(),
-                #(self.#component_name.init(),)*
+                #(self.#component_name.init()),*
             )
         }
     }

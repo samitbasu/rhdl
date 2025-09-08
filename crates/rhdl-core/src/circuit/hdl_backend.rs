@@ -8,6 +8,8 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use rhdl_vlog as vlog;
 use syn::parse_quote;
+use syn::parse_quote_spanned;
+use syn::spanned::Spanned;
 
 pub fn build_hdl<C: Circuit>(
     circuit: &C,
@@ -65,9 +67,9 @@ pub fn build_hdl<C: Circuit>(
     });
     let module: vlog::ModuleDef = parse_quote! {
         module #module_ident(#(#ports),*);
-            #(#declarations)*
+            #(#declarations;)*
             assign o = od[#output_range];
-            #(#child_decls)*
+            #(#child_decls;)*
             #d_bind
             assign od = #kernel_name(#i_bind, #q_bind);
             #kernel
@@ -94,6 +96,7 @@ pub fn build_synchronous_hdl<C: Synchronous>(
         vlog::maybe_port_wire(vlog::Direction::Input, C::I::bits(), "i"),
         vlog::maybe_port_wire(vlog::Direction::Output, C::O::bits(), "o"),
     ];
+    let ports = ports.iter().flatten();
     let declarations = [
         vlog::maybe_decl_wire(C::O::bits() + C::D::bits(), "od"),
         vlog::maybe_decl_wire(C::D::bits(), "d"),
@@ -118,7 +121,7 @@ pub fn build_synchronous_hdl<C: Synchronous>(
                 #component_name #component_instance(
                     .clock_reset(clock_reset),
                     #input_binding,
-                    #output_binding,
+                    #output_binding
                 )
             })
         })
@@ -131,6 +134,8 @@ pub fn build_synchronous_hdl<C: Synchronous>(
     // Call the verilog function with (clock_reset, i, q), if they exist.
     let i_bind = (C::I::bits() != 0).then(|| format_ident!("i"));
     let q_bind = (C::Q::bits() != 0).then(|| format_ident!("q"));
+    let args = [Some(format_ident!("clock_reset")), i_bind, q_bind];
+    let args = args.iter().flatten();
     let kernel_name = format_ident!("{}", kernel.name);
     let module_ident = format_ident!("{}", descriptor.unique_name);
     let output_range: vlog::BitRange = (0..outputs).into();
@@ -140,11 +145,11 @@ pub fn build_synchronous_hdl<C: Synchronous>(
     });
     let module: vlog::ModuleDef = parse_quote! {
         module #module_ident(#(#ports),*);
-            #(#declarations)*
+            #(#declarations;)*
             assign o = od[#output_range];
-            #(#child_decls)*
+            #(#child_decls;)*
             #d_bind
-            assign od = #kernel_name(clock_reset, #i_bind, #q_bind);
+            assign od = #kernel_name(#(#args),*);
             #kernel
         endmodule
     };

@@ -67,7 +67,7 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         let connections = [arg1_connection, arg2_connection];
         let uut_name = format_ident!("{}", uut.name);
         let declarations = [
-            maybe_decl_wire(I::BITS, "i"),
+            maybe_decl_reg(I::BITS, "i"),
             maybe_decl_wire(O::BITS, "o"),
             maybe_decl_reg(O::BITS, "rust_out"),
         ];
@@ -104,12 +104,12 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
                 && test_case_counter > 0
                 && test_case_counter >= options.skip_first_cases
             {
-                let message = format!("Test {test_case_counter} at time {sample_time}");
-                let hold_time = syn::Index::from(options.hold_time as usize);
+                let message = format!("TESTBENCH FAILED: Expected %b, got %b -- Test {test_case_counter} at time {sample_time}");
+                let hold_time = vlog::delay_stmt(options.hold_time);
                 let fragment = quote! {
-                    # #hold_time;
+                    #hold_time;
                     if (o !== rust_out) begin
-                        $display("TESTBENCH FAILED: Expected %b, got %b -- " #message, rust_out, o);
+                        $display(#message, rust_out, o);
                         $finish;
                     end
                 };
@@ -118,7 +118,7 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
             } else {
                 quote! {}
             };
-            let delay = syn::Index::from(sample_time.saturating_sub(absolute_time) as usize);
+            let delay = vlog::delay_stmt(sample_time.saturating_sub(absolute_time));
             absolute_time = sample_time;
             let input_update = if has_nonempty_input {
                 let bin: LitVerilog = sample_i.typed_bits().into();
@@ -131,7 +131,7 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
             let output_bin: LitVerilog = sample_o.typed_bits().into();
             quote! {
                 #preamble
-                # #delay;
+                #delay;
                 #input_update
                 rust_out = #output_bin;
             }
@@ -139,7 +139,7 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         let module: vlog::ModuleList = parse_quote! {
             module testbench;
                 #(#declarations;)*
-                #uut_name t(#(#connections,)*);
+                #uut_name t(#(#connections),*);
                 initial begin
                     #preamble
                     #(#test_cases)*

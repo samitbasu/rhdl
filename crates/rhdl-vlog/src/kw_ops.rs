@@ -218,7 +218,7 @@ impl Parse for BinaryOp {
             let _: Token![||] = input.parse()?;
             Ok(BinaryOp::ShortOr)
         } else if lookahead.peek(CaseEqual)
-            || (lookahead.peek(Token![==]) && input.peek2(Token![=]))
+            || (lookahead.peek(Token![==]) && input.peek3(Token![=]))
         {
             if lookahead.peek(Token![==]) {
                 let _: Token![==] = input.parse()?;
@@ -228,7 +228,7 @@ impl Parse for BinaryOp {
             }
             Ok(BinaryOp::CaseEq)
         } else if lookahead.peek(CaseUnequal)
-            || (lookahead.peek(Token![!=]) && input.peek2(Token![=]))
+            || (lookahead.peek(Token![!=]) && input.peek3(Token![=]))
         {
             if lookahead.peek(Token![!=]) {
                 let _: Token![!=] = input.parse()?;

@@ -37,9 +37,9 @@ struct NetListHDLBuilder<'a> {
 impl From<BitX> for vlog::LitVerilog {
     fn from(bit: BitX) -> Self {
         match bit {
-            BitX::Zero => vlog::lit_verilog(1, "'b0"),
-            BitX::One => vlog::lit_verilog(1, "'b1"),
-            BitX::X => vlog::lit_verilog(1, "'bX"),
+            BitX::Zero => vlog::lit_verilog(1, "b0"),
+            BitX::One => vlog::lit_verilog(1, "b1"),
+            BitX::X => vlog::lit_verilog(1, "bX"),
         }
     }
 }
@@ -327,7 +327,7 @@ impl<'a> NetListHDLBuilder<'a> {
                 wires.extend(black_box.lhs.iter().copied().flat_map(Wire::reg))
             }
         }
-        let mut declarations = registers
+        let declarations = registers
             .difference(&wires)
             .map(|ndx| {
                 let name = format_ident!("{}", ndx.to_string());
@@ -344,7 +344,7 @@ impl<'a> NetListHDLBuilder<'a> {
                 let target = self.reg(Wire::Register(reg), None)?;
                 let bit = syn::Index::from(bit);
                 let arg = format_ident!("arg_{ndx}");
-                self.add_stmt(parse_quote! {assign #target = #arg[#bit]})
+                self.add_stmt(parse_quote! {#target = #arg[#bit]})
             }
         }
         let submodules = self
@@ -398,12 +398,11 @@ impl<'a> NetListHDLBuilder<'a> {
         };
         let name = format_ident!("{}", self.name);
         Ok(parse_quote! {
-            module #name(#(#ports,)*);
-            #(#declarations)*
-            #(#instances)*
-            #body
-            endmodule;
-
+            module #name(#(#ports),*);
+                #(#declarations;)*
+                #(#instances;)*
+                #body
+            endmodule
             #(#submodules)*
         })
     }

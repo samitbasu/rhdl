@@ -66,6 +66,10 @@ impl Parse for StmtKind {
         } else if lookahead.peek(Token![;]) {
             Ok(StmtKind::Noop)
         } else {
+            log::trace!("Unexpected statement kind");
+            log::trace!("Input stream: {}", input);
+            let next: proc_macro2::TokenStream = input.fork().parse()?;
+            log::trace!("Next: {}", next);
             Err(lookahead.error())
         }
     }

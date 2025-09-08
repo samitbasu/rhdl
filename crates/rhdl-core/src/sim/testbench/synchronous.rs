@@ -46,6 +46,7 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
         } else {
             &uut.args[1]
         };
+        log::trace!("Building testbench for UUT with ports: {:?}", uut.args);
         if !uut.args[0].direction.is_input() || uut.args[0].width() != 2 {
             return Err(RHDLError::TestbenchConstructionError(
                 "First port must be an input with 2 bits width".into(),
@@ -85,6 +86,7 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
             maybe_decl_reg(O::BITS, "rust_out"),
         ];
         let connections = [arg0_connection, arg1_connection, arg2_connection];
+        let connections = connections.iter().flatten();
         let preamble = if let Some(vcd_file) = &options.vcd_file {
             // Also write out an RTT file for this VCD that can be loaded
             // afterwards to provide type information for the VCD
@@ -126,12 +128,12 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
                     && test_case_counter > 0
                     && test_case_counter >= options.skip_first_cases
                 {
-                    let message = format!("Test {test_case_counter} at time {absolute_time}");
-                    let hold_time = syn::Index::from(options.hold_time as usize);
+                    let message = format!("TESTBENCH FAILED: Expected %b, got %b Test {test_case_counter} at time {absolute_time}");
+                    let hold_time = vlog::delay_stmt(options.hold_time);
                     let fragment = quote! {
-                        # #hold_time;
+                        #hold_time;
                         if (o !== rust_out) begin
-                            $display("TESTBENCH FAILED: Expected %b, got %b -- " #message, rust_out, o);
+                            $display(#message, rust_out, o);
                             $finish;
                         end
                     };
@@ -140,9 +142,11 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
                 } else {
                     quote! {}
                 };
-                let delay = syn::Index::from(sample_time.saturating_sub(absolute_time) as usize);
+                let delay = vlog::delay_stmt(sample_time.saturating_sub(absolute_time));
                 absolute_time = sample_time;
-                let cr : vlog::LitVerilog = clock_reset(sample_cr.clock, sample_cr.reset).typed_bits().into();
+                let cr: vlog::LitVerilog = clock_reset(sample_cr.clock, sample_cr.reset)
+                    .typed_bits()
+                    .into();
                 let input_update = if has_nonempty_input {
                     let bin: vlog::LitVerilog = sample_i.typed_bits().into();
                     quote! {
@@ -154,7 +158,7 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
                 let output_bin: vlog::LitVerilog = sample_o.typed_bits().into();
                 quote! {
                     #preamble
-                    # #delay;
+                    #delay;
                     clock_reset = #cr;
                     #input_update
                     rust_out = #output_bin;

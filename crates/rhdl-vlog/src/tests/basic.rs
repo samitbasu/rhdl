@@ -5,6 +5,8 @@ use crate::{
     tests::{test_parse, test_parse_quote},
 };
 
+use test_log::test;
+
 #[test]
 fn test_to_tokens_signed_width() -> miette::Result<()> {
     let expect = expect_test::expect!["signed [4:0]"];
@@ -118,6 +120,22 @@ fn test_quote_parse_signed() -> miette::Result<()> {
 }
 
 #[test]
+fn test_quote_parse_equality() -> miette::Result<()> {
+    let expect = expect_test::expect!["or2 = or1 == or0"];
+    let synth = test_parse_quote::<Stmt>("or2 = or1 == or0;")?;
+    expect.assert_eq(&synth.to_string());
+    Ok(())
+}
+
+#[test]
+fn test_quote_parse_equality_expression() -> miette::Result<()> {
+    let expect = expect_test::expect!["or1 == or0"];
+    let synth = test_parse_quote::<Expr>("or1 == or0")?;
+    expect.assert_eq(&synth.to_string());
+    Ok(())
+}
+
+#[test]
 fn test_quote_parse_stmt_if() -> miette::Result<()> {
     let expect = expect_test::expect![[r#"
         begin
@@ -215,6 +233,43 @@ fn test_case_uneq() -> miette::Result<()> {
         $finish;
     end
     ",
+    )?;
+    expect.assert_eq(&synth.to_string());
+    Ok(())
+}
+
+#[test]
+fn test_module_arg_issue() -> miette::Result<()> {
+    let expect = expect_test::expect![[r#"
+        module uut(input wire [1:0] clock_reset, output wire [0:0] o);
+           wire [4:0] od;
+           wire [3:0] d;
+           wire [0:0] q;
+           assign o = od[0:0];
+           uut_anyer c0(.clock_reset(clock_reset), .i(d[3:0]), .o(q[0:0]));
+           assign d = od[4:1];
+           assign od = kernel_parent(clock_reset, q);
+           function [4:0] kernel_parent(input reg [1:0] arg_0, input reg [0:0] arg_2);
+                 reg [0:0] or0;
+                 reg [4:0] or1;
+                 reg [1:0] or2;
+                 localparam ol0 = 4'b0011;
+                 begin
+                    or2 = arg_0;
+                    or0 = arg_2;
+                    or1 = {ol0, or0};
+                    kernel_parent = or1;
+                 end
+           endfunction
+        endmodule
+    "#]];
+    let synth = test_parse_quote::<ModuleList>(
+        "module uut (input wire [1 : 0] clock_reset , output wire [0 : 0] o) ; wire [4 : 0] od ;
+         wire [3 : 0] d ; wire [0 : 0] q ; assign o = od [0 : 0] ; uut_anyer c0 (. clock_reset (clock_reset) , 
+         . i (d [3 : 0]) , . o (q [0 : 0])) ; assign d = od [4 : 1] ; assign od = kernel_parent (clock_reset , q) ;
+         function [4 : 0] kernel_parent (input reg [1 : 0] arg_0 , input reg [0 : 0] arg_2) ; reg [0 : 0] or0 ; 
+         reg [4 : 0] or1 ; reg [1 : 0] or2 ; localparam ol0 = 4 'b0011 ; begin or2 = arg_0 ; or0 = arg_2 ; 
+         or1 = { ol0 , or0 } ; kernel_parent = or1 ; end endfunction endmodule",
     )?;
     expect.assert_eq(&synth.to_string());
     Ok(())

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+log = "0.4.28"
 miette = { version = "7.6.0", features = ["fancy"] }
 proc-macro2 = { version = "1.0.97", default-features = false }
 quote = "1.0.40"
@@ -13,6 +14,7 @@ syn-miette = "0.3.0"
 
 [dev-dependencies]
 expect-test = "1.5.1"
+test-log = "0.2.18"
 
 # Optional: Add coverage-specific configuration
 [profile.coverage]

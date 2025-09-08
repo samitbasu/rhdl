@@ -27,7 +27,7 @@ use log::{debug, info};
 type Result<T> = std::result::Result<T, RHDLError>;
 
 fn wrap_pass<P: Pass>(obj: rtl::Object) -> Result<rtl::Object> {
-    info!("Running Stage 2 compiler Pass {}", P::description());
+    debug!("Running Stage 2 compiler Pass {}", P::description());
     P::run(obj)
 }
 

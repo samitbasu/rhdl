@@ -2,6 +2,7 @@ use crate::{
     ParenCommaList,
     formatter::{Formatter, Pretty},
 };
+use proc_macro2::TokenTree;
 use quote::{ToTokens, format_ident, quote};
 use serde::{Deserialize, Serialize};
 use syn::{
@@ -94,6 +95,12 @@ impl Parse for Direction {
             let _ = input.parse::<kw::inout>()?;
             Ok(Direction::Inout)
         } else {
+            let next: TokenTree = input.parse()?;
+            log::error!(
+                "Expected input, output, or inout, but got token: {:?}.  Remainer of input is {}",
+                next,
+                input
+            );
             Err(lookahead.error())
         }
     }
@@ -129,7 +136,7 @@ impl From<&std::ops::Range<usize>> for BitRange {
     fn from(r: &std::ops::Range<usize>) -> Self {
         BitRange {
             start: r.start as u32,
-            end: r.end as u32,
+            end: (r.end as u32).saturating_sub(1),
         }
     }
 }
@@ -168,7 +175,7 @@ pub struct WidthSpec {
 
 impl WidthSpec {
     pub fn len(&self) -> usize {
-        (self.bit_range.start - self.bit_range.end + 1) as usize
+        (self.bit_range.end - self.bit_range.start + 1) as usize
     }
 }
 

@@ -77,7 +77,7 @@ impl<I: Timed, O: Timed> Circuit for AsyncFunc<I, O> {
             .as_vlog()?;
         let function_name = format_ident!("{}", function_def.name);
         let module: vlog::ModuleDef = parse_quote! {
-            module #module_name_ident(#(#ports,)*);
+            module #module_name_ident(#(#ports),*);
                 assign o = #function_name(#i_bind);
                 #function_def
             endmodule

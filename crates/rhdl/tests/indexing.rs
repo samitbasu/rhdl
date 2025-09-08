@@ -12,6 +12,7 @@ mod common;
 #[cfg(test)]
 use common::*;
 use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
+use test_log::test;
 
 #[test]
 fn test_tuple_struct_indexing() -> miette::Result<()> {
@@ -54,7 +55,7 @@ fn test_struct_field_indexing() -> miette::Result<()> {
 #[test]
 fn test_array_indexing_simple() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<[b8; 2], Red> {
+    fn foo(a: Signal<b4, Red>, b: Signal<b4, Red>) -> Signal<[b4; 2], Red> {
         let a = a.val();
         let b = b.val();
         let mut c = [a, b];
@@ -63,7 +64,7 @@ fn test_array_indexing_simple() -> miette::Result<()> {
         signal(c)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b4_red())?;
     Ok(())
 }
 
