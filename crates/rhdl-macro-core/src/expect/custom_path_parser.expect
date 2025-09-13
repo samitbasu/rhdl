@@ -1,0 +1,59 @@
+(
+    PathExpression {
+        elements: [
+            Default,
+            ArrayIndex(
+                Literal {
+                    lit: 3,
+                    span: bytes(1..2),
+                },
+            ),
+        ],
+    },
+    PathExpression {
+        elements: [
+            Default,
+            ArrayIndex(
+                Literal {
+                    lit: 3,
+                    span: bytes(3..4),
+                },
+            ),
+            Field(
+                Ident(
+                    Ident {
+                        sym: foo,
+                    },
+                ),
+            ),
+        ],
+    },
+    PathExpression {
+        elements: [
+            Default,
+            ArrayIndex(
+                Literal {
+                    lit: 3,
+                    span: bytes(5..6),
+                },
+            ),
+            Field(
+                Ident(
+                    Ident {
+                        sym: foo,
+                    },
+                ),
+            ),
+            SignalVal,
+            TupleIndex(
+                Literal {
+                    lit: 4,
+                    span: bytes(7..8),
+                },
+            ),
+            Field(
+                ValKeyWord,
+            ),
+        ],
+    },
+)

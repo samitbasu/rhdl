@@ -1,0 +1,11 @@
+[package]
+name = "rhdl-typenum"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rhdl-macro = { version = "0.0.3", path = "../rhdl-macro" }
+seq-macro = "0.3.6"
+
+[dev-dependencies]
+static_assertions = "1.1.0"

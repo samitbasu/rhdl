@@ -1,0 +1,57 @@
+use crate::bga_pin;
+use crate::drivers::get_untyped_output;
+use crate::drivers::xilinx::open_collector::Options;
+use rhdl::prelude::*;
+
+// Create a driver for the LEDs.  These are open-collector type outputs.
+pub fn leds<T: CircuitIO>(path: &Path) -> Result<Driver<T>, RHDLError> {
+    let _ = get_untyped_output::<T>(path, 8)?;
+    let options = Options {
+        io_standard: crate::constraints::IOStandard::LowVoltageCMOS_3v3,
+        pins: vec![
+            bga_pin!(N, 13),
+            bga_pin!(N, 14),
+            bga_pin!(P, 15),
+            bga_pin!(P, 16),
+            bga_pin!(N, 17),
+            bga_pin!(P, 17),
+            bga_pin!(R, 16),
+            bga_pin!(R, 17),
+        ],
+    };
+    crate::drivers::xilinx::open_collector::build::<T>("led", path, &options)
+}
+
+#[cfg(test)]
+mod tests {
+    use expect_test::expect_file;
+    use rhdl::prelude::*;
+
+    #[test]
+    fn test_led_driver() {
+        #[derive(PartialEq, Digital, Timed)]
+        struct O {
+            leds: Signal<b8, Red>,
+        }
+
+        #[derive(Clone)]
+        struct U;
+
+        impl CircuitDQ for U {
+            type D = ();
+            type Q = ();
+        }
+
+        impl CircuitIO for U {
+            type I = ();
+            type O = O;
+            type Kernel = NoKernel2<(), (), (O, ())>;
+        }
+
+        let led_driver = super::leds::<U>(&path!(.leds.val())).unwrap();
+        let hdl = expect_file!("led_hdl.expect");
+        hdl.assert_eq(&led_driver.hdl.pretty());
+        let xdc = expect_file!("led.xdc");
+        xdc.assert_eq(&led_driver.constraints);
+    }
+}
