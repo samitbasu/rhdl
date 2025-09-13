@@ -1,0 +1,102 @@
+module uut(input wire [18:0] arg_0, output reg [7:0] out);
+   reg  r41;
+   reg  r42;
+   reg  r43;
+   reg  r44;
+   reg  r45;
+   reg  r46;
+   reg  r47;
+   reg  r48;
+   reg  r49;
+   reg  r50;
+   reg  r51;
+   reg  r52;
+   reg  r53;
+   reg  r54;
+   reg  r55;
+   reg  r56;
+   reg  r57;
+   reg  r58;
+   reg  r59;
+   reg  r197;
+   reg  r198;
+   reg  r199;
+   reg  r200;
+   wire  r281;
+   wire  r282;
+   wire  r283;
+   wire  r284;
+   wire  r285;
+   wire  r286;
+   wire  r287;
+   wire  r288;
+   uut_inner bb_0(.o({r288, r287, r286, r285, r284, r283, r282, r281}), .i({r59, r58, r57, r56, r55, r41, r54, r53, r52, r51, r50, r49, r48, r47, r46, r200, r199, r198, r197}));
+   ;
+   always @(*) begin
+      r41 = arg_0[0];
+      r42 = arg_0[1];
+      r43 = arg_0[2];
+      r44 = arg_0[3];
+      r45 = arg_0[4];
+      r46 = arg_0[5];
+      r47 = arg_0[6];
+      r48 = arg_0[7];
+      r49 = arg_0[8];
+      r50 = arg_0[9];
+      r51 = arg_0[10];
+      r52 = arg_0[11];
+      r53 = arg_0[12];
+      r54 = arg_0[13];
+      r55 = arg_0[14];
+      r56 = arg_0[15];
+      r57 = arg_0[16];
+      r58 = arg_0[17];
+      r59 = arg_0[18];
+      r197 = r54 & r42;
+      r198 = r54 & r43;
+      r199 = r54 & r44;
+      r200 = r54 & r45;
+      out = {r288, r287, r286, r285, r284, r283, r282, r281};
+   end
+endmodule
+module uut_inner(input wire [18:0] i, output reg [7:0] o);
+   wire [3:0] read_addr;
+   wire [0:0] read_clk;
+   wire [3:0] write_addr;
+   wire [7:0] write_data;
+   wire [0:0] write_enable;
+   wire [0:0] write_clk;
+   reg [7:0] mem[15:0];
+   initial begin
+      mem[0] = 8'b00001111;
+      mem[1] = 8'b00001110;
+      mem[2] = 8'b00001101;
+      mem[3] = 8'b00001100;
+      mem[4] = 8'b00001011;
+      mem[5] = 8'b00001010;
+      mem[6] = 8'b00001001;
+      mem[7] = 8'b00001000;
+      mem[8] = 8'b00000111;
+      mem[9] = 8'b00000110;
+      mem[10] = 8'b00000101;
+      mem[11] = 8'b00000100;
+      mem[12] = 8'b00000011;
+      mem[13] = 8'b00000010;
+      mem[14] = 8'b00000001;
+      mem[15] = 8'b00000000;
+   end
+   assign read_addr = i[17:14];
+   assign read_clk = i[18:18];
+   assign write_addr = i[3:0];
+   assign write_data = i[11:4];
+   assign write_enable = i[12:12];
+   assign write_clk = i[13:13];
+   always @(posedge read_clk) begin
+      o <= mem[read_addr];
+   end
+   always @(posedge write_clk) begin
+      if (write_enable) begin
+         mem[write_addr] <= write_data;
+      end
+   end
+endmodule
