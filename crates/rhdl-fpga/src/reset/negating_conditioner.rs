@@ -115,7 +115,73 @@ mod tests {
 
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
+        let expect = expect_test::expect![[r#"
+            module top(input wire [1:0] i, output wire [0:0] o);
+               wire [3:0] od;
+               wire [2:0] d;
+               wire [1:0] q;
+               assign o = od[0:0];
+               top_cond c0(.i(d[2:1]), .o(q[1:1]));
+               ;
+               top_neg c1(.i(d[0:0]), .o(q[0:0]));
+               ;
+               assign d = od[3:1];
+               assign od = kernel_negating_conditioner_kernel(i, q);
+               function [3:0] kernel_negating_conditioner_kernel(input reg [1:0] arg_0, input reg [1:0] arg_1);
+                     reg [0:0] or0;
+                     reg [1:0] or1;
+                     reg [2:0] or2;
+                     reg [0:0] or3;
+                     reg [1:0] or4;
+                     reg [2:0] or5;
+                     reg [0:0] or6;
+                     reg [2:0] or7;
+                     reg [0:0] or8;
+                     reg [3:0] or9;
+                     localparam ol0 = 3'bXXX;
+                     begin
+                        or1 = arg_0;
+                        or4 = arg_1;
+                        or0 = or1[0:0];
+                        or2 = ol0;
+                        or2[0:0] = or0;
+                        or3 = or4[0:0];
+                        or5 = or2;
+                        or5[1:1] = or3;
+                        or6 = or1[1:1];
+                        or7 = or5;
+                        or7[2:2] = or6;
+                        or8 = or4[1:1];
+                        or9 = {or7, or8};
+                        kernel_negating_conditioner_kernel = or9;
+                     end
+               endfunction
+            endmodule
+            module top_cond(input wire [1:0] i, output wire [0:0] o);
+               wire [0:0] i_reset;
+               wire [0:0] clock;
+               reg [0:0] reg1;
+               reg [0:0] reg2;
+               assign i_reset = i[0];
+               assign clock = i[1];
+               assign o = reg2;
+               always @(posedge clock, posedge i_reset) begin
+                  if (i_reset) begin
+                     reg1 <= 1'b1;
+                     reg2 <= 1'b1;
+                  end else begin
+                     reg1 <= 1'b0;
+                     reg2 <= reg1;
+                  end
+               end
+            endmodule
+            module top_neg(input wire [0:0] i, output wire [0:0] o);
+               assign o = ~i;
+            endmodule
+        "#]];
         let uut = NegatingConditioner::<Red, Blue>::default();
+        let hdl = uut.hdl("top")?.as_module().pretty();
+        expect.assert_eq(&hdl);
         let stream = istream();
         let tb = uut.run(stream)?.collect::<TestBench<_, _>>();
         let hdl = tb.rtl(&uut, &TestBenchOptions::default().skip(10))?;

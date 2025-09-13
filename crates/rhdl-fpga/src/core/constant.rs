@@ -27,17 +27,9 @@
 //!
 //! The simulation trace is pretty boring.  
 #![doc = include_str!("../../doc/constant.md")]
-use rhdl::{
-    core::{
-        hdl::ast::{
-            bit_string, continuous_assignment, port, signed_width, unsigned_width, Direction,
-            Module,
-        },
-        ntl::builder::constant,
-        types::bit_string::BitString,
-    },
-    prelude::*,
-};
+use quote::{format_ident, quote};
+use rhdl::prelude::*;
+use syn::{parse, parse_quote};
 
 #[derive(Clone, Debug)]
 /// The core to include for the constant driver
@@ -102,34 +94,14 @@ impl<T: Digital> DigitalFn for Constant<T> {}
 impl<T: Digital> Constant<T> {
     fn as_verilog(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = self.descriptor(name)?.unique_name;
-        let mut module = Module {
-            name: module_name.clone(),
-            ..Default::default()
+        let module_ident = format_ident!("{}", module_name);
+        let lit: vlog::LitVerilog = self.value.typed_bits().into();
+        let bits: vlog::BitRange = (0..T::bits()).into();
+        let module: vlog::ModuleDef = parse_quote! {
+            module #module_ident(input wire [1:0] clock_reset, output wire [#bits] o);
+                assign o = #lit;
+            endmodule
         };
-        let output_bits = T::bits();
-        let output_width = if T::static_kind().is_signed() {
-            signed_width(output_bits)
-        } else {
-            unsigned_width(output_bits)
-        };
-        let bs: BitString = self.value.typed_bits().into();
-        module.ports = vec![
-            port(
-                "clock_reset",
-                Direction::Input,
-                rhdl::core::hdl::ast::HDLKind::Wire,
-                unsigned_width(2),
-            ),
-            port(
-                "o",
-                Direction::Output,
-                rhdl::core::hdl::ast::HDLKind::Wire,
-                output_width,
-            ),
-        ];
-        module
-            .statements
-            .push(continuous_assignment("o", bit_string(&bs)));
         Ok(HDLDescriptor {
             name: module_name,
             body: module,

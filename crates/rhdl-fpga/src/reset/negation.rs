@@ -37,10 +37,11 @@ resetN++--->| +○+--+>reset
 //!With the trace
 #![doc = include_str!("../../doc/reset_negation.md")]
 //!
-use rhdl::{
-    core::{hdl::ast::unary, rtl::spec::AluUnary},
-    prelude::*,
-};
+use std::fmt::format;
+
+use quote::{format_ident, quote};
+use rhdl::prelude::*;
+use syn::parse_quote;
 
 #[derive(PartialEq, Debug, Clone, Default)]
 /// The [ResetNegation] core.  Both the input and
@@ -100,18 +101,12 @@ impl<C: Domain> Circuit for ResetNegation<C> {
     }
 
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
-        let module_name = name.to_owned();
-        let mut module = Module {
-            name: module_name.clone(),
-            ..Default::default()
+        let module_name = format_ident!("{}", name);
+        let module: vlog::ModuleDef = parse_quote! {
+            module #module_name(input wire [0:0] i, output wire [0:0] o);
+                assign o = ~i;
+            endmodule
         };
-        module.ports = vec![
-            port("i", Direction::Input, HDLKind::Wire, unsigned_width(1)),
-            port("o", Direction::Output, HDLKind::Wire, unsigned_width(1)),
-        ];
-        module
-            .statements
-            .push(continuous_assignment("o", unary(AluUnary::Not, id("i"))));
         Ok(HDLDescriptor {
             name: name.into(),
             body: module,

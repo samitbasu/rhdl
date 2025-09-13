@@ -13,7 +13,7 @@ pub fn sys_clock<T: CircuitIO>(path: &Path) -> Result<Driver<T>, RHDLError> {
         &ibufds::Options {
             diff_term: false.into(),
             ibuf_low_pwr: true.into(),
-            io_standard: Some(IOStandard::LowVoltageDifferentialSignal_2v5),
+            io_standard: IOStandard::LowVoltageDifferentialSignal_2v5,
             pos_pin: bga_pin!(K, 4),
             neg_pin: bga_pin!(J, 4),
         },
@@ -50,7 +50,9 @@ mod tests {
         }
 
         let clock_driver = super::sys_clock::<T>(&path!(.clock.val())).unwrap();
-        let expect = expect_file!["sys_clock.expect"];
-        expect.assert_debug_eq(&clock_driver);
+        let hdl = expect_file!("sys_clock_hdl.expect");
+        hdl.assert_eq(&clock_driver.hdl.pretty());
+        let xdc = expect_file!("sys_clock.xdc");
+        xdc.assert_eq(&clock_driver.constraints);
     }
 }

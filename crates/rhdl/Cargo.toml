@@ -9,6 +9,7 @@ rhdl-core = { version = "0.1.0", path = "../rhdl-core" }
 rhdl-macro = { version = "0.0.3", path = "../rhdl-macro" }
 rhdl-trace-type = { version = "0.1.0", path = "../rhdl-trace-type" }
 rhdl-typenum = { version = "0.1.0", path = "../rhdl-typenum" }
+rhdl-vlog = { version = "0.1.0", path = "../rhdl-vlog" }
 
 [dev-dependencies]
 anyhow = "1.0.99"

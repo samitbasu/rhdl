@@ -11,15 +11,15 @@
 use syn::parse_quote;
 
 use crate::{
-    atoms::{NegEdgeSensitivity, PosEdgeSensitivity, Sensitivity, SensitivityList},
+    atoms::{ConstExpr, NegEdgeSensitivity, PosEdgeSensitivity, Sensitivity, SensitivityList},
     expr::{
         ExprBinary, ExprDynIndexInner, ExprFunction, ExprIndexAddress, ExprReplica,
         ExprReplicaInner, ExprTernary, ExprUnary,
     },
     stmt::{
         Always, Assign, AssignTarget, Block, Case, CaseItem, CaseLine, ConcatAssign, Connection,
-        ConstExpr, ContinuousAssign, Delay, DynamicSplice, ElseBranch, FunctionCall, If, Instance,
-        LocalParam, NonblockAssign, StmtKind,
+        ContinuousAssign, Delay, DynamicSplice, ElseBranch, FunctionCall, If, Instance, LocalParam,
+        NonblockAssign, StmtKind,
     },
     *,
 };
@@ -65,6 +65,15 @@ pub fn lit_verilog(width: u32, value: &str) -> LitVerilog {
 
 pub fn unsigned_width(width: usize) -> SignedWidth {
     SignedWidth::Unsigned(WidthSpec {
+        bit_range: BitRange {
+            start: 0,
+            end: width as u32 - 1,
+        },
+    })
+}
+
+pub fn signed_width(width: usize) -> SignedWidth {
+    SignedWidth::Signed(WidthSpec {
         bit_range: BitRange {
             start: 0,
             end: width as u32 - 1,
@@ -453,6 +462,7 @@ pub fn instance_stmt(
 ) -> StmtKind {
     StmtKind::Instance(Instance {
         module: module.to_string(),
+        parameters: vec![],
         instance: instance_name.to_string(),
         connections: connections.into_iter().collect(),
     })

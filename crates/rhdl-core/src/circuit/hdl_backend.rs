@@ -7,6 +7,7 @@ use crate::{Circuit, HDLDescriptor, RHDLError, Synchronous};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use rhdl_vlog as vlog;
+use rhdl_vlog::parse_quote_miette;
 use syn::parse_quote;
 use syn::parse_quote_spanned;
 use syn::spanned::Spanned;
@@ -40,12 +41,13 @@ pub fn build_hdl<C: Circuit>(
             let (q_range, _) = bit_range(q_kind, &child_path)?;
             let input_binding = vlog::maybe_connect("i", "d", d_range);
             let output_binding = vlog::maybe_connect("o", "q", q_range);
+            let bindings = [input_binding, output_binding];
+            let bindings = bindings.iter().flatten();
             let component_name = format_ident!("{}", descriptor.unique_name);
             let component_instance = format_ident!("c{ndx}");
             Ok(quote! {
                 #component_name #component_instance(
-                    #input_binding
-                    #output_binding
+                    #(#bindings),*
                 );
             })
         })
@@ -65,7 +67,7 @@ pub fn build_hdl<C: Circuit>(
         let d_range: vlog::BitRange = (outputs..(C::D::bits() + outputs)).into();
         quote! {assign d = od[#d_range];}
     });
-    let module: vlog::ModuleDef = parse_quote! {
+    let module: vlog::ModuleDef = vlog::parse_quote_miette! {
         module #module_ident(#(#ports),*);
             #(#declarations;)*
             assign o = od[#output_range];
@@ -74,7 +76,7 @@ pub fn build_hdl<C: Circuit>(
             assign od = #kernel_name(#i_bind, #q_bind);
             #kernel
         endmodule
-    };
+    }?;
     Ok(HDLDescriptor {
         name: descriptor.unique_name.into(),
         body: module,
@@ -115,13 +117,17 @@ pub fn build_synchronous_hdl<C: Synchronous>(
             let (q_range, _) = bit_range(q_kind, &child_path)?;
             let input_binding = vlog::maybe_connect("i", "d", d_range);
             let output_binding = vlog::maybe_connect("o", "q", q_range);
+            let bindings = [
+                Some(parse_quote! {.clock_reset(clock_reset)}),
+                input_binding,
+                output_binding,
+            ];
+            let bindings = bindings.iter().flatten();
             let component_name = format_ident!("{}", descriptor.unique_name);
             let component_instance = format_ident!("c{ndx}");
             Ok(quote! {
                 #component_name #component_instance(
-                    .clock_reset(clock_reset),
-                    #input_binding,
-                    #output_binding
+                    #(#bindings),*
                 )
             })
         })
@@ -143,7 +149,7 @@ pub fn build_synchronous_hdl<C: Synchronous>(
         let d_range: vlog::BitRange = (outputs..(C::D::bits() + outputs)).into();
         quote! {assign d = od[#d_range];}
     });
-    let module: vlog::ModuleDef = parse_quote! {
+    let module: vlog::ModuleDef = parse_quote_miette! {
         module #module_ident(#(#ports),*);
             #(#declarations;)*
             assign o = od[#output_range];
@@ -152,7 +158,7 @@ pub fn build_synchronous_hdl<C: Synchronous>(
             assign od = #kernel_name(#(#args),*);
             #kernel
         endmodule
-    };
+    }?;
     Ok(HDLDescriptor {
         name: descriptor.unique_name.into(),
         body: module,

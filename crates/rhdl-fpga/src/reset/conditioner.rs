@@ -86,13 +86,9 @@ reset (out)  +-----+                  +---------+
 //!
 #![doc = include_str!("../../doc/reset_conditioner.md")]
 
-use rhdl::{
-    core::{
-        hdl::ast::{index, unsigned_reg_decl, unsigned_wire_decl},
-        ntl::builder::circuit_black_box,
-    },
-    prelude::*,
-};
+use quote::format_ident;
+use rhdl::prelude::*;
+use syn::parse_quote;
 
 #[derive(PartialEq, Debug, Clone, Default)]
 /// The [ResetConditioner] circuit.  Here `W` is the
@@ -198,59 +194,32 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
 
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = name.to_owned();
-        let mut module = Module {
-            name: module_name.clone(),
-            ..Default::default()
+        let module_name = format_ident!("{}", module_name);
+        let reset_index = bit_range(<Self::I as Timed>::static_kind(), &path!(.reset.val()))?;
+        let reset_index = syn::Index::from(reset_index.0.start);
+        let clock_index = bit_range(<Self::I as Timed>::static_kind(), &path!(.clock.val()))?;
+        let clock_index = syn::Index::from(clock_index.0.start);
+        let module: vlog::ModuleDef = parse_quote! {
+            module #module_name(input wire [1:0] i, output wire [0:0] o);
+                wire [0:0] i_reset;
+                wire [0:0] clock;
+                reg [0:0] reg1;
+                reg [0:0] reg2;
+                assign i_reset = i[#reset_index];
+                assign clock = i[#clock_index];
+                assign o = reg2;
+                always @(posedge clock, posedge i_reset) begin
+                    if (i_reset)
+                    begin
+                        reg1 <= 1'b1;
+                        reg2 <= 1'b1;
+                    end else begin
+                        reg1 <= 1'b0;
+                        reg2 <= reg1;
+                    end
+                end
+            endmodule
         };
-        let i_kind = <Self::I as Timed>::static_kind();
-        module.ports = vec![
-            port("i", Direction::Input, HDLKind::Wire, unsigned_width(2)),
-            port("o", Direction::Output, HDLKind::Wire, unsigned_width(1)),
-        ];
-        module.declarations.extend([
-            unsigned_wire_decl("i_reset", 1),
-            unsigned_wire_decl("clock", 1),
-            unsigned_reg_decl("reg1", 1),
-            unsigned_reg_decl("reg2", 1),
-        ]);
-        let reassign = |name: &str, path: Path| {
-            continuous_assignment(name, index("i", bit_range(i_kind, &path).unwrap().0))
-        };
-        module.statements.extend([
-            reassign("i_reset", Path::default().field("reset").signal_value()),
-            reassign("clock", Path::default().field("clock").signal_value()),
-            continuous_assignment("o", id("reg2")),
-        ]);
-        /*
-           The always block should be:
-           always @(posedge clk, posedge reset) begin
-               if (reset) begin
-                   reg1 <= 1'b1;
-                   reg2 <= 1'b1;
-               end else begin
-                   reg1 <= 1'b0;
-                   reg2 <= reg1;
-               end
-           end
-        */
-        let reset_val = true.typed_bits().into();
-        let normal_val = false.typed_bits().into();
-        let if_block = if_statement(
-            id("i_reset"),
-            vec![
-                non_blocking_assignment("reg1", bit_string(&reset_val)),
-                non_blocking_assignment("reg2", bit_string(&reset_val)),
-            ],
-            vec![
-                non_blocking_assignment("reg1", bit_string(&normal_val)),
-                non_blocking_assignment("reg2", id("reg1")),
-            ],
-        );
-        let events = vec![
-            Events::Posedge("clock".into()),
-            Events::Posedge("i_reset".into()),
-        ];
-        module.statements.push(always(events, vec![if_block]));
         Ok(HDLDescriptor {
             name: name.into(),
             body: module,
@@ -282,7 +251,29 @@ mod tests {
 
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
+        let expect = expect_test::expect![[r#"
+            module top(input wire [1:0] i, output wire [0:0] o);
+               wire [0:0] i_reset;
+               wire [0:0] clock;
+               reg [0:0] reg1;
+               reg [0:0] reg2;
+               assign i_reset = i[0];
+               assign clock = i[1];
+               assign o = reg2;
+               always @(posedge clock, posedge i_reset) begin
+                  if (i_reset) begin
+                     reg1 <= 1'b1;
+                     reg2 <= 1'b1;
+                  end else begin
+                     reg1 <= 1'b0;
+                     reg2 <= reg1;
+                  end
+               end
+            endmodule
+        "#]];
         let uut = ResetConditioner::<Red, Blue>::default();
+        let hdl = uut.hdl("top")?.as_module().pretty();
+        expect.assert_eq(&hdl);
         let input = sync_stream();
         let tb = uut.run(input)?.collect::<TestBench<_, _>>();
         let hdl = tb.rtl(&uut, &TestBenchOptions::default().skip(10))?;

@@ -264,7 +264,7 @@ impl<'a> NetListHDLBuilder<'a> {
         let instance_name = format_ident!("bb_{}", core_id);
         self.instances.push(parse_quote! {
             #core_name #instance_name (
-                #(#connections)*
+                #(#connections),*
             )
         });
         Ok(())

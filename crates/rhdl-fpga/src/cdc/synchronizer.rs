@@ -165,10 +165,9 @@ clk   +----+    +----+    +----+
 //! With an output trace
 #![doc = include_str!("../../doc/sync_cross.md")]
 
-use rhdl::{
-    core::hdl::ast::{index, unsigned_reg_decl, unsigned_wire_decl},
-    prelude::*,
-};
+use quote::format_ident;
+use rhdl::prelude::*;
+use syn::parse_quote;
 
 /// A simple two-register synchronizer for crossing
 /// a single bit from the W domain to the R domain
@@ -263,50 +262,39 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
 
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = name.to_owned();
-        let mut module = Module {
-            name: module_name.clone(),
-            ..Default::default()
-        };
+        let module_ident = format_ident!("{}", module_name);
         let i_kind = <Self::I as Timed>::static_kind();
-        module.ports = vec![
-            port("i", Direction::Input, HDLKind::Wire, unsigned_width(3)),
-            port("o", Direction::Output, HDLKind::Wire, unsigned_width(1)),
-        ];
-        module.declarations.extend([
-            unsigned_wire_decl("data", 1),
-            unsigned_wire_decl("clock", 1),
-            unsigned_wire_decl("reset", 1),
-            unsigned_reg_decl("reg1", 1),
-            unsigned_reg_decl("reg2", 1),
-        ]);
-        let reassign = |name: &str, path: Path| {
-            continuous_assignment(name, index("i", bit_range(i_kind, &path).unwrap().0))
+        let reset_index = bit_range(i_kind, &path!(.cr.val().reset))?;
+        let reset_index = syn::Index::from(reset_index.0.start);
+        let clock_index = bit_range(i_kind, &path!(.cr.val().clock))?;
+        let clock_index = syn::Index::from(clock_index.0.start);
+        let data_index = bit_range(i_kind, &path!(.data))?;
+        let data_index = syn::Index::from(data_index.0.start);
+        let module: vlog::ModuleDef = parse_quote! {
+            module #module_ident(input wire [2:0] i, output wire [0:0] o);
+                wire [0:0] data;
+                wire [0:0] clock;
+                wire [0:0] reset;
+                reg  [0:0] reg1;
+                reg  [0:0] reg2;
+                assign data = i[#data_index];
+                assign clock = i[#clock_index];
+                assign reset = i[#reset_index];
+                assign o = reg2;
+                always @(posedge clock) begin
+                    if (reset) begin
+                        reg1 <= 1'b0;
+                    end else begin
+                        reg1 <= data;
+                    end
+                    if (reset) begin
+                        reg2 <= 1'b0;
+                    end else begin
+                        reg2 <= reg1;
+                    end
+                end
+            endmodule
         };
-        module.statements.extend([
-            reassign("data", Path::default().field("data").signal_value()),
-            reassign(
-                "clock",
-                Path::default().field("cr").signal_value().field("clock"),
-            ),
-            reassign(
-                "reset",
-                Path::default().field("cr").signal_value().field("reset"),
-            ),
-            continuous_assignment("o", id("reg2")),
-        ]);
-        let init = false.typed_bits().into();
-        let reg1 = if_statement(
-            id("reset"),
-            vec![non_blocking_assignment("reg1", bit_string(&init))],
-            vec![non_blocking_assignment("reg1", id("data"))],
-        );
-        let reg2 = if_statement(
-            id("reset"),
-            vec![non_blocking_assignment("reg2", bit_string(&init))],
-            vec![non_blocking_assignment("reg2", id("reg1"))],
-        );
-        let events = vec![Events::Posedge("clock".into())];
-        module.statements.push(always(events, vec![reg1, reg2]));
         Ok(HDLDescriptor {
             name: name.into(),
             body: module,
@@ -319,7 +307,7 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
 mod tests {
     use expect_test::expect;
     use rand::{Rng, SeedableRng};
-    use rhdl::core::sim::vcd;
+    use rhdl::{core::sim::vcd, prelude::vlog::Pretty};
 
     use super::*;
 
@@ -366,6 +354,33 @@ mod tests {
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
         let uut = Sync1Bit::<Red, Blue>::default();
+        let hdl = uut.hdl("top")?.as_module().pretty();
+        let expect = expect_test::expect![[r#"
+            module top(input wire [2:0] i, output wire [0:0] o);
+               wire [0:0] data;
+               wire [0:0] clock;
+               wire [0:0] reset;
+               reg [0:0] reg1;
+               reg [0:0] reg2;
+               assign data = i[0];
+               assign clock = i[1];
+               assign reset = i[2];
+               assign o = reg2;
+               always @(posedge clock) begin
+                  if (reset) begin
+                     reg1 <= 1'b0;
+                  end else begin
+                     reg1 <= data;
+                  end
+                  if (reset) begin
+                     reg2 <= 1'b0;
+                  end else begin
+                     reg2 <= reg1;
+                  end
+               end
+            endmodule
+        "#]];
+        expect.assert_eq(&hdl);
         let stream = sync_stream();
         let test_bench = uut.run(stream)?.collect::<TestBench<_, _>>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))

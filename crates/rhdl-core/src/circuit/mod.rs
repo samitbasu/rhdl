@@ -6,7 +6,7 @@ pub mod chain;
 pub mod circuit_descriptor;
 pub mod circuit_impl;
 pub mod drc;
-//TODO - FIXME pub mod fixture;
+pub mod fixture;
 pub mod func;
 pub mod hdl_backend;
 pub mod hdl_descriptor;

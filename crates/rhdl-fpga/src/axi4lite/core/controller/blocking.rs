@@ -246,14 +246,15 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
 
 #[cfg(test)]
 mod tests {
+    use rhdl::prelude::vlog::Pretty;
+
     use super::*;
 
     #[test]
     fn no_combinatorial_paths() -> miette::Result<()> {
         let uut = BlockReadWriteController::default();
         let descriptor = uut.hdl("top")?;
-        let module = descriptor.as_module().as_verilog();
-        std::fs::write("/Users/samitbasu/Devel/rhdl/synhdl/controller.v", module).unwrap();
+        let module = descriptor.as_module().pretty();
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }

@@ -11,6 +11,7 @@ quote = "1.0.40"
 serde = { version = "1.0.219", features = ["derive"] }
 syn = { version = "2.0.104", features = ["extra-traits", "full"] }
 syn-miette = "0.3.0"
+thiserror = "2.0.16"
 
 [dev-dependencies]
 expect-test = "1.5.1"

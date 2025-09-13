@@ -94,13 +94,9 @@ write.enable   +-------+       +-----------------------+
 
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
-use rhdl::{
-    core::{
-        hdl::ast::{index, memory_index, unsigned_wire_decl, Declaration},
-        ntl::builder::circuit_black_box,
-    },
-    prelude::*,
-};
+use quote::{format_ident, quote};
+use rhdl::prelude::*;
+use syn::parse_quote;
 
 #[derive(PartialEq, Debug, Clone, Default)]
 /// The [AsyncBRAM] core.  It stores elements of
@@ -256,89 +252,106 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> Circuit for AsyncBRAM<T, W, 
         })
     }
 
+    /*
+
+    module uut(input wire [18:0] i, output reg [7:0] o);
+        wire [3:0] read_addr;
+        wire [0:0] read_clk;
+        wire [3:0] write_addr;
+        wire [7:0] write_data;
+        wire [0:0] write_enable;
+        wire [0:0] write_clk;
+        reg [7:0] mem[15:0];
+        initial begin
+            mem[0] = 8'b00001111;
+            mem[1] = 8'b00001110;
+            mem[2] = 8'b00001101;
+            mem[3] = 8'b00001100;
+            mem[4] = 8'b00001011;
+            mem[5] = 8'b00001010;
+            mem[6] = 8'b00001001;
+            mem[7] = 8'b00001000;
+            mem[8] = 8'b00000111;
+            mem[9] = 8'b00000110;
+            mem[10] = 8'b00000101;
+            mem[11] = 8'b00000100;
+            mem[12] = 8'b00000011;
+            mem[13] = 8'b00000010;
+            mem[14] = 8'b00000001;
+            mem[15] = 8'b00000000;
+        end
+        assign read_addr = i[17:14];
+        assign read_clk = i[18];
+        assign write_addr = i[3:0];
+        assign write_data = i[11:4];
+        assign write_enable = i[12];
+        assign write_clk = i[13];
+        always @(posedge read_clk) begin
+            o <= mem[read_addr];
+        end
+        always @(posedge write_clk) begin
+            if (write_enable)
+            begin
+                mem[write_addr] <= write_data;
+            end
+        end
+    endmodule
+         */
+
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = name.to_owned();
-        let mut module = Module {
-            name: module_name.clone(),
-            ..Default::default()
-        };
-        let output_bits = unsigned_width(T::bits());
-        let input_bits = unsigned_width(<Self as CircuitIO>::I::bits());
-        module.ports = vec![
-            port("i", Direction::Input, HDLKind::Wire, input_bits),
-            port("o", Direction::Output, HDLKind::Reg, output_bits),
-        ];
-        module.declarations.extend([
-            unsigned_wire_decl("read_addr", N::BITS),
-            unsigned_wire_decl("read_clk", 1),
-            unsigned_wire_decl("write_addr", N::BITS),
-            unsigned_wire_decl("write_data", T::bits()),
-            unsigned_wire_decl("write_enable", 1),
-            unsigned_wire_decl("write_clk", 1),
-            Declaration {
-                kind: HDLKind::Reg,
-                name: format!("mem[{}:0]", (1 << N::BITS) - 1),
-                width: output_bits,
-                alias: None,
-            },
-        ]);
-        module.statements.push(initial(
-            self.initial
-                .iter()
-                .map(|(a, d)| {
-                    let d: BitString = d.typed_bits().into();
-                    assign(&format!("mem[{}]", a.raw()), bit_string(&d))
-                })
-                .collect(),
-        ));
+        let module_ident = format_ident!("{}", module_name);
+        let input_bits: vlog::BitRange = (0..(<Self as CircuitIO>::I::bits())).into();
+        let address_bits: vlog::BitRange = (0..N::BITS).into();
+        let data_bits: vlog::BitRange = (0..T::BITS).into();
+        let memory_size: vlog::BitRange = (0..(1 << N::BITS)).into();
+        let initial_values = self.initial.iter().map(|(addr, val)| {
+            let val: vlog::LitVerilog = val.typed_bits().into();
+            let addr = syn::Index::from(addr.raw() as usize);
+            quote! {
+                mem[#addr] = #val;
+            }
+        });
         let i_kind = <<Self as CircuitIO>::I as Timed>::static_kind();
-        let reassign = |name: &str, path: Path| {
-            continuous_assignment(name, index("i", bit_range(i_kind, &path).unwrap().0))
+        let read_addr_range: vlog::BitRange = bit_range(i_kind, &path!(.read.val().addr))?.0.into();
+        let read_clk_range: vlog::BitRange = bit_range(i_kind, &path!(.read.val().clock))?.0.into();
+        let write_addr_range: vlog::BitRange =
+            bit_range(i_kind, &path!(.write.val().addr))?.0.into();
+        let write_data_range: vlog::BitRange =
+            bit_range(i_kind, &path!(.write.val().data))?.0.into();
+        let write_enable_range: vlog::BitRange =
+            bit_range(i_kind, &path!(.write.val().enable))?.0.into();
+        let write_clk_range: vlog::BitRange =
+            bit_range(i_kind, &path!(.write.val().clock))?.0.into();
+        let module: vlog::ModuleDef = parse_quote! {
+            module #module_ident(input wire [#input_bits] i, output reg [#data_bits] o);
+                wire [#address_bits] read_addr;
+                wire [0:0] read_clk;
+                wire [#address_bits] write_addr;
+                wire [#data_bits] write_data;
+                wire [0:0] write_enable;
+                wire [0:0] write_clk;
+                reg [#data_bits] mem[#memory_size];
+                initial begin
+                    #(#initial_values)*
+                end
+                assign read_addr = i[#read_addr_range];
+                assign read_clk = i[#read_clk_range];
+                assign write_addr = i[#write_addr_range];
+                assign write_data = i[#write_data_range];
+                assign write_enable = i[#write_enable_range];
+                assign write_clk = i[#write_clk_range];
+                always @(posedge read_clk) begin
+                    o <= mem[read_addr];
+                end
+                always @(posedge write_clk) begin
+                    if (write_enable)
+                    begin
+                        mem[write_addr] <= write_data;
+                    end
+                end
+            endmodule
         };
-        module.statements.extend([
-            reassign(
-                "read_addr",
-                Path::default().field("read").signal_value().field("addr"),
-            ),
-            reassign(
-                "read_clk",
-                Path::default().field("read").signal_value().field("clock"),
-            ),
-            reassign(
-                "write_addr",
-                Path::default().field("write").signal_value().field("addr"),
-            ),
-            reassign(
-                "write_data",
-                Path::default().field("write").signal_value().field("data"),
-            ),
-            reassign(
-                "write_enable",
-                Path::default()
-                    .field("write")
-                    .signal_value()
-                    .field("enable"),
-            ),
-            reassign(
-                "write_clk",
-                Path::default().field("write").signal_value().field("clock"),
-            ),
-        ]);
-        module.statements.push(always(
-            vec![Events::Posedge("read_clk".into())],
-            vec![non_blocking_assignment(
-                "o",
-                memory_index("mem", id("read_addr")),
-            )],
-        ));
-        module.statements.push(always(
-            vec![Events::Posedge("write_clk".into())],
-            vec![if_statement(
-                id("write_enable"),
-                vec![non_blocking_assignment("mem[write_addr]", id("write_data"))],
-                vec![],
-            )],
-        ));
         Ok(HDLDescriptor {
             name: module_name,
             body: module,
@@ -352,6 +365,7 @@ mod tests {
     use std::path::PathBuf;
 
     use expect_test::{expect, expect_file};
+    use rhdl::prelude::vlog::Pretty;
 
     use super::*;
 
@@ -404,6 +418,51 @@ mod tests {
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
         );
+        let expect = expect_test::expect![[r#"
+            module uut(input wire [18:0] i, output reg [7:0] o);
+               wire [3:0] read_addr;
+               wire [0:0] read_clk;
+               wire [3:0] write_addr;
+               wire [7:0] write_data;
+               wire [0:0] write_enable;
+               wire [0:0] write_clk;
+               reg [7:0] mem[15:0];
+               initial begin
+                  mem[0] = 8'b00001111;
+                  mem[1] = 8'b00001110;
+                  mem[2] = 8'b00001101;
+                  mem[3] = 8'b00001100;
+                  mem[4] = 8'b00001011;
+                  mem[5] = 8'b00001010;
+                  mem[6] = 8'b00001001;
+                  mem[7] = 8'b00001000;
+                  mem[8] = 8'b00000111;
+                  mem[9] = 8'b00000110;
+                  mem[10] = 8'b00000101;
+                  mem[11] = 8'b00000100;
+                  mem[12] = 8'b00000011;
+                  mem[13] = 8'b00000010;
+                  mem[14] = 8'b00000001;
+                  mem[15] = 8'b00000000;
+               end
+               assign read_addr = i[17:14];
+               assign read_clk = i[18:18];
+               assign write_addr = i[3:0];
+               assign write_data = i[11:4];
+               assign write_enable = i[12:12];
+               assign write_clk = i[13:13];
+               always @(posedge read_clk) begin
+                  o <= mem[read_addr];
+               end
+               always @(posedge write_clk) begin
+                  if (write_enable) begin
+                     mem[write_addr] <= write_data;
+                  end
+               end
+            endmodule
+        "#]];
+        let module = uut.hdl("uut")?.as_module().pretty();
+        expect.assert_eq(&module.to_string());
         let stream_read = get_scan_out_stream(100, 34);
         // The write interface will be dormant
         let stream_write = get_write_stream(70, std::iter::repeat_n(None, 50));

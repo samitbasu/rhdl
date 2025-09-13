@@ -59,17 +59,9 @@ output+-------+-------+-------+-------+
 //!
 //! The trace shows the FSM working.
 #![doc = include_str!("../../doc/dff.md")]
-use rhdl::{
-    core::{
-        hdl::ast::{
-            always, assign, bit_string, id, if_statement, index_bit, initial,
-            non_blocking_assignment, port, signed_width, unsigned_width, Declaration, Direction,
-            Events, HDLKind, Module,
-        },
-        types::bit_string::BitString,
-    },
-    prelude::*,
-};
+use quote::format_ident;
+use rhdl::prelude::*;
+use syn::parse_quote;
 
 #[derive(PartialEq, Debug, Clone)]
 /// Basic Digital Flip Flop
@@ -175,59 +167,69 @@ impl<T: Digital> Synchronous for DFF<T> {
 
 impl<T: Digital> DFF<T> {
     fn as_verilog(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
-        let mut module = Module {
-            name: name.into(),
-            ..Default::default()
+        let module_name = format_ident!("{}", name);
+        let init: vlog::LitVerilog = self.reset.typed_bits().into();
+        let data_width: vlog::BitRange = (0..T::static_kind().bits()).into();
+        let reset_index = bit_range(ClockReset::static_kind(), &path!(.reset))?;
+        let reset_index = syn::Index::from(reset_index.0.start);
+        let clock_index = bit_range(ClockReset::static_kind(), &path!(.clock))?;
+        let clock_index = syn::Index::from(clock_index.0.start);
+        let module: vlog::ModuleDef = parse_quote! {
+            module #module_name(
+                input wire [1:0] clock_reset,
+                input wire [#data_width] i,
+                output reg [#data_width] o
+            );
+                wire clock;
+                wire reset;
+                assign clock = clock_reset[#clock_index];
+                assign reset = clock_reset[#reset_index];
+                initial begin
+                    o = #init;
+                end
+                always @(posedge clock) begin
+                    if (reset) begin
+                        o <= #init;
+                    end else begin
+                        o <= i;
+                    end
+                end
+            endmodule
         };
-        let output_bits = T::bits();
-        let init: BitString = self.reset.typed_bits().into();
-        let data_width = if T::static_kind().is_signed() {
-            signed_width(output_bits)
-        } else {
-            unsigned_width(output_bits)
-        };
-        module.ports = vec![
-            port(
-                "clock_reset",
-                Direction::Input,
-                HDLKind::Wire,
-                unsigned_width(2),
-            ),
-            port("i", Direction::Input, HDLKind::Wire, data_width),
-            port("o", Direction::Output, HDLKind::Reg, data_width),
-        ];
-        module.declarations.push(Declaration {
-            kind: HDLKind::Wire,
-            name: "clock".into(),
-            width: unsigned_width(1),
-            alias: None,
-        });
-        module.declarations.push(Declaration {
-            kind: HDLKind::Wire,
-            name: "reset".into(),
-            width: unsigned_width(1),
-            alias: None,
-        });
-        module
-            .statements
-            .push(initial(vec![assign("o", bit_string(&init))]));
-        module
-            .statements
-            .push(continuous_assignment("clock", index_bit("clock_reset", 0)));
-        module
-            .statements
-            .push(continuous_assignment("reset", index_bit("clock_reset", 1)));
-        let dff = if_statement(
-            id("reset"),
-            vec![non_blocking_assignment("o", bit_string(&init))],
-            vec![non_blocking_assignment("o", id("i"))],
-        );
-        let events = vec![Events::Posedge("clock".into())];
-        module.statements.push(always(events, vec![dff]));
         Ok(HDLDescriptor {
             name: name.into(),
             body: module,
             children: Default::default(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_hdl_output() -> miette::Result<()> {
+        let expect = expect_test::expect![[r#"
+            module top(input wire [1:0] clock_reset, input wire [3:0] i, output reg [3:0] o);
+               wire  clock;
+               wire  reset;
+               assign clock = clock_reset[0];
+               assign reset = clock_reset[1];
+               initial begin
+                  o = 4'b1010;
+               end
+               always @(posedge clock) begin
+                  if (reset) begin
+                     o <= 4'b1010;
+                  end else begin
+                     o <= i;
+                  end
+               end
+            endmodule
+        "#]];
+        let uut: DFF<b4> = DFF::new(bits(0b1010));
+        let hdl = uut.hdl("top")?.as_module().pretty();
+        expect.assert_eq(&hdl);
+        Ok(())
     }
 }

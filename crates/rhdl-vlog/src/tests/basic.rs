@@ -1,10 +1,9 @@
 use crate::{
-    Declaration, Direction, Expr, HDLKind, LitVerilog, ModuleDef, ModuleList, Port, SignedWidth,
-    Stmt, WidthSpec,
+    Declaration, Direction, Expr, HDLKind, ItemList, LitVerilog, ModuleDef, ModuleList, Port,
+    SignedWidth, Stmt, WidthSpec,
     formatter::Pretty,
     tests::{test_parse, test_parse_quote},
 };
-
 use test_log::test;
 
 #[test]
@@ -239,8 +238,37 @@ fn test_case_uneq() -> miette::Result<()> {
 }
 
 #[test]
+fn test_case_pluscolon() -> miette::Result<()> {
+    let expect = expect_test::expect!["a[ok+:3]"];
+    let synth: Expr = parse_quote_miette! {a [ ok +: 3] }?;
+    expect.assert_eq(&synth.pretty());
+    Ok(())
+}
+
+#[test]
+fn test_attribute_on_item_parsing() -> miette::Result<()> {
+    let expect = expect_test::expect![[r#"
+        module foo(input wire [2:0] clock_reset, input wire [7:0] i, output wire [7:0] o);
+           //  This is a comment
+           (* DONT_TOUCH = "yes", my_attr = 1 *) reg [3:0] a, b, c;
+        endmodule"#]];
+    let synth = test_parse_quote::<ModuleDef>(
+        r#"
+        module foo(input wire[2:0] clock_reset, input wire[7:0] i, output wire[7:0] o);
+           /// This is a comment
+           (* DONT_TOUCH = "yes", my_attr = 1 *)
+           reg [3:0] a, b, c;
+        endmodule
+        "#,
+    )?;
+    expect.assert_eq(&synth.to_string());
+    Ok(())
+}
+
+#[test]
 fn test_module_arg_issue() -> miette::Result<()> {
     let expect = expect_test::expect![[r#"
+
         module uut(input wire [1:0] clock_reset, output wire [0:0] o);
            wire [4:0] od;
            wire [3:0] d;
@@ -751,5 +779,50 @@ fn test_pretty_kitchen_idempotence() -> miette::Result<()> {
     let synth2 = test_parse::<ModuleDef>(&pretty)?;
     let pretty2 = synth2.pretty();
     assert_eq!(pretty, pretty2);
+    Ok(())
+}
+
+#[test]
+fn test_item_list_covers_driver_cases() -> miette::Result<()> {
+    let expect = expect_test::expect![[r#"
+        assign foo = bar;
+    "#]];
+    let driver_ex: &str = "assign foo = bar";
+    let synth = test_parse::<ItemList>(driver_ex)?;
+    expect.assert_eq(&synth.pretty());
+    let expect = expect_test::expect![[r#"
+        IBUFDS #(.DIFF_TERM("FALSE"), .IBUF_LOW_PWR("TRUE"), .IOSTANDARD("LVDS_25"), .DELAY(2.5), .COUNT(10), .RESET_VALUE(8'h01)) ibufds_globular(.O(inner_output[12]), .I(sysclk_p), .IB(sysclk_n));
+    "#]];
+    let driver_ex: &str = r#"
+IBUFDS #(
+   .DIFF_TERM("FALSE"),       // Differential Termination
+   .IBUF_LOW_PWR("TRUE"),     // Low power="TRUE", Highest performance="FALSE"
+   .IOSTANDARD("LVDS_25"),     // Specify the input I/O standard
+   .DELAY(2.5),              // Delay value (0.0-3.0)
+   .COUNT(10),               // Number of delay taps (1-32)
+   .RESET_VALUE(8'h01)     // 8-bit reset value
+) ibufds_globular (
+   .O(inner_output[12]),  // Buffer output
+   .I(sysclk_p),  // Diff_p buffer input (connect directly to top-level port)
+   .IB(sysclk_n) // Diff_n buffer input (connect directly to top-level port)
+);"#;
+    let synth = test_parse::<ItemList>(driver_ex)?;
+    expect.assert_eq(&synth.pretty());
+    Ok(())
+}
+
+#[test]
+fn test_parse_quote_miette_success() -> miette::Result<()> {
+    use crate::parse_quote_miette;
+
+    // Test successful parsing of an expression
+    let _result: Expr = parse_quote_miette! { 1 + 2 }?;
+
+    // Test successful parsing of a statement
+    let _result: Stmt = parse_quote_miette! { a = b + c; }?;
+
+    // Test successful parsing of a port
+    let _result: Port = parse_quote_miette! { input wire [7:0] data }?;
+
     Ok(())
 }
