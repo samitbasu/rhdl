@@ -1,36 +1,13 @@
+use quote::{format_ident, quote};
 use rhdl::prelude::*;
-use serde::Serialize;
 
 use crate::constraints::{IOStandard, Location};
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug)]
 pub struct Options {
     pub io_standard: IOStandard,
     pub pins: Vec<Location>,
 }
-
-#[derive(Serialize)]
-struct Context {
-    name: String,
-    pins_msb: usize,
-    options: Options,
-    output: MountPoint,
-}
-
-static HDL: &str = r#"
-wire [{pins_msb}:0] _drive_{name};
-assign _drive_{name} = {output};
-{{ for pin in options.pins -}}
-assign {name}[{@index}] = (_drive_{name}[{@index}] == 1'b1) ? (1'b0) : (1'bz);
-{{ endfor }}
-"#;
-
-static XDC: &str = r#"
-{{ for pin in options.pins -}}
-set_property IOSTANDARD {options.io_standard} [get_ports {name}[{@index}]]
-set_property PACKAGE_PIN {pin} [get_ports {name}[{@index}]]
-{{ endfor}}
-"#;
 
 pub fn build<T: CircuitIO>(
     name: &str,
@@ -41,14 +18,35 @@ pub fn build<T: CircuitIO>(
     let mut driver = Driver::default();
     driver.output_port(name, bits.len());
     let output = driver.read_from_inner_output(path)?;
-    let context = Context {
-        name: name.into(),
-        pins_msb: options.pins.len() - 1,
-        options: options.clone(),
-        output,
-    };
-    driver.render_hdl(HDL, &context)?;
-    driver.render_constraints(XDC, &context)?;
+    let drive_range: vlog::BitRange = (0..options.pins.len()).into();
+    let name_ident = format_ident!("{name}");
+    let drive_name = format_ident!("_drive_{name}");
+    let pin_assignments = options.pins.iter().enumerate().map(|(index, location)| {
+        let index = syn::Index::from(index);
+        quote! {
+            assign #name_ident[#index] = (#drive_name[#index] == 1'b1) ? (1'b0) : (1'bz);
+        }
+    });
+    driver.hdl = parse_quote_miette! {
+        wire [#drive_range] #drive_name;
+        assign #drive_name = #output;
+        #(#pin_assignments)*
+    }?;
+    driver.constraints = options
+        .pins
+        .iter()
+        .enumerate()
+        .map(|(index, location)| {
+            let pin = location.to_string();
+            format!(
+                r#"
+set_property IOSTANDARD {} [get_ports {{ {}[{}] }}]
+set_property PACKAGE_PIN {} [get_ports {{ {}[{}] }}]
+"#,
+                options.io_standard, name, index, pin, name, index
+            )
+        })
+        .collect();
     Ok(driver)
 }
 
@@ -80,6 +78,21 @@ mod tests {
         }
 
         let driver = build::<U>("led", &path!(.0.val()), &options).unwrap();
-        eprintln!("{driver:?}");
+        let hdl = expect_test::expect![[r#"
+            wire [1:0] _drive_led;
+            assign _drive_led = inner_output[1:0];
+            assign led[0] = (_drive_led[0] == 1'b1) ? (1'b0) : (1'bz);
+            assign led[1] = (_drive_led[1] == 1'b1) ? (1'b0) : (1'bz);
+        "#]];
+        let xdc = expect_test::expect![[r#"
+
+            set_property IOSTANDARD LVCMOS33 [get_ports { led[0] }]
+            set_property PACKAGE_PIN A1 [get_ports { led[0] }]
+
+            set_property IOSTANDARD LVCMOS33 [get_ports { led[1] }]
+            set_property PACKAGE_PIN B3 [get_ports { led[1] }]
+        "#]];
+        hdl.assert_eq(&driver.hdl.pretty());
+        xdc.assert_eq(&driver.constraints);
     }
 }

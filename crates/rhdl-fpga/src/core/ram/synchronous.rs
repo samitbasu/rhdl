@@ -68,14 +68,10 @@ bool  |                     |
 //! The trace below demonstrates the result.
 #![doc = include_str!("../../../doc/sync_bram.md")]
 
-use rhdl::{
-    core::{
-        hdl::ast::{index, index_bit, memory_index, Declaration},
-        ntl::builder::synchronous_black_box,
-    },
-    prelude::*,
-};
+use quote::{format_ident, quote};
+use rhdl::prelude::*;
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
+use syn::parse_quote;
 
 /// The synchronous version of the block ram.  
 ///
@@ -210,82 +206,55 @@ impl<T: Digital, N: BitWidth> Synchronous for SyncBRAM<T, N> {
 
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = name.to_owned();
-        let mut module = Module {
-            name: module_name.clone(),
-            ..Default::default()
-        };
-        let output_bits = unsigned_width(T::BITS);
-        let input_bits = unsigned_width(<Self::I as Digital>::BITS);
-        module.ports = vec![
-            port(
-                "clock_reset",
-                Direction::Input,
-                HDLKind::Wire,
-                unsigned_width(2),
-            ),
-            port("i", Direction::Input, HDLKind::Wire, input_bits),
-            port("o", Direction::Output, HDLKind::Reg, output_bits),
-        ];
-        let wire_decl = |name: &str, width| Declaration {
-            kind: HDLKind::Wire,
-            name: name.into(),
-            width: unsigned_width(width),
-            alias: None,
-        };
-        module.declarations.extend([
-            wire_decl("read_addr", N::BITS),
-            wire_decl("write_addr", N::BITS),
-            wire_decl("write_value", T::BITS),
-            wire_decl("write_enable", 1),
-            wire_decl("clock", 1),
-            Declaration {
-                kind: HDLKind::Reg,
-                name: format!("mem[{}:0]", (1 << N::BITS) - 1),
-                width: output_bits,
-                alias: None,
-            },
-        ]);
-        module.statements.push(initial(
-            self.initial
-                .iter()
-                .map(|(addr, val)| {
-                    let val: BitString = val.typed_bits().into();
-                    assign(&format!("mem[{}]", addr.raw()), bit_string(&val))
-                })
-                .collect(),
-        ));
+        let module = format_ident!("{}", module_name);
+        let input_bits: vlog::BitRange = (0..(<Self::I as Digital>::BITS)).into();
+        let address_bits: vlog::BitRange = (0..(N::BITS)).into();
+        let data_bits: vlog::BitRange = (0..(T::BITS)).into();
+        let memory_size: vlog::BitRange = (0..(1 << N::BITS)).into();
+        let initial_values = self.initial.iter().map(|(addr, val)| {
+            let val: vlog::LitVerilog = val.typed_bits().into();
+            let addr = syn::Index::from(addr.raw() as usize);
+            quote! {mem[#addr] = #val;}
+        });
         let i_kind = <Self::I as Digital>::static_kind();
-        let reassign = |name: &str, path: Path| {
-            continuous_assignment(name, index("i", bit_range(i_kind, &path).unwrap().0))
+        let read_addr_index: vlog::BitRange = bit_range(i_kind, &path!(.read_addr))?.0.into();
+        let write_addr_index: vlog::BitRange = bit_range(i_kind, &path!(.write.addr))?.0.into();
+        let write_value_index: vlog::BitRange = bit_range(i_kind, &path!(.write.value))?.0.into();
+        let write_enable_index: vlog::BitRange = bit_range(i_kind, &path!(.write.enable))?.0.into();
+        let clock_index: vlog::BitRange = bit_range(ClockReset::static_kind(), &path!(.clock))?
+            .0
+            .into();
+        let module: vlog::ModuleDef = parse_quote! {
+            module #module(
+                input wire [1:0] clock_reset,
+                input wire [#input_bits] i,
+                output reg [#data_bits] o
+            );
+                wire [#address_bits] read_addr;
+                wire [#address_bits] write_addr;
+                wire [#data_bits] write_value;
+                wire [0:0] write_enable;
+                wire [0:0] clock;
+                reg [#data_bits] mem[#memory_size];
+                initial begin
+                    #(#initial_values)*
+                end
+                assign read_addr = i[#read_addr_index];
+                assign write_addr = i[#write_addr_index];
+                assign write_value = i[#write_value_index];
+                assign write_enable = i[#write_enable_index];
+                assign clock = clock_reset[#clock_index];
+                always @(posedge clock) begin
+                    o <= mem[read_addr];
+                end
+                always @(posedge clock) begin
+                    if (write_enable)
+                    begin
+                        mem[write_addr] <= write_value;
+                    end
+                end
+            endmodule
         };
-        module.statements.extend([
-            reassign("read_addr", Path::default().field("read_addr")),
-            reassign("write_addr", Path::default().field("write").field("addr")),
-            reassign("write_value", Path::default().field("write").field("value")),
-            reassign(
-                "write_enable",
-                Path::default().field("write").field("enable"),
-            ),
-            continuous_assignment("clock", index_bit("clock_reset", 0)),
-        ]);
-        module.statements.push(always(
-            vec![Events::Posedge("clock".into())],
-            vec![non_blocking_assignment(
-                "o",
-                memory_index("mem", id("read_addr")),
-            )],
-        ));
-        module.statements.push(always(
-            vec![Events::Posedge("clock".into())],
-            vec![if_statement(
-                id("write_enable"),
-                vec![non_blocking_assignment(
-                    "mem[write_addr]",
-                    id("write_value"),
-                )],
-                vec![],
-            )],
-        ));
         Ok(HDLDescriptor {
             name: module_name,
             body: module,
@@ -297,7 +266,7 @@ impl<T: Digital, N: BitWidth> Synchronous for SyncBRAM<T, N> {
 #[cfg(test)]
 mod tests {
     use expect_test::expect;
-    use rhdl::prelude::*;
+    use rhdl::prelude::{vlog::Pretty, *};
 
     use super::*;
     use std::path::PathBuf;
@@ -387,6 +356,49 @@ mod tests {
     fn test_hdl_output() -> miette::Result<()> {
         type UC = SyncBRAM<b8, U4>;
         let uut: UC = SyncBRAM::new((0..).map(|ndx| (bits(ndx), bits(0))));
+        let expect = expect_test::expect![[r#"
+            module top(input wire [1:0] clock_reset, input wire [16:0] i, output reg [7:0] o);
+               wire [3:0] read_addr;
+               wire [3:0] write_addr;
+               wire [7:0] write_value;
+               wire [0:0] write_enable;
+               wire [0:0] clock;
+               reg [7:0] mem[15:0];
+               initial begin
+                  mem[0] = 8'b00000000;
+                  mem[1] = 8'b00000000;
+                  mem[2] = 8'b00000000;
+                  mem[3] = 8'b00000000;
+                  mem[4] = 8'b00000000;
+                  mem[5] = 8'b00000000;
+                  mem[6] = 8'b00000000;
+                  mem[7] = 8'b00000000;
+                  mem[8] = 8'b00000000;
+                  mem[9] = 8'b00000000;
+                  mem[10] = 8'b00000000;
+                  mem[11] = 8'b00000000;
+                  mem[12] = 8'b00000000;
+                  mem[13] = 8'b00000000;
+                  mem[14] = 8'b00000000;
+                  mem[15] = 8'b00000000;
+               end
+               assign read_addr = i[3:0];
+               assign write_addr = i[7:4];
+               assign write_value = i[15:8];
+               assign write_enable = i[16:16];
+               assign clock = clock_reset[0:0];
+               always @(posedge clock) begin
+                  o <= mem[read_addr];
+               end
+               always @(posedge clock) begin
+                  if (write_enable) begin
+                     mem[write_addr] <= write_value;
+                  end
+               end
+            endmodule
+        "#]];
+        let hdl = uut.hdl("top")?.as_module().pretty();
+        expect.assert_eq(&hdl);
         let stream = random_command_stream(1000);
         let test_bench = uut.run(stream)?.collect::<SynchronousTestBench<_, _>>();
         let test_mod = test_bench.ntl(&uut, &TestBenchOptions::default().skip(2))?;

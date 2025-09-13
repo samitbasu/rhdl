@@ -121,12 +121,16 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
                 let (o_range, _) = bit_range(o_kind, &child_path)?;
                 let input_binding = vlog::maybe_connect("i", "i", i_range);
                 let output_binding = vlog::maybe_connect("o", "o", o_range);
+                let bindings = [
+                    Some(parse_quote! {.clock_reset(clock_reset)}),
+                    input_binding,
+                    output_binding,
+                ];
+                let bindings = bindings.iter().flatten();
                 let component_ident = format_ident!("{}", descriptor.unique_name);
                 let component_instance = format_ident!("c{ndx}");
                 Ok(quote! { #component_ident #component_instance(
-                    .clock_reset(clock_reset)
-                    #input_binding
-                    #output_binding
+                    #(#bindings),*
                 ); })
             })
             .collect::<Result<Vec<TokenStream>, RHDLError>>()?;

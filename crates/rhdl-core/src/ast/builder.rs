@@ -14,6 +14,26 @@ pub struct ASTBuilder {
     node_id: Cell<u32>,
 }
 
+pub struct SpanLoc {
+    start_line: usize,
+    start_col: usize,
+    end_line: usize,
+    end_col: usize,
+}
+
+impl From<proc_macro2::Span> for SpanLoc {
+    fn from(span: proc_macro2::Span) -> Self {
+        let start = span.start();
+        let end = span.end();
+        Self {
+            start_line: start.line,
+            start_col: start.column,
+            end_line: end.line,
+            end_col: end.column,
+        }
+    }
+}
+
 impl ASTBuilder {
     pub fn id(&self) -> NodeId {
         let id = self.node_id.take();

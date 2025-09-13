@@ -1,18 +1,11 @@
-use rhdl::prelude::*;
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
 use rhdl::core::CircuitIO;
-use serde::Serialize;
+use rhdl::prelude::*;
 use std::collections::BTreeMap;
 use thiserror::Error;
 
 use crate::drivers::{get_clock_output, get_untyped_input, get_untyped_output};
-
-#[derive(Copy, Clone, PartialEq, PartialOrd)]
-pub struct WireInAddress(u8);
-pub struct WireOutAddress(u8);
-pub struct TriggerInAddress(u8);
-pub struct TriggerOutAddress(u8);
-pub struct PipeInAddress(u8);
-pub struct PipeOutAddress(u8);
 
 #[derive(Error, Debug)]
 pub enum OkHostError {
@@ -49,7 +42,6 @@ const TRIGGER_OUT_ADDRESS_RANGE: std::ops::Range<u8> = 0x60..0x80;
 const PIPE_IN_ADDRESS_RANGE: std::ops::Range<u8> = 0x80..0xA0;
 const PIPE_OUT_ADDRESS_RANGE: std::ops::Range<u8> = 0xA0..0xC0;
 
-#[derive(Serialize)]
 pub struct Host<T> {
     marker: std::marker::PhantomData<T>,
     wire_in: BTreeMap<u8, MountPoint>,
@@ -60,10 +52,6 @@ pub struct Host<T> {
     pipe_out: BTreeMap<u8, PipePoint>,
     bt_pipe_in: BTreeMap<u8, BTPipePoint>,
     bt_pipe_out: BTreeMap<u8, BTPipePoint>,
-    /*
-       pipe_in: BTreeSet<PipeInAddress>,
-       pipe_out: BTreeSet<PipeOutAddress>,
-    */
 }
 
 impl<T> Default for Host<T> {
@@ -86,27 +74,23 @@ fn mk_err(t: OkHostError) -> RHDLError {
     RHDLError::ExportError(ExportError::Custom(t.into()))
 }
 
-#[derive(Serialize)]
 struct WirePoint {
     address: u8,
     mount: MountPoint,
 }
 
-#[derive(Serialize)]
 struct TriggerPoint {
     address: u8,
     clock: MountPoint,
     triggers: MountPoint,
 }
 
-#[derive(Serialize)]
 struct PipePoint {
     address: u8,
     data_mount: MountPoint,
     flag_mount: MountPoint,
 }
 
-#[derive(Serialize)]
 struct BTPipePoint {
     address: u8,
     data_mount: MountPoint,
@@ -114,109 +98,6 @@ struct BTPipePoint {
     ready_mount: MountPoint,
     strobe_mount: MountPoint,
 }
-
-#[derive(Serialize)]
-struct Context {
-    num_outputs: usize,
-    wire_ins: Vec<WirePoint>,
-    wire_outs: Vec<(usize, WirePoint)>,
-    trigger_ins: Vec<TriggerPoint>,
-    trigger_outs: Vec<(usize, TriggerPoint)>,
-    pipe_ins: Vec<(usize, PipePoint)>,
-    pipe_outs: Vec<(usize, PipePoint)>,
-    bt_pipe_ins: Vec<(usize, BTPipePoint)>,
-    bt_pipe_outs: Vec<(usize, BTPipePoint)>,
-}
-
-static HDL: &str = r#"
-// Opal Kelly Module Interface Connections
-wire        ti_clk;
-wire [30:0] ok1;
-wire [16:0] ok2;
-
-assign hi_muxsel    = 1'b0;
-{{ if num_outputs }} 
-wire [17*{num_outputs}-1:0]  ok2x;
-okWireOR # (.N({num_outputs})) wireOR (.ok2(ok2), .ok2s(ok2x));
-{{ endif }}
-
-okHost okHI(
-        .hi_in(hi_in), .hi_out(hi_out), .hi_inout(hi_inout), .hi_aa(hi_aa), .ti_clk(ti_clk),
-        .ok1(ok1) {{if num_outputs}}, .ok2(ok2) {{endif}} );
-
-{{ for wire_in in wire_ins -}}
-okWireIn   ok_wire_in_{@index} (
-   .ok1(ok1), 
-   .ep_addr(8'd{wire_in.address}), 
-   .ep_dataout({wire_in.mount})
-);
-{{ endfor }}
-{{ for wire_out in wire_outs -}}
-okWireOut  ok_wire_out_{@index} (
-    .ok1(ok1), 
-    .ok2(ok2x[ {wire_out.0}*17 +: 17 ]), 
-    .ep_addr(8'd{wire_out.1.address}), 
-    .ep_datain({wire_out.1.mount})
-);
-{{ endfor }}
-{{ for trigger_in in trigger_ins -}}
-okTriggerIn ok_trigger_in{@index} (
-    .ok1(ok1), 
-    .ep_addr(8'd{trigger_in.address}), 
-    .ep_clk({trigger_in.clock})
-    .ep_trigger({trigger_in.triggers})
-);
-{{ endfor }}
-{{ for trigger_out in trigger_outs -}}
-okTriggerOut ok_trigger_out{@index} (
-    .ok1(ok1),
-    .ok2(ok2x[ {trigger_out.0}*17 +: 17 ]), 
-    .ep_addr(8'd{trigger_out.1.address}),
-    .ep_clk({trigger_out.1.clock})
-    .ep_trigger({trigger_out.1.triggers})
-);
-{{ endfor }}
-{{ for pipe_in in pipe_ins -}}
-okPipeIn ok_pipe_in{@index} (
-    .ok1(ok1),
-    .ok2(ok2x[ {pipe_in.0}*17 +: 17 ]),
-    .ep_addr(8'd{pipe_in.1.address}),
-    .ep_dataout({pipe_in.1.data_mount}),
-    .ep_write({pipe_in.1.flag_mount}),
-);
-{{ endfor }}
-{{ for pipe_out in pipe_outs -}}
-okPipeOut ok_pipe_out{@index} (
-    .ok1(ok1),
-    .ok2(ok2x[ {pipe_out.0}*17 +: 17 ]),
-    .ep_addr(8'd{pipe_out.1.address}),
-    .ep_datain({pipe_out.1.data_mount}),
-    .ep_read({pipe_out.1.flag_mount}),
-);
-{{ endfor }}
-{{ for bt_pipe_in in bt_pipe_ins -}}
-okBTPipeIn ok_bt_pipe_in{@index} (
-    ok1(ok1),
-    ok2(ok2x[ {bt_pipe_in.0}*17 +: 17]),
-    .ep_addr(8'd{bt_pipe_in.1.address}),
-    .ep_dataout({bt_pipe_in.1.data_mount}),
-    .ep_write({bt_pipe_in.1.flag_mount}),
-    .ep_blockstrobe({bt_pipe_in.1.strobe_mount}),
-    .ep_ready({bt_pipe_in.1.ready_mount}),
-);
-{{ endfor }}
-{{ for bt_pipe_out in bt_pipe_outs -}}
-okBTPipeOut ok_bt_pipe_out{@index} (
-    ok1(ok1),
-    ok2(ok2x[ {bt_pipe_out.0}*17 +: 17]),
-    .ep_addr(8'd{bt_pipe_out.1.address}),
-    .ep_datain({bt_pipe_out.1.data_mount}),
-    .ep_read({bt_pipe_out.1.flag_mount}),
-    .ep_blockstrobe({bt_pipe_out.1.strobe_mount}),
-    .ep_ready({bt_pipe_out.1.ready_mount}),
-);
-{{ endfor }}
-"#;
 
 fn tag_with_output_slot<S>(output_counter: &mut usize, data: BTreeMap<u8, S>) -> Vec<(usize, S)> {
     data.into_values()
@@ -226,6 +107,162 @@ fn tag_with_output_slot<S>(output_counter: &mut usize, data: BTreeMap<u8, S>) ->
             (out, x)
         })
         .collect()
+}
+
+fn lit_address(address: u8) -> vlog::LitVerilog {
+    vlog::lit_verilog(8, &format!("d{address}"))
+}
+
+fn wire_in(points: &[WirePoint]) -> impl Iterator<Item = TokenStream> + '_ {
+    points.iter().enumerate().map(|(index, point)| {
+        let addr = lit_address(point.address);
+        let mount = &point.mount;
+        let name = format_ident!("ok_wire_in_{index}");
+        quote! {
+            okWireIn  #name (
+               .ok1(ok1),
+               .ep_addr(#addr),
+               .ep_dataout(#mount)
+            );
+        }
+    })
+}
+
+fn wire_out(points: &[(usize, WirePoint)]) -> impl Iterator<Item = TokenStream> + '_ {
+    points.iter().map(|(out, point)| {
+        let addr = lit_address(point.address);
+        let mount = &point.mount;
+        let name = format_ident!("ok_wire_out_{out}");
+        let out = syn::Index::from(*out * 17);
+        quote! {
+            okWireOut  #name (
+                .ok1(ok1),
+                .ok2(ok2x[ #out +: 17 ]),
+                .ep_addr(#addr),
+                .ep_datain(#mount)
+            );
+        }
+    })
+}
+
+fn trigger_in(points: &[TriggerPoint]) -> impl Iterator<Item = TokenStream> + '_ {
+    points.iter().enumerate().map(|(index, point)| {
+        let addr = lit_address(point.address);
+        let clock = &point.clock;
+        let triggers = &point.triggers;
+        let name = format_ident!("ok_trigger_in{index}");
+        quote! {
+            okTriggerIn #name (
+                .ok1(ok1),
+                .ep_addr(#addr),
+                .ep_clk(#clock),
+                .ep_trigger(#triggers)
+            );
+        }
+    })
+}
+
+fn trigger_out(points: &[(usize, TriggerPoint)]) -> impl Iterator<Item = TokenStream> + '_ {
+    points.iter().map(|(out, point)| {
+        let addr = lit_address(point.address);
+        let clock = &point.clock;
+        let triggers = &point.triggers;
+        let name = format_ident!("ok_trigger_out{out}");
+        let out = syn::Index::from(*out * 17);
+        quote! {
+            okTriggerOut #name (
+                .ok1(ok1),
+                .ok2(ok2x[ #out +: 17 ]),
+                .ep_addr(#addr),
+                .ep_clk(#clock),
+                .ep_trigger(#triggers)
+            );
+        }
+    })
+}
+
+fn pipe_in(points: &[(usize, PipePoint)]) -> impl Iterator<Item = TokenStream> + '_ {
+    points.iter().map(|(out, point)| {
+        let addr = lit_address(point.address);
+        let data_mount = &point.data_mount;
+        let flag_mount = &point.flag_mount;
+        let name = format_ident!("ok_pipe_in{out}");
+        let out = syn::Index::from(*out * 17);
+        quote! {
+            okPipeIn #name (
+                .ok1(ok1),
+                .ok2(ok2x[ #out +: 17 ]),
+                .ep_addr(#addr),
+                .ep_dataout(#data_mount),
+                .ep_write(#flag_mount),
+            );
+        }
+    })
+}
+
+fn pipe_out(points: &[(usize, PipePoint)]) -> impl Iterator<Item = TokenStream> + '_ {
+    points.iter().map(|(out, point)| {
+        let addr = lit_address(point.address);
+        let data_mount = &point.data_mount;
+        let flag_mount = &point.flag_mount;
+        let name = format_ident!("ok_pipe_out{out}");
+        let out = syn::Index::from(*out * 17);
+        quote! {
+            okPipeOut #name (
+                .ok1(ok1),
+                .ok2(ok2x[ #out +: 17 ]),
+                .ep_addr(#addr),
+                .ep_datain(#data_mount),
+                .ep_read(#flag_mount),
+            );
+        }
+    })
+}
+
+fn bt_pipe_in(points: &[(usize, BTPipePoint)]) -> impl Iterator<Item = TokenStream> + '_ {
+    points.iter().map(|(out, point)| {
+        let addr = lit_address(point.address);
+        let data_mount = &point.data_mount;
+        let flag_mount = &point.flag_mount;
+        let ready_mount = &point.ready_mount;
+        let strobe_mount = &point.strobe_mount;
+        let name = format_ident!("ok_bt_pipe_in{out}");
+        let out = syn::Index::from(*out * 17);
+        quote! {
+            okBTPipeIn #name (
+                .ok1(ok1),
+                .ok2(ok2x[ #out +: 17]),
+                .ep_addr(#addr),
+                .ep_dataout(#data_mount),
+                .ep_write(#flag_mount),
+                .ep_blockstrobe(#strobe_mount),
+                .ep_ready(#ready_mount),
+            );
+        }
+    })
+}
+
+fn bt_pipe_out(points: &[(usize, BTPipePoint)]) -> impl Iterator<Item = TokenStream> + '_ {
+    points.iter().map(|(out, point)| {
+        let addr = lit_address(point.address);
+        let data_mount = &point.data_mount;
+        let flag_mount = &point.flag_mount;
+        let ready_mount = &point.ready_mount;
+        let strobe_mount = &point.strobe_mount;
+        let name = format_ident!("ok_bt_pipe_out{out}");
+        let out = syn::Index::from(*out * 17);
+        quote! {
+            okBTPipeOut #name (
+                .ok1(ok1),
+                .ok2(ok2x[ #out +: 17]),
+                .ep_addr(#addr),
+                .ep_datain(#data_mount),
+                .ep_read(#flag_mount),
+                .ep_blockstrobe(#strobe_mount),
+                .ep_ready(#ready_mount),
+            );
+        }
+    })
 }
 
 impl<T: CircuitIO> Host<T> {
@@ -422,7 +459,7 @@ impl<T: CircuitIO> Host<T> {
                 address: addr,
                 mount,
             })
-            .collect();
+            .collect::<Vec<_>>();
         let mut output_counter = 0;
         let wire_outs: Vec<(usize, WirePoint)> = self
             .wire_out
@@ -438,8 +475,8 @@ impl<T: CircuitIO> Host<T> {
                     },
                 )
             })
-            .collect();
-        let trigger_ins = self.trigger_in.into_values().collect();
+            .collect::<Vec<_>>();
+        let trigger_ins = self.trigger_in.into_values().collect::<Vec<_>>();
         let trigger_outs = tag_with_output_slot(&mut output_counter, self.trigger_out);
         let pipe_ins = tag_with_output_slot(&mut output_counter, self.pipe_in);
         let pipe_outs: Vec<(usize, PipePoint)> =
@@ -454,18 +491,49 @@ impl<T: CircuitIO> Host<T> {
             + pipe_outs.len()
             + bt_pipe_ins.len()
             + bt_pipe_outs.len();
-        let context = Context {
-            num_outputs,
-            wire_ins,
-            wire_outs,
-            trigger_ins,
-            trigger_outs,
-            pipe_ins,
-            pipe_outs,
-            bt_pipe_ins,
-            bt_pipe_outs,
+        let preamble = if num_outputs > 0 {
+            let ok2range: vlog::BitRange = (0..(17 * num_outputs)).into();
+            let num_outputs = syn::Index::from(num_outputs);
+            quote! {
+                wire [#ok2range]  ok2x;
+                okWireOR # (.N(#num_outputs)) wireOR (.ok2(ok2), .ok2s(ok2x));
+            }
+        } else {
+            quote! {}
         };
-        driver.render_hdl(HDL, &context)?;
+        let ok2_port = if num_outputs > 0 {
+            quote! {, .ok2(ok2) }
+        } else {
+            quote! {}
+        };
+        let wire_ins = wire_in(&wire_ins);
+        let wire_outs = wire_out(&wire_outs);
+        let trigger_ins = trigger_in(&trigger_ins);
+        let trigger_outs = trigger_out(&trigger_outs);
+        let pipe_ins = pipe_in(&pipe_ins);
+        let pipe_outs = pipe_out(&pipe_outs);
+        let bt_pipe_ins = bt_pipe_in(&bt_pipe_ins);
+        let bt_pipe_outs = bt_pipe_out(&bt_pipe_outs);
+        driver.hdl = parse_quote_miette! {
+            // Opal Kelly Module Interface Connections
+            wire        ti_clk;
+            wire [30:0] ok1;
+            wire [16:0] ok2;
+
+            assign hi_muxsel    = 1'b0;
+            #preamble
+            okHost okHI(
+                .hi_in(hi_in), .hi_out(hi_out), .hi_inout(hi_inout), .hi_aa(hi_aa), .ti_clk(ti_clk),
+                .ok1(ok1) #ok2_port );
+            #(#wire_ins)*
+            #(#wire_outs)*
+            #(#trigger_ins)*
+            #(#trigger_outs)*
+            #(#pipe_ins)*
+            #(#pipe_outs)*
+            #(#bt_pipe_ins)*
+            #(#bt_pipe_outs)*
+        }?;
         Ok(driver)
     }
 }
@@ -476,7 +544,7 @@ mod tests {
     use rhdl::prelude::*;
 
     #[test]
-    fn test_host() -> Result<(), RHDLError> {
+    fn test_host() -> miette::Result<()> {
         #[derive(PartialEq, Digital, Timed)]
         struct O {
             out1: Signal<b16, Red>,
@@ -539,7 +607,7 @@ mod tests {
         )?;
         let driver = ok_host.build()?;
         let expect = expect_file!("ok_host.expect");
-        expect.assert_eq(&driver.hdl);
+        expect.assert_eq(&driver.hdl.pretty());
         Ok(())
     }
 }

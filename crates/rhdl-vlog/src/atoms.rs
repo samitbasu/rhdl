@@ -6,7 +6,7 @@ use proc_macro2::TokenTree;
 use quote::{ToTokens, format_ident, quote};
 use serde::{Deserialize, Serialize};
 use syn::{
-    Ident, Lifetime, LitInt, Result, Token, bracketed,
+    Ident, Lifetime, LitFloat, LitInt, LitStr, Result, Token, bracketed,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
     token::{self},
@@ -605,5 +605,60 @@ impl ToTokens for SensitivityList {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let elements = &self.elements;
         tokens.extend(quote! { @ ( #( #elements ),* ) });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub enum ConstExpr {
+    LitVerilog(LitVerilog),
+    LitInt(i32),
+    LitStr(String),
+    LitReal(String),
+}
+
+impl Parse for ConstExpr {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.fork().parse::<LitVerilog>().is_ok() {
+            Ok(ConstExpr::LitVerilog(input.parse()?))
+        } else if input.fork().parse::<LitInt>().is_ok() {
+            Ok(ConstExpr::LitInt(input.parse::<LitInt>()?.base10_parse()?))
+        } else if input.fork().parse::<LitFloat>().is_ok() {
+            Ok(ConstExpr::LitReal(input.parse::<LitFloat>()?.to_string()))
+        } else if input.fork().parse::<LitStr>().is_ok() {
+            Ok(ConstExpr::LitStr(input.parse::<LitStr>()?.value()))
+        } else {
+            Err(input.error("expected constant expression"))
+        }
+    }
+}
+
+impl Pretty for ConstExpr {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        match self {
+            ConstExpr::LitVerilog(lit) => lit.pretty_print(formatter),
+            ConstExpr::LitInt(i) => formatter.write(&i.to_string()),
+            ConstExpr::LitStr(s) => formatter.write(&format!("\"{}\"", s)),
+            ConstExpr::LitReal(r) => formatter.write(r),
+        }
+    }
+}
+
+impl ToTokens for ConstExpr {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            ConstExpr::LitVerilog(lit) => lit.to_tokens(tokens),
+            ConstExpr::LitInt(i) => {
+                let i = LitInt::new(&i.to_string(), proc_macro2::Span::call_site());
+                tokens.extend(quote! { #i });
+            }
+            ConstExpr::LitStr(s) => {
+                let s = LitStr::new(s, proc_macro2::Span::call_site());
+                tokens.extend(quote! { #s });
+            }
+            ConstExpr::LitReal(r) => {
+                let r = LitFloat::new(r, proc_macro2::Span::call_site());
+                tokens.extend(quote! { #r });
+            }
+        }
     }
 }

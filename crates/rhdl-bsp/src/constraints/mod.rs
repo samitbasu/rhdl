@@ -1,4 +1,4 @@
-use serde::Serialize;
+use quote::{quote, ToTokens};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Location {
@@ -7,15 +7,12 @@ pub enum Location {
     Custom { name: String },
 }
 
-impl Serialize for Location {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
+impl std::fmt::Display for Location {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Location::BGABall { row, col } => serializer.serialize_str(&format!("{row:?}{col}")),
-            Location::Edge { num } => serializer.serialize_str(&format!("{num}")),
-            Location::Custom { name } => serializer.serialize_str(name),
+            Location::BGABall { row, col } => write!(f, "{row:?}{col}"),
+            Location::Edge { num } => write!(f, "{num}"),
+            Location::Custom { name } => write!(f, "{name}"),
         }
     }
 }
@@ -92,24 +89,38 @@ pub enum SlewType {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, PartialEq, Debug, Copy)]
 pub enum IOStandard {
-    #[serde(rename = "LVCMOS18")]
     LowVoltageCMOS_1v8,
-    #[serde(rename = "LVCMOS33")]
     LowVoltageCMOS_3v3,
-    #[serde(rename = "SSTL18_II")]
     StubSeriesTerminatedLogic_II,
-    #[serde(rename = "DIFF_SSTL18_II")]
     DifferentialStubSeriesTerminatedLogic_II,
-    #[serde(rename = "LVDS_25")]
     LowVoltageDifferentialSignal_2v5,
-    #[serde(rename = "SSTL15")]
     StubSeriesTerminatedLogic_1v5,
-    #[serde(rename = "LVCMOS15")]
     LowVoltageCMOS_1v5,
-    #[serde(rename = "DIFF_SSTL15")]
     DifferentialStubSeriesTerminatedLogic_1v5,
+}
+
+impl std::fmt::Display for IOStandard {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IOStandard::LowVoltageCMOS_1v5 => write!(f, "LVCMOS15"),
+            IOStandard::LowVoltageCMOS_1v8 => write!(f, "LVCMOS18"),
+            IOStandard::LowVoltageCMOS_3v3 => write!(f, "LVCMOS33"),
+            IOStandard::StubSeriesTerminatedLogic_II => write!(f, "SSTL18_II"),
+            IOStandard::DifferentialStubSeriesTerminatedLogic_II => write!(f, "DIFF_SSTL18_II"),
+            IOStandard::LowVoltageDifferentialSignal_2v5 => write!(f, "LVDS_25"),
+            IOStandard::StubSeriesTerminatedLogic_1v5 => write!(f, "SSTL15"),
+            IOStandard::DifferentialStubSeriesTerminatedLogic_1v5 => write!(f, "DIFF_SSTL15"),
+        }
+    }
+}
+
+impl ToTokens for IOStandard {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let s = self.to_string();
+        tokens.extend(quote! { #s });
+    }
 }
 
 #[derive(Clone, Debug)]

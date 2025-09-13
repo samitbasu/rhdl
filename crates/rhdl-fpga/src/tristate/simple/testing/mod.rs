@@ -31,6 +31,7 @@ pub fn fixture(_cr: ClockReset, i: I, q: Q) -> (O, D) {
 #[cfg(test)]
 mod tests {
     use expect_test::{expect, expect_file};
+    use rhdl::prelude::vlog::Pretty as _;
 
     use crate::tristate::simple::sender::Cmd;
 
@@ -69,7 +70,7 @@ mod tests {
         top.pass_through_output("data", &path!(.val().data))?;
         let module = top.module()?;
         let expect = expect_file!["tristate.expect"];
-        expect.assert_eq(&module.as_verilog());
+        expect.assert_eq(&module.pretty());
         Ok(())
     }
 }

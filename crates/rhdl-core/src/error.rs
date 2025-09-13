@@ -12,6 +12,9 @@ use crate::{
 pub enum RHDLError {
     #[error("Internal Error: {0}")]
     Anyhow(#[from] anyhow::Error),
+    #[error("Parsing Error: {0}")]
+    #[diagnostic(transparent)]
+    ParseError(#[from] rhdl_vlog::ParseError),
     #[error("Unparseable integer error: {0}")]
     ParseIntError(#[from] std::num::ParseIntError),
     #[error("RHDL Syntax Error")]
@@ -62,8 +65,8 @@ pub enum RHDLError {
     NoOutputsError,
     #[error("syn parsing error: {0}")]
     SynError(#[from] syn::Error),
-    // TODO - FIXME    #[error("Top module export error: {0}")]
-    //    ExportError(#[from] crate::circuit::fixture::ExportError),
+    #[error("Top module export error: {0}")]
+    ExportError(#[from] crate::circuit::fixture::ExportError),
     #[error("This module is not synthesizable")]
     NotSynthesizable,
     #[error("Yosys synthesis error: {0}")]

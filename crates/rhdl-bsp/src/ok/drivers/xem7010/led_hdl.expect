@@ -1,0 +1,10 @@
+wire [7:0] _drive_led;
+assign _drive_led = inner_output[7:0];
+assign led[0] = (_drive_led[0] == 1'b1) ? (1'b0) : (1'bz);
+assign led[1] = (_drive_led[1] == 1'b1) ? (1'b0) : (1'bz);
+assign led[2] = (_drive_led[2] == 1'b1) ? (1'b0) : (1'bz);
+assign led[3] = (_drive_led[3] == 1'b1) ? (1'b0) : (1'bz);
+assign led[4] = (_drive_led[4] == 1'b1) ? (1'b0) : (1'bz);
+assign led[5] = (_drive_led[5] == 1'b1) ? (1'b0) : (1'bz);
+assign led[6] = (_drive_led[6] == 1'b1) ? (1'b0) : (1'bz);
+assign led[7] = (_drive_led[7] == 1'b1) ? (1'b0) : (1'bz);

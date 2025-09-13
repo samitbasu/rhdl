@@ -1,16 +1,16 @@
-use super::{circuit_impl::Circuit, hdl_backend::maybe_decl_wire};
+use super::circuit_impl::Circuit;
 use crate::{
-    BitX, CircuitIO, Digital, Kind, RHDLError, Timed,
-    hdl::ast::{
-        Direction, HDLKind, Module, Port, SignedWidth, Statement, component_instance, connection,
-        id,
-    },
+    CircuitIO, Digital, Kind, RHDLError, Timed,
     types::path::{Path, bit_range, leaf_paths},
 };
 use miette::Diagnostic;
+use quote::{ToTokens, format_ident, quote};
 use serde::Serialize;
+use syn::parse_quote;
 use thiserror::Error;
 use tinytemplate::TinyTemplate;
+
+use rhdl_vlog as vlog;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ExportError {
@@ -52,86 +52,22 @@ pub enum MountPoint {
     Output(std::ops::Range<usize>),
 }
 
-impl std::fmt::Display for MountPoint {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
+impl ToTokens for MountPoint {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.extend(match self {
             MountPoint::Input(range) => {
-                if range.is_empty() {
-                    Err(std::fmt::Error)
-                } else if range.len() == 1 {
-                    write!(f, "inner_input[{}]", range.start)
-                } else {
-                    write!(
-                        f,
-                        "inner_input[{}:{}]",
-                        range.end.saturating_sub(1),
-                        range.start
-                    )
+                let bit_range: vlog::BitRange = range.into();
+                quote! {
+                    inner_input[#bit_range]
                 }
             }
             MountPoint::Output(range) => {
-                if range.is_empty() {
-                    Err(std::fmt::Error)
-                } else if range.len() == 1 {
-                    write!(f, "inner_output[{}]", range.start)
-                } else {
-                    write!(
-                        f,
-                        "inner_output[{}:{}]",
-                        range.end.saturating_sub(1),
-                        range.start
-                    )
+                let bit_range: vlog::BitRange = range.into();
+                quote! {
+                    inner_output[#bit_range]
                 }
             }
-        }
-    }
-}
-
-impl Serialize for MountPoint {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str(&self.to_string())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct DriverPort {
-    pub name: String,
-    pub direction: Direction,
-    pub width: usize,
-}
-
-impl DriverPort {
-    pub fn input(name: &str, width: usize) -> Self {
-        Self {
-            name: name.into(),
-            direction: Direction::Input,
-            width,
-        }
-    }
-    pub fn output(name: &str, width: usize) -> Self {
-        Self {
-            name: name.into(),
-            direction: Direction::Output,
-            width,
-        }
-    }
-    pub fn inout(name: &str, width: usize) -> Self {
-        Self {
-            name: name.into(),
-            direction: Direction::Inout,
-            width,
-        }
-    }
-    fn as_module_port(&self) -> Port {
-        Port {
-            name: self.name.clone(),
-            direction: self.direction,
-            kind: HDLKind::Wire,
-            width: SignedWidth::Unsigned(self.width),
-        }
+        })
     }
 }
 
@@ -139,20 +75,9 @@ impl DriverPort {
 pub struct Driver<T> {
     marker: std::marker::PhantomData<T>,
     mounts: Vec<MountPoint>,
-    pub ports: Vec<DriverPort>,
-    pub hdl: String,
+    pub ports: Vec<vlog::Port>,
+    pub hdl: vlog::ItemList,
     pub constraints: String,
-}
-
-impl<T> std::fmt::Debug for Driver<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Driver")
-            .field("mounts", &self.mounts)
-            .field("ports", &self.ports)
-            .field("hdl", &self.hdl)
-            .field("constraints", &self.constraints)
-            .finish()
-    }
 }
 
 impl<T> Default for Driver<T> {
@@ -161,7 +86,7 @@ impl<T> Default for Driver<T> {
             marker: std::marker::PhantomData,
             mounts: Default::default(),
             ports: Default::default(),
-            hdl: Default::default(),
+            hdl: vlog::ItemList::default(),
             constraints: Default::default(),
         }
     }
@@ -177,13 +102,22 @@ fn render(template: &'static str, context: impl Serialize) -> Result<String, RHD
 
 impl<T: CircuitIO> Driver<T> {
     pub fn input_port(&mut self, name: &str, width: usize) {
-        self.ports.push(DriverPort::input(name, width))
+        self.ports.push(vlog::port(
+            vlog::Direction::Input,
+            vlog::wire_decl(name, vlog::unsigned_width(width)),
+        ));
     }
     pub fn output_port(&mut self, name: &str, width: usize) {
-        self.ports.push(DriverPort::output(name, width))
+        self.ports.push(vlog::port(
+            vlog::Direction::Output,
+            vlog::wire_decl(name, vlog::unsigned_width(width)),
+        ));
     }
     pub fn inout_port(&mut self, name: &str, width: usize) {
-        self.ports.push(DriverPort::inout(name, width))
+        self.ports.push(vlog::port(
+            vlog::Direction::Inout,
+            vlog::wire_decl(name, vlog::unsigned_width(width)),
+        ));
     }
     pub fn write_to_inner_input(&mut self, path: &Path) -> Result<MountPoint, RHDLError> {
         let (bits, _) = bit_range(<T::I as Timed>::static_kind(), path)?;
@@ -197,14 +131,6 @@ impl<T: CircuitIO> Driver<T> {
         self.mounts.push(mount.clone());
         Ok(mount)
     }
-    pub fn render_hdl(
-        &mut self,
-        template: &'static str,
-        context: impl Serialize,
-    ) -> Result<(), RHDLError> {
-        self.hdl = render(template, context)?;
-        Ok(())
-    }
     pub fn render_constraints(
         &mut self,
         template: &'static str,
@@ -213,8 +139,8 @@ impl<T: CircuitIO> Driver<T> {
         self.constraints = render(template, context)?;
         Ok(())
     }
-    pub fn set_hdl(&mut self, hdl: &str) {
-        self.hdl = hdl.into();
+    pub fn set_hdl(&mut self, hdl: vlog::ItemList) {
+        self.hdl = hdl;
     }
     pub fn set_constraints(&mut self, constraints: &str) {
         self.constraints = constraints.into();
@@ -229,7 +155,8 @@ pub fn passthrough_output_driver<T: Circuit>(
     let mut driver = Driver::default();
     driver.output_port(name, bits.len());
     let output = driver.read_from_inner_output(path)?;
-    driver.hdl = format!("assign {name} = {output};");
+    let name = format_ident!("{}", name);
+    driver.hdl = parse_quote!(assign #name = #output;);
     Ok(driver)
 }
 
@@ -241,7 +168,8 @@ pub fn passthrough_input_driver<T: Circuit>(
     let mut driver = Driver::default();
     driver.input_port(name, bits.len());
     let input = driver.write_to_inner_input(path)?;
-    driver.hdl = format!("assign {input} = {name};");
+    let name = format_ident!("{}", name);
+    driver.hdl = parse_quote!(assign #input = #name;);
     Ok(driver)
 }
 
@@ -258,20 +186,8 @@ pub fn constant_driver<T: Circuit, S: Digital>(
     }
     let mut driver = Driver::<T>::default();
     let input = driver.write_to_inner_input(path)?;
-    let val = val.bin();
-    let val_as_literal = val
-        .into_iter()
-        .map(|x| match x {
-            BitX::One => '1',
-            BitX::Zero => '0',
-            BitX::X => 'x',
-        })
-        .collect::<String>();
-    driver.hdl = format!(
-        "assign {input} = {len}'b{literal};",
-        len = val_as_literal.len(),
-        literal = val_as_literal
-    );
+    let lit: vlog::LitVerilog = val.typed_bits().into();
+    driver.hdl = parse_quote!(assign #input = #lit;);
     Ok(driver)
 }
 
@@ -320,24 +236,18 @@ impl<T: Circuit> Fixture<T> {
         self.add_driver(constant_driver::<T, S>(val, path)?);
         Ok(())
     }
-    pub fn module(&self) -> Result<Module, RHDLError> {
-        let ports = self
-            .drivers
-            .iter()
-            .flat_map(|t| t.ports.iter())
-            .map(|x| x.as_module_port())
-            .collect();
+    pub fn module(&self) -> Result<vlog::ModuleList, RHDLError> {
+        let ports = self.drivers.iter().flat_map(|t| t.ports.iter());
         // Declare the mount points for the circuit
         let i_kind = <<T as CircuitIO>::I as Timed>::static_kind();
         let inputs_len = i_kind.bits();
         let outputs_len = <<T as CircuitIO>::O as Timed>::static_kind().bits();
         let declarations = [
-            maybe_decl_wire(inputs_len, "inner_input"),
-            maybe_decl_wire(outputs_len, "inner_output"),
+            vlog::maybe_decl_wire(inputs_len, "inner_input"),
+            vlog::maybe_decl_wire(outputs_len, "inner_output"),
         ]
         .into_iter()
-        .flatten()
-        .collect();
+        .flatten();
         let mut i_cover = vec![false; inputs_len];
         self.drivers
             .iter()
@@ -359,31 +269,24 @@ impl<T: Circuit> Fixture<T> {
             let coverage = build_coverage_error(i_kind, &i_cover);
             return Err(ExportError::InputsNotCovered(coverage).into());
         }
-        let mut statements = self
-            .drivers
-            .iter()
-            .map(|x| Statement::Custom(x.hdl.clone()))
-            .collect::<Vec<_>>();
+        let driver_items = self.drivers.iter().flat_map(|x| &x.hdl.items);
         // Instantiate the thing
         let hdl = self.circuit.hdl("inner")?;
         let verilog = hdl.as_module();
-        statements.push(component_instance(
-            &verilog.name,
-            "inner_inst",
-            vec![
-                connection("i", id("inner_input")),
-                connection("o", id("inner_output")),
-            ],
-        ));
-        Ok(Module {
-            name: self.name.clone(),
-            description: format!("Fixture for {}", self.circuit.description()),
-            ports,
-            declarations,
-            statements,
-            submodules: vec![verilog],
-            ..Default::default()
-        })
+        let name_ident = format_ident!("{}", self.name);
+        let inner_ident = format_ident!("{}", hdl.name);
+        let module: vlog::ModuleList = parse_quote! {
+            module #name_ident (#(#ports),*);
+                #( #declarations ;)*
+                #( #driver_items ;)*
+                #inner_ident inner_inst (
+                    .i(inner_input),
+                    .o(inner_output)
+                );
+            endmodule
+            #verilog
+        };
+        Ok(module)
     }
     pub fn constraints(&self) -> String {
         let xdc = self
@@ -393,4 +296,14 @@ impl<T: Circuit> Fixture<T> {
             .collect::<Vec<_>>();
         xdc.join("\n")
     }
+}
+
+#[macro_export]
+macro_rules! bind {
+    ($fixture:expr, $name:ident -> input $($path:tt)*) => {
+        $fixture.pass_through_input(stringify!($name), &path!($($path)*))?
+    };
+    ($fixture:expr, $name:ident -> output $($path:tt)*) => {
+        $fixture.pass_through_output(stringify!($name), &path!($($path)*))?
+    };
 }

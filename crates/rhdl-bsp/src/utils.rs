@@ -1,11 +1,21 @@
-use rhdl::{core::RHDLError, prelude::ExportError};
-use serde::Serialize;
-use tinytemplate::TinyTemplate;
+use quote::ToTokens;
 
-pub fn tt_render<S: Serialize>(template: &'static str, context: S) -> Result<String, RHDLError> {
-    let mut tt = TinyTemplate::new();
-    tt.add_template("template", template)
-        .map_err(|err| RHDLError::ExportError(ExportError::TemplateError(err)))?;
-    tt.render("template", &context)
-        .map_err(|err| RHDLError::ExportError(ExportError::TemplateError(err)))
+#[derive(Clone, Hash, PartialEq)]
+pub struct BoolParameter(pub bool);
+
+impl std::fmt::Display for BoolParameter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.0 {
+            write!(f, "TRUE")
+        } else {
+            write!(f, "FALSE")
+        }
+    }
+}
+
+impl ToTokens for BoolParameter {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let s = if self.0 { "TRUE" } else { "FALSE" };
+        tokens.extend(quote::quote! { #s });
+    }
 }

@@ -1,0 +1,1 @@
+IBUFDS #(.DIFF_TERM("FALSE"), .IBUF_LOW_PWR("TRUE"), .IOSTANDARD("LVDS_25")) ibufds_sysclk(.O(inner_input[0:0]), .I(sysclk_p), .IB(sysclk_n));

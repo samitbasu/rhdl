@@ -116,7 +116,9 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
                 let output_binding = (!o_range_empty).then(|| quote! {.o(o[#o_range_vlog])});
                 let component_name = format_ident!("{}", descriptor.unique_name);
                 let instance_name = format_ident!("c{ndx}");
-                Ok(quote! { #component_name #instance_name(#input_binding, #output_binding) })
+                let bindings = [input_binding, output_binding];
+                let bindings = bindings.iter().flatten();
+                Ok(quote! { #component_name #instance_name(#(#bindings),*) })
             })
             .collect::<Result<Vec<TokenStream>, RHDLError>>()?;
         let module: vlog::ModuleDef = parse_quote! {

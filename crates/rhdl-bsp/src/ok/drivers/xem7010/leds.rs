@@ -49,7 +49,9 @@ mod tests {
         }
 
         let led_driver = super::leds::<U>(&path!(.leds.val())).unwrap();
-        let expect = expect_file!["led.expect"];
-        expect.assert_debug_eq(&led_driver);
+        let hdl = expect_file!("led_hdl.expect");
+        hdl.assert_eq(&led_driver.hdl.pretty());
+        let xdc = expect_file!("led.xdc");
+        xdc.assert_eq(&led_driver.constraints);
     }
 }

@@ -1,14 +1,14 @@
 use quote::{ToTokens, format_ident, quote};
 use serde::{Deserialize, Serialize};
 use syn::{
-    Ident, LitInt, LitStr, Result, Token, parenthesized,
+    Ident, LitFloat, LitInt, LitStr, Result, Token, parenthesized,
     parse::{Parse, ParseStream},
     token,
 };
 
 use crate::{
     ParenCommaList, Parenthesized,
-    atoms::{LitVerilog, SensitivityList},
+    atoms::{ConstExpr, LitVerilog, SensitivityList},
     expr::{Expr, ExprConcat, ExprDynIndex, ExprIndex},
     formatter::{Formatter, Pretty},
     kw_ops::{LeftArrow, kw},
@@ -55,7 +55,9 @@ impl Parse for StmtKind {
             input.parse().map(StmtKind::NonblockAssign)
         } else if input.fork().parse::<Assign>().is_ok() {
             input.parse().map(StmtKind::Assign)
-        } else if lookahead.peek(Ident) && input.peek2(Ident) && input.peek3(token::Paren) {
+        } else if (lookahead.peek(Ident) && input.peek2(Ident) && input.peek3(token::Paren))
+            || (lookahead.peek(Ident) && input.peek2(Token![#]))
+        {
             input.parse().map(StmtKind::Instance)
         } else if lookahead.peek(Ident) && input.peek2(token::Bracket) {
             input.parse().map(StmtKind::DynamicSplice)
@@ -386,8 +388,46 @@ impl ToTokens for Connection {
 }
 
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct Parameter {
+    pub name: String,
+    pub value: Box<ConstExpr>,
+}
+
+impl Parse for Parameter {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _dot = input.parse::<Token![.]>()?;
+        let name = input.parse::<Ident>()?;
+        let content;
+        let _paren = parenthesized!(content in input);
+        let value = content.parse::<Box<ConstExpr>>()?;
+        Ok(Self {
+            name: name.to_string(),
+            value,
+        })
+    }
+}
+
+impl ToTokens for Parameter {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = format_ident!("{}", self.name);
+        let value = &self.value;
+        tokens.extend(quote! { .#name ( #value ) });
+    }
+}
+
+impl Pretty for Parameter {
+    fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
+        formatter.write(&format!(".{}", self.name));
+        formatter.parenthesized(|f| {
+            self.value.pretty_print(f);
+        });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Instance {
     pub module: String,
+    pub parameters: Vec<Parameter>,
     pub instance: String,
     pub connections: Vec<Connection>,
 }
@@ -395,10 +435,18 @@ pub struct Instance {
 impl Parse for Instance {
     fn parse(input: ParseStream) -> Result<Self> {
         let module = input.parse::<Ident>()?;
+        let parameters = if input.peek(Token![#]) {
+            let _hash = input.parse::<Token![#]>()?;
+            let parameters = input.parse::<ParenCommaList<Parameter>>()?;
+            parameters.inner.into_iter().collect()
+        } else {
+            vec![]
+        };
         let instance = input.parse::<Ident>()?;
         let connections = input.parse::<ParenCommaList<Connection>>()?;
         Ok(Self {
             module: module.to_string(),
+            parameters,
             instance: instance.to_string(),
             connections: connections.inner.into_iter().collect(),
         })
@@ -407,7 +455,15 @@ impl Parse for Instance {
 
 impl Pretty for Instance {
     fn pretty_print(&self, formatter: &mut crate::formatter::Formatter) {
-        formatter.write(&format!("{} {}", self.module, self.instance));
+        formatter.write(&self.module);
+        if !self.parameters.is_empty() {
+            formatter.write(" #");
+            formatter.parenthesized(|f| {
+                f.comma_separated(&self.parameters);
+            });
+        }
+        formatter.write(" ");
+        formatter.write(&self.instance);
         formatter.parenthesized(|f| {
             f.comma_separated(&self.connections);
         });
@@ -417,9 +473,15 @@ impl Pretty for Instance {
 impl ToTokens for Instance {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let module = format_ident!("{}", self.module);
+        let parameters = &self.parameters;
+        let parameters = if !parameters.is_empty() {
+            quote! { # ( #( #parameters ),* ) }
+        } else {
+            quote! {}
+        };
         let instance = format_ident!("{}", self.instance);
         let connections = &self.connections;
-        tokens.extend(quote! { #module #instance ( #( #connections ),* ) ; });
+        tokens.extend(quote! { #module #parameters #instance ( #( #connections ),* ) ; });
     }
 }
 
@@ -589,53 +651,6 @@ impl ToTokens for LocalParam {
         let target = format_ident!("{}", self.target);
         let rhs = &self.rhs;
         tokens.extend(quote! { localparam #target = #rhs ; });
-    }
-}
-
-#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
-pub enum ConstExpr {
-    LitVerilog(LitVerilog),
-    LitInt(i32),
-    LitStr(String),
-}
-
-impl Parse for ConstExpr {
-    fn parse(input: ParseStream) -> Result<Self> {
-        if input.fork().parse::<LitVerilog>().is_ok() {
-            Ok(ConstExpr::LitVerilog(input.parse()?))
-        } else if input.fork().parse::<LitInt>().is_ok() {
-            Ok(ConstExpr::LitInt(input.parse::<LitInt>()?.base10_parse()?))
-        } else if input.fork().parse::<LitStr>().is_ok() {
-            Ok(ConstExpr::LitStr(input.parse::<LitStr>()?.value()))
-        } else {
-            Err(input.error("expected constant expression"))
-        }
-    }
-}
-
-impl Pretty for ConstExpr {
-    fn pretty_print(&self, formatter: &mut Formatter) {
-        match self {
-            ConstExpr::LitVerilog(lit) => lit.pretty_print(formatter),
-            ConstExpr::LitInt(i) => formatter.write(&i.to_string()),
-            ConstExpr::LitStr(s) => formatter.write(&format!("\"{}\"", s)),
-        }
-    }
-}
-
-impl ToTokens for ConstExpr {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        match self {
-            ConstExpr::LitVerilog(lit) => lit.to_tokens(tokens),
-            ConstExpr::LitInt(i) => {
-                let i = LitInt::new(&i.to_string(), proc_macro2::Span::call_site());
-                tokens.extend(quote! { #i });
-            }
-            ConstExpr::LitStr(s) => {
-                let s = LitStr::new(s, proc_macro2::Span::call_site());
-                tokens.extend(quote! { #s });
-            }
-        }
     }
 }
 

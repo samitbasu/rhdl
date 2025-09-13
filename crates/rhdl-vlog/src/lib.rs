@@ -13,7 +13,10 @@ pub use atoms::{
     BitRange, DeclKind, Declaration, DeclarationList, Direction, HDLKind, Port, SignedWidth,
     WidthSpec,
 };
+use proc_macro2::TokenTree;
+use thiserror::Error;
 
+use crate::atoms::ConstExpr;
 pub use crate::{
     atoms::LitVerilog,
     expr::{Expr, ExprConcat, ExprDynIndex, ExprIndex},
@@ -24,7 +27,7 @@ pub use crate::{
 use quote::{ToTokens, format_ident, quote};
 use serde::{Deserialize, Serialize};
 use syn::{
-    Ident, Result, Token, parenthesized,
+    Ident, Result, Token, bracketed, parenthesized,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
     token::{self, Paren},
@@ -33,46 +36,228 @@ use syn::{
 use kw_ops::kw;
 
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
-pub enum Item {
+pub struct SynthesisAttribute {
+    pub name: String,
+    pub value: ConstExpr,
+}
+
+impl Parse for SynthesisAttribute {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let name: Ident = input.parse()?;
+        let _eq: Token![=] = input.parse()?;
+        let value: ConstExpr = input.parse()?;
+        Ok(SynthesisAttribute {
+            name: name.to_string(),
+            value,
+        })
+    }
+}
+
+impl ToTokens for SynthesisAttribute {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = format_ident!("{}", self.name);
+        let value = &self.value;
+        tokens.extend(quote! { #name = #value });
+    }
+}
+
+impl Pretty for SynthesisAttribute {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.write(&format!("{} = ", self.name));
+        self.value.pretty_print(formatter);
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct SynthesisAttributeList {
+    pub attributes: Vec<SynthesisAttribute>,
+}
+
+impl ToTokens for SynthesisAttributeList {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let attrs = &self.attributes;
+        tokens.extend(quote! { (* #( #attrs ),* *) });
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub enum Attribute {
+    Doc(String),
+    Synthesis(SynthesisAttributeList),
+}
+
+fn parse_doc_string(input: ParseStream) -> Result<String> {
+    let _ = input.parse::<Token![#]>()?;
+    let content;
+    let _paren = bracketed!(content in input);
+    let _doc_kw: kw::doc = content.parse()?;
+    let _eq: Token![=] = content.parse()?;
+    let lit_str: syn::LitStr = content.parse()?;
+    Ok(lit_str.value())
+}
+
+fn parse_synthesis_attribute(input: ParseStream) -> Result<SynthesisAttributeList> {
+    let content;
+    let _paren = parenthesized!(content in input);
+    let _star = content.parse::<Token![*]>()?;
+    let mut attrs = Vec::new();
+    while !content.peek(Token![*]) {
+        let attr: SynthesisAttribute = content.parse()?;
+        if content.peek(Token![,]) {
+            let _comma = content.parse::<Token![,]>()?;
+        }
+        attrs.push(attr);
+    }
+    let _star = content.parse::<Token![*]>()?;
+    Ok(SynthesisAttributeList { attributes: attrs })
+}
+
+impl Parse for Attribute {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if parse_synthesis_attribute(&input.fork()).is_ok() {
+            let synthesis_attrs = parse_synthesis_attribute(input)?;
+            Ok(Attribute::Synthesis(synthesis_attrs))
+        } else if input.peek(Token![#]) && input.peek2(token::Bracket) {
+            let doc_string = parse_doc_string(input)?;
+            Ok(Attribute::Doc(doc_string))
+        } else {
+            eprintln!("input: {:?}", input.to_string());
+            Err(input.error("expected attribute"))
+        }
+    }
+}
+
+impl Pretty for Attribute {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        match self {
+            Attribute::Doc(doc) => {
+                formatter.write(&format!("// {doc}"));
+                formatter.newline();
+            }
+            Attribute::Synthesis(synth_attrs) => {
+                formatter.write("(* ");
+                formatter.comma_separated(&synth_attrs.attributes);
+                formatter.write(" *) ");
+            }
+        }
+    }
+}
+
+impl ToTokens for Attribute {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            Attribute::Doc(doc) => {
+                tokens.extend(quote! { #[doc = #doc] });
+            }
+            Attribute::Synthesis(synth_attrs) => synth_attrs.to_tokens(tokens),
+        }
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct Item {
+    pub attributes: Vec<Attribute>,
+    pub kind: ItemKind,
+}
+
+impl Parse for Item {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut attributes = Vec::new();
+        while input.fork().parse::<Attribute>().is_ok() {
+            attributes.push(input.parse()?);
+        }
+        let kind = input.parse()?;
+        Ok(Item { attributes, kind })
+    }
+}
+
+impl Pretty for Item {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        for attr in &self.attributes {
+            attr.pretty_print(formatter);
+        }
+        self.kind.pretty_print(formatter);
+    }
+}
+
+impl ToTokens for Item {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        for attr in &self.attributes {
+            attr.to_tokens(tokens);
+        }
+        self.kind.to_tokens(tokens);
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub enum ItemKind {
     Statement(Stmt),
     Declaration(DeclarationList),
     FunctionDef(FunctionDef),
     Initial(Initial),
 }
 
-impl Parse for Item {
+impl Parse for ItemKind {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.peek(kw::function) {
-            input.parse().map(Item::FunctionDef)
+            input.parse().map(ItemKind::FunctionDef)
         } else if input.peek(kw::reg) || input.peek(kw::wire) {
-            input.parse().map(Item::Declaration)
+            input.parse().map(ItemKind::Declaration)
         } else if input.peek(kw::initial) {
-            input.parse().map(Item::Initial)
+            input.parse().map(ItemKind::Initial)
         } else {
-            input.parse().map(Item::Statement)
+            input.parse().map(ItemKind::Statement)
         }
     }
 }
 
-impl Pretty for Item {
+impl Pretty for ItemKind {
     fn pretty_print(&self, formatter: &mut Formatter) {
         match self {
-            Item::Statement(stmt) => stmt.pretty_print(formatter),
-            Item::Declaration(decl) => decl.pretty_print(formatter),
-            Item::FunctionDef(func) => func.pretty_print(formatter),
-            Item::Initial(initial) => initial.pretty_print(formatter),
+            ItemKind::Statement(stmt) => stmt.pretty_print(formatter),
+            ItemKind::Declaration(decl) => decl.pretty_print(formatter),
+            ItemKind::FunctionDef(func) => func.pretty_print(formatter),
+            ItemKind::Initial(initial) => initial.pretty_print(formatter),
         }
     }
 }
 
-impl ToTokens for Item {
+impl ToTokens for ItemKind {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         match self {
-            Item::Statement(stmt) => stmt.to_tokens(tokens),
-            Item::Declaration(decl) => decl.to_tokens(tokens),
-            Item::FunctionDef(func) => func.to_tokens(tokens),
-            Item::Initial(initial) => initial.to_tokens(tokens),
+            ItemKind::Statement(stmt) => stmt.to_tokens(tokens),
+            ItemKind::Declaration(decl) => decl.to_tokens(tokens),
+            ItemKind::FunctionDef(func) => func.to_tokens(tokens),
+            ItemKind::Initial(initial) => initial.to_tokens(tokens),
         }
+    }
+}
+
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize, Default)]
+pub struct ItemList {
+    pub items: Vec<Item>,
+}
+
+impl Parse for ItemList {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut items = Vec::new();
+        while !input.is_empty() {
+            items.push(input.parse()?);
+        }
+        Ok(Self { items })
+    }
+}
+
+impl ToTokens for ItemList {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let items = &self.items;
+        tokens.extend(quote! { #( #items )* });
+    }
+}
+
+impl Pretty for ItemList {
+    fn pretty_print(&self, formatter: &mut Formatter) {
+        formatter.lines(&self.items);
     }
 }
 
@@ -295,6 +480,80 @@ impl ToTokens for FunctionDef {
             endfunction
         });
     }
+}
+
+#[derive(Debug, Error)]
+#[error("Parse Error in Verilog code")]
+pub struct ParseError {
+    source_code: std::sync::Arc<String>,
+    syn_error: syn::Error,
+}
+
+impl ParseError {
+    pub fn new(syn_err: syn::Error, source_code: &str) -> Self {
+        Self {
+            source_code: std::sync::Arc::new(source_code.into()),
+            syn_error: syn_err,
+        }
+    }
+}
+
+/// Format Verilog code for better error display by adding line breaks
+/// without requiring the code to be syntactically valid.
+pub fn format_verilog_for_error_display(code: &str) -> String {
+    // First, add structural breaks at common Verilog delimiters
+    code.replace(" ; ", " ;\n")
+        .replace(" { ", " {\n")
+        .replace(" } ", "\n}\n")
+        .replace(") ;", ") ;\n")
+        .replace(" wire ", "\n    wire ")
+        .replace(" reg ", "\n    reg ")
+        .replace(" assign ", "\n    assign ")
+        .replace(" function ", "\nfunction ")
+        .replace(" endfunction", "\nendfunction")
+        .replace(" endmodule", "\nendmodule")
+        .replace(" begin", "\n        begin")
+        .replace(" end ", "\n        end\n")
+        .replace(" localparam ", "\n        localparam ")
+}
+
+impl miette::Diagnostic for ParseError {
+    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        Some(&self.source_code)
+    }
+    fn labels<'a>(&'a self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + 'a>> {
+        Some(Box::new((&self.syn_error).into_iter().map(
+            move |syn_error| {
+                let span = syn_error.span();
+                let span_start = span.start();
+                let span_end = span.end();
+                let start_offset = miette::SourceOffset::from_location(
+                    self.source_code.as_str(),
+                    span_start.line,
+                    span_start.column + 1,
+                );
+                let end_offset = miette::SourceOffset::from_location(
+                    self.source_code.as_str(),
+                    span_end.line,
+                    span_end.column + 1,
+                );
+                let length = end_offset.offset() - start_offset.offset();
+                miette::LabeledSpan::new_with_span(
+                    Some(syn_error.to_string()),
+                    miette::SourceSpan::new(start_offset, length),
+                )
+            },
+        )))
+    }
+}
+
+#[macro_export]
+macro_rules! parse_quote_miette {
+    ($($tt:tt)*) => {{
+        let tokens = ::quote::quote! { $($tt)* };
+        let text = $crate::format_verilog_for_error_display(&tokens.to_string());
+        ::syn::parse_str(&text).map_err(|err| $crate::ParseError::new(err, text.as_str()))
+    }};
 }
 
 #[cfg(test)]

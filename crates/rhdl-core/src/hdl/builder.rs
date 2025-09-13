@@ -338,7 +338,7 @@ impl TranslationContext<'_> {
             #ret_name = #ret_reg
         });
         let block = vlog::block_stmt(self.body);
-        self.func.items.push(vlog::Item::Statement(block.into()));
+        self.func.items.push(parse_quote! { #block });
         Ok(self.func)
     }
 }

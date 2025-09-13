@@ -140,6 +140,8 @@ fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
             || lookahead.peek(Token![,])
             || lookahead.peek(PlusColon)
             || lookahead.peek(MinusColon)
+            || (lookahead.peek(Token![+]) && input.peek2(Token![:]))
+            || (lookahead.peek(Token![-]) && input.peek2(Token![:]))
             || lookahead.peek(Token![;])
             || lookahead.peek(crate::kw_ops::kw::begin)
         {

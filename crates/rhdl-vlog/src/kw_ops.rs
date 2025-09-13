@@ -38,6 +38,7 @@ pub(crate) mod kw {
     syn::custom_keyword!(module);
     syn::custom_keyword!(endmodule);
     syn::custom_keyword!(initial);
+    syn::custom_keyword!(doc);
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
@@ -53,6 +54,14 @@ impl Parse for DynOp {
             Ok(DynOp::PlusColon)
         } else if input.peek(MinusColon) {
             let _: MinusColon = input.parse()?;
+            Ok(DynOp::MinusColon)
+        } else if input.peek(Token![+]) && input.peek2(Token![:]) {
+            let _: Token![+] = input.parse()?;
+            let _: Token![:] = input.parse()?;
+            Ok(DynOp::PlusColon)
+        } else if input.peek(Token![-]) && input.peek2(Token![:]) {
+            let _: Token![-] = input.parse()?;
+            let _: Token![:] = input.parse()?;
             Ok(DynOp::MinusColon)
         } else {
             Err(input.error("expected dynamic operator"))
@@ -255,10 +264,10 @@ impl Parse for BinaryOp {
         } else if lookahead.peek(Token![<]) {
             let _: Token![<] = input.parse()?;
             Ok(BinaryOp::Lt)
-        } else if lookahead.peek(Token![+]) {
+        } else if lookahead.peek(Token![+]) && !input.peek2(Token![:]) {
             let _: Token![+] = input.parse()?;
             Ok(BinaryOp::Plus)
-        } else if lookahead.peek(Token![-]) {
+        } else if lookahead.peek(Token![-]) && !input.peek2(Token![:]) {
             let _: Token![-] = input.parse()?;
             Ok(BinaryOp::Minus)
         } else if lookahead.peek(Token![&]) {
