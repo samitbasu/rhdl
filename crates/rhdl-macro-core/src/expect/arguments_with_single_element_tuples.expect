@@ -50,47 +50,55 @@ impl<const N: usize> rhdl::core::digital_fn::DigitalFn for counter<N> {
         Some(
             bob
                 .kernel_fn(
+                    0u32.into(),
                     stringify!(counter),
                     vec! {
-                        bob.type_pat(bob.ident_pat(stringify!(i), false), < CounterIn < N
-                        > as rhdl::core::Digital > ::static_kind()), bob.type_pat(bob
-                        .tuple_pat(vec![bob.ident_pat(stringify!(count_q), false)]), <
-                        (Bits < N >,) as rhdl::core::Digital > ::static_kind())
+                        bob.type_pat(31u32.into(), bob.ident_pat(30u32.into(),
+                        stringify!(i), false), < CounterIn < N > as rhdl::core::Digital >
+                        ::static_kind()), bob.type_pat(34u32.into(), bob.tuple_pat(33u32
+                        .into(), vec![bob.ident_pat(32u32.into(), stringify!(count_q),
+                        false)]), < (Bits < N >,) as rhdl::core::Digital >
+                        ::static_kind())
                     },
                     <(Bits<N>, (DFFIn<Bits<N>>,)) as rhdl::core::Digital>::static_kind(),
                     bob
                         .block(
+                            29u32.into(),
                             vec![
-                                bob.local_stmt(bob.ident_pat(stringify!(count_q), false),
-                                Some(bob.field_expr(bob.path_expr(bob.path(vec![bob
-                                .path_segment(stringify!(count_q), bob
+                                bob.local_stmt(4u32.into(), 5u32.into(), bob.ident_pat(1u32
+                                .into(), stringify!(count_q), false), Some(bob
+                                .field_expr(2u32.into(), bob.path_expr(3u32.into(), bob
+                                .path(vec![bob.path_segment(stringify!(count_q), bob
                                 .path_arguments_none())],)), bob.member_unnamed(0u32)))),
-                                bob.local_stmt(bob.ident_pat(stringify!(next), false),
-                                Some(bob.if_expr(bob.field_expr(bob.path_expr(bob
-                                .path(vec![bob.path_segment(stringify!(i), bob
-                                .path_arguments_none())],)), bob
-                                .member_named(stringify!(enable))), bob.block(vec![bob
-                                .expr_stmt(bob
-                                .binary_expr(rhdl::core::ast::builder::BinOp::Add, bob
-                                .path_expr(bob.path(vec![bob
+                                bob.local_stmt(19u32.into(), 20u32.into(), bob
+                                .ident_pat(6u32.into(), stringify!(next), false), Some(bob
+                                .if_expr(7u32.into(), bob.field_expr(8u32.into(), bob
+                                .path_expr(9u32.into(), bob.path(vec![bob
+                                .path_segment(stringify!(i), bob.path_arguments_none())],)),
+                                bob.member_named(stringify!(enable))), bob.block(14u32
+                                .into(), vec![bob.expr_stmt(13u32.into(), bob
+                                .binary_expr(10u32.into(),
+                                rhdl::core::ast::builder::BinOp::Add, bob.path_expr(11u32
+                                .into(), bob.path(vec![bob.path_segment(stringify!(count_q),
+                                bob.path_arguments_none())],)), bob.lit_expr(12u32.into(),
+                                bob.expr_lit_int(stringify!(1)))))],), Some(bob
+                                .block_expr(18u32.into(), bob.block(17u32.into(), vec![bob
+                                .expr_stmt(16u32.into(), bob.path_expr(15u32.into(), bob
+                                .path(vec![bob.path_segment(stringify!(count_q), bob
+                                .path_arguments_none())],)))],)))))), bob.expr_stmt(28u32
+                                .into(), bob.tuple_expr(27u32.into(), vec![bob
+                                .path_expr(21u32.into(), bob.path(vec![bob
                                 .path_segment(stringify!(count_q), bob
-                                .path_arguments_none())],)), bob.lit_expr(bob
-                                .expr_lit_int(stringify!(1)))))],), Some(bob.block_expr(bob
-                                .block(vec![bob.expr_stmt(bob.path_expr(bob.path(vec![bob
-                                .path_segment(stringify!(count_q), bob
-                                .path_arguments_none())],)))],)))))), bob.expr_stmt(bob
-                                .tuple_expr(vec![bob.path_expr(bob.path(vec![bob
-                                .path_segment(stringify!(count_q), bob
-                                .path_arguments_none())],)), bob.tuple_expr(vec![bob
-                                .struct_expr(bob.path(vec![bob
+                                .path_arguments_none())],)), bob.tuple_expr(26u32.into(),
+                                vec![bob.struct_expr(25u32.into(), bob.path(vec![bob
                                 .path_segment(stringify!(DFFIn), bob
                                 .path_arguments_none())],), vec![bob.field_value(bob
-                                .member_named(stringify!(clock)), bob.field_expr(bob
-                                .path_expr(bob.path(vec![bob.path_segment(stringify!(i), bob
-                                .path_arguments_none())],)), bob
-                                .member_named(stringify!(clock)))), bob.field_value(bob
-                                .member_named(stringify!(data)), bob.path_expr(bob
-                                .path(vec![bob.path_segment(stringify!(next), bob
+                                .member_named(stringify!(clock)), bob.field_expr(22u32
+                                .into(), bob.path_expr(23u32.into(), bob.path(vec![bob
+                                .path_segment(stringify!(i), bob.path_arguments_none())],)),
+                                bob.member_named(stringify!(clock)))), bob.field_value(bob
+                                .member_named(stringify!(data)), bob.path_expr(24u32.into(),
+                                bob.path(vec![bob.path_segment(stringify!(next), bob
                                 .path_arguments_none())],)))], None, < DFFIn as
                                 rhdl::core::Digital > ::static_kind().place_holder())])]))
                             ],
