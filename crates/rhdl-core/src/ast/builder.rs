@@ -35,38 +35,28 @@ impl From<proc_macro2::Span> for SpanLoc {
 }
 
 impl ASTBuilder {
-    pub fn id(&self) -> NodeId {
-        let id = self.node_id.take();
-        self.node_id.set(id + 1);
-        NodeId::new(id)
-    }
-
-    pub fn binary_expr(&self, op: BinOp, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
-        let id = self.id();
+    pub fn binary_expr(&self, id: NodeId, op: BinOp, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Binary(ExprBinary { op, lhs, rhs }),
         })
     }
 
-    pub fn unary_expr(&self, op: UnOp, expr: Box<Expr>) -> Box<Expr> {
-        let id = self.id();
+    pub fn unary_expr(&self, id: NodeId, op: UnOp, expr: Box<Expr>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Unary(ExprUnary { op, expr }),
         })
     }
 
-    pub fn assign_expr(&self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
-        let id = self.id();
+    pub fn assign_expr(&self, id: NodeId, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Assign(ExprAssign { lhs, rhs }),
         })
     }
 
-    pub fn lit_expr(&self, lit: ExprLit) -> Box<Expr> {
-        let id = self.id();
+    pub fn lit_expr(&self, id: NodeId, lit: ExprLit) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Lit(lit),
@@ -75,12 +65,12 @@ impl ASTBuilder {
 
     pub fn struct_expr(
         &self,
+        id: NodeId,
         path: Box<Path>,
         fields: Vec<Box<FieldValue>>,
         rest: Option<Box<Expr>>,
         template: TypedBits,
     ) -> Box<Expr> {
-        let id = self.id();
         Box::new(Expr {
             id,
             kind: ExprKind::Struct(ExprStruct {
@@ -94,11 +84,11 @@ impl ASTBuilder {
 
     pub fn if_expr(
         &self,
+        id: NodeId,
         cond: Box<Expr>,
         then_branch: Box<Block>,
         else_branch: Option<Box<Expr>>,
     ) -> Box<Expr> {
-        let id = self.id();
         Box::new(Expr {
             id,
             kind: ExprKind::If(ExprIf {
@@ -111,12 +101,12 @@ impl ASTBuilder {
 
     pub fn if_let_expr(
         &self,
+        id: NodeId,
         test: Box<Expr>,
         kind: ArmKind,
         then_block: Box<Block>,
         else_branch: Option<Box<Expr>>,
     ) -> Box<Expr> {
-        let id = self.id();
         Box::new(Expr {
             id,
             kind: ExprKind::IfLet(ExprIfLet {
@@ -128,8 +118,7 @@ impl ASTBuilder {
         })
     }
 
-    pub fn let_expr(&self, pattern: Box<Pat>, value: Box<Expr>) -> Box<Expr> {
-        let id = self.id();
+    pub fn let_expr(&self, id: NodeId, pattern: Box<Pat>, value: Box<Expr>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Let(ExprLet { pattern, value }),
@@ -148,8 +137,7 @@ impl ASTBuilder {
         Box::new(Path { segments })
     }
 
-    pub fn path_expr(&self, path: Box<Path>) -> Box<Expr> {
-        let id = self.id();
+    pub fn path_expr(&self, id: NodeId, path: Box<Path>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Path(ExprPath { path }),
@@ -168,20 +156,18 @@ impl ASTBuilder {
         ArmKind::Enum(ArmEnum { pat, discriminant })
     }
 
-    pub fn arm_kind_none(&self) -> ArmKind {
+    pub fn arm_kind_none(&self, id: NodeId) -> ArmKind {
         ArmKind::Enum(ArmEnum {
-            pat: self.wild_pat(),
+            pat: self.wild_pat(id),
             discriminant: false.typed_bits(),
         })
     }
 
-    pub fn arm(&self, kind: ArmKind, body: Box<Expr>) -> Box<Arm> {
-        let id = self.id();
+    pub fn arm(&self, id: NodeId, kind: ArmKind, body: Box<Expr>) -> Box<Arm> {
         Box::new(Arm { id, kind, body })
     }
 
-    pub fn field_expr(&self, expr: Box<Expr>, member: Member) -> Box<Expr> {
-        let id = self.id();
+    pub fn field_expr(&self, id: NodeId, expr: Box<Expr>, member: Member) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Field(ExprField { expr, member }),
@@ -192,8 +178,7 @@ impl ASTBuilder {
         Box::new(FieldValue { member, value })
     }
 
-    pub fn match_expr(&self, expr: Box<Expr>, arms: Vec<Box<Arm>>) -> Box<Expr> {
-        let id = self.id();
+    pub fn match_expr(&self, id: NodeId, expr: Box<Expr>, arms: Vec<Box<Arm>>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Match(ExprMatch { expr, arms }),
@@ -202,51 +187,52 @@ impl ASTBuilder {
 
     pub fn range_expr(
         &self,
+        id: NodeId,
         start: Option<Box<Expr>>,
         limits: RangeLimits,
         end: Option<Box<Expr>>,
     ) -> Box<Expr> {
-        let id = self.id();
         Box::new(Expr {
             id,
             kind: ExprKind::Range(ExprRange { start, limits, end }),
         })
     }
 
-    pub fn paren_expr(&self, expr: Box<Expr>) -> Box<Expr> {
-        let id = self.id();
+    pub fn paren_expr(&self, id: NodeId, expr: Box<Expr>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Paren(ExprParen { expr }),
         })
     }
 
-    pub fn group_expr(&self, expr: Box<Expr>) -> Box<Expr> {
-        let id = self.id();
+    pub fn group_expr(&self, id: NodeId, expr: Box<Expr>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Group(ExprGroup { expr }),
         })
     }
 
-    pub fn tuple_expr(&self, elements: Vec<Box<Expr>>) -> Box<Expr> {
-        let id = self.id();
+    pub fn tuple_expr(&self, id: NodeId, elements: Vec<Box<Expr>>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Tuple(ExprTuple { elements }),
         })
     }
 
-    pub fn repeat_expr(&self, value: Box<Expr>, len: i64) -> Box<Expr> {
-        let id = self.id();
+    pub fn repeat_expr(&self, id: NodeId, value: Box<Expr>, len: i64) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Repeat(ExprRepeat { value, len }),
         })
     }
 
-    pub fn for_expr(&self, pat: Box<Pat>, expr: Box<Expr>, body: Box<Block>) -> Box<Expr> {
-        let id = self.id();
+    pub fn for_expr(
+        &self,
+        id: NodeId,
+        pat: Box<Pat>,
+        expr: Box<Expr>,
+        body: Box<Block>,
+    ) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::ForLoop(ExprForLoop { pat, expr, body }),
@@ -255,12 +241,12 @@ impl ASTBuilder {
 
     pub fn call_expr(
         &self,
+        id: NodeId,
         path: Box<Path>,
         args: Vec<Box<Expr>>,
         signature: DigitalSignature,
         code: Option<KernelFnKind>,
     ) -> Box<Expr> {
-        let id = self.id();
         Box::new(Expr {
             id,
             kind: ExprKind::Call(ExprCall {
@@ -272,16 +258,14 @@ impl ASTBuilder {
         })
     }
 
-    pub fn array_expr(&self, elems: Vec<Box<Expr>>) -> Box<Expr> {
-        let id = self.id();
+    pub fn array_expr(&self, id: NodeId, elems: Vec<Box<Expr>>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Array(ExprArray { elems }),
         })
     }
 
-    pub fn index_expr(&self, expr: Box<Expr>, index: Box<Expr>) -> Box<Expr> {
-        let id = self.id();
+    pub fn index_expr(&self, id: NodeId, expr: Box<Expr>, index: Box<Expr>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Index(ExprIndex { expr, index }),
@@ -290,12 +274,12 @@ impl ASTBuilder {
 
     pub fn method_expr(
         &self,
+        id: NodeId,
         receiver: Box<Expr>,
         args: Vec<Box<Expr>>,
         method: &'static str,
         turbo: Option<usize>,
     ) -> Box<Expr> {
-        let id = self.id();
         Box::new(Expr {
             id,
             kind: ExprKind::MethodCall(ExprMethodCall {
@@ -306,8 +290,7 @@ impl ASTBuilder {
             }),
         })
     }
-    pub fn return_expr(&self, expr: Option<Box<Expr>>) -> Box<Expr> {
-        let id = self.id();
+    pub fn return_expr(&self, id: NodeId, expr: Option<Box<Expr>>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Ret(ExprRet { expr }),
@@ -318,8 +301,7 @@ impl ASTBuilder {
         Box::new(FieldPat { member, pat })
     }
 
-    pub fn wild_pat(&self) -> Box<Pat> {
-        let id = self.id();
+    pub fn wild_pat(&self, id: NodeId) -> Box<Pat> {
         Box::new(Pat {
             id,
             kind: PatKind::Wild,
@@ -333,73 +315,75 @@ impl ASTBuilder {
         }
     }
 
-    pub fn lit_pat(&self, lit: ExprLit) -> Box<Pat> {
-        let id = self.id();
+    pub fn lit_pat(&self, id: NodeId, lit: ExprLit) -> Box<Pat> {
         Box::new(Pat {
             id,
             kind: PatKind::Lit(PatLit { lit: Box::new(lit) }),
         })
     }
 
-    pub fn type_pat(&self, pat: Box<Pat>, kind: Kind) -> Box<Pat> {
-        let id = self.id();
+    pub fn type_pat(&self, id: NodeId, pat: Box<Pat>, kind: Kind) -> Box<Pat> {
         Box::new(Pat {
             id,
             kind: PatKind::Type(PatType { pat, kind }),
         })
     }
 
-    pub fn struct_pat(&self, path: Box<Path>, fields: Vec<Box<FieldPat>>, rest: bool) -> Box<Pat> {
-        let id = self.id();
+    pub fn struct_pat(
+        &self,
+        id: NodeId,
+        path: Box<Path>,
+        fields: Vec<Box<FieldPat>>,
+        rest: bool,
+    ) -> Box<Pat> {
         Box::new(Pat {
             id,
             kind: PatKind::Struct(PatStruct { path, fields, rest }),
         })
     }
 
-    pub fn path_pat(&self, path: Box<Path>) -> Box<Pat> {
-        let id = self.id();
+    pub fn path_pat(&self, id: NodeId, path: Box<Path>) -> Box<Pat> {
         Box::new(Pat {
             id,
             kind: PatKind::Path(PatPath { path }),
         })
     }
 
-    pub fn slice_pat(&self, elems: Vec<Box<Pat>>) -> Box<Pat> {
-        let id = self.id();
+    pub fn slice_pat(&self, id: NodeId, elems: Vec<Box<Pat>>) -> Box<Pat> {
         Box::new(Pat {
             id,
             kind: PatKind::Slice(PatSlice { elems }),
         })
     }
 
-    pub fn tuple_pat(&self, elems: Vec<Box<Pat>>) -> Box<Pat> {
-        let id = self.id();
+    pub fn tuple_pat(&self, id: NodeId, elems: Vec<Box<Pat>>) -> Box<Pat> {
         Box::new(Pat {
             id,
             kind: PatKind::Tuple(PatTuple { elements: elems }),
         })
     }
 
-    pub fn tuple_struct_pat(&self, path: Box<Path>, elems: Vec<Box<Pat>>) -> Box<Pat> {
-        let id = self.id();
+    pub fn tuple_struct_pat(&self, id: NodeId, path: Box<Path>, elems: Vec<Box<Pat>>) -> Box<Pat> {
         Box::new(Pat {
             id,
             kind: PatKind::TupleStruct(PatTupleStruct { path, elems }),
         })
     }
 
-    pub fn ident_pat(&self, name: &'static str, mutable: bool) -> Box<Pat> {
-        let id = self.id();
+    pub fn ident_pat(&self, id: NodeId, name: &'static str, mutable: bool) -> Box<Pat> {
         Box::new(Pat {
             id,
             kind: PatKind::Ident(PatIdent { name, mutable }),
         })
     }
 
-    pub fn local_stmt(&self, pat: Box<Pat>, init: Option<Box<Expr>>) -> Box<Stmt> {
-        let local_id = self.id();
-        let stmt_id = self.id();
+    pub fn local_stmt(
+        &self,
+        local_id: NodeId,
+        stmt_id: NodeId,
+        pat: Box<Pat>,
+        init: Option<Box<Expr>>,
+    ) -> Box<Stmt> {
         Box::new(Stmt {
             id: stmt_id,
             kind: StmtKind::Local(Box::new(Local {
@@ -410,32 +394,28 @@ impl ASTBuilder {
         })
     }
 
-    pub fn semi_stmt(&self, expr: Box<Expr>) -> Box<Stmt> {
-        let id = self.id();
+    pub fn semi_stmt(&self, id: NodeId, expr: Box<Expr>) -> Box<Stmt> {
         Box::new(Stmt {
             id,
             kind: StmtKind::Semi(expr),
         })
     }
 
-    pub fn expr_stmt(&self, expr: Box<Expr>) -> Box<Stmt> {
-        let id = self.id();
+    pub fn expr_stmt(&self, id: NodeId, expr: Box<Expr>) -> Box<Stmt> {
         Box::new(Stmt {
             id,
             kind: StmtKind::Expr(expr),
         })
     }
 
-    pub fn block_expr(&self, block: Box<Block>) -> Box<Expr> {
-        let id = self.id();
+    pub fn block_expr(&self, id: NodeId, block: Box<Block>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Block(ExprBlock { block }),
         })
     }
 
-    pub fn block(&self, stmts: Vec<Box<Stmt>>) -> Box<Block> {
-        let id = self.id();
+    pub fn block(&self, id: NodeId, stmts: Vec<Box<Stmt>>) -> Box<Block> {
         Box::new(Block { id, stmts })
     }
 
@@ -471,8 +451,7 @@ impl ASTBuilder {
         })
     }
 
-    pub fn expr_try(&self, expr: Box<Expr>) -> Box<Expr> {
-        let id = self.id();
+    pub fn expr_try(&self, id: NodeId, expr: Box<Expr>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Try(ExprTry { expr }),
@@ -482,6 +461,7 @@ impl ASTBuilder {
     #[allow(clippy::too_many_arguments)]
     pub fn kernel_fn(
         &self,
+        id: NodeId,
         name: &'static str,
         inputs: Vec<Box<Pat>>,
         ret: Kind,
@@ -491,7 +471,6 @@ impl ASTBuilder {
         file: &'static str,
         flags: Vec<KernelFlags>,
     ) -> KernelFnKind {
-        let id = self.id();
         // Hash the typeID into a 64 bit unsigned int
         let mut hasher = fnv::FnvHasher::default();
         fn_id.hash(&mut hasher);
@@ -512,16 +491,20 @@ impl ASTBuilder {
         )
     }
 
-    pub fn expr_cast(&self, expr: Box<Expr>, len: usize) -> Box<Expr> {
-        let id = self.id();
+    pub fn expr_cast(&self, id: NodeId, expr: Box<Expr>, len: usize) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Cast(ExprCast { expr, len }),
         })
     }
 
-    pub fn expr_typed_bits(&self, path: Box<Path>, value: TypedBits, code: &str) -> Box<Expr> {
-        let id = self.id();
+    pub fn expr_typed_bits(
+        &self,
+        id: NodeId,
+        path: Box<Path>,
+        value: TypedBits,
+        code: &str,
+    ) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Lit(ExprLit::TypedBits(ExprTypedBits {
@@ -532,8 +515,7 @@ impl ASTBuilder {
         })
     }
 
-    pub fn expr_bits_with_length(&self, arg: Box<Expr>, len: usize) -> Box<Expr> {
-        let id = self.id();
+    pub fn expr_bits_with_length(&self, id: NodeId, arg: Box<Expr>, len: usize) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Bits(ExprBits {
@@ -544,8 +526,7 @@ impl ASTBuilder {
         })
     }
 
-    pub fn expr_bits(&self, arg: Box<Expr>) -> Box<Expr> {
-        let id = self.id();
+    pub fn expr_bits(&self, id: NodeId, arg: Box<Expr>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Bits(ExprBits {
@@ -556,8 +537,7 @@ impl ASTBuilder {
         })
     }
 
-    pub fn expr_signed_with_length(&self, arg: Box<Expr>, len: usize) -> Box<Expr> {
-        let id = self.id();
+    pub fn expr_signed_with_length(&self, id: NodeId, arg: Box<Expr>, len: usize) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Bits(ExprBits {
@@ -568,8 +548,7 @@ impl ASTBuilder {
         })
     }
 
-    pub fn expr_signed(&self, arg: Box<Expr>) -> Box<Expr> {
-        let id = self.id();
+    pub fn expr_signed(&self, id: NodeId, arg: Box<Expr>) -> Box<Expr> {
         Box::new(Expr {
             id,
             kind: ExprKind::Bits(ExprBits {
@@ -580,12 +559,11 @@ impl ASTBuilder {
         })
     }
 
-    pub fn expr_none(&self) -> Box<Expr> {
+    pub fn expr_none(&self, id: NodeId) -> Box<Expr> {
         let path = self.path(vec![PathSegment {
             ident: "None",
             arguments: vec![],
         }]);
-        let id = self.id();
         Box::new(Expr {
             id,
             kind: ExprKind::Call(ExprCall {
@@ -597,12 +575,11 @@ impl ASTBuilder {
         })
     }
 
-    pub fn expr_some(&self, arg: Box<Expr>) -> Box<Expr> {
+    pub fn expr_some(&self, id: NodeId, arg: Box<Expr>) -> Box<Expr> {
         let path = self.path(vec![PathSegment {
             ident: "Some",
             arguments: vec![],
         }]);
-        let id = self.id();
         Box::new(Expr {
             id,
             kind: ExprKind::Call(ExprCall {
@@ -614,12 +591,11 @@ impl ASTBuilder {
         })
     }
 
-    pub fn expr_ok(&self, arg: Box<Expr>) -> Box<Expr> {
+    pub fn expr_ok(&self, id: NodeId, arg: Box<Expr>) -> Box<Expr> {
         let path = self.path(vec![PathSegment {
             ident: "Ok",
             arguments: vec![],
         }]);
-        let id = self.id();
         Box::new(Expr {
             id,
             kind: ExprKind::Call(ExprCall {
@@ -631,12 +607,11 @@ impl ASTBuilder {
         })
     }
 
-    pub fn expr_err(&self, arg: Box<Expr>) -> Box<Expr> {
+    pub fn expr_err(&self, id: NodeId, arg: Box<Expr>) -> Box<Expr> {
         let path = self.path(vec![PathSegment {
             ident: "Err",
             arguments: vec![],
         }]);
-        let id = self.id();
         Box::new(Expr {
             id,
             kind: ExprKind::Call(ExprCall {
@@ -648,12 +623,11 @@ impl ASTBuilder {
         })
     }
 
-    pub fn expr_signal(&self, arg: Box<Expr>, clock: Option<Color>) -> Box<Expr> {
+    pub fn expr_signal(&self, id: NodeId, arg: Box<Expr>, clock: Option<Color>) -> Box<Expr> {
         let path = self.path(vec![PathSegment {
             ident: "signal",
             arguments: vec![],
         }]);
-        let id = self.id();
         Box::new(Expr {
             id,
             kind: ExprKind::Call(ExprCall {

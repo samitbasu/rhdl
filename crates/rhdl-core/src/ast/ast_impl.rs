@@ -16,6 +16,12 @@ impl NodeId {
     }
 }
 
+impl From<u32> for NodeId {
+    fn from(id: u32) -> Self {
+        NodeId(id)
+    }
+}
+
 impl std::fmt::Debug for NodeId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "N{}", self.0)
