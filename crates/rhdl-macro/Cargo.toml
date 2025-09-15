@@ -9,5 +9,4 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1.0.67"
 rhdl-macro-core = { path = "../rhdl-macro-core" }

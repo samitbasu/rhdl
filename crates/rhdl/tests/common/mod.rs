@@ -53,3 +53,11 @@ pub fn s8_red() -> impl Iterator<Item = (Signal<s8, Red>,)> + Clone {
 pub fn red<T: Digital>(x: T) -> Signal<T, Red> {
     signal(x)
 }
+
+pub fn miette_report(err: RHDLError) -> String {
+    let handler =
+        miette::GraphicalReportHandler::new_themed(miette::GraphicalTheme::unicode_nocolor());
+    let mut msg = String::new();
+    handler.render_report(&mut msg, &err).unwrap();
+    msg
+}

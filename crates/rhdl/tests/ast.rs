@@ -12,7 +12,7 @@ mod common;
 use common::*;
 use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 use rhdl::prelude::*;
-use test_log::test;
+//use test_log::test;
 
 #[test]
 fn test_func_with_structured_args() -> miette::Result<()> {
