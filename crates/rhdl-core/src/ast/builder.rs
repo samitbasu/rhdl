@@ -1,6 +1,8 @@
 use std::cell::Cell;
 use std::hash::{Hash, Hasher};
 
+use rhdl_span::MetaDB;
+
 pub use crate::ast::ast_impl::BinOp;
 pub use crate::ast::ast_impl::UnOp;
 use crate::kernel::KernelFnKind;
@@ -10,29 +12,7 @@ use crate::{Color, Digital, DigitalSignature};
 use crate::{Kind, ast::ast_impl::*};
 
 #[derive(Default)]
-pub struct ASTBuilder {
-    node_id: Cell<u32>,
-}
-
-pub struct SpanLoc {
-    start_line: usize,
-    start_col: usize,
-    end_line: usize,
-    end_col: usize,
-}
-
-impl From<proc_macro2::Span> for SpanLoc {
-    fn from(span: proc_macro2::Span) -> Self {
-        let start = span.start();
-        let end = span.end();
-        Self {
-            start_line: start.line,
-            start_col: start.column,
-            end_line: end.line,
-            end_col: end.column,
-        }
-    }
-}
+pub struct ASTBuilder {}
 
 impl ASTBuilder {
     pub fn binary_expr(&self, id: NodeId, op: BinOp, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
@@ -380,12 +360,11 @@ impl ASTBuilder {
     pub fn local_stmt(
         &self,
         local_id: NodeId,
-        stmt_id: NodeId,
         pat: Box<Pat>,
         init: Option<Box<Expr>>,
     ) -> Box<Stmt> {
         Box::new(Stmt {
-            id: stmt_id,
+            id: local_id,
             kind: StmtKind::Local(Box::new(Local {
                 id: local_id,
                 pat,
@@ -467,8 +446,8 @@ impl ASTBuilder {
         ret: Kind,
         body: Box<Block>,
         fn_id: std::any::TypeId,
-        text: &'static str,
-        file: &'static str,
+        text: Option<&'static str>,
+        meta_db: MetaDB,
         flags: Vec<KernelFlags>,
     ) -> KernelFnKind {
         // Hash the typeID into a 64 bit unsigned int
@@ -484,7 +463,7 @@ impl ASTBuilder {
                 body,
                 fn_id,
                 text,
-                file,
+                meta_db,
                 flags,
             })
             .into(),

@@ -121,7 +121,6 @@ impl Parse for Attribute {
             let doc_string = parse_doc_string(input)?;
             Ok(Attribute::Doc(doc_string))
         } else {
-            eprintln!("input: {:?}", input.to_string());
             Err(input.error("expected attribute"))
         }
     }

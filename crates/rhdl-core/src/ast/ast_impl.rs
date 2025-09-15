@@ -1,3 +1,5 @@
+use rhdl_span::MetaDB;
+
 use crate::{
     DigitalSignature, Kind, kernel::KernelFnKind, rhif::spec::Member, types::typed_bits::TypedBits,
 };
@@ -486,8 +488,8 @@ pub struct KernelFn {
     pub ret: Kind,
     pub body: Box<Block>,
     pub fn_id: FunctionId,
-    pub text: &'static str,
-    pub file: &'static str,
+    pub text: Option<&'static str>,
+    pub meta_db: MetaDB,
     pub flags: Vec<KernelFlags>,
 }
 
