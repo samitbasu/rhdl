@@ -524,9 +524,7 @@ impl Pass for ConstantPropagation {
                 OpCode::Case(case) => propagate_case(lop.loc, case, &mut input),
                 OpCode::Exec(exec) => propagate_exec(lop.loc, exec, &mut input),
                 OpCode::Wrap(wrap) => propagate_wrap(lop.loc, wrap, &mut input),
-                OpCode::Assign(_) | OpCode::Noop | OpCode::Comment(_) | OpCode::Retime(_) => {
-                    Ok(lop)
-                }
+                OpCode::Assign(_) | OpCode::Noop | OpCode::Retime(_) => Ok(lop),
             })
             .collect::<Result<Vec<_>, RHDLError>>()?;
         Ok(input)

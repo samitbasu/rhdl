@@ -989,7 +989,7 @@ impl<'a> MirTypeInference<'a> {
                         self.unify(loc, lhs_ty, kind)?;
                     }
                 }
-                OpCode::Noop | OpCode::Comment(_) => {}
+                OpCode::Noop => {}
             }
         }
         Ok(())

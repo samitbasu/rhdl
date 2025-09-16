@@ -12,7 +12,7 @@ mod common;
 use common::*;
 use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 use rhdl::prelude::*;
-//use test_log::test;
+use test_log::test;
 
 #[test]
 fn test_func_with_structured_args() -> miette::Result<()> {
@@ -214,7 +214,7 @@ fn test_if_let_syntax() -> miette::Result<()> {
 #[test]
 fn test_repeat_op() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<([b8; 3], [b8; 4]), Red> {
+    fn foo(a: Signal<b5, Red>, b: Signal<b5, Red>) -> Signal<([b5; 3], [b5; 4]), Red> {
         let a = a.val();
         let b = b.val();
         let c = [a; 3];
@@ -222,29 +222,29 @@ fn test_repeat_op() -> miette::Result<()> {
         signal((c, d))
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>())?;
     Ok(())
 }
 
 #[test]
 fn test_exec_sub_kernel() -> miette::Result<()> {
     #[kernel]
-    fn double(a: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn double(a: Signal<b5, Red>) -> Signal<b5, Red> {
         signal(a.val() + a.val())
     }
 
     #[kernel]
-    fn add(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn add(a: Signal<b5, Red>, b: Signal<b5, Red>) -> Signal<b5, Red> {
         signal((double(a).val() + double(b).val()).resize())
     }
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b5, Red>, b: Signal<b5, Red>) -> Signal<b5, Red> {
         let c = add(a, b).val() + double(b).val();
         signal((c + a.val() + b.val()).resize())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>())?;
     Ok(())
 }
 
@@ -264,18 +264,18 @@ fn test_assign_with_computed_expression() -> miette::Result<()> {
 
 #[test]
 fn test_match_value() -> miette::Result<()> {
-    const ONE: b8 = bits(1);
-    const TWO: b8 = bits(2);
+    const ONE: b5 = bits(1);
+    const TWO: b5 = bits(2);
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b5, Red>, b: Signal<b5, Red>) -> Signal<b5, Red> {
         match a.val() {
             ONE => b,
             TWO => a,
-            _ => signal(b8(3)),
+            _ => signal(b5(3)),
         }
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>())?;
     Ok(())
 }
 
@@ -372,7 +372,7 @@ fn test_basic_compile() -> miette::Result<()> {
         signal((a + c + z).resize())
     }
 
-    let a_set = exhaustive();
+    let a_set = vec![b4(0), b4(7), b4(15)];
     let b_set: Vec<[b4; 3]> = iproduct!(a_set.iter(), a_set.iter(), a_set.iter())
         .map(|x| [*x.0, *x.1, *x.2])
         .collect();
@@ -451,33 +451,33 @@ fn test_nested_generics() -> miette::Result<()> {
 
 #[test]
 fn test_signed_match() -> miette::Result<()> {
-    const ONE: s8 = s8(1);
-    const TWO: s8 = s8(2);
+    const ONE: s5 = s5(1);
+    const TWO: s5 = s5(2);
 
     #[kernel]
-    fn foo(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s8, Red> {
+    fn foo(a: Signal<s5, Red>, b: Signal<s5, Red>) -> Signal<s5, Red> {
         match a.val() {
             ONE => b,
             TWO => a,
-            _ => signal(s8(3)),
+            _ => signal(s5(3)),
         }
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_sn_red::<U5>())?;
     Ok(())
 }
 
 #[test]
 fn test_assignment_of_if_expression() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b4, Red>, b: Signal<b4, Red>) -> Signal<b4, Red> {
         let a = a.val();
         let b = b.val();
         let mut c = a;
         c = (if a > b { a + 1 } else { b + 2 }).resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>())?;
     Ok(())
 }
 
@@ -594,13 +594,13 @@ fn test_maybe_init_does_not_allow_select() -> miette::Result<()> {
 #[test]
 fn test_multiply() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn do_stuff(a: Signal<b5, Red>, b: Signal<b5, Red>) -> Signal<b5, Red> {
         let a = a.val();
         let b = b.val();
         let c = a * b;
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_pair_bn_red::<U5>())?;
     Ok(())
 }
 

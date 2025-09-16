@@ -614,7 +614,7 @@ impl ClockDomainContext<'_> {
                         )?;
                     }
                 }
-                OpCode::Comment(_) | OpCode::Noop => {}
+                OpCode::Noop => {}
             }
         }
         debug!("*****Clock domain check complete*****");

@@ -80,7 +80,6 @@ impl<'a> NtlBuilder<'a> {
             tl::OpCode::Binary(binary) => self.build_binary(loc, binary),
             tl::OpCode::Case(case) => self.build_case(loc, case),
             tl::OpCode::Cast(cast) => self.build_cast(loc, cast),
-            tl::OpCode::Comment(comment) => self.lop(loc, bt::OpCode::Comment(comment.clone())),
             tl::OpCode::Concat(concat) => self.build_concat(loc, concat),
             tl::OpCode::Index(index) => self.build_index(loc, index),
             tl::OpCode::Select(select) => self.build_select(loc, select),

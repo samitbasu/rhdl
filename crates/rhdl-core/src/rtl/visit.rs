@@ -43,7 +43,6 @@ pub fn visit_operands<F: FnMut(Sense, &Operand)>(op: &OpCode, mut f: F) {
             f(Sense::Write, lhs);
             f(Sense::Read, arg);
         }
-        OpCode::Comment(_) => {}
         OpCode::Concat(Concat { lhs, args }) => {
             f(Sense::Write, lhs);
             for arg in args {
@@ -133,7 +132,6 @@ pub fn visit_operands_mut<F: FnMut(Sense, &mut Operand)>(op: &mut OpCode, mut f:
             f(Sense::Write, lhs);
             f(Sense::Read, arg);
         }
-        OpCode::Comment(_) => {}
         OpCode::Concat(Concat { lhs, args }) => {
             f(Sense::Write, lhs);
             for arg in args {

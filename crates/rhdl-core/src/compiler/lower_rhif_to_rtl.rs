@@ -1108,9 +1108,6 @@ impl<'a> RTLCompiler<'a> {
                 hf::OpCode::Case(case) => {
                     self.make_case(case, loc)?;
                 }
-                hf::OpCode::Comment(comment) => {
-                    self.lop(tl::OpCode::Comment(comment.clone()), loc);
-                }
                 hf::OpCode::Enum(enumerate) => {
                     self.make_enum(enumerate, loc)?;
                 }

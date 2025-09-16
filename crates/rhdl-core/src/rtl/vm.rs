@@ -137,7 +137,6 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 }?;
                 state.write(*lhs, result, loc)?;
             }
-            OpCode::Comment(_) => {}
             OpCode::Concat(Concat { lhs, args }) => {
                 let result = args
                     .iter()

@@ -83,7 +83,6 @@ impl std::fmt::Debug for OpCode {
             OpCode::Repeat(Repeat { lhs, value, len }) => {
                 write!(f, " {lhs} <- [{value}; {len}]")
             }
-            OpCode::Comment(s) => write!(f, " # {}", s.trim_end().replace('\n', "\n   # ")),
             OpCode::Enum(Enum {
                 lhs,
                 fields,

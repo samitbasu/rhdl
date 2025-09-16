@@ -277,11 +277,6 @@ impl<'a> NetListHDLBuilder<'a> {
             spec::OpCode::Binary(binary) => self.binary_op(binary, location),
             spec::OpCode::Vector(vector) => self.vector_op(vector, location),
             spec::OpCode::Case(case) => self.case_op(case, location),
-            spec::OpCode::Comment(comment) => {
-                // TODO - FIXME
-                // self.add_item(ast::comment(comment));
-                Ok(())
-            }
             spec::OpCode::Select(select) => self.select_op(select, location),
             spec::OpCode::Not(not) => self.not_op(not, location),
             spec::OpCode::BlackBox(black_box) => self.black_box_op(black_box),

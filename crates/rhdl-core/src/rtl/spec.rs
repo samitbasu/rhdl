@@ -16,8 +16,6 @@ pub enum OpCode {
     Case(Case),
     // lhs <- cast(slot) as signed/unsigned
     Cast(Cast),
-    // Comment
-    Comment(String),
     // lhs <- {{ r1, r2, ... }}
     Concat(Concat),
     // lhs <- arg[bit_range]

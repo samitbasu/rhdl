@@ -61,9 +61,6 @@ impl Pass for DeadCodeEliminationPass {
                     mark_active(&unary.lhs);
                 }
                 OpCode::Noop => {}
-                OpCode::Comment(_) => {
-                    *alive_marker = true;
-                }
             }
         }
         // Filter out the dead ops
