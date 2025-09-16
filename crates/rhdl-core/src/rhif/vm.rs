@@ -1,5 +1,5 @@
+use crate::ast::SourceLocation;
 use crate::ast::ast_impl::WrapOp;
-use crate::ast::source::source_location::SourceLocation;
 use crate::common::slot_vec::SlotKey;
 use crate::compiler::mir::error::{ICE, RHDLCompileError};
 use crate::error::rhdl_error;

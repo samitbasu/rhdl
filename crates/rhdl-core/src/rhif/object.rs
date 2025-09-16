@@ -5,10 +5,10 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::ops::Range;
 
-use crate::SourcePool;
 use crate::ast::KernelFlags;
-use crate::ast::source::source_location::SourceLocation;
-use crate::ast::source::spanned_source_set::SpannedSourceSet;
+use crate::ast::SourceLocation;
+use crate::ast::SourcePool;
+use crate::ast::spanned_source::SpannedSourceSet;
 use crate::common::symtab::{RegisterId, SymbolTable};
 use crate::rhif::spec::SlotKind;
 use crate::{

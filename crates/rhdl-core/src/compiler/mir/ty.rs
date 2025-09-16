@@ -5,13 +5,10 @@ use std::{
 };
 
 use crate::{
-    RHDLError,
-    {
-        Color, DiscriminantAlignment, DiscriminantType, Kind,
-        ast::source::source_location::SourceLocation,
-        rhif::spec::Member,
-        types::kind::{DiscriminantLayout, Enum, Field, Struct},
-    },
+    Color, DiscriminantAlignment, DiscriminantType, Kind, RHDLError,
+    ast::SourceLocation,
+    rhif::spec::Member,
+    types::kind::{DiscriminantLayout, Enum, Field, Struct},
 };
 use internment::Intern;
 use miette::Diagnostic;

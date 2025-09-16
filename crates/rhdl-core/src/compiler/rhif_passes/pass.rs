@@ -1,7 +1,7 @@
 use crate::{
-    ast::source::source_location::SourceLocation,
-    compiler::mir::error::{RHDLCompileError, ICE},
-    error::{rhdl_error, RHDLError},
+    ast::SourceLocation,
+    compiler::mir::error::{ICE, RHDLCompileError},
+    error::{RHDLError, rhdl_error},
     rhif::Object,
 };
 

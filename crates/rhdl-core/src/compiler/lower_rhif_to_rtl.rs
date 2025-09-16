@@ -7,8 +7,8 @@ use rhdl_bits::alias::b8;
 
 use crate::Digital;
 use crate::TypedBits;
+use crate::ast::SourceLocation;
 use crate::ast::ast_impl::WrapOp;
-use crate::ast::source::source_location::SourceLocation;
 use crate::common::symtab::SymbolTable;
 use crate::error::rhdl_error;
 use crate::rhif::object::SourceDetails;

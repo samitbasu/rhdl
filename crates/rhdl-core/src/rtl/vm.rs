@@ -1,6 +1,6 @@
 use crate::{
     RHDLError, TypedBits,
-    ast::source::source_location::SourceLocation,
+    ast::ast_impl::SourceLocation,
     bitx::BitX,
     common::slot_vec::SlotKey,
     compiler::mir::error::{ICE, RHDLCompileError},

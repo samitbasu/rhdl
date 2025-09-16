@@ -1,6 +1,6 @@
 use crate::{
     RHDLError, TypedBits,
-    ast::source::source_location::SourceLocation,
+    ast::SourceLocation,
     rhif::{
         Object,
         object::{LocatedOpCode, SourceDetails},
@@ -503,9 +503,7 @@ impl Pass for ConstantPropagation {
     fn description() -> &'static str {
         "RHIF constant propogation"
     }
-    fn run(
-        mut input: crate::rhif::Object,
-    ) -> Result<crate::rhif::Object, crate::RHDLError> {
+    fn run(mut input: crate::rhif::Object) -> Result<crate::rhif::Object, crate::RHDLError> {
         let ops = std::mem::take(&mut input.ops);
         input.ops = ops
             .into_iter()

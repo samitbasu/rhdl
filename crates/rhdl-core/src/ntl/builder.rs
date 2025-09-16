@@ -1,10 +1,10 @@
+use crate::ast::spanned_source::SpannedSourceSet;
 use crate::common::symtab::RegisterId;
 use crate::ntl::object::WireDetails;
 use crate::ntl::spec::{self, Assign, BlackBoxId, WireKind};
 use crate::types::digital::Digital;
 use crate::{Circuit, ClockReset, Kind, RHDLError, Synchronous};
 use crate::{
-    ast::source::spanned_source_set::SpannedSourceSet,
     compiler::optimize_ntl,
     ntl::{
         object::{BlackBox, BlackBoxMode, LocatedOpCode, Object},

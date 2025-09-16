@@ -1,0 +1,18 @@
+  × Logic Loop
+  ╰─▶ Design contains a logic loop
+    ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/logic_loop.rs:57:45]
+ 56 │      #[kernel]
+ 57 │      pub fn logic_loop(_cr: ClockReset, i: bool, q: Q) -> (bool, D) {
+    ·                                                  ──┬─┬
+    ·                                                    │ ╰── .right
+    ·                                                    ╰── .left
+ 58 │          let mut d = D::default();
+ 59 │ ╭──▶     if i {
+ 60 │ ││           d.left = q.right;
+ 61 │ ││           d.right = q.left;
+ 62 │ ├──▶     }
+    · ╰───── .left
+    · ╰───── .right
+ 63 │          (q.left, d)
+    ╰────
+  help: Design contains a loop.  You need to either insert a flip flop on the path or otherwise break the loop.

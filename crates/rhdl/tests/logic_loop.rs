@@ -64,13 +64,21 @@ pub fn logic_loop(_cr: ClockReset, i: bool, q: Q) -> (bool, D) {
 }
 
 #[cfg(test)]
+mod common;
+
+#[cfg(test)]
 mod tests {
     use super::*;
+    use common::*;
 
     #[test]
     fn test_logic_loop() -> miette::Result<()> {
         let uut = U::default();
-        assert!(uut.descriptor("uut").is_err());
+        let Err(err) = uut.descriptor("uut") else {
+            panic!("Expected this to fail with a logic loop error");
+        };
+        let report = miette_report(err);
+        expect_test::expect_file!["logic_loop.expect"].assert_eq(&report);
         Ok(())
     }
 }

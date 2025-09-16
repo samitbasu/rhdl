@@ -1,0 +1,13 @@
+  × RHDL Clock Domain Violation
+  ╰─▶ RHDL Clock Domain Violation
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/inference.rs:164:18]
+ 163 │         // qq is Illegal!
+ 164 │         let qq = h + y;
+     ·                  ──┬──┬┬┬
+     ·                    │  ││╰── Clock domain mismatch in binary operation +
+     ·                    │  │╰── Expression belongs to Unknown clock domain
+     ·                    │  ╰── Expression belongs to Red clock domain
+     ·                    ╰── Expression belongs to Green clock domain
+ 165 │         signal(match (z + 1 + qq).raw() {
+     ╰────
+  help: You cannot perform binary operations on signals from different clock domains
