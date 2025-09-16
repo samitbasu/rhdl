@@ -272,7 +272,6 @@ fn check_for_partial_initialization(map: &mut CoverageMap) -> Result<(), RHDLErr
                     .collect::<Result<Vec<_>, _>>()?;
                 map.declare_covered(inner.lhs);
             }
-            OpCode::Comment(_) => {}
         }
     }
     // Check that the return value is fully initialized

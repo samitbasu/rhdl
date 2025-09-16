@@ -448,6 +448,17 @@ pub enum ExprLit {
     Empty,
 }
 
+impl std::fmt::Debug for ExprLit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExprLit::Int(int) => write!(f, "{int}"),
+            ExprLit::Bool(bool) => write!(f, "{bool}"),
+            ExprLit::TypedBits(ty) => write!(f, "{}", ty.code),
+            ExprLit::Empty => write!(f, "()"),
+        }
+    }
+}
+
 #[derive(Clone, Hash)]
 pub struct ExprTypedBits {
     pub path: Box<Path>,

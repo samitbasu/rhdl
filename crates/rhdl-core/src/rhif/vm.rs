@@ -88,7 +88,6 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let result = unary(*op, arg1)?;
                 state.write(*lhs, result, loc)?;
             }
-            OpCode::Comment(_) => {}
             OpCode::Select(Select {
                 lhs,
                 cond,

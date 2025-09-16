@@ -252,11 +252,6 @@ impl TranslationContext<'_> {
         });
         Ok(())
     }
-    fn translate_comment(&mut self, comment: &str) -> Result<()> {
-        // TODO - FIXME
-        //self.func.block.push(ast::comment(comment));
-        Ok(())
-    }
     fn translate_op(&mut self, lop: &LocatedOpCode) -> Result<()> {
         let op = &lop.op;
         match op {
@@ -265,7 +260,6 @@ impl TranslationContext<'_> {
             tl::OpCode::Binary(binary) => self.translate_binary(binary),
             tl::OpCode::Case(case) => self.translate_case(case),
             tl::OpCode::Cast(cast) => self.translate_cast(cast, lop.loc),
-            tl::OpCode::Comment(comment) => self.translate_comment(comment),
             tl::OpCode::Concat(concat) => self.translate_concat(concat),
             tl::OpCode::Index(index) => self.translate_index(index),
             tl::OpCode::Select(select) => self.translate_select(select),

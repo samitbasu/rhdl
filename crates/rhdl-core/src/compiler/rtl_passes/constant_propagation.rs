@@ -293,7 +293,7 @@ impl Pass for ConstantPropagationPass {
                 OpCode::Select(inner) => propagate_select(lop.loc, inner, &mut input),
                 OpCode::Splice(inner) => propagate_splice(lop.loc, inner, &mut input),
                 OpCode::Index(inner) => propagate_index(lop.loc, inner, &mut input),
-                OpCode::Assign(_) | OpCode::Comment(_) | OpCode::Noop => Ok(lop),
+                OpCode::Assign(_) | OpCode::Noop => Ok(lop),
             })
             .collect::<Result<Vec<_>, RHDLError>>()?;
         Ok(input)

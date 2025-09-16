@@ -76,9 +76,9 @@ pub enum ICE {
     LocalVariableNotFoundInBranchMap { id: ScopeIndex },
     #[error("Return slot {name} not found")]
     ReturnSlotNotFound { name: String },
-    #[error("Non self assign binary operation found in assign_binop code {op}")]
+    #[error("Non self assign binary operation found in assign_binop code {op:?}")]
     NonSelfAssignBinop { op: BinOp },
-    #[error("Unexpected binary op in self assign {op}")]
+    #[error("Unexpected binary op in self assign {op:?}")]
     UnexpectedBinopInSelfAssign { op: BinOp },
     #[error("No local variable found for pattern {pat:?} in type_pattern")]
     NoLocalVariableFoundForTypedPattern { pat: Box<Pat> },

@@ -45,7 +45,7 @@ impl Pass for DeadCodeElimination {
                     }
                 }
             });
-            output_used || matches!(lop.op, OpCode::Comment(_))
+            output_used
         });
         Ok(input)
     }

@@ -420,7 +420,6 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 };
                 eq_kinds(ty, Kind::make_array(*array_ty.base.clone(), *len as _), loc)?;
             }
-            OpCode::Comment(_) => {}
             OpCode::Case(Case {
                 lhs,
                 discriminant: expr,

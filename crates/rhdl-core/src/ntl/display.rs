@@ -66,9 +66,6 @@ impl std::fmt::Debug for OpCode {
                 }
                 writeln!(f, " }}")
             }
-            OpCode::Comment(comment) => {
-                write!(f, "// {comment}")
-            }
             OpCode::Select(select) => {
                 write!(
                     f,
