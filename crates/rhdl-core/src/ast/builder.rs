@@ -1,4 +1,3 @@
-use std::cell::Cell;
 use std::hash::{Hash, Hasher};
 
 use rhdl_span::MetaDB;

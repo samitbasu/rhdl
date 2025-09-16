@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path};
+use std::collections::HashSet;
 
 use inflections::Inflect;
 use proc_macro2::Span;

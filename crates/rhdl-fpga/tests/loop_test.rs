@@ -23,8 +23,6 @@ use rhdl_fpga::axi4lite::core::switch::read::kernel;
 
 #[test]
 fn test_loop_test() -> miette::Result<()> {
-    
-    let obj = compile_design::<kernel<2>>(CompilationMode::Synchronous)?;
-    //    drc::no_combinatorial_paths(&switch)?;
+    let _ = compile_design::<kernel<2>>(CompilationMode::Synchronous)?;
     Ok(())
 }
