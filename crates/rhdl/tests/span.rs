@@ -5,7 +5,6 @@
 #![allow(unused_must_use)]
 #![allow(dead_code)]
 
-use itertools::iproduct;
 #[cfg(test)]
 mod common;
 #[cfg(test)]

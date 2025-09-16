@@ -1,7 +1,7 @@
 use quote::{ToTokens, format_ident, quote};
 use serde::{Deserialize, Serialize};
 use syn::{
-    Ident, LitFloat, LitInt, LitStr, Result, Token, parenthesized,
+    Ident, LitInt, Result, Token, parenthesized,
     parse::{Parse, ParseStream},
     token,
 };

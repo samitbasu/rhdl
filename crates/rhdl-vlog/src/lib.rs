@@ -13,7 +13,6 @@ pub use atoms::{
     BitRange, DeclKind, Declaration, DeclarationList, Direction, HDLKind, Port, SignedWidth,
     WidthSpec,
 };
-use proc_macro2::TokenTree;
 use thiserror::Error;
 
 use crate::atoms::ConstExpr;

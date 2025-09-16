@@ -11,7 +11,7 @@ use crate::{
     },
 };
 use quote::{format_ident, quote};
-use rhdl_vlog::{self as vlog, stmt::StmtKind};
+use rhdl_vlog::{self as vlog};
 use rtl::spec as tl;
 use syn::parse_quote;
 

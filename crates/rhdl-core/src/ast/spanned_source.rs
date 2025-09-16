@@ -1,8 +1,6 @@
-use anyhow::anyhow;
 use miette::{MietteError, SourceCode, SourceSpan, SpanContents};
 
-use crate::RHDLError;
-use crate::ast::ast_impl::{FunctionId, KernelFn, NodeId, SourceLocation};
+use crate::ast::ast_impl::{FunctionId, NodeId, SourceLocation};
 use std::hash::Hash;
 use std::{
     collections::{BTreeMap, HashMap},

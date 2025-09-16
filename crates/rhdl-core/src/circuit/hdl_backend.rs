@@ -9,8 +9,6 @@ use quote::{format_ident, quote};
 use rhdl_vlog as vlog;
 use rhdl_vlog::parse_quote_miette;
 use syn::parse_quote;
-use syn::parse_quote_spanned;
-use syn::spanned::Spanned;
 
 pub fn build_hdl<C: Circuit>(
     circuit: &C,
