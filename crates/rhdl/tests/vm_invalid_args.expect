@@ -1,0 +1,10 @@
+  × RHDL ICE
+  ╰─▶ RHDL Internal Compile Error
+    ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/vm.rs:30:5]
+ 29 │         #[kernel]
+ 30 │ ╭─▶     fn pass<C: Domain>(a: Signal<b8, C>) -> Signal<b8, C> {
+ 31 │ │           a
+ 32 │ ├─▶     }
+    · ╰──── VM expected argument of type b8@r but found b16
+ 33 │         let design = compile_design_stage1::<pass<Red>>(CompilationMode::Asynchronous)?;
+    ╰────

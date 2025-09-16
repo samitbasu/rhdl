@@ -4,7 +4,7 @@ use log::trace;
 
 use crate::{
     BitX, RHDLError, TypedBits,
-    ast::{KernelFlags, source::source_location::SourceLocation},
+    ast::{KernelFlags, SourceLocation},
     compiler::mir::error::RHDLPartialInitializationError,
     error::rhdl_error,
     rhif::{

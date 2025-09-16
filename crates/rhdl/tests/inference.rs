@@ -168,7 +168,10 @@ fn test_signal_ops_inference() -> miette::Result<()> {
         })
     }
     compile_design::<add<Red, Red>>(CompilationMode::Asynchronous)?;
-    assert!(compile_design::<add::<Red, Green>>(CompilationMode::Asynchronous).is_err());
+    let err = compile_design::<add<Red, Green>>(CompilationMode::Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_ops_inference_cross_clock.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -186,7 +189,7 @@ fn test_simple_type_inference() -> miette::Result<()> {
         let h0 = g + 1;
         let _k: b4 = b4(7);
         let q = (b2(1), (b5(0), s8(5)), b12(6));
-        let b = q.1 .1;
+        let b = q.1.1;
         let (q0, (q1, q1b), q2) = q; // Tuple destructuring
         let z = q1b + 4;
         let h = [d, c, f];

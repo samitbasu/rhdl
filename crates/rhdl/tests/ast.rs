@@ -584,7 +584,10 @@ fn test_maybe_init_does_not_allow_select() -> miette::Result<()> {
         foo.b = b.val();
         signal(if foo.c { foo.a } else { foo.b })
     }
-    assert!(compile_design::<do_stuff>(CompilationMode::Asynchronous).is_err());
+    let err = compile_design::<do_stuff>(CompilationMode::Asynchronous)
+        .expect_err("Expected this to fail with a maybe-init error");
+    let report = miette_report(err);
+    expect_test::expect_file!["maybe_init_select.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -615,7 +618,11 @@ fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
         foo.a = a.val();
         signal(foo)
     }
-    assert!(compile_design::<do_stuff>(CompilationMode::Asynchronous).is_err());
+
+    let err = compile_design::<do_stuff>(CompilationMode::Asynchronous)
+        .expect_err("Expected this to fail with a maybe-init error");
+    let report = miette_report(err);
+    expect_test::expect_file!["maybe_init_dont_care.expect"].assert_eq(&report);
     Ok(())
 }
 

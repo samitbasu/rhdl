@@ -1,0 +1,13 @@
+  × RHDL Clock Domain Violation
+  ╰─▶ RHDL Clock Domain Violation
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/clock.rs:245:17]
+ 244 │         let y = y.val();
+ 245 │         let z = if y.any() { y } else { x };
+     ·                 ─────────────┬─────────────┬┬┬
+     ·                              │             ││╰── Clock domain mismatch in select operation
+     ·                              │             │╰── Expression belongs to Red clock domain
+     ·                              ╰── Expression belongs to Green clock domain
+     ·                              ╰── Expression belongs to Green clock domain
+ 246 │         signal(z)
+     ╰────
+  help: A select operation (if) requires the selection signal and both branches to be in the same clock domain

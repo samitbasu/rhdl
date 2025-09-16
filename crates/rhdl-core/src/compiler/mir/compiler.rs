@@ -17,6 +17,7 @@ use std::collections::HashSet;
 use crate::KernelFnKind;
 use crate::Kind;
 use crate::TypedBits;
+use crate::ast::SpannedSource;
 use crate::ast::ast_impl;
 use crate::ast::ast_impl::{
     Arm, ArmKind, BitsKind, Block, ExprArray, ExprAssign, ExprBinary, ExprBits, ExprBlock,
@@ -24,8 +25,6 @@ use crate::ast::ast_impl::{
     ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct, ExprTry, ExprTuple, ExprTypedBits,
     ExprUnary, FieldValue, Local, NodeId, Pat, PatKind, Stmt, StmtKind, WrapOp,
 };
-use crate::ast::source::builder::build_spanned_source_for_kernel;
-use crate::ast::source::spanned_source::SpannedSource;
 use crate::ast::visit::Visitor;
 use crate::builder::BinOp;
 use crate::builder::UnOp;
@@ -1558,7 +1557,7 @@ impl Visitor for MirContext<'_> {
 }
 
 pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
-    let source = build_spanned_source_for_kernel(func.inner())?;
+    let source = func.inner().sources()?;
     for id in 0..func.inner().id.as_u32() {
         let node = NodeId::new(id);
         if !source.span_map.contains_key(&node) {

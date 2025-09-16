@@ -1,8 +1,9 @@
-use rhdl_span::MetaDB;
-
 use crate::{
-    DigitalSignature, Kind, kernel::KernelFnKind, rhif::spec::Member, types::typed_bits::TypedBits,
+    DigitalSignature, Kind, RHDLError, ast::SpannedSource, kernel::KernelFnKind,
+    rhif::spec::Member, types::typed_bits::TypedBits,
 };
+use anyhow::anyhow;
+use rhdl_span::MetaDB;
 
 // Modeled after rustc's AST
 
@@ -27,6 +28,18 @@ impl From<u32> for NodeId {
 impl std::fmt::Debug for NodeId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "N{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Hash, PartialOrd, Eq, Ord)]
+pub struct SourceLocation {
+    pub func: FunctionId,
+    pub node: NodeId,
+}
+
+impl From<(FunctionId, NodeId)> for SourceLocation {
+    fn from((func, node): (FunctionId, NodeId)) -> Self {
+        Self { func, node }
     }
 }
 
@@ -491,6 +504,43 @@ pub struct KernelFn {
     pub text: Option<&'static str>,
     pub meta_db: MetaDB,
     pub flags: Vec<KernelFlags>,
+}
+
+impl KernelFn {
+    pub fn sources(&self) -> Result<SpannedSource, RHDLError> {
+        let Some(filename) = self.text else {
+            return Err(anyhow!("Kernel function has no source text").into());
+        };
+        let source = std::fs::read_to_string(filename)
+            .map_err(|err| anyhow!("Failed to read source file {}: {}", filename, err))?;
+        let span_map = self
+            .meta_db
+            .iter()
+            .map(|(id, meta)| {
+                let node_id = NodeId::new(*id);
+                let start_col = meta.span.start_col;
+                let start_line = meta.span.start_line;
+                let end_col = meta.span.end_col;
+                let end_line = meta.span.end_line;
+                let start_source_offset =
+                    miette::SourceOffset::from_location(&source, start_line, start_col + 1);
+                let end_source_offset =
+                    miette::SourceOffset::from_location(&source, end_line, end_col + 1);
+                (
+                    node_id,
+                    start_source_offset.offset()..end_source_offset.offset(),
+                )
+            })
+            .collect();
+        Ok(SpannedSource {
+            source,
+            name: self.name.into(),
+            span_map,
+            fallback: self.id,
+            filename: filename.into(),
+            function_id: self.fn_id,
+        })
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Hash)]

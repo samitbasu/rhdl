@@ -1,6 +1,6 @@
 use crate::{
     BitX, HDLDescriptor, Kind, RHDLError,
-    ast::source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
+    ast::{SourceLocation, spanned_source::SpannedSourceSet},
     common::symtab::{RegisterId, SymbolTable},
     ntl::{
         hdl::generate_hdl,

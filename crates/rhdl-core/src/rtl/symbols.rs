@@ -1,11 +1,7 @@
 use std::ops::Range;
 
-use crate::{
-    SourcePool,
-    ast::{
-        ast_impl::FunctionId,
-        source::{source_location::SourceLocation, spanned_source_set::SpannedSourceSet},
-    },
+use crate::ast::{
+    SourceLocation, SourcePool, ast_impl::FunctionId, spanned_source::SpannedSourceSet,
 };
 
 #[derive(Debug, Clone, Default, Hash)]

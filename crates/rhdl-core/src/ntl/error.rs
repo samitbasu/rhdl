@@ -3,7 +3,7 @@ use std::fmt::Display;
 use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
-use crate::SourcePool;
+use crate::ast::SourcePool;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum NetListICE {
@@ -35,7 +35,9 @@ impl Diagnostic for NetLoopError {
         Some(&self.src)
     }
     fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-        Some(Box::new("Design contains a loop.  You need to either insert a flip flop on the path or otherwise break the loop."))
+        Some(Box::new(
+            "Design contains a loop.  You need to either insert a flip flop on the path or otherwise break the loop.",
+        ))
     }
     fn labels<'a>(&'a self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + 'a>> {
         Some(Box::new(self.elements.iter().map(|(text, span)| {

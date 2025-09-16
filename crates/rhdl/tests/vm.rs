@@ -32,7 +32,9 @@ fn test_vm_simple_function_with_invalid_args_causes_ice() -> miette::Result<()> 
     }
     let design = compile_design_stage1::<pass<Red>>(CompilationMode::Asynchronous)?;
     let res = rhdl::core::rhif::vm::execute(&design, vec![b16(42).typed_bits()]);
-    assert!(res.is_err());
+    let err = res.unwrap_err();
+    let report = miette_report(err);
+    expect_test::expect_file!["vm_invalid_args.expect"].assert_eq(&report);
     Ok(())
 }
 

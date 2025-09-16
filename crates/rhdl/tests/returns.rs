@@ -67,6 +67,9 @@ fn test_empty_return_not_allowed() -> miette::Result<()> {
     #[kernel]
     fn foo(_a: bool) -> () {}
 
-    assert!(compile_design::<foo>(CompilationMode::Asynchronous).is_err());
+    let err =
+        compile_design::<foo>(CompilationMode::Asynchronous).expect_err("Expected this to fail");
+    let report = miette_report(err);
+    expect_test::expect_file!["empty_return_not_allowed.expect"].assert_eq(&report);
     Ok(())
 }

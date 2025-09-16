@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::BitX;
-use crate::ast::source::source_location::SourceLocation;
+use crate::ast::SourceLocation;
 use crate::ntl;
 use crate::ntl::object::WireDetails;
 use crate::ntl::spec::Binary;
