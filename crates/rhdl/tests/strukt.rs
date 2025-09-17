@@ -55,16 +55,16 @@ fn test_tuplestruct_nested_init() -> miette::Result<()> {
 #[test]
 fn test_tuple_struct_construction() -> miette::Result<()> {
     #[derive(PartialEq, Debug, Digital)]
-    pub struct Foo(b8, b8);
+    pub struct Foo(b4, b4);
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<Foo, Red> {
+    fn foo(a: Signal<b4, Red>, b: Signal<b4, Red>) -> Signal<Foo, Red> {
         let a = a.val();
         let b = b.val();
         signal(Foo(a, b))
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>())?;
     Ok(())
 }
 
@@ -72,8 +72,8 @@ fn test_tuple_struct_construction() -> miette::Result<()> {
 fn test_struct_rest_syntax() -> miette::Result<()> {
     #[derive(PartialEq, Debug, Digital)]
     pub struct Foo {
-        a: (b8, b8),
-        b: b8,
+        a: (b4, b4),
+        b: b4,
     }
 
     const FOO: Foo = Foo {
@@ -82,7 +82,7 @@ fn test_struct_rest_syntax() -> miette::Result<()> {
     };
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b4, Red>, b: Signal<b4, Red>) -> Signal<b4, Red> {
         let a = a.val();
         let b = b.val();
         let c = Foo { a: (a, a), ..FOO };
@@ -90,6 +90,6 @@ fn test_struct_rest_syntax() -> miette::Result<()> {
         signal(d + e + b)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>())?;
     Ok(())
 }

@@ -16,19 +16,19 @@ use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 #[test]
 fn test_early_return() {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, _b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b5, Red>, _b: Signal<b5, Red>) -> Signal<b5, Red> {
         return a;
         _b
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>()).unwrap();
 }
 
 #[test]
 #[allow(clippy::no_effect)]
 fn test_early_return_in_branch() {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b5, Red>, b: Signal<b5, Red>) -> Signal<b5, Red> {
         if a.val() > b.val() {
             let d = 5;
             d + 3;
@@ -37,7 +37,7 @@ fn test_early_return_in_branch() {
         b
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>()).unwrap();
 }
 
 #[test]

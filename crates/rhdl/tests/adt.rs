@@ -489,17 +489,17 @@ fn test_enum_basic() -> miette::Result<()> {
     enum Foo {
         #[default]
         A,
-        B(b8),
+        B(b6),
         C {
-            red: b8,
-            green: b8,
-            blue: b8,
+            red: b6,
+            green: b6,
+            blue: b6,
         },
         D,
     }
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<Foo, Red> {
+    fn foo(a: Signal<b6, Red>, b: Signal<b6, Red>) -> Signal<Foo, Red> {
         let a = a.val();
         let b = b.val();
         signal(if a == b {
@@ -515,7 +515,7 @@ fn test_enum_basic() -> miette::Result<()> {
         })
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
     Ok(())
 }
 
@@ -527,15 +527,15 @@ fn test_match_enum() -> miette::Result<()> {
         A,
         B(b8),
         C {
-            red: b8,
-            green: b8,
-            blue: b8,
+            red: b6,
+            green: b6,
+            blue: b6,
         },
         D,
     }
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b6, Red>, b: Signal<b6, Red>) -> Signal<b8, Red> {
         let a = a.val();
         let b = b.val();
         let c = Foo::C {
@@ -551,6 +551,6 @@ fn test_match_enum() -> miette::Result<()> {
         })
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
     Ok(())
 }

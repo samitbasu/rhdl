@@ -113,39 +113,39 @@ fn test_phi() -> miette::Result<()> {
 #[test]
 fn test_phi_mut_no_init() {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, _b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b5, Red>, _b: Signal<b5, Red>) -> Signal<b5, Red> {
         let a = a.val();
-        let mut c: b8;
+        let mut c: b5;
         if a.any() {
-            c = b8(1);
+            c = b5(1);
         } else {
-            c = b8(2);
+            c = b5(2);
         }
         signal(c)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>()).unwrap();
 }
 
 #[test]
 fn test_flow_control_if_expression() {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b5, Red>, b: Signal<b5, Red>) -> Signal<b5, Red> {
         let a = a.val();
         let b = b.val();
         let c = if a > b { a + 1 } else { b + 2 };
         signal(c + 1)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>()).unwrap();
 }
 
 #[test]
 fn test_if_expression() {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<bool, Red> {
+    fn foo(a: Signal<b4, Red>, b: Signal<b4, Red>) -> Signal<bool, Red> {
         signal(a.val() > b.val())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>()).unwrap();
 }
