@@ -17,17 +17,17 @@ use test_log::test;
 #[test]
 fn test_tuple_struct_indexing() -> miette::Result<()> {
     #[derive(PartialEq, Debug, Digital)]
-    pub struct Foo(b8, b8);
+    pub struct Foo(b6, b6);
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b6, Red>, b: Signal<b6, Red>) -> Signal<b6, Red> {
         let a = a.val();
         let b = b.val();
         let c = Foo(a, b);
         signal(c.0 + c.1)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
     Ok(())
 }
 
@@ -35,12 +35,12 @@ fn test_tuple_struct_indexing() -> miette::Result<()> {
 fn test_struct_field_indexing() -> miette::Result<()> {
     #[derive(PartialEq, Debug, Digital)]
     pub struct Foo {
-        a: (b8, b8),
-        b: b8,
+        a: (b6, b6),
+        b: b6,
     }
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b6, Red>, b: Signal<b6, Red>) -> Signal<b6, Red> {
         let a = a.val();
         let b = b.val();
         let mut c = Foo { a: (a, a), b };
@@ -48,7 +48,7 @@ fn test_struct_field_indexing() -> miette::Result<()> {
         signal(c.a.0 + c.a.1 + c.b)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
     Ok(())
 }
 
@@ -71,7 +71,7 @@ fn test_array_indexing_simple() -> miette::Result<()> {
 #[test]
 fn test_array_indexing() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<[b8; 2], Red> {
+    fn foo(a: Signal<b6, Red>, b: Signal<b6, Red>) -> Signal<[b6; 2], Red> {
         let a = a.val();
         let b = b.val();
         let mut c = [a, b];
@@ -80,21 +80,21 @@ fn test_array_indexing() -> miette::Result<()> {
         signal([(c[0] + c[1]).resize(), c[1]])
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
     Ok(())
 }
 
 #[test]
 fn test_array_indexing_2() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<[b8; 2], Red> {
+    fn foo(a: Signal<b6, Red>, b: Signal<b6, Red>) -> Signal<[b6; 2], Red> {
         let a = a.val();
         let b = b.val();
         let c = [a, b];
         signal([c[0], c[1]])
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
     Ok(())
 }
 
@@ -290,19 +290,19 @@ fn test_array_dynamic_indexing_on_write() -> miette::Result<()> {
 fn test_field_indexing_is_order_independent() -> miette::Result<()> {
     #[derive(PartialEq, Debug, Digital)]
     pub struct Foo {
-        a: b8,
-        b: b8,
+        a: b6,
+        b: b6,
     }
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<Foo, Red> {
+    fn foo(a: Signal<b6, Red>, b: Signal<b6, Red>) -> Signal<Foo, Red> {
         let a = a.val();
         let b = b.val();
         let c = Foo { b, a };
         signal(c)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
     Ok(())
 }
 
@@ -310,30 +310,30 @@ fn test_field_indexing_is_order_independent() -> miette::Result<()> {
 fn test_field_indexing() -> miette::Result<()> {
     #[derive(PartialEq, Debug, Digital)]
     pub struct Foo {
-        a: b8,
-        b: b8,
+        a: b6,
+        b: b6,
     }
 
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b6, Red>, b: Signal<b6, Red>) -> Signal<b6, Red> {
         let a = a.val();
         let b = b.val();
         let c = Foo { a, b };
         signal(c.a + c.b)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
     Ok(())
 }
 
 #[test]
 fn test_simple_if_expression() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b6, Red>, b: Signal<b6, Red>) -> Signal<b6, Red> {
         let (a, b) = (a.val(), b.val());
         signal(if a > b { a + 1 } else { b + 2 })
     }
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
     Ok(())
 }
 

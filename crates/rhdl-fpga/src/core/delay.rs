@@ -154,10 +154,12 @@ mod tests {
                assign d = od[14:5];
                assign od = kernel_delay(clock_reset, i, q);
                function [14:0] kernel_delay(input reg [1:0] arg_0, input reg [4:0] arg_1, input reg [9:0] arg_2);
+                     // d
                      reg [9:0] or0;
                      reg [4:0] or1;
                      reg [9:0] or2;
                      reg [4:0] or3;
+                     // d
                      reg [9:0] or4;
                      reg [4:0] or5;
                      reg [14:0] or6;

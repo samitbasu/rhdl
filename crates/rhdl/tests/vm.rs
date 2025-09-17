@@ -63,134 +63,134 @@ fn test_vm_simple_binop_function() -> miette::Result<()> {
 #[test]
 fn test_vm_unsigned_arith_function() -> miette::Result<()> {
     #[kernel]
-    fn add<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<b8, C> {
+    fn add<C: Domain>(a: Signal<b6, C>, b: Signal<b6, C>) -> Signal<b6, C> {
         signal(a.val() + b.val())
     }
 
     #[kernel]
-    fn sub<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<b8, C> {
+    fn sub<C: Domain>(a: Signal<b6, C>, b: Signal<b6, C>) -> Signal<b6, C> {
         signal(a.val() - b.val())
     }
 
     #[kernel]
-    fn and<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<b8, C> {
+    fn and<C: Domain>(a: Signal<b6, C>, b: Signal<b6, C>) -> Signal<b6, C> {
         signal(a.val() & b.val())
     }
 
     #[kernel]
-    fn or<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<b8, C> {
+    fn or<C: Domain>(a: Signal<b6, C>, b: Signal<b6, C>) -> Signal<b6, C> {
         signal(a.val() | b.val())
     }
 
     #[kernel]
-    fn xor<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<b8, C> {
+    fn xor<C: Domain>(a: Signal<b6, C>, b: Signal<b6, C>) -> Signal<b6, C> {
         signal(a.val() ^ b.val())
     }
 
-    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_pair_b8_red())?;
-    test_kernel_vm_and_verilog::<sub<Red>, _, _, _>(sub::<Red>, tuple_pair_b8_red())?;
-    test_kernel_vm_and_verilog::<and<Red>, _, _, _>(and::<Red>, tuple_pair_b8_red())?;
-    test_kernel_vm_and_verilog::<or<Red>, _, _, _>(or::<Red>, tuple_pair_b8_red())?;
-    test_kernel_vm_and_verilog::<xor<Red>, _, _, _>(xor::<Red>, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<sub<Red>, _, _, _>(sub::<Red>, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<and<Red>, _, _, _>(and::<Red>, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<or<Red>, _, _, _>(or::<Red>, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<xor<Red>, _, _, _>(xor::<Red>, tuple_pair_bn_red::<U6>())?;
     Ok(())
 }
 
 #[test]
 fn test_vm_signed_arith_function() -> miette::Result<()> {
     #[kernel]
-    fn add<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s8, C> {
+    fn add<C: Domain>(a: Signal<s6, C>, b: Signal<s6, C>) -> Signal<s6, C> {
         signal(a.val() + b.val())
     }
 
     #[kernel]
-    fn sub<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<s8, C> {
+    fn sub<C: Domain>(a: Signal<s6, C>, b: Signal<s6, C>) -> Signal<s6, C> {
         signal(a.val() - b.val())
     }
 
-    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<sub<Red>, _, _, _>(sub::<Red>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_pair_sn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<sub<Red>, _, _, _>(sub::<Red>, tuple_pair_sn_red::<U6>())?;
     Ok(())
 }
 
 #[test]
 fn test_vm_unsigned_binop_function() -> miette::Result<()> {
     #[kernel]
-    fn gt<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<bool, C> {
+    fn gt<C: Domain>(a: Signal<b6, C>, b: Signal<b6, C>) -> Signal<bool, C> {
         signal(a.val() > b.val())
     }
 
     #[kernel]
-    fn ge<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<bool, C> {
+    fn ge<C: Domain>(a: Signal<b6, C>, b: Signal<b6, C>) -> Signal<bool, C> {
         signal(a.val() >= b.val())
     }
 
     #[kernel]
-    fn eq<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<bool, C> {
+    fn eq<C: Domain>(a: Signal<b6, C>, b: Signal<b6, C>) -> Signal<bool, C> {
         signal(a == b)
     }
 
     #[kernel]
-    fn ne<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<bool, C> {
+    fn ne<C: Domain>(a: Signal<b6, C>, b: Signal<b6, C>) -> Signal<bool, C> {
         signal(a != b)
     }
 
     #[kernel]
-    fn le<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<bool, C> {
+    fn le<C: Domain>(a: Signal<b6, C>, b: Signal<b6, C>) -> Signal<bool, C> {
         signal(a.val() <= b.val())
     }
 
     #[kernel]
-    fn lt<C: Domain>(a: Signal<b8, C>, b: Signal<b8, C>) -> Signal<bool, C> {
+    fn lt<C: Domain>(a: Signal<b6, C>, b: Signal<b6, C>) -> Signal<bool, C> {
         signal(a.val() < b.val())
     }
 
-    test_kernel_vm_and_verilog::<gt<Red>, _, _, _>(gt::<Red>, tuple_pair_b8_red())?;
-    test_kernel_vm_and_verilog::<ge<Red>, _, _, _>(ge::<Red>, tuple_pair_b8_red())?;
-    test_kernel_vm_and_verilog::<eq<Red>, _, _, _>(eq::<Red>, tuple_pair_b8_red())?;
-    test_kernel_vm_and_verilog::<ne<Red>, _, _, _>(ne::<Red>, tuple_pair_b8_red())?;
-    test_kernel_vm_and_verilog::<le<Red>, _, _, _>(le::<Red>, tuple_pair_b8_red())?;
-    test_kernel_vm_and_verilog::<lt<Red>, _, _, _>(lt::<Red>, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<gt<Red>, _, _, _>(gt::<Red>, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<ge<Red>, _, _, _>(ge::<Red>, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<eq<Red>, _, _, _>(eq::<Red>, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<ne<Red>, _, _, _>(ne::<Red>, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<le<Red>, _, _, _>(le::<Red>, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<lt<Red>, _, _, _>(lt::<Red>, tuple_pair_bn_red::<U6>())?;
     Ok(())
 }
 
 #[test]
 fn test_vm_signed_binop_function() -> miette::Result<()> {
     #[kernel]
-    fn gt<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<bool, C> {
+    fn gt<C: Domain>(a: Signal<s6, C>, b: Signal<s6, C>) -> Signal<bool, C> {
         signal(a.val() > b.val())
     }
 
     #[kernel]
-    fn ge<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<bool, C> {
+    fn ge<C: Domain>(a: Signal<s6, C>, b: Signal<s6, C>) -> Signal<bool, C> {
         signal(a.val() >= b.val())
     }
 
     #[kernel]
-    fn eq<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<bool, C> {
+    fn eq<C: Domain>(a: Signal<s6, C>, b: Signal<s6, C>) -> Signal<bool, C> {
         signal(a == b)
     }
 
     #[kernel]
-    fn ne<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<bool, C> {
+    fn ne<C: Domain>(a: Signal<s6, C>, b: Signal<s6, C>) -> Signal<bool, C> {
         signal(a != b)
     }
 
     #[kernel]
-    fn le<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<bool, C> {
+    fn le<C: Domain>(a: Signal<s6, C>, b: Signal<s6, C>) -> Signal<bool, C> {
         signal(a.val() <= b.val())
     }
 
     #[kernel]
-    fn lt<C: Domain>(a: Signal<s8, C>, b: Signal<s8, C>) -> Signal<bool, C> {
+    fn lt<C: Domain>(a: Signal<s6, C>, b: Signal<s6, C>) -> Signal<bool, C> {
         signal(a.val() < b.val())
     }
 
-    test_kernel_vm_and_verilog::<gt<Red>, _, _, _>(gt::<Red>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<ge<Red>, _, _, _>(ge::<Red>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<eq<Red>, _, _, _>(eq::<Red>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<ne<Red>, _, _, _>(ne::<Red>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<le<Red>, _, _, _>(le::<Red>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<lt<Red>, _, _, _>(lt::<Red>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<gt<Red>, _, _, _>(gt::<Red>, tuple_pair_sn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<ge<Red>, _, _, _>(ge::<Red>, tuple_pair_sn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<eq<Red>, _, _, _>(eq::<Red>, tuple_pair_sn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<ne<Red>, _, _, _>(ne::<Red>, tuple_pair_sn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<le<Red>, _, _, _>(le::<Red>, tuple_pair_sn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<lt<Red>, _, _, _>(lt::<Red>, tuple_pair_sn_red::<U6>())?;
     Ok(())
 }
 
