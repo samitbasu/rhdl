@@ -27,9 +27,9 @@
 //!
 //! The simulation trace is pretty boring.  
 #![doc = include_str!("../../doc/constant.md")]
-use quote::{format_ident, quote};
+use quote::format_ident;
 use rhdl::prelude::*;
-use syn::{parse, parse_quote};
+use syn::parse_quote;
 
 #[derive(Clone, Debug)]
 /// The core to include for the constant driver

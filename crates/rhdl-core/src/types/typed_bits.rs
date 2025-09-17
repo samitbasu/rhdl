@@ -1,7 +1,6 @@
 use std::iter::{once, repeat};
 
 use internment::Intern;
-use quote::ToTokens;
 
 use crate::Color;
 use crate::ast::ast_impl::WrapOp;
