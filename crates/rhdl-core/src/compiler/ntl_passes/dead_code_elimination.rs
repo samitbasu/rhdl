@@ -6,7 +6,7 @@ use crate::{
         common::symtab::RegisterId,
         ntl::{
             Object,
-            spec::{OpCode, Wire, WireKind},
+            spec::{Wire, WireKind},
             visit::visit_wires,
         },
     },

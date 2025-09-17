@@ -293,11 +293,18 @@ impl TranslationContext<'_> {
             .symtab
             .iter_reg()
             .map(|(rid, (kind, _))| {
-                // TODO - FIXME
                 let alias = self.rtl.op_alias(Operand::Register(rid));
                 let name = self.op_ident(Operand::Register(rid));
                 let width: vlog::SignedWidth = (*kind).into();
-                parse_quote! { reg #width #name;}
+                let alias = if let Some(alias) = alias {
+                    quote! { #[doc = #alias] }
+                } else {
+                    quote! {}
+                };
+                parse_quote! {
+                    #alias
+                    reg #width #name;
+                }
             })
             .collect::<Vec<vlog::Item>>();
         // Declare the literals for the function
