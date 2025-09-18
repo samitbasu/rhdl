@@ -1,6 +1,6 @@
 use crate::{
     Kind, RHDLError, TypedBits,
-    ast::source::source_location::SourceLocation,
+    ast::SourceLocation,
     bitx::BitX,
     compiler::mir::error::{ICE, RHDLCompileError},
     error::rhdl_error,
@@ -11,7 +11,7 @@ use crate::{
     },
 };
 use quote::{format_ident, quote};
-use rhdl_vlog::{self as vlog, stmt::StmtKind};
+use rhdl_vlog::{self as vlog};
 use rtl::spec as tl;
 use syn::parse_quote;
 
@@ -252,11 +252,6 @@ impl TranslationContext<'_> {
         });
         Ok(())
     }
-    fn translate_comment(&mut self, comment: &str) -> Result<()> {
-        // TODO - FIXME
-        //self.func.block.push(ast::comment(comment));
-        Ok(())
-    }
     fn translate_op(&mut self, lop: &LocatedOpCode) -> Result<()> {
         let op = &lop.op;
         match op {
@@ -265,7 +260,6 @@ impl TranslationContext<'_> {
             tl::OpCode::Binary(binary) => self.translate_binary(binary),
             tl::OpCode::Case(case) => self.translate_case(case),
             tl::OpCode::Cast(cast) => self.translate_cast(cast, lop.loc),
-            tl::OpCode::Comment(comment) => self.translate_comment(comment),
             tl::OpCode::Concat(concat) => self.translate_concat(concat),
             tl::OpCode::Index(index) => self.translate_index(index),
             tl::OpCode::Select(select) => self.translate_select(select),
@@ -299,11 +293,18 @@ impl TranslationContext<'_> {
             .symtab
             .iter_reg()
             .map(|(rid, (kind, _))| {
-                // TODO - FIXME
                 let alias = self.rtl.op_alias(Operand::Register(rid));
                 let name = self.op_ident(Operand::Register(rid));
                 let width: vlog::SignedWidth = (*kind).into();
-                parse_quote! { reg #width #name;}
+                let alias = if let Some(alias) = alias {
+                    quote! { #[doc = #alias] }
+                } else {
+                    quote! {}
+                };
+                parse_quote! {
+                    #alias
+                    reg #width #name;
+                }
             })
             .collect::<Vec<vlog::Item>>();
         // Declare the literals for the function

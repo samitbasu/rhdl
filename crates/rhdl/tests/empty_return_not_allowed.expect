@@ -1,0 +1,10 @@
+  × RHDL Syntax Error
+  ╰─▶ RHDL Syntax Error
+    ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/returns.rs:68:5]
+ 67 │     #[kernel]
+ 68 │     fn foo(_a: bool) -> () {}
+    ·     ────────────┬────────────
+    ·                 ╰── RHDL does not support functions with empty return types
+ 69 │ 
+    ╰────
+  help: You cannot have a function with an empty return type in RHDL.  You should return a value or a tuple of values.

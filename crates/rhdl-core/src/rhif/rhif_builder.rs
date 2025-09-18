@@ -147,10 +147,6 @@ pub fn op_as_signed_inferred(lhs: Slot, arg: Slot) -> OpCode {
     })
 }
 
-pub fn op_comment(comment: String) -> OpCode {
-    OpCode::Comment(comment)
-}
-
 pub fn op_wrap(lhs: Slot, arg: Slot, op: WrapOp) -> OpCode {
     OpCode::Wrap(Wrap {
         lhs,

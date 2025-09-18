@@ -63,6 +63,7 @@ pub struct StreamIO<T: Digital, S: Digital> {
 }
 
 #[derive(PartialEq, Debug, Digital)]
+/// A typed ready signal for a stream of type `T`.
 pub struct Ready<T: Digital> {
     /// A marker that this is a ready signal for a stream of type `T`
     marker: PhantomData<T>,

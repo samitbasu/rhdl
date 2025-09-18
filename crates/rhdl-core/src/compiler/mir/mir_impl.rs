@@ -7,9 +7,8 @@ use std::{
 use crate::{
     Kind,
     ast::{
-        KernelFlags,
+        KernelFlags, SourceLocation,
         ast_impl::{ExprLit, FunctionId},
-        source::source_location::SourceLocation,
     },
     common::symtab::SymbolTable,
     rhif::{

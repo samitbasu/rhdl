@@ -46,8 +46,8 @@ fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
     let expect_err = expect_file!["nested_enum_in_if_let.expect"];
     let res = compile_design::<add>(CompilationMode::Asynchronous);
     let err = res.err().unwrap();
-    let report: miette::Report = err.into();
-    expect_err.assert_eq(&report.to_string());
+    let report = miette_report(err);
+    expect_err.assert_eq(&report);
     Ok(())
 }
 
@@ -249,13 +249,13 @@ fn test_importing() {
 #[test]
 fn test_assignment() {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b6, Red>, b: Signal<b6, Red>) -> Signal<b6, Red> {
         let mut c = a;
         c = b;
         c
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>()).unwrap();
 }
 
 #[test]

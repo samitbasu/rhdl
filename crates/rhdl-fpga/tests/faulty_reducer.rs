@@ -112,6 +112,13 @@ pub fn kernel<DW: BitWidth, DN: BitWidth>(
 fn test_no_combinatorial_paths() -> miette::Result<()> {
     let uut = U::<U16, U8>::default();
     let res = drc::no_combinatorial_paths(&uut);
-    assert!(res.is_err());
+    let Err(err) = res else {
+        panic!("Expected this to fail");
+    };
+    let handler =
+        miette::GraphicalReportHandler::new_themed(miette::GraphicalTheme::unicode_nocolor());
+    let mut msg = String::new();
+    handler.render_report(&mut msg, err.as_ref()).unwrap();
+    expect_test::expect_file!["faulty_reducer_no_combinatorial_paths.expect"].assert_eq(&msg);
     Ok(())
 }

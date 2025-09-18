@@ -22,7 +22,7 @@ use crate::{
     },
     rtl,
 };
-use log::{debug, info};
+use log::debug;
 
 type Result<T> = std::result::Result<T, RHDLError>;
 

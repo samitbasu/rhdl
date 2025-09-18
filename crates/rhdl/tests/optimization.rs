@@ -472,11 +472,6 @@ fn test_empty_dynamic_index_dropped() -> miette::Result<()> {
 
     let rtl = compile_design::<foo>(CompilationMode::Synchronous)?;
     assert!(no_empty_operands(&rtl));
-    assert!(
-        rtl.ops
-            .iter()
-            .all(|op| matches!(op.op, rhdl::core::rtl::spec::OpCode::Comment(_)))
-    );
     Ok(())
 }
 

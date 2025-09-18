@@ -35,23 +35,29 @@ impl rhdl::core::digital_fn::DigitalFn for update {
         Some(
             bob
                 .kernel_fn(
+                    0u32.into(),
                     stringify!(update),
                     vec! {
-                        bob.type_pat(bob.ident_pat(stringify!(a), true), < u8 as
-                        rhdl::core::Digital > ::static_kind())
+                        bob.type_pat(13u32.into(), bob.ident_pat(12u32.into(),
+                        stringify!(a), true), < u8 as rhdl::core::Digital >
+                        ::static_kind())
                     },
                     <u8 as rhdl::core::Digital>::static_kind(),
                     bob
                         .block(
+                            11u32.into(),
                             vec![
-                                bob.local_stmt(bob.ident_pat(stringify!(b), true), Some(bob
-                                .lit_expr(bob.expr_lit_int(stringify!(3))))), bob
-                                .semi_stmt(bob.assign_expr(bob.path_expr(bob.path(vec![bob
+                                bob.local_stmt(3u32.into(), 4u32.into(), bob.ident_pat(1u32
+                                .into(), stringify!(b), true), Some(bob.lit_expr(2u32
+                                .into(), bob.expr_lit_int(stringify!(3))))), bob
+                                .semi_stmt(8u32.into(), bob.assign_expr(5u32.into(), bob
+                                .path_expr(6u32.into(), bob.path(vec![bob
                                 .path_segment(stringify!(b), bob.path_arguments_none())],)),
-                                bob.path_expr(bob.path(vec![bob.path_segment(stringify!(a),
-                                bob.path_arguments_none())],)))), bob.expr_stmt(bob
-                                .path_expr(bob.path(vec![bob.path_segment(stringify!(b), bob
-                                .path_arguments_none())],)))
+                                bob.path_expr(7u32.into(), bob.path(vec![bob
+                                .path_segment(stringify!(a), bob
+                                .path_arguments_none())],)))), bob.expr_stmt(10u32.into(),
+                                bob.path_expr(9u32.into(), bob.path(vec![bob
+                                .path_segment(stringify!(b), bob.path_arguments_none())],)))
                             ],
                         ),
                     std::any::TypeId::of::<update>(),

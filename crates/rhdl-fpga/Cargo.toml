@@ -12,7 +12,6 @@ badascii-doc = "0.4.1"
 quote = "1.0.40"
 rand = "0.9.1"
 rhdl = { path = "../rhdl" }
-strum = { version = "0.25.0", features = ["derive"] }
 syn = "2.0.106"
 
 [dev-dependencies]

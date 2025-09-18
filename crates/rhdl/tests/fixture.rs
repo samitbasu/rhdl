@@ -2,8 +2,6 @@ use rhdl::prelude::*;
 
 #[cfg(test)]
 mod common;
-#[cfg(test)]
-use common::*;
 use rhdl_core::circuit::{async_func::AsyncFunc, fixture::Fixture};
 use rhdl_vlog::formatter::Pretty;
 

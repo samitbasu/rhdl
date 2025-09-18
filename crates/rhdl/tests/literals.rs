@@ -94,20 +94,20 @@ fn test_struct_literal_match() -> miette::Result<()> {
 #[test]
 fn test_plain_literals() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b6, Red>, b: Signal<b6, Red>) -> Signal<b6, Red> {
         signal((a.val() + 2 + b.val()).resize())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
     Ok(())
 }
 
 #[test]
 fn test_plain_literals_signed_context() {
     #[kernel]
-    fn foo(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s8, Red> {
+    fn foo(a: Signal<s6, Red>, b: Signal<s6, Red>) -> Signal<s6, Red> {
         signal(a.val() + 2 + b.val())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_s8_red()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_sn_red::<U6>()).unwrap();
 }

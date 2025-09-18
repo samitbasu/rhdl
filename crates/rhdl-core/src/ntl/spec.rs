@@ -14,8 +14,6 @@ pub enum OpCode {
     Vector(Vector),
     // lhs <- case [arg1] {pattern0 : arg0, pattern1: arg1, ...}
     Case(Case),
-    // Comment
-    Comment(String),
     // lhs <- cond ? true_value : false_value
     Select(Select),
     // lhs <- ! arg

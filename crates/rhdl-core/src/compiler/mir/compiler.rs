@@ -17,6 +17,7 @@ use std::collections::HashSet;
 use crate::KernelFnKind;
 use crate::Kind;
 use crate::TypedBits;
+use crate::ast::SpannedSource;
 use crate::ast::ast_impl;
 use crate::ast::ast_impl::{
     Arm, ArmKind, BitsKind, Block, ExprArray, ExprAssign, ExprBinary, ExprBits, ExprBlock,
@@ -24,15 +25,11 @@ use crate::ast::ast_impl::{
     ExprMethodCall, ExprPath, ExprRepeat, ExprRet, ExprStruct, ExprTry, ExprTuple, ExprTypedBits,
     ExprUnary, FieldValue, Local, NodeId, Pat, PatKind, Stmt, StmtKind, WrapOp,
 };
-use crate::ast::source::builder::build_spanned_source_for_kernel;
-use crate::ast::source::spanned_source::SpannedSource;
 use crate::ast::visit::Visitor;
 use crate::builder::BinOp;
 use crate::builder::UnOp;
 use crate::common::symtab::LiteralId;
 use crate::common::symtab::SymbolTable;
-use crate::compiler::ascii;
-use crate::compiler::display_ast::pretty_print_statement;
 use crate::compiler::stage1::CompilationMode;
 use crate::compiler::stage1::compile;
 use crate::error::RHDLError;
@@ -52,8 +49,8 @@ use crate::rhif::spec::Member;
 use crate::rhif::spec::SlotKind;
 use crate::rhif::{
     rhif_builder::{
-        op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_comment, op_enum,
-        op_exec, op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
+        op_array, op_as_bits, op_as_signed, op_assign, op_binary, op_case, op_enum, op_exec,
+        op_index, op_repeat, op_select, op_splice, op_struct, op_tuple, op_unary,
     },
     spec::AluBinary,
 };
@@ -576,8 +573,7 @@ impl<'a> MirContext<'a> {
                 );
 
                 let disc_as_i64 = discriminant.as_i64()?;
-                let path =
-                    crate::types::path::Path::default().payload_by_value(disc_as_i64);
+                let path = crate::types::path::Path::default().payload_by_value(disc_as_i64);
                 let payload = self.reg(arm_enum.pat.id);
                 self.op(op_index(payload, target, path), arm_enum.pat.id);
                 self.initialize_local(&arm_enum.pat, payload)?;
@@ -1122,11 +1118,7 @@ impl<'a> MirContext<'a> {
         let arg = self.expr(&index.expr)?;
         let index = self.expr(&index.index)?;
         self.op(
-            op_index(
-                lhs,
-                arg,
-                crate::types::path::Path::default().dynamic(index),
-            ),
+            op_index(lhs, arg, crate::types::path::Path::default().dynamic(index)),
             id,
         );
         Ok(lhs)
@@ -1437,8 +1429,6 @@ impl<'a> MirContext<'a> {
         Ok(self.lit_empty(id))
     }
     fn stmt(&mut self, statement: &Stmt) -> Result<Slot> {
-        let statement_text = pretty_print_statement(statement)?;
-        self.op(op_comment(statement_text), statement.id);
         match &statement.kind {
             StmtKind::Local(local) => {
                 self.local(local)?;
@@ -1563,11 +1553,10 @@ impl Visitor for MirContext<'_> {
 }
 
 pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
-    let source = build_spanned_source_for_kernel(func.inner())?;
+    let source = func.inner().sources()?;
     for id in 0..func.inner().id.as_u32() {
         let node = NodeId::new(id);
         if !source.span_map.contains_key(&node) {
-            debug!("AST: {}", ascii::render_ast_to_string(&func)?);
             panic!("Missing span for node {node:?}");
         }
     }

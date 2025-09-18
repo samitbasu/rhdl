@@ -6,6 +6,10 @@
 #![allow(dead_code)]
 
 use rhdl::prelude::*;
+#[cfg(test)]
+mod common;
+#[cfg(test)]
+use common::*;
 
 use CompilationMode::Asynchronous;
 
@@ -31,7 +35,10 @@ fn test_struct_follows_clock_constraints() -> miette::Result<()> {
     }
 
     compile_design::<do_stuff<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<do_stuff<Green, Red>>(Asynchronous).is_err());
+    let err = compile_design::<do_stuff<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["struct_follows_clock_constraints.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -52,7 +59,11 @@ fn test_struct_with_splice_follows_clock_constraints() -> miette::Result<()> {
     }
 
     compile_design::<do_stuff<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<do_stuff<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<do_stuff<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["struct_with_splice_follows_clock_constraints.expect"]
+        .assert_eq(&report);
     Ok(())
 }
 
@@ -77,7 +88,10 @@ fn test_struct_follows_clock_constraints_fails() -> miette::Result<()> {
     }
 
     compile_design::<do_stuff<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<do_stuff<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<do_stuff<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["struct_follows_clock_constraints_fails.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -102,7 +116,10 @@ fn test_struct_cannot_cross_clock_domains() -> miette::Result<()> {
     }
 
     compile_design::<do_stuff<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<do_stuff<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<do_stuff<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["struct_cannot_cross_clock_domains.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -121,7 +138,10 @@ fn test_signal_call_cross_clock_fails() -> miette::Result<()> {
     }
 
     compile_design::<do_stuff<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<do_stuff<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<do_stuff<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_call_cross_clock_fails.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -133,7 +153,10 @@ fn test_signal_cross_clock_select_fails() -> miette::Result<()> {
         signal(if y.val().any() { x } else { (x + 2).resize() })
     }
     assert!(compile_design::<add::<Red, Red>>(Asynchronous).is_ok());
-    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<add<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_cross_clock_select_fails.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -145,11 +168,11 @@ fn test_signal_cross_clock_select_causes_type_check_error() -> miette::Result<()
         let z = if y.val().any() { x } else { (x + 2).resize() };
         signal(z)
     }
-    let Err(RHDLError::RHDLClockDomainViolation(_)) =
-        compile_design::<add<Red, Green>>(Asynchronous)
-    else {
-        panic!("Expected clock coherence violation");
-    };
+    let err = compile_design::<add<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_cross_clock_select_causes_type_check_error.expect"]
+        .assert_eq(&report);
     Ok(())
 }
 
@@ -174,8 +197,10 @@ fn test_signal_coherence_in_splice_operation() -> miette::Result<()> {
         signal(z)
     }
     compile_design::<add<Red, Red>>(Asynchronous)?;
-    //    compile_design::<add<Red, Green>>()?;
-    assert!(compile_design::<add<Green, Red>>(Asynchronous).is_err());
+    let err = compile_design::<add<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_coherence_in_splice_operation.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -188,7 +213,10 @@ fn test_signal_coherence_in_dynamic_indexing() -> miette::Result<()> {
         signal(z)
     }
     compile_design::<add<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<add<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_coherence_in_dynamic_indexing.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -201,7 +229,10 @@ fn test_signal_coherence_in_binary_ops() -> miette::Result<()> {
         let z = x + y;
         signal(z.resize())
     }
-    assert!(compile_design::<add<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<add<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_coherence_in_binary_ops.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -215,7 +246,10 @@ fn test_signal_coherence_in_branches() -> miette::Result<()> {
         signal(z)
     }
     compile_design::<add<Green, Green>>(Asynchronous)?;
-    assert!(compile_design::<add<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<add<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_coherence_in_branches.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -238,8 +272,11 @@ fn test_signal_coherence_with_timed() -> miette::Result<()> {
         let val = x.y.b.val() + 1;
         signal(val)
     }
-    assert!(compile_design::<add<Red, Green>>(Asynchronous).is_err());
     compile_design::<add<Red, Red>>(Asynchronous)?;
+    let err = compile_design::<add<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_coherence_with_timed.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -258,8 +295,11 @@ fn test_signal_carrying_struct() -> miette::Result<()> {
         let y = x.b + 1;
         signal(y)
     }
-    assert!(compile_design::<add<Red, Green>>(Asynchronous).is_err());
     compile_design::<add<Red, Red>>(Asynchronous)?;
+    let err = compile_design::<add<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_carrying_struct.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -309,7 +349,10 @@ fn test_signal_cast_cross_clocks_fails() -> miette::Result<()> {
         signal(x.val() + 3)
     }
     compile_design::<add<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<add<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_cast_cross_clocks_fails.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -323,7 +366,10 @@ fn test_signal_cross_clock_shifting_fails() -> anyhow::Result<()> {
         signal(x.val() << z)
     }
     compile_design::<add<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<add<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_cross_clock_shifting_fails.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -336,7 +382,10 @@ fn test_signal_cross_clock_indexing_fails() -> anyhow::Result<()> {
         signal(z)
     }
     assert!(compile_design::<add::<Red, Red>>(Asynchronous).is_ok());
-    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<add<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_cross_clock_indexing_fails.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -350,7 +399,10 @@ fn test_signal_tuple_crossing_fails() -> miette::Result<()> {
         signal(z)
     }
     compile_design::<add<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<add<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_tuple_crossing_fails.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -370,7 +422,10 @@ fn test_signal_tuple_crossing_fails_second_test() -> miette::Result<()> {
         a
     }
     compile_design::<add<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<add::<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<add<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_tuple_crossing_fails_second_test.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -392,7 +447,10 @@ fn test_enum_basic_cross_clocks() -> miette::Result<()> {
     }
 
     compile_design::<foo<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<foo<Red, Blue>>(Asynchronous).is_err());
+    let err = compile_design::<foo<Red, Blue>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["enum_basic_cross_clocks.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -406,7 +464,10 @@ fn test_cross_clock_domains_fails_with_repeat() -> miette::Result<()> {
     }
 
     compile_design::<foo<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<foo<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<foo<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["cross_clock_domains_fails_with_repeat.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -421,7 +482,10 @@ fn cannot_mix_clocks_in_an_array() -> miette::Result<()> {
         signal(d)
     }
     compile_design::<foo<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<foo<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<foo<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["cannot_mix_clocks_in_an_array.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -438,7 +502,10 @@ fn test_exec_sub_kernel_preserves_clocking() -> miette::Result<()> {
     }
 
     compile_design::<do_stuff<Red, Red>>(Asynchronous)?;
-    assert!(compile_design::<do_stuff<Red, Green>>(Asynchronous).is_err());
+    let err = compile_design::<do_stuff<Red, Green>>(Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["exec_sub_kernel_preserves_clocking.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -490,7 +557,7 @@ fn test_unknown_clock_domain() -> miette::Result<()> {
         let k: b4 = b4(7);
         trace("hk", &(h, k));
         let q = (b2(1), (b5(0), s8(5)), b12(6));
-        let b = q.1 .1;
+        let b = q.1.1;
         trace("b", &b);
         let (q0, (q1, q1b), q2) = q; // Tuple destructuring
         trace("q", &(q0, q1, q1b, q2));

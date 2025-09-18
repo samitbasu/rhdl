@@ -131,7 +131,6 @@ pub fn visit_slots<F: FnMut(Sense, &Slot)>(op: &OpCode, mut f: F) {
             f(Sense::Write, lhs);
             f(Sense::Read, arg);
         }
-        OpCode::Comment(_) => {}
     }
 }
 
@@ -264,7 +263,6 @@ pub fn visit_slots_mut<F: FnMut(Sense, &mut Slot)>(op: &mut OpCode, mut f: F) {
             f(Sense::Write, lhs);
             f(Sense::Read, arg);
         }
-        OpCode::Comment(_) => {}
     }
 }
 

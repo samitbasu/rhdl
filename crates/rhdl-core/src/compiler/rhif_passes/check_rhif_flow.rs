@@ -178,7 +178,6 @@ fn check_flow<'a>(obj: &'a Object, mut init_set: InitSet<'a>) -> Result<InitSet<
                 init_set.read(value)?;
                 init_set.write(lhs)?;
             }
-            OpCode::Comment(_) => {}
             OpCode::Case(Case {
                 lhs,
                 discriminant,

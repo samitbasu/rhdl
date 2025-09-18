@@ -130,11 +130,14 @@ mod tests {
                function [3:0] kernel_negating_conditioner_kernel(input reg [1:0] arg_0, input reg [1:0] arg_1);
                      reg [0:0] or0;
                      reg [1:0] or1;
+                     // d
                      reg [2:0] or2;
                      reg [0:0] or3;
                      reg [1:0] or4;
+                     // d
                      reg [2:0] or5;
                      reg [0:0] or6;
+                     // d
                      reg [2:0] or7;
                      reg [0:0] or8;
                      reg [3:0] or9;

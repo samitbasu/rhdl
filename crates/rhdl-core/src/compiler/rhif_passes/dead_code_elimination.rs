@@ -3,9 +3,9 @@ use std::collections::HashSet;
 use crate::{
     error::RHDLError,
     rhif::{
+        Object,
         remap::remap_slots,
         spec::{OpCode, Slot},
-        Object,
     },
 };
 
@@ -84,8 +84,8 @@ impl Pass for DeadCodeEliminationPass {
                 OpCode::Wrap(wrap) => {
                     mark_active(&wrap.lhs);
                 }
-                OpCode::Noop | OpCode::Comment(_) => {
-                    // Noop and Comment ops are always alive
+                OpCode::Noop => {
+                    // Noop are always alive
                     *alive_marker = true;
                 }
             }

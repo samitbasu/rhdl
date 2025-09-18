@@ -1,6 +1,9 @@
 pub mod ast_impl;
 pub mod builder;
-pub mod source;
 pub mod visit;
 pub mod visit_mut;
 pub use ast_impl::KernelFlags;
+pub mod spanned_source;
+pub use ast_impl::SourceLocation;
+pub use spanned_source::SourcePool;
+pub use spanned_source::SpannedSource;

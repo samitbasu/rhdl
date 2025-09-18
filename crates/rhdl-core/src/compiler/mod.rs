@@ -1,7 +1,7 @@
 pub mod driver;
 pub use driver::compile_design;
-pub mod ascii;
-mod display_ast;
+//pub mod ascii;
+//mod display_ast;
 pub mod mir;
 mod rhif_passes;
 mod rtl_passes;

@@ -71,8 +71,11 @@ impl<T: Digital> Default for Xfer<T> {
 /// Output of the [Xfer] core
 #[derive(PartialEq, Digital)]
 pub struct Out<T: Digital> {
+    /// The data flowing out of the core
     pub data: Option<T>,
+    /// The ready signal flowing out of the core
     pub ready: Ready<T>,
+    /// A pulse that is high when a transfer takes place
     pub run: bool,
 }
 
@@ -104,8 +107,7 @@ mod tests {
         core::dff::DFF,
         rng::xorshift::XorShift128,
         stream::testing::{
-            sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn,
-            utils::stalling,
+            sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn, utils::stalling,
         },
     };
 

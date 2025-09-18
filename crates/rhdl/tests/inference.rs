@@ -168,7 +168,10 @@ fn test_signal_ops_inference() -> miette::Result<()> {
         })
     }
     compile_design::<add<Red, Red>>(CompilationMode::Asynchronous)?;
-    assert!(compile_design::<add::<Red, Green>>(CompilationMode::Asynchronous).is_err());
+    let err = compile_design::<add<Red, Green>>(CompilationMode::Asynchronous)
+        .expect_err("Expected this to fail with a clock coherence error");
+    let report = miette_report(err);
+    expect_test::expect_file!["signal_ops_inference_cross_clock.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -186,7 +189,7 @@ fn test_simple_type_inference() -> miette::Result<()> {
         let h0 = g + 1;
         let _k: b4 = b4(7);
         let q = (b2(1), (b5(0), s8(5)), b12(6));
-        let b = q.1 .1;
+        let b = q.1.1;
         let (q0, (q1, q1b), q2) = q; // Tuple destructuring
         let z = q1b + 4;
         let h = [d, c, f];
@@ -389,30 +392,36 @@ fn test_resize_unsigned_inference() -> miette::Result<()> {
 #[test]
 fn test_resize_signed_inferred() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<M: BitWidth>(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<SignedBits<M>, Red> {
+    fn do_stuff<M: BitWidth>(a: Signal<s6, Red>, b: Signal<s6, Red>) -> Signal<SignedBits<M>, Red> {
         let (a, b) = (a.val(), b.val());
         let c = a + b;
         let c = c.resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<U12>, _, _, _>(do_stuff::<U12>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<U8>, _, _, _>(do_stuff::<U8>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<U12>, _, _, _>(
+        do_stuff::<U12>,
+        tuple_pair_sn_red::<U6>(),
+    )?;
+    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, tuple_pair_sn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<do_stuff<U6>, _, _, _>(do_stuff::<U6>, tuple_pair_sn_red::<U6>())?;
     Ok(())
 }
 
 #[test]
 fn test_resize_signed_explicit() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<N: BitWidth>(a: Signal<s8, Red>, b: Signal<s8, Red>) -> Signal<s8, Red> {
+    fn do_stuff<N: BitWidth>(a: Signal<s6, Red>, b: Signal<s6, Red>) -> Signal<s6, Red> {
         let (a, b) = (a.val(), b.val());
         let c = a + b;
         let c = c.resize::<N>();
         let c = c.resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<U12>, _, _, _>(do_stuff::<U12>, tuple_pair_s8_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, tuple_pair_s8_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<U12>, _, _, _>(
+        do_stuff::<U12>,
+        tuple_pair_sn_red::<U6>(),
+    )?;
+    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, tuple_pair_sn_red::<U6>())?;
     Ok(())
 }
 
@@ -432,13 +441,13 @@ fn test_bit_inference_works() -> miette::Result<()> {
 #[test]
 fn test_array_inference() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<[b8; 2], Red> {
+    fn foo(a: Signal<b6, Red>, b: Signal<b6, Red>) -> Signal<[b6; 2], Red> {
         let a = a.val();
         let b = b.val();
         let c = [a, b];
         signal(c)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
     Ok(())
 }

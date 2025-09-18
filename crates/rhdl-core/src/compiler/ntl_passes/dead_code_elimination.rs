@@ -6,7 +6,7 @@ use crate::{
         common::symtab::RegisterId,
         ntl::{
             Object,
-            spec::{OpCode, Wire, WireKind},
+            spec::{Wire, WireKind},
             visit::visit_wires,
         },
     },
@@ -45,7 +45,7 @@ impl Pass for DeadCodeElimination {
                     }
                 }
             });
-            output_used || matches!(lop.op, OpCode::Comment(_))
+            output_used
         });
         Ok(input)
     }

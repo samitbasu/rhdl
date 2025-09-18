@@ -37,9 +37,8 @@ resetN++--->| +○+--+>reset
 //!With the trace
 #![doc = include_str!("../../doc/reset_negation.md")]
 //!
-use std::fmt::format;
 
-use quote::{format_ident, quote};
+use quote::format_ident;
 use rhdl::prelude::*;
 use syn::parse_quote;
 
