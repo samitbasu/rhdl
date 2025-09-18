@@ -1,0 +1,13 @@
+  × RHDL Clock Domain Violation
+  ╰─▶ RHDL Clock Domain Violation
+    ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/span.rs:24:16]
+ 23 │         // Invisible comment
+ 24 │         signal(a.val() + b.val())
+    ·                ────────┬────────┬┬┬
+    ·                        │        ││╰── Clock domain mismatch in binary operation +
+    ·                        │        │╰── Expression belongs to Unknown clock domain
+    ·                        │        ╰── Expression belongs to Blue clock domain
+    ·                        ╰── Expression belongs to Red clock domain
+ 25 │     }
+    ╰────
+  help: You cannot perform binary operations on signals from different clock domains

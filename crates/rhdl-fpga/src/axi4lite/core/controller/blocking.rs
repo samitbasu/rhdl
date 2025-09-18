@@ -255,6 +255,7 @@ mod tests {
         let uut = BlockReadWriteController::default();
         let descriptor = uut.hdl("top")?;
         let module = descriptor.as_module().pretty();
+        expect_test::expect_file!["blocking_controller.vlog"].assert_eq(&module);
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }

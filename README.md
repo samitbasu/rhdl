@@ -112,10 +112,10 @@ risk than a technical one.
 - [x] Add AXI4-Stream support
 - [ ] Port the `RustHDL` widget library to `RHDL`
 - [ ] Port the various FPGA BSPs to `RHDL` from `RustHDL`.
-- [ ] macro for hdl
+- [x] macro for hdl
 - [ ] AXI for non-32 bit width?
-- [ ] Incorporate custom suffix
-- [ ] Remove respanned-source code
+- [ ] ~~Incorporate custom suffix~~
+- [x] Remove respanned-source code
 - [x] Intern Path type
 - [ ] Revisit precise diagnostics & debug/release builds.
 

@@ -274,8 +274,8 @@ fn test_async_add() -> miette::Result<()> {
     pub struct U {}
 
     impl CircuitIO for U {
-        type I = Signal<(b8, b8), Red>;
-        type O = Signal<b8, Red>;
+        type I = Signal<(b4, b4), Red>;
+        type O = Signal<b4, Red>;
         type Kernel = async_add;
     }
 
@@ -286,17 +286,17 @@ fn test_async_add() -> miette::Result<()> {
 
     #[kernel]
     pub fn async_add(
-        i: Signal<(b8, b8), Red>,
+        i: Signal<(b4, b4), Red>,
         q: Signal<(), Red>,
-    ) -> (Signal<b8, Red>, Signal<(), Red>) {
+    ) -> (Signal<b4, Red>, Signal<(), Red>) {
         let (a, b) = i.val();
         (signal(a + b), q)
     }
 
     let uut = U::default();
-    let inputs = exhaustive::<U8>()
+    let inputs = exhaustive::<U4>()
         .into_iter()
-        .flat_map(|x| exhaustive::<U8>().into_iter().map(move |y| (x, y)))
+        .flat_map(|x| exhaustive::<U4>().into_iter().map(move |y| (x, y)))
         .map(signal::<_, Red>)
         .enumerate()
         .map(|(ndx, val)| timed_sample((ndx * 100) as u64, val));

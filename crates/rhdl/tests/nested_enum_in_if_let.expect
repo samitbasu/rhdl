@@ -1,1 +1,13 @@
-RHDL Type Error
+  × RHDL Type Error
+  ╰─▶ RHDL Type Error
+    ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/binding.rs:31:30]
+ 30 │     fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {
+ 31 │         if let Some(Foo::Red(Bar(x, y))) = state.val() {
+    ·                              ────┬────
+    ·                                  ╰── Path mismatch in type inference
+ 32 │             signal((x + y).resize())
+    ╰────
+  help: There is a type mismatch in the type inference step.  This is likely due
+                the use of nested enums in pattern matching, like Some(Ok(x)).  RHDL can
+                only destructure one level of enums at a time.  Replace with Some(y) and
+                use a nested match expression to further destructure the inner type.

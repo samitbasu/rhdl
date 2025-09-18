@@ -45,7 +45,6 @@ pub fn visit_wires<F: FnMut(Sense, &Wire)>(op: &OpCode, mut f: F) {
                 f(Sense::Read, entry);
             }
         }
-        OpCode::Comment(_) => {}
         OpCode::Select(Select {
             lhs,
             selector,
@@ -119,7 +118,6 @@ pub fn visit_wires_mut<F: FnMut(Sense, &mut Wire)>(op: &mut OpCode, mut f: F) {
                 f(Sense::Read, entry);
             }
         }
-        OpCode::Comment(_comment) => {}
         OpCode::Select(Select {
             lhs,
             selector,

@@ -1,11 +1,9 @@
 use crate::{
     Synchronous,
-    {
-        SourcePool,
-        ntl::{
-            graph::{GraphMode, WriteSource, make_net_graph},
-            spec::Wire,
-        },
+    ast::SourcePool,
+    ntl::{
+        graph::{GraphMode, WriteSource, make_net_graph},
+        spec::Wire,
     },
 };
 use miette::{Diagnostic, SourceSpan};

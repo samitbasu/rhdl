@@ -34,20 +34,24 @@ impl<T: Digital> rhdl::core::digital_fn::DigitalFn for update<T> {
         Some(
             bob
                 .kernel_fn(
+                    0u32.into(),
                     stringify!(update),
                     vec! {
-                        bob.type_pat(bob.ident_pat(stringify!(a), false), < T as
-                        rhdl::core::Digital > ::static_kind()), bob.type_pat(bob
-                        .ident_pat(stringify!(b), false), < T as rhdl::core::Digital >
+                        bob.type_pat(7u32.into(), bob.ident_pat(6u32.into(),
+                        stringify!(a), false), < T as rhdl::core::Digital >
+                        ::static_kind()), bob.type_pat(9u32.into(), bob.ident_pat(8u32
+                        .into(), stringify!(b), false), < T as rhdl::core::Digital >
                         ::static_kind())
                     },
                     <[T; 2] as rhdl::core::Digital>::static_kind(),
                     bob
                         .block(
+                            5u32.into(),
                             vec![
-                                bob.expr_stmt(bob.array_expr(vec![bob.path_expr(bob
-                                .path(vec![bob.path_segment(stringify!(a), bob
-                                .path_arguments_none())],)), bob.path_expr(bob.path(vec![bob
+                                bob.expr_stmt(4u32.into(), bob.array_expr(3u32.into(),
+                                vec![bob.path_expr(1u32.into(), bob.path(vec![bob
+                                .path_segment(stringify!(a), bob.path_arguments_none())],)),
+                                bob.path_expr(2u32.into(), bob.path(vec![bob
                                 .path_segment(stringify!(b), bob
                                 .path_arguments_none())],))]))
                             ],

@@ -13,7 +13,6 @@ pub use atoms::{
     BitRange, DeclKind, Declaration, DeclarationList, Direction, HDLKind, Port, SignedWidth,
     WidthSpec,
 };
-use proc_macro2::TokenTree;
 use thiserror::Error;
 
 use crate::atoms::ConstExpr;
@@ -121,7 +120,6 @@ impl Parse for Attribute {
             let doc_string = parse_doc_string(input)?;
             Ok(Attribute::Doc(doc_string))
         } else {
-            eprintln!("input: {:?}", input.to_string());
             Err(input.error("expected attribute"))
         }
     }

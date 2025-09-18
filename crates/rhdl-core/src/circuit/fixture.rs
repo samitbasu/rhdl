@@ -5,10 +5,8 @@ use crate::{
 };
 use miette::Diagnostic;
 use quote::{ToTokens, format_ident, quote};
-use serde::Serialize;
 use syn::parse_quote;
 use thiserror::Error;
-use tinytemplate::TinyTemplate;
 
 use rhdl_vlog as vlog;
 
@@ -18,8 +16,6 @@ pub enum ExportError {
     MultipleDrivers,
     #[error("Inputs are not covered in exported core:\n{0}")]
     InputsNotCovered(String),
-    #[error("Templating Error {0}")]
-    TemplateError(#[from] tinytemplate::error::Error),
     #[error("Wrong constant type provided.  Expected {required:?}, and got {provided:?}")]
     WrongConstantType { provided: Kind, required: Kind },
     #[error("Path {0:?} on input is not a clock input")]
@@ -92,14 +88,6 @@ impl<T> Default for Driver<T> {
     }
 }
 
-fn render(template: &'static str, context: impl Serialize) -> Result<String, RHDLError> {
-    let mut tt = TinyTemplate::new();
-    tt.add_template("template", template)
-        .map_err(|err| RHDLError::ExportError(ExportError::TemplateError(err)))?;
-    tt.render("template", &context)
-        .map_err(|err| RHDLError::ExportError(ExportError::TemplateError(err)))
-}
-
 impl<T: CircuitIO> Driver<T> {
     pub fn input_port(&mut self, name: &str, width: usize) {
         self.ports.push(vlog::port(
@@ -130,14 +118,6 @@ impl<T: CircuitIO> Driver<T> {
         let mount = MountPoint::Output(bits);
         self.mounts.push(mount.clone());
         Ok(mount)
-    }
-    pub fn render_constraints(
-        &mut self,
-        template: &'static str,
-        context: impl Serialize,
-    ) -> Result<(), RHDLError> {
-        self.constraints = render(template, context)?;
-        Ok(())
     }
     pub fn set_hdl(&mut self, hdl: vlog::ItemList) {
         self.hdl = hdl;

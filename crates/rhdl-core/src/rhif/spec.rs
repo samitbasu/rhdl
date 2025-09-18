@@ -47,7 +47,6 @@ pub enum OpCode {
     Retime(Retime),
     // x <- wrap(a), where wrap is either Result::Ok, Result::Err, Option::Some, Option::None
     Wrap(Wrap),
-    Comment(String),
 }
 
 impl OpCode {
@@ -72,7 +71,6 @@ impl OpCode {
             | OpCode::Resize(Cast { lhs, .. })
             | OpCode::Retime(Retime { lhs, .. })
             | OpCode::Wrap(Wrap { lhs, .. }) => Some(*lhs),
-            OpCode::Comment(_) => None,
         }
     }
 }

@@ -3,9 +3,8 @@ use std::collections::HashSet;
 
 use crate::BitX;
 use crate::RHDLError;
-use crate::ast::source::source_location::SourceLocation;
+use crate::ast::SourceLocation;
 use crate::error::rhdl_error;
-use crate::hdl;
 use crate::ntl::Object;
 use crate::ntl::error::NetListError;
 use crate::ntl::error::NetListICE;
@@ -17,13 +16,11 @@ use crate::ntl::spec::OpCode;
 use crate::ntl::spec::VectorOp;
 use crate::ntl::spec::Wire;
 use crate::ntl::visit::visit_wires;
-use crate::types::bit_string::BitString;
 
 use proc_macro2::TokenStream;
 use quote::format_ident;
 use quote::quote;
 use rhdl_vlog as vlog;
-use rhdl_vlog::BitRange;
 use syn::parse_quote;
 
 struct NetListHDLBuilder<'a> {
@@ -280,11 +277,6 @@ impl<'a> NetListHDLBuilder<'a> {
             spec::OpCode::Binary(binary) => self.binary_op(binary, location),
             spec::OpCode::Vector(vector) => self.vector_op(vector, location),
             spec::OpCode::Case(case) => self.case_op(case, location),
-            spec::OpCode::Comment(comment) => {
-                // TODO - FIXME
-                // self.add_item(ast::comment(comment));
-                Ok(())
-            }
             spec::OpCode::Select(select) => self.select_op(select, location),
             spec::OpCode::Not(not) => self.not_op(not, location),
             spec::OpCode::BlackBox(black_box) => self.black_box_op(black_box),

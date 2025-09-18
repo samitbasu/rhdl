@@ -77,7 +77,6 @@ pub use rhdl_trace_type::TraceType;
 pub use trace::bit::TraceBit;
 pub use trace::rtt;
 pub mod bitx;
-pub use ast::source::source_pool::SourcePool;
 pub use bitx::BitX;
 pub use bitx::bitx_vec;
 pub mod common;

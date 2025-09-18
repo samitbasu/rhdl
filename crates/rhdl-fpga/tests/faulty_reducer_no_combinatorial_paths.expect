@@ -1,0 +1,33 @@
+  × RHDL Combinatorial Path
+    ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl-fpga/tests/faulty_reducer.rs:73:19]
+ 72 │     let (in_valid, in_data) = unpack::<Bits<DW>>(i.data, bits(0));
+ 73 │     let stop_in = !i.ready;
+    ·                   ────────
+ 74 │     match q.state {
+ 75 │         State::Empty => {
+ 76 │             if in_valid {
+ 77 │                 d.data_store = in_data;
+ 78 │                 d.state = State::Load2;
+ 79 │             }
+ 80 │         }
+ 81 │         State::Load2 => {
+ 82 │             if !stop_in {
+ 83 │                 d.state = State::Load1;
+ 84 │             }
+ 85 │         }
+ 86 │         State::Load1 => {
+ 87 │             if !stop_in && in_valid {
+ 88 │                 d.data_store = in_data;
+ 89 │                 d.state = State::Load2;
+ 90 │             } else if !stop_in && !in_valid {
+ 91 │                 d.state = State::Empty;
+ 92 │             }
+ 93 │         }
+ 94 │     }
+ 95 │     // This is a combinatorial pathway between the output and input, so
+ 96 │     // a buffer is needed on the output to make this LID compliant.
+ 97 │     let ready_out = q.state == State::Empty || (q.state == State::Load1 && !stop_in);
+    ·                     ──────────────────────────────────────────────────────────────────
+ 98 │     let mux = q.state == State::Load1;
+    ╰────
+  help: This is a combinatorial pathway between an input and an output

@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashSet};
 
 use crate::{
     Color, Kind,
-    ast::source::source_location::SourceLocation,
+    ast::SourceLocation,
     compiler::mir::{
         error::{ClockError, RHDLClockDomainViolation},
         ty::{AppTypeKind, Const, TypeId, TypeKind, UnifyContext, make_variant_tag},
@@ -614,7 +614,7 @@ impl ClockDomainContext<'_> {
                         )?;
                     }
                 }
-                OpCode::Comment(_) | OpCode::Noop => {}
+                OpCode::Noop => {}
             }
         }
         debug!("*****Clock domain check complete*****");

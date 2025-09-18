@@ -1,6 +1,7 @@
 use rhdl_bits::alias::{b128, s128};
 
 use crate::{
+    ast::SourceLocation,
     common::symtab::{Symbol, SymbolTable},
     rhif::object::SourceDetails,
 };
@@ -9,10 +10,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     Digital, Kind, TypedBits,
-    ast::{
-        ast_impl::{ExprLit, WrapOp},
-        source::source_location::SourceLocation,
-    },
+    ast::ast_impl::{ExprLit, WrapOp},
     compiler::mir::{
         error::{RHDLSyntaxError, RHDLTypeCheckError, Syntax},
         ty::SignFlag,
@@ -991,7 +989,7 @@ impl<'a> MirTypeInference<'a> {
                         self.unify(loc, lhs_ty, kind)?;
                     }
                 }
-                OpCode::Noop | OpCode::Comment(_) => {}
+                OpCode::Noop => {}
             }
         }
         Ok(())

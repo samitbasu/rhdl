@@ -4,8 +4,11 @@ use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 use crate::{
-    Kind, RHDLError, SourcePool, TypedBits,
-    ast::ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
+    Kind, RHDLError, TypedBits,
+    ast::{
+        SourcePool,
+        ast_impl::{ExprCall, ExprPath, FunctionId, Pat},
+    },
     builder::BinOp,
     common::symtab::{LiteralId, RegisterId},
     rhif::spec::{AluBinary, AluUnary, OpCode, Slot, SlotKind},
@@ -73,9 +76,9 @@ pub enum ICE {
     LocalVariableNotFoundInBranchMap { id: ScopeIndex },
     #[error("Return slot {name} not found")]
     ReturnSlotNotFound { name: String },
-    #[error("Non self assign binary operation found in assign_binop code {op}")]
+    #[error("Non self assign binary operation found in assign_binop code {op:?}")]
     NonSelfAssignBinop { op: BinOp },
-    #[error("Unexpected binary op in self assign {op}")]
+    #[error("Unexpected binary op in self assign {op:?}")]
     UnexpectedBinopInSelfAssign { op: BinOp },
     #[error("No local variable found for pattern {pat:?} in type_pattern")]
     NoLocalVariableFoundForTypedPattern { pat: Box<Pat> },
@@ -212,9 +215,7 @@ pub enum ICE {
     #[error("Dynamic index in path {path:?} is a literal value")]
     DynamicIndexHasLiteral { path: Path },
     #[error("Multiple writes to a single register {op:?}")]
-    MultipleWritesToRegister {
-        op: crate::ntl::spec::Wire,
-    },
+    MultipleWritesToRegister { op: crate::ntl::spec::Wire },
     #[error("Symbol table is incomplete")]
     IncompleteSymbolTable,
     #[error("Loop Isolation Algorithm Failed")]

@@ -16,14 +16,14 @@ use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 #[test]
 fn test_tuple_destructure_in_args() -> miette::Result<()> {
     #[kernel]
-    fn add((b, c): (Signal<b8, Red>, Signal<b8, Red>)) -> Signal<b8, Red> {
+    fn add((b, c): (Signal<b4, Red>, Signal<b4, Red>)) -> Signal<b4, Red> {
         let b = b.val();
         let c = c.val();
         signal((b + c).resize())
     }
 
     let test_vec = (0..4)
-        .flat_map(|a| (0..4).map(b8).map(move |b| ((red(b8(a)), red(b)),)))
+        .flat_map(|a| (0..4).map(b4).map(move |b| ((red(b4(a)), red(b)),)))
         .collect::<Vec<_>>();
     test_kernel_vm_and_verilog::<add, _, _, _>(add, test_vec.into_iter())?;
     Ok(())
@@ -66,48 +66,48 @@ fn test_tuple_struct_nested_init() -> miette::Result<()> {
 #[test]
 fn test_tuple_construct() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> (Signal<b8, Red>, Signal<b8, Red>) {
+    fn foo(a: Signal<b5, Red>, b: Signal<b5, Red>) -> (Signal<b5, Red>, Signal<b5, Red>) {
         (a, b)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>())?;
     Ok(())
 }
 
 #[test]
 fn test_tuple_indexing() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b4, Red>, b: Signal<b4, Red>) -> Signal<b4, Red> {
         let c = (a, b);
         signal((c.0.val() + c.1.val()).resize())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>())?;
     Ok(())
 }
 
 #[test]
 fn test_tuple_construct_and_deconstruct() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b4, Red>, b: Signal<b4, Red>) -> Signal<b4, Red> {
         let c = (a, b);
         let (d, e) = c;
         signal(d.val() + e.val())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>())?;
     Ok(())
 }
 
 #[test]
 fn test_nested_tuple_indexing() -> miette::Result<()> {
     #[kernel]
-    fn foo(a: Signal<b8, Red>, b: Signal<b8, Red>) -> Signal<b8, Red> {
+    fn foo(a: Signal<b4, Red>, b: Signal<b4, Red>) -> Signal<b4, Red> {
         let c = (a, (b, a));
-        signal(c.1 .0.val() + c.1 .1.val())
+        signal(c.1.0.val() + c.1.1.val())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_b8_red())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>())?;
     Ok(())
 }
 
@@ -131,7 +131,7 @@ fn test_nested_tuple_array_init() -> miette::Result<()> {
         let b = [(b8(1), (b8(2), b8(3)), b8(4)); 3];
         let (c, (d, e), f) = b[1];
         let [g, (h0, (h1a, h1b), h2), i] = b;
-        signal((c + d + e + f + g.0 + h0 + h1a + h1b + h2 + i.1 .0 + a.val()).resize())
+        signal((c + d + e + f + g.0 + h0 + h1a + h1b + h2 + i.1.0 + a.val()).resize())
     }
 
     test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_exhaustive_red())?;

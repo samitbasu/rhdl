@@ -4,7 +4,7 @@ use log::trace;
 
 use crate::{
     BitX, RHDLError, TypedBits,
-    ast::{KernelFlags, source::source_location::SourceLocation},
+    ast::{KernelFlags, SourceLocation},
     compiler::mir::error::RHDLPartialInitializationError,
     error::rhdl_error,
     rhif::{
@@ -272,7 +272,6 @@ fn check_for_partial_initialization(map: &mut CoverageMap) -> Result<(), RHDLErr
                     .collect::<Result<Vec<_>, _>>()?;
                 map.declare_covered(inner.lhs);
             }
-            OpCode::Comment(_) => {}
         }
     }
     // Check that the return value is fully initialized

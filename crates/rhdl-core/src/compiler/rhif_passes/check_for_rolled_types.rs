@@ -1,6 +1,6 @@
 use crate::{
     Kind,
-    ast::source::source_location::SourceLocation,
+    ast::SourceLocation,
     compiler::mir::error::{RHDLSyntaxError, Syntax},
     error::RHDLError,
     rhif::{

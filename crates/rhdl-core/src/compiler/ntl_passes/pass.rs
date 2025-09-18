@@ -1,11 +1,9 @@
 use crate::{
     RHDLError,
-    {
-        ast::source::source_location::SourceLocation,
-        compiler::mir::error::{ICE, RHDLCompileError},
-        error::rhdl_error,
-        ntl::object::Object,
-    },
+    ast::SourceLocation,
+    compiler::mir::error::{ICE, RHDLCompileError},
+    error::rhdl_error,
+    ntl::object::Object,
 };
 
 pub trait Pass {
