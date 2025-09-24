@@ -628,6 +628,10 @@ impl ClockDomainContext<'_> {
             let desc = self.ctx.desc(ty.1);
             debug!("Slot {:?} has type {:?}", ty.0, desc);
             if self.ctx.is_unresolved(ty.1) {
+                // Special case zst
+                if self.obj.kind(ty.0).is_empty() {
+                    continue;
+                }
                 return Err(self
                     .raise_clock_domain_error(
                         self.obj.symbols.fallback(self.obj.fn_id),

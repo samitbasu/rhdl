@@ -5,5 +5,8 @@ multilingual = false
 src = "src"
 title = "RHDL Book"
 
-[preprocessor.badascii]
-formal = true
+#[preprocessor.badascii]
+#formal = true
+
+[preprocessor.rhdl]
+command = "/Users/samitbasu/Devel/rhdl/target/release/mdbook-rhdl"

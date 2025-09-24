@@ -12,4 +12,5 @@ members = [
     "crates/rhdl-trace-type",
     "crates/rhdl-typenum",
     "crates/rhdl-vlog",
+"doc/mdbook-rhdl",
 ]

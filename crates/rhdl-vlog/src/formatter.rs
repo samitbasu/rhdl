@@ -80,14 +80,18 @@ impl Formatter {
     pub fn lines<T: Pretty>(&mut self, items: impl IntoIterator<Item = T>) {
         let iter = items.into_iter();
         for item in iter {
+            let ptr = self.contents.len();
             item.pretty_print(self);
             if !(self.contents.ends_with("end")
                 || self.contents.ends_with("endcase")
                 || self.contents.ends_with("endfunction"))
+                && (self.contents.len() != ptr)
             {
                 self.write(";");
             }
-            self.newline();
+            if self.contents.len() != ptr {
+                self.newline();
+            }
         }
     }
 }
