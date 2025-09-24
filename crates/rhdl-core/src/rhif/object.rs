@@ -123,7 +123,7 @@ impl std::fmt::Debug for Object {
                 Some(x) => x.as_str(),
                 None => "",
             };
-            writeln!(f, "Reg {reg:?} : {kind:?} // {slot_name}")?;
+            writeln!(f, "Reg {reg} : {kind:?} // {slot_name}")?;
         }
         for (lit, (tb, _)) in self.symtab.iter_lit() {
             let kind = tb.kind;
