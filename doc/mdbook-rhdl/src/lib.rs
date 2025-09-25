@@ -6,8 +6,14 @@ use mdbook::{
 };
 mod exec_shell;
 mod rewrite_block;
+mod rhdl_write;
 use exec_shell::{exec_shell, silent_shell};
 use rewrite_block::BlockRewriterExt;
+
+use crate::{
+    exec_shell::{SHELL_PREFIX, SHELL_SILENT_PREFIX},
+    rhdl_write::WRITE_PREFIX,
+};
 
 // The Rhdl preprocessor.
 pub struct Rhdl;
@@ -17,8 +23,9 @@ impl Rhdl {
         let parser = pulldown_cmark::Parser::new(&chapter.content);
         let mut buf = String::with_capacity(chapter.content.len() + 128);
         let events = parser.into_iter();
-        let events = events.rewrite_blocks(silent_shell, "rhdl-silent");
-        let events = events.rewrite_blocks(exec_shell, "rhdl-shell");
+        let events = events.rewrite_blocks(silent_shell, SHELL_SILENT_PREFIX);
+        let events = events.rewrite_blocks(rhdl_write::rhdl_write, WRITE_PREFIX);
+        let events = events.rewrite_blocks(exec_shell, SHELL_PREFIX);
         pulldown_cmark_to_cmark::cmark(events, &mut buf).unwrap();
         chapter.content = buf;
     }

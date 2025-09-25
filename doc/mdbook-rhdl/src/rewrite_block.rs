@@ -5,12 +5,13 @@ pub struct BlockRewriter<I> {
     in_block: bool,
     block_text: String,
     spool: Vec<Event<'static>>,
-    proc: fn(&str) -> Vec<Event<'static>>,
+    proc: fn(&str, &str) -> Vec<Event<'static>>,
     tag: &'static str,
+    captured_tag: String,
 }
 
 impl<I> BlockRewriter<I> {
-    fn new(events: I, proc: fn(&str) -> Vec<Event<'static>>, tag: &'static str) -> Self {
+    fn new(events: I, proc: fn(&str, &str) -> Vec<Event<'static>>, tag: &'static str) -> Self {
         Self {
             events,
             in_block: false,
@@ -18,6 +19,7 @@ impl<I> BlockRewriter<I> {
             spool: Vec::new(),
             proc,
             tag,
+            captured_tag: String::new(),
         }
     }
 }
@@ -38,10 +40,11 @@ where
             match (&event, self.in_block) {
                 // Start of rhdl-shell block
                 (Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang))), false)
-                    if lang.as_ref() == self.tag =>
+                    if lang.as_ref().starts_with(self.tag) =>
                 {
                     self.in_block = true;
                     self.block_text.clear();
+                    self.captured_tag = lang.to_string();
                     // Skip this event, don't return it
                     continue;
                 }
@@ -54,7 +57,7 @@ where
                 // End of block
                 (Event::End(TagEnd::CodeBlock), true) => {
                     self.in_block = false;
-                    self.spool = (self.proc)(&self.block_text);
+                    self.spool = (self.proc)(&self.captured_tag, &self.block_text);
                     if self.spool.len() == 0 {
                         continue; // No events to return, continue the loop
                     }
@@ -70,7 +73,7 @@ where
 pub trait BlockRewriterExt: Iterator {
     fn rewrite_blocks(
         self,
-        proc: fn(&str) -> Vec<Event<'static>>,
+        proc: fn(&str, &str) -> Vec<Event<'static>>,
         tag: &'static str,
     ) -> BlockRewriter<Self>
     where
