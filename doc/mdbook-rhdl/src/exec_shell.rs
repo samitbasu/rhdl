@@ -136,7 +136,7 @@ pub fn exec_shell(tag: &str, text: &str) -> Vec<Event<'static>> {
         Event::Start(Tag::HtmlBlock),
         Event::Html(
             format!(
-                r#"<div class="shell-session"><pre class="shell-output">{}</pre></div>"#,
+                r#"<pre class="shell-output">{}</pre>"#,
                 converter.convert(&result).unwrap()
             )
             .into(),
