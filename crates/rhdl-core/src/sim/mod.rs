@@ -5,6 +5,7 @@ pub mod reset;
 pub mod run;
 pub mod test_module;
 pub mod testbench;
+pub mod uniform;
 pub mod vcd;
 
 #[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]

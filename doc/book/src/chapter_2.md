@@ -179,7 +179,7 @@ cargo check
 
 It would probably be a good idea to test our circuit, right?  So let's turn to testing.
 
-## Testing
+## Basic Testing
 
 We probably want to test all possible inputs of our `XorGate`, and since there are only four inputs, it shouldn't be too hard.  We can start by testing our kernel itself.  Just as a plain Rust function (which it still is...)
 
