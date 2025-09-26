@@ -8,6 +8,7 @@ pub struct BlockRewriter<I> {
     proc: fn(&str, &str) -> Vec<Event<'static>>,
     tag: &'static str,
     captured_tag: String,
+    block_counter: usize,
 }
 
 impl<I> BlockRewriter<I> {
@@ -20,6 +21,7 @@ impl<I> BlockRewriter<I> {
             proc,
             tag,
             captured_tag: String::new(),
+            block_counter: 0,
         }
     }
 }
@@ -45,6 +47,7 @@ where
                     self.in_block = true;
                     self.block_text.clear();
                     self.captured_tag = lang.to_string();
+                    self.block_counter += 1;
                     // Skip this event, don't return it
                     continue;
                 }
@@ -57,7 +60,27 @@ where
                 // End of block
                 (Event::End(TagEnd::CodeBlock), true) => {
                     self.in_block = false;
-                    self.spool = (self.proc)(&self.captured_tag, &self.block_text);
+                    // Check to see if a cache file exists for this block already
+                    let cache_key = format!(
+                        "src/db/{}.json",
+                        heck::AsSnakeCase(format!(
+                            "block_{}_{}",
+                            self.captured_tag, self.block_counter
+                        ))
+                    );
+                    let mut fetched = false;
+                    if let Some(cached) = std::fs::read_to_string(&cache_key).ok() {
+                        if let Ok(cached) = serde_json::from_str::<Vec<Event<'_>>>(&cached) {
+                            self.spool = cached.into_iter().map(|e| e.into_static()).collect();
+                            fetched = true;
+                        }
+                    }
+                    if !fetched {
+                        self.spool = (self.proc)(&self.captured_tag, &self.block_text);
+                        if let Ok(serialized) = serde_json::to_string(&self.spool) {
+                            let _ = std::fs::write(&cache_key, serialized);
+                        }
+                    }
                     if self.spool.len() == 0 {
                         continue; // No events to return, continue the loop
                     }
