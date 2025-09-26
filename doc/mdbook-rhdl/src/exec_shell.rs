@@ -1,4 +1,7 @@
-use std::process::Command;
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use pulldown_cmark::{Event, Tag, TagEnd};
 const PROMPT_STR: &str = "❯";
@@ -22,47 +25,27 @@ fn do_shell_thing(start_dir: &str, txt: &str) -> String {
     }
 
     let mut result = String::new();
-    let mut current_dir = SHELL_DIR.to_string() + start_dir;
+    let shell_dir = Path::new(SHELL_DIR);
+    let mut current_dir = shell_dir.join(start_dir);
 
     // Initialize the shell directory
-    let _ = Command::new("mkdir").args(["-p", &current_dir]).output();
+    let _ = Command::new("mkdir")
+        .args(["-p", current_dir.to_str().unwrap()])
+        .output();
 
     for command in commands {
         // Get the relative path from the shell directory
-        let relative_path = if current_dir.starts_with(SHELL_DIR) {
-            let relative = &current_dir[SHELL_DIR.len()..];
-            if relative.is_empty() || relative == "/" {
-                String::new()
-            } else {
-                // Remove leading slash and format as relative path
-                relative.strip_prefix('/').unwrap_or(relative).to_string()
-            }
-        } else {
-            // Fallback if we're outside the shell directory
-            std::path::Path::new(&current_dir)
-                .file_name()
-                .and_then(|name| name.to_str())
-                .unwrap_or("")
-                .to_string()
-        };
-
+        let relative_path = current_dir.strip_prefix(&shell_dir).unwrap().display();
         // Create and display the prompt
-        let prompt = if relative_path.is_empty() {
-            format!("\x1b[36m{PROMPT_STR}\x1b[0m \x1b[1m{}\x1b[0m", command)
-        } else {
-            format!(
-                "\x1b[36m{} {PROMPT_STR}\x1b[0m \x1b[1m{}\x1b[0m",
-                relative_path, command
-            )
-        };
-
+        let prompt =
+            format!("\x1b[36m{relative_path} {PROMPT_STR}\x1b[0m \x1b[1m{command}\x1b[0m",);
         result.push_str(&prompt);
         result.push('\n');
 
         // Create the shell script for this individual command
         let script = format!(
             r#"#!/bin/zsh
-cd "{current_dir}"
+cd "{}"
 # Enable colors in output
 export CLICOLOR=1
 export CLICOLOR_FORCE=1
@@ -75,6 +58,7 @@ export TERM=xterm-256color
 echo "___CURRENT_DIR___"
 pwd
 "#,
+            current_dir.display()
         );
 
         // Execute the command
@@ -98,7 +82,7 @@ pwd
                     // Update current directory from the output
                     let dir_lines: Vec<&str> = dir_output.lines().collect();
                     if let Some(new_dir) = dir_lines.first() {
-                        current_dir = new_dir.trim().to_string();
+                        current_dir = PathBuf::from(new_dir);
                     }
 
                     // Add any remaining output after the directory line (like stderr content)
@@ -136,7 +120,7 @@ pub fn exec_shell(tag: &str, text: &str) -> Vec<Event<'static>> {
         Event::Start(Tag::HtmlBlock),
         Event::Html(
             format!(
-                r#"<pre class="shell-output">{}</pre>"#,
+                r#"<pre><code class="hljs hide-boring">{}</code></pre>"#,
                 converter.convert(&result).unwrap()
             )
             .into(),

@@ -148,7 +148,7 @@ So here is our completed `XorGate`:
 use rhdl::prelude::*;
 
 #[derive(Circuit, Clone)]
-struct XorGate;
+pub struct XorGate;
 
 impl CircuitDQ for XorGate {
     type D = ();
@@ -207,44 +207,55 @@ cargo build -q
 cargo test 
 ```
 
-Ok - that was easy enough.  But that just tests that our logic was correct, right?  What about testing more of the things?  How do I know the generated hardware will work as intended?  And what does the generated hardware look like, anyway?
+Ok - that was easy enough.  But that just tests that our logic was correct, right?  What about testing more of the things?  How do I know the generated hardware will work as intended?  And what does the generated hardware look like, anyway?  The simpleset way to get a view on the generated HDL is to use the `.hdl` method on any struct that `impl Circuit`.  The result can be converted into a module and then a string.   The following test does exactly that.
 
-We can use `expect_test` to check that the generated hardware matches our expectations.  RHDL uses a simplified `Verilog` dialect to describe hardware designs.  So let's convert our `XorGate` into Verilog and make sure it looks reasonable.
-
-```rust,write:xor/tests/test_verilog.rs
+```rust,write:xor/tests/show_verilog.rs
 use rhdl::prelude::*;
-use xor::*;
 
 #[test]
-fn test_verilog_output() {
-    let expect = expect_test::expect![[r#"
-        module xor_gate(input wire [1:0] i, output wire [0:0] o);
-           wire [0:0] od;
-           assign o = od[0:0];
-           assign od = kernel_xor_gate(i);
-           function [0:0] kernel_xor_gate(input reg [1:0] arg_0);
-                 reg [1:0] or0;
-                 reg [0:0] or1;
-                 reg [0:0] or2;
-                 reg [0:0] or3;
-                 begin
-                    or0 = arg_0;
-                    or1 = or0[0:0];
-                    or2 = or0[1:1];
-                    or3 = or1 ^ or2;
-                    kernel_xor_gate = or3;
-                 end
-           endfunction
-        endmodule
-    "#]];
-    let gate = XorGate;
-    let hdl = gate.hdl("xor_gate")?;
-    expect.assert_eq(&hdl.as_module().to_string());
-    Ok(())
+fn show_verilog() -> miette::Result<()> {
+     let gate = xor::XorGate;
+     let hdl = gate.hdl("xor_gate")?.as_module();
+     eprintln!("{hdl}");
+     Ok(())
 }
 ```
 
 ```shell,rhdl:xor
 cargo build -q
-cargo test 
+cargo test --test show_verilog -- --nocapture
+```
+
+While not required, it is often handy to check that the output of an HDL generation step has not changed from the last time you reviewed or tested it.  As such, a crate like [expect-test](https://github.com/rust-analyzer/expect-test) can be used to check that the output is still correct.  We can add it as a `dev` dependency to our project
+
+```shell,rhdl:xor
+cargo add --dev expect-test
+```
+
+A test using `expect-test` can write the expected Verilog code to a file and, then verify it later.
+
+```rust,write:xor/tests/expect_verilog.rs
+use rhdl::prelude::*;
+
+#[test]
+fn test_verilog_output() -> miette::Result<()> {
+     let gate = xor::XorGate;
+     let hdl = gate.hdl("xor_gate")?.as_module();
+     let expect = expect_test::expect_file!["xor.v.expect"];
+     expect.assert_eq(&hdl.to_string());
+     Ok(())
+}
+```
+
+You can run the test with an `UPDATE_EXPECT=1` to get the expected output to be written to a file.
+```shell,rhdl:xor
+cargo build -q
+UPDATE_EXPECT=1 cargo test --test expect_verilog
+cat tests/xor.v.expect
+```
+
+Then in the future, you can run the test, and it will compare the generated code against the template file stored.
+
+```shell,rhdl:xor
+cargo test --test expect_verilog
 ```

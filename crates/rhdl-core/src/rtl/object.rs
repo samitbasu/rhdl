@@ -58,7 +58,7 @@ pub struct Object {
 
 impl Object {
     pub fn op_name(&self, op: Operand) -> String {
-        format!("{op:?}")
+        format!("{op}")
     }
     pub fn op_alias(&self, op: Operand) -> Option<String> {
         self.symtab[op].name.clone()

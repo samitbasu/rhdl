@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"use rhdl::prelude::*;\n\n#[test]\nfn show_verilog() -> miette::Result<()> {\n     let gate = xor::XorGate;\n     let hdl = gate.hdl(\"xor_gate\")?.as_module();\n     eprintln!(\"{hdl}\");\n     Ok(())\n}"},{"End":"CodeBlock"}]

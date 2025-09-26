@@ -1,0 +1,14 @@
+clean:
+	just plugin
+	rm -rf src/db/*.json
+
+build:
+	just plugin
+	mdbook build
+
+serve:
+	just plugin
+	mdbook serve
+
+plugin:
+	cd ../mdbook-rhdl && cargo build --release
