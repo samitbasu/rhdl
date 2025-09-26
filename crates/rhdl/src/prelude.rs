@@ -107,6 +107,7 @@ pub use rhdl_core::sim::run::synchronous::RunWithoutSynthesisSynchronousExt;
 pub use rhdl_core::sim::testbench::TestBenchOptions;
 pub use rhdl_core::sim::testbench::asynchronous::TestBench;
 pub use rhdl_core::sim::testbench::synchronous::SynchronousTestBench;
+pub use rhdl_core::sim::uniform::UniformExt;
 pub use rhdl_core::sim::vcd::Vcd;
 pub use rhdl_core::trace::svg::SvgOptions;
 pub use rhdl_core::types::path::sub_trace_type;
