@@ -1,6 +1,4 @@
-use crate::Digital;
-
-use super::ResetOrData;
+use crate::{Digital, sim::ResetOrData};
 
 pub struct ResetWrapper<I> {
     reset_counter: usize,

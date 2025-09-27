@@ -151,7 +151,7 @@ mod tests {
         let uut = Map::try_new::<map_item>()?;
         let input = stalling(input, 0.23);
         let input = input.with_reset(1).clock_pos_edge(100);
-        let output = uut.run(input)?.synchronous_sample();
+        let output = uut.run(input).synchronous_sample();
         let output = output.filter_map(|x| x.value.2);
         assert!(output.take(10_000).eq(expected.take(10_000)));
         Ok(())
@@ -163,7 +163,7 @@ mod tests {
         let input = stalling(input, 0.23).take(20);
         let input = input.with_reset(1).clock_pos_edge(100);
         let uut = Map::try_new::<map_item>()?;
-        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.ntl(&uut, &Default::default())?;

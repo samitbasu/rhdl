@@ -156,7 +156,7 @@ mod tests {
         let uut = FilterMap::try_new::<filter_map_item>()?;
         let input = a_rng.with_reset(1).clock_pos_edge(100);
         let output = uut
-            .run(input)?
+            .run(input)
             .synchronous_sample()
             .filter_map(|t| t.value.2);
         assert!(output.take(10_000).eq(b_rng.take(10_000)));

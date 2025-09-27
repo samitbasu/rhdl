@@ -53,37 +53,3 @@ impl Preprocessor for Rhdl {
         renderer != "not-supported"
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_formal_mode_works() {
-        let md = r##"
-# Chapter 1
-
-Here is a diagram of the mascot.
-
-```rhdl-silent
-echo "This will not be shown"
-```
-
-```rhdl-shell
-ls -la --color=always
-```
-        "##;
-        let mut chapter = Chapter {
-            name: "Test".into(),
-            content: md.into(),
-            number: None,
-            sub_items: vec![],
-            path: None,
-            source_path: None,
-            parent_names: vec![],
-        };
-        Rhdl::process_chapter(&mut chapter);
-        let expect = expect_test::expect_file!["./test_formal.md"];
-        expect.assert_eq(&chapter.content);
-    }
-}

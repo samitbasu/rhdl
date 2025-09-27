@@ -170,7 +170,7 @@ mod tests {
             .clock_pos_edge(100);
         let uut = PipeSyncBRAM::new((0..).map(|x| (b3(x), b8(x))));
         let vcd = uut
-            .run(inputs)?
+            .run(inputs)
             .sample_at_pos_edge(|x| x.value.0.clock)
             .filter_map(|x| x.value.2)
             .collect::<Vec<b8>>();

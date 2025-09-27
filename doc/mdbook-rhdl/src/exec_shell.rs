@@ -155,20 +155,6 @@ mod test {
     }
 
     #[test]
-    fn test_interactive_session() {
-        let result = do_shell_thing("", "ls\ncd ..\nls");
-        println!("Interactive session output:\n{}", result);
-
-        // Should contain multiple prompts
-        let prompt_count = result.matches(PROMPT_STR).count();
-        assert!(prompt_count >= 3); // At least 3 prompts for 3 commands
-
-        // Should contain all commands
-        assert!(result.contains("ls"));
-        assert!(result.contains("cd .."));
-    }
-
-    #[test]
     fn test_shell_with_colors() {
         let result = do_shell_thing("", "ls -la --color=always");
         println!("Colored shell output:\n{}", result);

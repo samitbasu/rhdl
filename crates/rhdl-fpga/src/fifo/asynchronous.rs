@@ -209,7 +209,7 @@ mod tests {
         });
         //        let input = test_stream();
         let uut = AsyncFIFO::<Bits<U8>, Red, Blue, 5>::default();
-        let vcd = uut.run(input.clone())?.collect::<Vcd>();
+        let vcd = uut.run(input.clone()).collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo")
@@ -220,7 +220,7 @@ mod tests {
             .dump_to_file(root.join("async_fifo_write_test.vcd"))
             .unwrap();
         expect.assert_eq(&digest);
-        let test_bench = uut.run(input)?.collect::<TestBench<_, _>>();
+        let test_bench = uut.run(input).collect::<TestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.ntl(&uut, &TestBenchOptions::default())?;

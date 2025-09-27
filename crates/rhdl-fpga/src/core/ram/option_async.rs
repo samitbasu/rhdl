@@ -198,7 +198,7 @@ mod tests {
             read: signal(r),
             write: signal(w),
         });
-        let test_bench = uut.run(stream)?.collect::<TestBench<_, _>>();
+        let test_bench = uut.run(stream).collect::<TestBench<_, _>>();
         let test_mod = test_bench.rtl(&uut, &TestBenchOptions::default().skip(10))?;
         test_mod.run_iverilog()?;
         Ok(())
@@ -227,7 +227,7 @@ mod tests {
         let expected = vec![142, 0, 100, 0, 0, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23]
             .into_iter()
             .map(|x| signal(bits(x)));
-        let vcd = uut.run(stream.clone())?.collect::<Vcd>();
+        let vcd = uut.run(stream.clone()).collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("ram")
@@ -237,7 +237,7 @@ mod tests {
         let digest = vcd.dump_to_file(root.join("ram_write.vcd")).unwrap();
         expect.assert_eq(&digest);
         let output = uut
-            .run(stream)?
+            .run(stream)
             .glitch_check(|x| (x.value.0.read.val().clock, x.value.1.val()))
             .sample_at_pos_edge(|x| x.value.0.read.val().clock)
             .skip(17)
@@ -267,7 +267,7 @@ mod tests {
         });
         let values = (0..16).map(|x| bits(15 - x)).cycle().take(32);
         let samples = uut
-            .run(stream)?
+            .run(stream)
             .sample_at_pos_edge(|i| i.value.0.read.val().clock)
             .skip(1);
         let output = samples.map(|x| x.value.1.val());

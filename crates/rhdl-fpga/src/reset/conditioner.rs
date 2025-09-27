@@ -275,7 +275,7 @@ mod tests {
         let hdl = uut.hdl("top")?.as_module().pretty();
         expect.assert_eq(&hdl);
         let input = sync_stream();
-        let tb = uut.run(input)?.collect::<TestBench<_, _>>();
+        let tb = uut.run(input).collect::<TestBench<_, _>>();
         let hdl = tb.rtl(&uut, &TestBenchOptions::default().skip(10))?;
         hdl.run_iverilog()?;
         let fg = tb.ntl(&uut, &TestBenchOptions::default().skip(10))?;
@@ -287,7 +287,7 @@ mod tests {
     fn test_reset_conditioner_function() -> miette::Result<()> {
         let uut = ResetConditioner::<Red, Blue>::default();
         let input = sync_stream();
-        let output = uut.run(input)?.collect::<Vcd>();
+        let output = uut.run(input).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("reset")

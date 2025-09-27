@@ -50,7 +50,7 @@ mod tests {
             .take(1000)
             .with_reset(1)
             .clock_pos_edge(100);
-        let vcd = uut.run(input)?.collect::<Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("channel");
@@ -68,7 +68,7 @@ mod tests {
             .take(100_000)
             .with_reset(1)
             .clock_pos_edge(100);
-        let last = uut.run(input)?.last().unwrap();
+        let last = uut.run(input).last().unwrap();
         assert!(last.value.2);
         Ok(())
     }
@@ -80,7 +80,7 @@ mod tests {
             .take(100)
             .with_reset(1)
             .clock_pos_edge(100);
-        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.flow_graph(&uut, &Default::default())?;

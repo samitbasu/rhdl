@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.99"
+badascii-doc = "0.4.1"
 ena = "0.14.3"
 expect-test = "1.5.1"
 fnv = "1.0.7"

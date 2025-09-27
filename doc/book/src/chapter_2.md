@@ -259,3 +259,6 @@ Then in the future, you can run the test, and it will compare the generated code
 ```shell,rhdl:xor
 cargo test --test expect_verilog
 ```
+
+## Iterator Based Testing
+
