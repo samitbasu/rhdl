@@ -135,7 +135,7 @@ mod tests {
             .clock_pos_edge(100)
             .take(1000);
         let uut = LazyRng::default();
-        let vcd = uut.run(input)?.collect::<Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         vcd.dump_to_file("lazy_rng.vcd")?;
         Ok(())
     }

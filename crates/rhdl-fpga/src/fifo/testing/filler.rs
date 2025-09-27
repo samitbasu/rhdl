@@ -137,7 +137,7 @@ mod tests {
         let input = std::iter::repeat_n(In { full: false }, 50)
             .with_reset(1)
             .clock_pos_edge(100);
-        let vcd = uut.run(input)?.collect::<Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo")
@@ -155,7 +155,7 @@ mod tests {
         let input = std::iter::repeat_n(In { full: false }, 50)
             .with_reset(1)
             .clock_pos_edge(100);
-        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
         let test_module = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         let expect = expect_file!["filler.expect"];
         expect.assert_eq(&test_module.to_string());

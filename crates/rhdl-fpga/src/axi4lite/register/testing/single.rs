@@ -123,7 +123,7 @@ mod tests {
     fn test_register_trace() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream().with_reset(1).clock_pos_edge(100);
-        let vcd = uut.run(input)?.collect::<Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("axi4lite")
@@ -150,7 +150,7 @@ mod tests {
     fn test_register_works() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream().with_reset(1).clock_pos_edge(100);
-        let io = uut.run(input)?.synchronous_sample();
+        let io = uut.run(input).synchronous_sample();
         let io = io.filter_map(|x| x.value.2.read_data).collect::<Vec<_>>();
         assert_eq!(
             io,
@@ -172,7 +172,7 @@ mod tests {
     fn test_hdl_generation() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream().with_reset(1).clock_pos_edge(100);
-        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.flow_graph(&uut, &TestBenchOptions::default())?;

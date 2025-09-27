@@ -135,14 +135,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use rhdl_bits::alias::*;
     use expect_test::expect_file;
+    use rhdl_bits::alias::*;
     use std::iter::once;
 
-    use crate::{
-        sim::{clock_pos_edge::ClockPosEdgeExt, reset::TimedStreamExt, ResetOrData},
-        timed_sample,
-    };
+    use crate::sim::extension::*;
+    use crate::{sim::ResetOrData, timed_sample};
 
     use super::*;
 

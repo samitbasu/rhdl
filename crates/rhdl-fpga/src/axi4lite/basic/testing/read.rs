@@ -107,7 +107,7 @@ mod tests {
     fn test_transaction_trace() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream();
-        let vcd = uut.run(input)?.collect::<Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("axi4lite")
@@ -123,7 +123,7 @@ mod tests {
     fn test_that_reads_are_correct() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream();
-        let io = uut.run(input)?;
+        let io = uut.run(input);
         let io = io
             .synchronous_sample()
             .flat_map(|x| x.value.2.data)
@@ -137,7 +137,7 @@ mod tests {
     fn test_hdl_generation() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream();
-        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.flow_graph(&uut, &Default::default())?;

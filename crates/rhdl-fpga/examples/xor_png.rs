@@ -6,7 +6,7 @@ fn main() -> Result<(), RHDLError> {
         .with_reset(1)
         .clock_pos_edge(100);
     let uut = XorShift::default();
-    let vcd = uut.run(input)?.collect::<Vcd>();
+    let vcd = uut.run(input).collect::<Vcd>();
     write_svg_as_markdown(
         vcd,
         "xor_png.md",

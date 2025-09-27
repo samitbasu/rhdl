@@ -46,7 +46,7 @@ mod tests {
             .chain(once(Some(Cmd::Read)).chain(std::iter::repeat_n(None, 4)));
         let input = input.with_reset(1).clock_pos_edge(100);
         let uut = super::U::default();
-        let vcd = uut.run(input)?.collect::<Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("tristate");

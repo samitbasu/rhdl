@@ -174,10 +174,7 @@ mod tests {
     fn check_that_output_is_valid() -> miette::Result<()> {
         let uut = SyncFIFO::<b8, U3>::default();
         let stream = test_seq();
-        let output = uut
-            .run(stream)?
-            .synchronous_sample()
-            .map(|x| x.value.2.data);
+        let output = uut.run(stream).synchronous_sample().map(|x| x.value.2.data);
         let output = output.flatten().collect::<Vec<_>>();
         assert!(output.iter().all(|x| *x != 0));
         let ramp = output.iter().copied().skip_while(|x| *x == 1);
@@ -189,7 +186,7 @@ mod tests {
     fn basic_write_then_read_test() -> miette::Result<()> {
         let uut = SyncFIFO::<Bits<U8>, U3>::default();
         let stream = test_seq();
-        let vcd = uut.run(stream)?.collect::<Vcd>();
+        let vcd = uut.run(stream).collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo")
@@ -205,7 +202,7 @@ mod tests {
     fn test_hdl_generation_fifo() -> miette::Result<()> {
         let uut = SyncFIFO::<Bits<U8>, U3>::default();
         let stream = test_seq();
-        let test_bench = uut.run(stream)?.collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(stream).collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.ntl(&uut, &TestBenchOptions::default())?;

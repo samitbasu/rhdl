@@ -32,10 +32,6 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO {
 
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
 
-    fn yosys_check(&self) -> Result<(), RHDLError> {
-        run_yosys_synth(self.hdl("top")?)
-    }
-
     fn netlist_hdl(&self, name: &str) -> Result<vlog::ModuleList, RHDLError> {
         let descriptor = self.descriptor(name)?;
         generate_hdl(name, &descriptor.ntl)

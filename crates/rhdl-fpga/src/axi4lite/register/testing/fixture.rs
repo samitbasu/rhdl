@@ -151,7 +151,7 @@ mod tests {
     fn test_trace() -> miette::Result<()> {
         let uut = U::<Red, Blue>::default();
         let stream = test_stream();
-        let vcd = uut.run(stream)?.collect::<Vcd>();
+        let vcd = uut.run(stream).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("axi4lite")

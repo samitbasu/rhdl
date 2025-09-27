@@ -1,6 +1,4 @@
-use crate::{
-    trace, trace_time, ClockReset, RHDLError, Synchronous, SynchronousIO, TimedSample,
-};
+use crate::{ClockReset, RHDLError, Synchronous, SynchronousIO, TimedSample, trace, trace_time};
 
 #[must_use = "To run the simulation, you must exhaust the iterator or collect it into a VCD"]
 pub struct RunSynchronous<'a, T, I, S> {
@@ -66,10 +64,7 @@ pub trait RunSynchronousExt<I>: Synchronous + Sized {
     fn run(
         &self,
         iter: I,
-    ) -> Result<
-        RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>,
-        RHDLError,
-    >
+    ) -> RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>
     where
         I: IntoIterator;
 }
@@ -82,12 +77,8 @@ where
     fn run(
         &self,
         iter: I,
-    ) -> Result<
-        RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>,
-        RHDLError,
-    > {
-        self.yosys_check()?;
-        Ok(run_synchronous(self, iter.into_iter()))
+    ) -> RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S> {
+        run_synchronous(self, iter.into_iter())
     }
 }
 

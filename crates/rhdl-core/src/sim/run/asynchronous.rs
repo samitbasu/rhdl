@@ -1,4 +1,4 @@
-use crate::{trace_time, Circuit, CircuitIO, RHDLError, TimedSample};
+use crate::{Circuit, CircuitIO, RHDLError, TimedSample, trace_time};
 
 #[must_use = "To run the simulation, you must exhaust the iterator or collect it into a VCD"]
 pub struct Run<'a, T, I, S> {
@@ -59,10 +59,7 @@ where
 }
 
 pub trait RunExt<I>: Circuit + Sized {
-    fn run(
-        &self,
-        iter: I,
-    ) -> Result<Run<'_, Self, <I as IntoIterator>::IntoIter, <Self as Circuit>::S>, RHDLError>
+    fn run(&self, iter: I) -> Run<'_, Self, <I as IntoIterator>::IntoIter, <Self as Circuit>::S>
     where
         I: IntoIterator;
 }
@@ -72,11 +69,7 @@ where
     T: Circuit,
     I: IntoIterator<Item = TimedSample<<T as CircuitIO>::I>>,
 {
-    fn run(
-        &self,
-        iter: I,
-    ) -> Result<Run<'_, Self, <I as IntoIterator>::IntoIter, <Self as Circuit>::S>, RHDLError> {
-        self.yosys_check()?;
-        Ok(run(self, iter.into_iter()))
+    fn run(&self, iter: I) -> Run<'_, Self, <I as IntoIterator>::IntoIter, <Self as Circuit>::S> {
+        run(self, iter.into_iter())
     }
 }

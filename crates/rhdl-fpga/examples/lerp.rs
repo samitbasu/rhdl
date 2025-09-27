@@ -41,7 +41,7 @@ fn main() -> Result<(), RHDLError> {
         })
         .without_reset()
         .clock_pos_edge(100);
-    let vcd = uut.run(ramp)?.collect::<Vcd>();
+    let vcd = uut.run(ramp).collect::<Vcd>();
     write_svg_as_markdown(vcd, "lerp.md", SvgOptions::default())?;
     Ok(())
 }

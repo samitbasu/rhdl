@@ -52,7 +52,7 @@ mod tests {
         let input = std::iter::repeat_n((), 1000)
             .with_reset(1)
             .clock_pos_edge(100);
-        let vcd = uut.run(input)?.collect::<Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo");
@@ -71,7 +71,7 @@ mod tests {
             .clock_pos_edge(100)
             .skip_while(|x| x.time < 2000)
             .take_while(|x| x.time <= 3000);
-        let vcd = uut.run(input)?.collect::<Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         let options = SvgOptions::default();
         let svg = vcd.dump_svg(&options);
         let expect = expect_file!["sync_fifo.svg.expect"];
@@ -85,7 +85,7 @@ mod tests {
         let input = std::iter::repeat_n((), 100_000)
             .with_reset(1)
             .clock_pos_edge(100);
-        let last = uut.run(input)?.last().unwrap();
+        let last = uut.run(input).last().unwrap();
         assert!(last.value.2);
         Ok(())
     }

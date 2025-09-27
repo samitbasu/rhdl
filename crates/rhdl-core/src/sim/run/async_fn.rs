@@ -1,6 +1,4 @@
-use crate::sim::clock_pos_edge::ClockPosEdgeExt;
-use crate::sim::merge::MergeExt;
-use crate::sim::reset::TimedStreamExt;
+use crate::sim::extension::*;
 use crate::types::clock_reset::clock_reset;
 use crate::types::reset::reset;
 use crate::types::signal::signal;

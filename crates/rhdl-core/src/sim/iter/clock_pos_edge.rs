@@ -1,9 +1,7 @@
 use crate::{
-    clock::clock, clock_reset, timed_sample, types::reset::reset, Clock, ClockReset, Digital,
-    TimedSample,
+    Clock, ClockReset, Digital, TimedSample, clock::clock, clock_reset, sim::ResetOrData,
+    timed_sample, types::reset::reset,
 };
-
-use super::ResetOrData;
 
 #[derive(Clone)]
 enum State {
@@ -14,6 +12,10 @@ enum State {
     Done,
 }
 
+/// An iterator adaptor that takes samples and produces a timed stream of clock and
+/// reset signals along with the samples.
+///
+/// Normally you would create this adapter using the `ClockPosEdgeExt` trait.
 pub struct ClockPosEdge<I, S>
 where
     S: Digital,

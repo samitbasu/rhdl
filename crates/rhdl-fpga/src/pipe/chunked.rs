@@ -60,10 +60,7 @@ out               [d0..d3]         [d4..d7]
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;
 
-use crate::core::{
-    dff::DFF,
-    option::is_some,
-};
+use crate::core::{dff::DFF, option::is_some};
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]
 /// The Chunked Pipe Core
@@ -190,7 +187,7 @@ mod tests {
         let expected = mk_array(expected);
         let input = stalling(source_rng, 0.23).with_reset(1).clock_pos_edge(100);
         let output = uut
-            .run(input)?
+            .run(input)
             .synchronous_sample()
             .filter_map(|t| t.value.2);
         assert!(output.take(1_000).eq(expected.take(1_000)));
@@ -205,7 +202,7 @@ mod tests {
             .with_reset(1)
             .clock_pos_edge(100)
             .take(100);
-        let output = uut.run(input)?.collect::<Vcd>();
+        let output = uut.run(input).collect::<Vcd>();
         output.dump_to_file("chunked_pipe.vcd")?;
         Ok(())
     }

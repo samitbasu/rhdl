@@ -132,7 +132,7 @@ where
     T: Synchronous,
     I: Iterator<Item = TimedSample<(ClockReset, T::I)>>,
 {
-    let test_bench = uut.run(inputs)?.collect::<SynchronousTestBench<_, _>>();
+    let test_bench = uut.run(inputs).collect::<SynchronousTestBench<_, _>>();
     let tm_rtl = test_bench.rtl(uut, &TestBenchOptions::default())?;
     tm_rtl.run_iverilog()?;
     let tm_fg = test_bench.ntl(uut, &TestBenchOptions::default())?;
@@ -145,7 +145,7 @@ where
     T: Circuit,
     I: Iterator<Item = TimedSample<T::I>>,
 {
-    let test_bench = uut.run(inputs)?.collect::<TestBench<_, _>>();
+    let test_bench = uut.run(inputs).collect::<TestBench<_, _>>();
     let tm_rtl = test_bench.rtl(uut, &TestBenchOptions::default())?;
     tm_rtl.run_iverilog()?;
     let tm_fg = test_bench.ntl(uut, &TestBenchOptions::default())?;

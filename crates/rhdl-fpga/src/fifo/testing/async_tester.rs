@@ -92,7 +92,7 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let vcd = uut.run(input.take(100))?.collect::<Vcd>();
+        let vcd = uut.run(input.take(100)).collect::<Vcd>();
         let svg = vcd.dump_svg(&Default::default());
         let expect = expect_file!["async_fifo.svg.expect"];
         expect.assert_eq(&svg.to_string());
@@ -113,7 +113,7 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let vcd = uut.run(input.take(10000))?.collect::<Vcd>();
+        let vcd = uut.run(input.take(10000)).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo");
@@ -133,7 +133,7 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let last = uut.run(input.take(10_000))?.last().unwrap();
+        let last = uut.run(input.take(10_000)).last().unwrap();
         assert!(last.value.1.val());
         Ok(())
     }
@@ -147,7 +147,7 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let last = uut.run(input.take(10_000))?.last().unwrap();
+        let last = uut.run(input.take(10_000)).last().unwrap();
         assert!(last.value.1.val());
         Ok(())
     }
@@ -161,7 +161,7 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let test_bench = uut.run(input.take(1_000))?.collect::<TestBench<_, _>>();
+        let test_bench = uut.run(input.take(1_000)).collect::<TestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.ntl(&uut, &TestBenchOptions::default())?;

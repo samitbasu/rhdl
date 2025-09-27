@@ -72,8 +72,8 @@ where
 mod tests {
 
     use super::super::ext::ProbeExt;
+    use crate::sim::extension::*;
     use rhdl_bits::alias::*;
-    use crate::sim::{clock_pos_edge::ClockPosEdgeExt, reset::TimedStreamExt};
 
     #[test]
     fn test_before_pos_edge() {

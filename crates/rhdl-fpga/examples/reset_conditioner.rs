@@ -24,7 +24,7 @@ fn main() -> Result<(), RHDLError> {
     let uut = ResetConditioner::<Red, Blue>::default();
     let input = sync_stream();
     let vcd = uut
-        .run(input)?
+        .run(input)
         .take_while(|t| t.time < 1400)
         .collect::<Vcd>();
     write_svg_as_markdown(vcd, "reset_conditioner.md", SvgOptions::default())?;

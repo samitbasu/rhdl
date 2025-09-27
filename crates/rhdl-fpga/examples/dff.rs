@@ -59,7 +59,7 @@ fn main() -> Result<(), RHDLError> {
     let input = [false, true, false, true, true, false, false, true, false];
     let input = input.into_iter().with_reset(1).clock_pos_edge(100);
     let uut = Recognizer::default();
-    let vcd = uut.run(input)?.collect::<Vcd>();
+    let vcd = uut.run(input).collect::<Vcd>();
     let options = SvgOptions::default().with_label_width(20);
     write_svg_as_markdown(vcd, "dff.md", options)?;
     Ok(())

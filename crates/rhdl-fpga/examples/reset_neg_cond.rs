@@ -22,7 +22,7 @@ fn istream() -> impl Iterator<Item = TimedSample<In<Red, Blue>>> {
 
 fn main() -> Result<(), RHDLError> {
     let uut = NegatingConditioner::default();
-    let vcd = uut.run(istream())?.collect::<Vcd>();
+    let vcd = uut.run(istream()).collect::<Vcd>();
     write_svg_as_markdown(vcd, "reset_neg_cond.md", SvgOptions::default())?;
     Ok(())
 }

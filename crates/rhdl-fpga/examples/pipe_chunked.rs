@@ -10,7 +10,7 @@ fn main() -> Result<(), RHDLError> {
         .with_reset(1)
         .clock_pos_edge(100)
         .take_while(|t| t.time < 1500);
-    let vcd = uut.run(input)?.collect::<Vcd>();
+    let vcd = uut.run(input).collect::<Vcd>();
     rhdl_fpga::doc::write_svg_as_markdown(
         vcd,
         "pipe_chunked.md",

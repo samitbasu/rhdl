@@ -11,9 +11,7 @@ fn main() -> Result<(), RHDLError> {
     // Clock them on the red domain
     let red = red.with_reset(1).clock_pos_edge(100);
     // Create an empty stream on the blue domain
-    let blue = std::iter::repeat(())
-        .with_reset(1)
-        .clock_pos_edge(79);
+    let blue = std::iter::repeat(()).with_reset(1).clock_pos_edge(79);
     // Merge them
     let inputs = merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, ())| In {
         incr: signal(r.1),
@@ -25,7 +23,7 @@ fn main() -> Result<(), RHDLError> {
     let uut = CrossCounter::<Red, Blue, 4>::default();
     // Simulate the crosser, and collect into a VCD
     let vcd = uut
-        .run(inputs)?
+        .run(inputs)
         .take_while(|x| x.time < 1000)
         .collect::<Vcd>();
     let options = SvgOptions {
