@@ -122,41 +122,39 @@ mod tests {
                wire [1:0] q;
                assign o = od[0:0];
                top_cond c0(.i(d[2:1]), .o(q[1:1]));
-               ;
                top_neg c1(.i(d[0:0]), .o(q[0:0]));
-               ;
                assign d = od[3:1];
                assign od = kernel_negating_conditioner_kernel(i, q);
                function [3:0] kernel_negating_conditioner_kernel(input reg [1:0] arg_0, input reg [1:0] arg_1);
-                     reg [0:0] or0;
-                     reg [1:0] or1;
+                     reg [0:0] r0;
+                     reg [1:0] r1;
                      // d
-                     reg [2:0] or2;
-                     reg [0:0] or3;
-                     reg [1:0] or4;
+                     reg [2:0] r2;
+                     reg [0:0] r3;
+                     reg [1:0] r4;
                      // d
-                     reg [2:0] or5;
-                     reg [0:0] or6;
+                     reg [2:0] r5;
+                     reg [0:0] r6;
                      // d
-                     reg [2:0] or7;
-                     reg [0:0] or8;
-                     reg [3:0] or9;
-                     localparam ol0 = 3'bXXX;
+                     reg [2:0] r7;
+                     reg [0:0] r8;
+                     reg [3:0] r9;
+                     localparam l0 = 3'bXXX;
                      begin
-                        or1 = arg_0;
-                        or4 = arg_1;
-                        or0 = or1[0:0];
-                        or2 = ol0;
-                        or2[0:0] = or0;
-                        or3 = or4[0:0];
-                        or5 = or2;
-                        or5[1:1] = or3;
-                        or6 = or1[1:1];
-                        or7 = or5;
-                        or7[2:2] = or6;
-                        or8 = or4[1:1];
-                        or9 = {or7, or8};
-                        kernel_negating_conditioner_kernel = or9;
+                        r1 = arg_0;
+                        r4 = arg_1;
+                        r0 = r1[0:0];
+                        r2 = l0;
+                        r2[0:0] = r0;
+                        r3 = r4[0:0];
+                        r5 = r2;
+                        r5[1:1] = r3;
+                        r6 = r1[1:1];
+                        r7 = r5;
+                        r7[2:2] = r6;
+                        r8 = r4[1:1];
+                        r9 = {r7, r8};
+                        kernel_negating_conditioner_kernel = r9;
                      end
                endfunction
             endmodule

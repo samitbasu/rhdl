@@ -1,7 +1,6 @@
 fn jnk() -> Vec<Stmt> {
     bob.local_stmt(
         8u32.into(),
-        9u32.into(),
         bob
             .tuple_pat(
                 3u32.into(),
@@ -14,11 +13,11 @@ fn jnk() -> Vec<Stmt> {
         Some(
             bob
                 .tuple_expr(
-                    7u32.into(),
+                    4u32.into(),
                     vec![
-                        bob.lit_expr(4u32.into(), bob.expr_lit_int(stringify!(3))), bob
-                        .lit_expr(5u32.into(), bob.expr_lit_int(stringify!(4))), bob
-                        .lit_expr(6u32.into(), bob.expr_lit_int(stringify!(5)))
+                        bob.lit_expr(5u32.into(), bob.expr_lit_int(stringify!(3))), bob
+                        .lit_expr(6u32.into(), bob.expr_lit_int(stringify!(4))), bob
+                        .lit_expr(7u32.into(), bob.expr_lit_int(stringify!(5)))
                     ],
                 ),
         ),

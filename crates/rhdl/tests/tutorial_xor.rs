@@ -41,16 +41,16 @@ fn test_verilog_output() -> miette::Result<()> {
            assign o = od[0:0];
            assign od = kernel_xor_gate(i);
            function [0:0] kernel_xor_gate(input reg [1:0] arg_0);
-                 reg [1:0] or0;
-                 reg [0:0] or1;
-                 reg [0:0] or2;
-                 reg [0:0] or3;
+                 reg [1:0] r0;
+                 reg [0:0] r1;
+                 reg [0:0] r2;
+                 reg [0:0] r3;
                  begin
-                    or0 = arg_0;
-                    or1 = or0[0:0];
-                    or2 = or0[1:1];
-                    or3 = or1 ^ or2;
-                    kernel_xor_gate = or3;
+                    r0 = arg_0;
+                    r1 = r0[0:0];
+                    r2 = r0[1:1];
+                    r3 = r1 ^ r2;
+                    kernel_xor_gate = r3;
                  end
            endfunction
         endmodule

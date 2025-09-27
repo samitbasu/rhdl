@@ -10,6 +10,10 @@ use rhdl_vlog as vlog;
 use rhdl_vlog::parse_quote_miette;
 use syn::parse_quote;
 
+/// Build an HDL description of a circuit
+///
+/// This function is not typically called directly.  It is used by the `Circuit` proc-macro
+/// to build the HDL description of a circuit.
 pub fn build_hdl<C: Circuit>(
     circuit: &C,
     name: &str,
@@ -82,8 +86,10 @@ pub fn build_hdl<C: Circuit>(
     })
 }
 
-// There is a fair amount of overlap between this function and the previous one.  In principle,
-// it should be possible to factor out the common bits and DRY up the code.
+/// Build an HDL description of a synchronous circuit
+///
+/// This function is not typically called directly.  It is used by the `Synchronous` proc-macro
+/// to construct the HDL description of a synchronous circuit.
 pub fn build_synchronous_hdl<C: Synchronous>(
     circuit: &C,
     name: &str,

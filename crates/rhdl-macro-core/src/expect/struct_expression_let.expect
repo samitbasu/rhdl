@@ -1,20 +1,19 @@
 fn jnk() -> Vec<Stmt> {
     bob.local_stmt(
         4u32.into(),
-        5u32.into(),
         bob.ident_pat(0u32.into(), stringify!(d), false),
         Some(
             bob
                 .struct_expr(
-                    3u32.into(),
+                    1u32.into(),
                     bob
                         .path(
                             vec![bob.path_segment(stringify!(Foo), vec![stringify!(T)])],
                         ),
                     vec![
                         bob.field_value(bob.member_named(stringify!(a)), bob
-                        .lit_expr(1u32.into(), bob.expr_lit_int(stringify!(1)))), bob
-                        .field_value(bob.member_named(stringify!(b)), bob.lit_expr(2u32
+                        .lit_expr(2u32.into(), bob.expr_lit_int(stringify!(1)))), bob
+                        .field_value(bob.member_named(stringify!(b)), bob.lit_expr(3u32
                         .into(), bob.expr_lit_int(stringify!(2))))
                     ],
                     None,

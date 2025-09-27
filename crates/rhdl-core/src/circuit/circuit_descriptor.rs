@@ -7,43 +7,43 @@ use crate::types::path::{Path, bit_range};
 use crate::{CompilationMode, RHDLError, Synchronous, compile_design};
 use std::collections::BTreeMap;
 
-// A few notes on the circuit descriptor struct
-// The idea here is to capture the details on the circuit in such
-// a way that it can be manipulated at run time.  This means that
-// information encoded in the type system must be lifted into the
-// runtime description.  And the repository for that information
-// is the CircuitDescriptor struct.  We cannot, for example, iterate
-// over the types that make up our children.
+/// A runtime description of a circuit.
+///
+/// # Notes
+/// A few notes on the circuit descriptor struct
+/// The idea here is to capture the details on the circuit in such
+/// a way that it can be manipulated at run time.  This means that
+/// information encoded in the type system must be lifted into the
+/// runtime description.  And the repository for that information
+/// is the CircuitDescriptor struct.  We cannot, for example, iterate
+/// over the types that make up our children.  A reflection mechanism
+/// like [facet](https://facet.rs/) would help here, but did not
+/// exist when this was written.
 #[derive(Clone)]
 pub struct CircuitDescriptor {
+    /// A unique name for the circuit type.
     pub unique_name: String,
+    /// The [Kind] of the input to the circuit.
     pub input_kind: Kind,
+    /// The [Kind] of the output from the circuit.
     pub output_kind: Kind,
+    /// The [Kind] of the D (data) signals in the circuit.
     pub d_kind: Kind,
+    /// The [Kind] of the Q (control) signals in the circuit.
     pub q_kind: Kind,
+    /// The RTL representation of the circuit, if available.
     pub rtl: Option<Object>,
+    /// The netlist representation of the circuit.
     pub ntl: crate::ntl::object::Object,
+    /// The child circuits of this circuit, if any.
     pub children: BTreeMap<String, CircuitDescriptor>,
 }
 
-// Create a flow graph of an arbitrary circuit.  The model is
-//
-//          +-----------------+
-//          |                 |
-//   *in ---> In              Out >-----*out
-//          |                 |
-//     +--> Q                 D >-+
-//     |    |                 |   |
-//     |    +-----------------+   |
-//     |                          |
-//     +--< Out child 0      In <-+
-//     |                          |
-//     +--< Out child 1      In <-+
-//
-// Note - we don't want to build this in the proc-macro since the less logic we
-// put there, the better.  Thus, we build the flow graph when we build the
-// circuit descriptor.  Because of the need to have the children present, we rely
-// on them being passed in as a map, with their descriptors already built.
+/// Build a circuit descriptor for an asynchronous circuit.
+///
+/// Not a function you will typically call directly.  This function
+/// is used by the `Circuit` proc-macro to build the descriptor
+/// for a circuit.
 pub fn build_descriptor<C: Circuit>(
     name: &str,
     children: BTreeMap<String, CircuitDescriptor>,
@@ -119,28 +119,11 @@ pub fn build_descriptor<C: Circuit>(
     })
 }
 
-// Create a flow graph of the circuit.  It is modified by adding
-// a Q buffer and a D buffer.
-//
-//        +-----------------------------+
-//        | +--------------------+      |
-//        | |                    |      |
-//   *rst +-> Reset              |      |
-//          |                    |      |
-//   *in ---> In                Out >------*out
-//          |        update      |      |
-//     +--> Q                   D >-+   |
-//     |    |                    |  |   |
-//     |    +--------------------+  |   |
-//     |                            |   |
-//     |                            |   |
-//     |                      rst <-----+
-//     +--< Out   child 0      In <-+   |
-//     |                            |   |
-//     |                      rst <-----+
-//     +--< Out    child 1     In <-+
-// Note - we don't want to build this in the proc-macro since the less logic we
-// put there, the better.
+/// Build a circuit descriptor for a synchronous circuit.
+///
+/// Not a function you will typically call directly.  This function
+/// is used by the `Synchronous` proc-macro to build the descriptor
+/// for a circuit.
 pub fn build_synchronous_descriptor<C: Synchronous>(
     name: &str,
     children: BTreeMap<String, CircuitDescriptor>,

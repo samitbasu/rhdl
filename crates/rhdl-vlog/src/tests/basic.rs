@@ -268,7 +268,6 @@ fn test_attribute_on_item_parsing() -> miette::Result<()> {
 #[test]
 fn test_module_arg_issue() -> miette::Result<()> {
     let expect = expect_test::expect![[r#"
-
         module uut(input wire [1:0] clock_reset, output wire [0:0] o);
            wire [4:0] od;
            wire [3:0] d;
