@@ -1,7 +1,6 @@
 use crate::{
-    CircuitDescriptor, ClockReset, Digital, DigitalFn, HDLDescriptor,
-    circuit::yosys::run_yosys_synth, digital_fn::DigitalFn3, error::RHDLError,
-    ntl::hdl::generate_hdl,
+    CircuitDescriptor, ClockReset, Digital, DigitalFn, HDLDescriptor, digital_fn::DigitalFn3,
+    error::RHDLError, ntl::hdl::generate_hdl,
 };
 use rhdl_vlog as vlog;
 

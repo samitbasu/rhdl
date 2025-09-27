@@ -146,7 +146,7 @@ fn test_trace() -> miette::Result<()> {
         .join("vcd")
         .join("lid");
     std::fs::create_dir_all(&root).unwrap();
-    let expect = expect!["5ad56a7a21054339449b4ef2c8f684aa4c97243a84d3224a92c7684c2527bbf6"];
+    let expect = expect!["5092aeca697d257a93249ad48b5b8fe84f92ac4f168c50bc074241e0cfd0b006"];
     let digest = vcd.dump_to_file(root.join("twist.vcd")).unwrap();
     expect.assert_eq(&digest);
     Ok(())

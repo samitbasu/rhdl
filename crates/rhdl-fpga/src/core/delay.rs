@@ -155,28 +155,28 @@ mod tests {
                assign od = kernel_delay(clock_reset, i, q);
                function [14:0] kernel_delay(input reg [1:0] arg_0, input reg [4:0] arg_1, input reg [9:0] arg_2);
                      // d
-                     reg [9:0] or0;
-                     reg [4:0] or1;
-                     reg [9:0] or2;
-                     reg [4:0] or3;
+                     reg [9:0] r0;
+                     reg [4:0] r1;
+                     reg [9:0] r2;
+                     reg [4:0] r3;
                      // d
-                     reg [9:0] or4;
-                     reg [4:0] or5;
-                     reg [14:0] or6;
-                     reg [1:0] or7;
-                     localparam ol0 = 10'bXXXXXXXXXX;
+                     reg [9:0] r4;
+                     reg [4:0] r5;
+                     reg [14:0] r6;
+                     reg [1:0] r7;
+                     localparam l0 = 10'bXXXXXXXXXX;
                      begin
-                        or7 = arg_0;
-                        or1 = arg_1;
-                        or2 = arg_2;
-                        or0 = ol0;
-                        or0[4:0] = or1;
-                        or3 = or2[4:0];
-                        or4 = or0;
-                        or4[9:5] = or3;
-                        or5 = or2[9:5];
-                        or6 = {or4, or5};
-                        kernel_delay = or6;
+                        r7 = arg_0;
+                        r1 = arg_1;
+                        r2 = arg_2;
+                        r0 = l0;
+                        r0[4:0] = r1;
+                        r3 = r2[4:0];
+                        r4 = r0;
+                        r4[9:5] = r3;
+                        r5 = r2[9:5];
+                        r6 = {r4, r5};
+                        kernel_delay = r6;
                      end
                endfunction
             endmodule

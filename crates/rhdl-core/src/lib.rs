@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 pub use types::kind::Kind;
 pub mod clock_details;
 
@@ -56,7 +57,7 @@ pub mod error;
 pub use error::RHDLError;
 //pub mod flow_graph;
 pub mod rtl;
-pub use circuit::circuit_descriptor::build_descriptor;
+//pub use circuit::circuit_descriptor::build_descriptor;
 pub use circuit::circuit_descriptor::build_synchronous_descriptor;
 pub use circuit::hdl_backend::build_hdl;
 pub use circuit::hdl_backend::build_synchronous_hdl;

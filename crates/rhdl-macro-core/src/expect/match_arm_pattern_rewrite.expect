@@ -7,6 +7,7 @@ fn update(z: Bar) {
     #[allow(clippy::manual_memcpy)]
     #[forbid(path_statements)]
     #[forbid(unused_variables)]
+    #[allow(unused_doc_comments)]
     fn inner(z: Bar) {
         {
             match z {
@@ -33,6 +34,7 @@ impl rhdl::core::digital_fn::DigitalFn1 for update {
 }
 impl rhdl::core::digital_fn::DigitalFn for update {
     fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+        const META_DATA: &'static str = "{\"0\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"1\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"2\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"3\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"4\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"5\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"6\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"7\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"8\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"9\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"10\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"11\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"12\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"13\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"14\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"15\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"16\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"17\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"18\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"19\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"20\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]}}";
         let bob = rhdl::core::ast::builder::ASTBuilder::default();
         Some(
             bob
@@ -47,40 +49,40 @@ impl rhdl::core::digital_fn::DigitalFn for update {
                     rhdl::core::Kind::Empty,
                     bob
                         .block(
-                            18u32.into(),
+                            1u32.into(),
                             vec![
-                                bob.expr_stmt(17u32.into(), bob.match_expr(16u32.into(), bob
-                                .path_expr(15u32.into(), bob.path(vec![bob
+                                bob.expr_stmt(2u32.into(), bob.match_expr(3u32.into(), bob
+                                .path_expr(18u32.into(), bob.path(vec![bob
                                 .path_segment(stringify!(z), bob.path_arguments_none())],)),
-                                vec![bob.arm(3u32.into(), bob.arm_kind_constant(bob
+                                vec![bob.arm(4u32.into(), bob.arm_kind_constant(bob
                                 .expr_lit_typed_bits(rhdl::core::Digital::typed_bits(Bar::A),
-                                stringify!(Bar::A))), bob.block_expr(2u32.into(), bob
-                                .block(1u32.into(), vec![],))), bob.arm(8u32.into(), bob
-                                .arm_kind_enum(bob.tuple_struct_pat(7u32.into(), bob
+                                stringify!(Bar::A))), bob.block_expr(5u32.into(), bob
+                                .block(6u32.into(), vec![],))), bob.arm(7u32.into(), bob
+                                .arm_kind_enum(bob.tuple_struct_pat(11u32.into(), bob
                                 .path(vec![bob.path_segment(stringify!(Bar), bob
                                 .path_arguments_none()), bob.path_segment(stringify!(B), bob
-                                .path_arguments_none())],), vec![bob.ident_pat(6u32.into(),
+                                .path_arguments_none())],), vec![bob.ident_pat(10u32.into(),
                                 stringify!(x), false)]),
                                 rhdl::core::Digital::discriminant(Bar::B(Digital::dont_care(),))),
-                                bob.block_expr(5u32.into(), bob.block(4u32.into(),
-                                vec![],))), bob.arm(14u32.into(), bob.arm_kind_enum(bob
-                                .struct_pat(13u32.into(), bob.path(vec![bob
+                                bob.block_expr(8u32.into(), bob.block(9u32.into(),
+                                vec![],))), bob.arm(12u32.into(), bob.arm_kind_enum(bob
+                                .struct_pat(15u32.into(), bob.path(vec![bob
                                 .path_segment(stringify!(Bar), bob.path_arguments_none()),
                                 bob.path_segment(stringify!(C), bob
                                 .path_arguments_none())],), vec![bob.field_pat(bob
-                                .member_named(stringify!(x)), bob.ident_pat(11u32.into(),
+                                .member_named(stringify!(x)), bob.ident_pat(16u32.into(),
                                 stringify!(x), false)), bob.field_pat(bob
-                                .member_named(stringify!(y)), bob.ident_pat(12u32.into(),
+                                .member_named(stringify!(y)), bob.ident_pat(17u32.into(),
                                 stringify!(y), false))], false),
                                 rhdl::core::Digital::discriminant(Bar::C { x :
                                 Digital::dont_care(), y : Digital::dont_care(), })), bob
-                                .block_expr(10u32.into(), bob.block(9u32.into(),
+                                .block_expr(13u32.into(), bob.block(14u32.into(),
                                 vec![],)))]))
                             ],
                         ),
                     std::any::TypeId::of::<update>(),
-                    "fn update(z: Bar) {\n    match z {\n        Bar::A => {}\n        Bar::B(x) => {}\n        Bar::C { x, y } => {}\n    }\n}\n",
-                    concat!(file!(), ":", line!()),
+                    None,
+                    rhdl::serde_json::from_str(META_DATA).unwrap(),
                     vec![],
                 ),
         )

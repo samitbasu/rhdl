@@ -1,7 +1,4 @@
-use crate::{
-    DigitalFn, Timed, circuit::yosys::run_yosys_synth, digital_fn::DigitalFn2, error::RHDLError,
-    ntl::hdl::generate_hdl,
-};
+use crate::{DigitalFn, Timed, digital_fn::DigitalFn2, error::RHDLError, ntl::hdl::generate_hdl};
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
 
@@ -17,8 +14,8 @@ use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor
 ///
 #[doc = badascii_doc::badascii!(r"
        +----------------------------------------------------------------+        
-       |                                                                |        
- input |                   +-----------------------+                    | output 
+       |   +--+ CircuitIO::I                   CircuitIO::O +--+        |        
+ input |   v               +-----------------------+           v        | output 
 +----->+------------------>|input            output+--------------------+------->
        |                   |         Kernel        |                    |        
        |              +--->|q                     d+-----+              |        
@@ -34,18 +31,29 @@ use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor
        |                                                                |        
        +----------------------------------------------------------------+        
 ")]
-/// the `I` type represents the input signal, the `O` type represents the output signal,
+/// the [CircuitIO::I] type represents the input signal, the [CircuitIO::O] type represents the output signal,
 ///
 /// These types, in turn, appear in the type signature of the kernel function, which
-/// has type:
+/// has the form:
 ///
 /// ```rust,ignore
-/// fn kernel(input: Self::I, state: &mut Self::S) -> (Self::O, Self::D);
+/// fn kernel(input: <Self as CircuitIO>::I, q: <Self as CircuitDQ>::Q) ->
+///        (<Self as CircuitIO>::O, <Self as CircuitDQ>::D);
 /// ```
 ///
 pub trait CircuitIO: 'static + Sized + Clone + CircuitDQ {
+    /// The input type of the circuit
     type I: Timed;
+    /// The output type of the circuit
     type O: Timed;
+    /// The kernel function type of the circuit.  Must have a signature
+    /// of the form:
+    /// ```rust,ignore
+    /// fn kernel(input: <Self as CircuitIO>::I, q: <Self as CircuitDQ>::Q) ->
+    ///        (<Self as CircuitIO>::O, <Self as CircuitDQ>::D);
+    /// ```
+    /// and be annotated with `#[kernel]`.
+    ///
     type Kernel: DigitalFn + DigitalFn2<A0 = Self::I, A1 = Self::Q, O = (Self::O, Self::D)>;
 }
 
@@ -104,10 +112,10 @@ pub trait CircuitIO: 'static + Sized + Clone + CircuitDQ {
        |                                                                |        
  input |                   +-----------------------+                    | output 
 +----->+------------------>|input            output+--------------------+------->
-       |                   |         Kernel        |                    |        
-       |              +--->|q                     d+-----+              |        
-       |              |    +-----------------------+     |              |        
-       |              |                                  |              |        
+       | CircuitDQ::Q      |         Kernel        |  CircuitDQ::D      |        
+       |     +        +--->|q                     d+-----+    +         |        
+       |     |        |    +-----------------------+     |    |         |        
+       |     +------->|                                  |<---+         |        
        |              |    +-----------------------+     |              |        
        | q.child_1 +> +----+o        child_1      i|<----+ <+ d.child_1 |        
        |              |    +-----------------------+     |              |        
@@ -119,7 +127,7 @@ pub trait CircuitIO: 'static + Sized + Clone + CircuitDQ {
        +----------------------------------------------------------------+        
 ")]
 ///
-/// # Note
+/// # Technical Note
 ///
 /// It would have been possible to use tuples for `D` and `Q`, so that
 /// the types would have been automatically satisfied by construction.
@@ -131,31 +139,89 @@ pub trait CircuitIO: 'static + Sized + Clone + CircuitDQ {
 /// define them yourself, and do not need to use the `CircuitDQ` derive
 /// macro.
 pub trait CircuitDQ: 'static + Sized + Clone {
+    /// A type which contains the feedback data from the circuit to its subcircuits.
     type D: Timed;
+    /// A type which contains the feedback data from the subcircuits to the circuit.
     type Q: Timed;
 }
 
+/// The Circuit Trait
+///
+/// The Main Thing.  The [Circuit] trait defines a circuit in RHDL.  You must either
+/// provide an implementation of it, or `derive` it using the `Circuit` macro.  This
+/// trait adds the methods needed to simulate the circuit, generate an HDL description
+/// of it, manipulate it at run time (by providing reflection), and other things.  In
+/// terms of the canonical diagram, a circuit is defined as:
+#[doc = badascii_doc::badascii!(r"
+                CircuitIO::I    CircuitIO::Kernel          CircuitIO::O          
+                      +                 +                          +             
+       +-------------+|+---------------+|+------------------------+|+---+        
+       |              |                 v                          |    |        
+ input |              v    +-----------------------+               v    | output 
++----->+------------------>|input            output+--------------------+------->
+       | CircuitDQ::Q      |         Kernel        |  CircuitDQ::D      |        
+       |     +        +--->|q                     d+-----+    +         |        
+       |     |        |    +-----------------------+     |    |         |        
+       |     +------->|                                  |<---+         |        
+       |              |    +-----------------------+     |              |        
+       | q.child_1 +> +----+o        child_1      i|<----+ <+ d.child_1 |        
+       |              |    +-----------------------+     |              |        
+       |              |                                  |              |        
+       |              |    +-----------------------+     |              |        
+       | q.child_2 +> +----+o        child_2      i|<----+ <+ d.child_2 |        
+       |                   +-----------------------+                    |        
+       |                                                                |        
+       +----------------------------------------------------------------+        
+                           ^                                                     
+            impl Circuit +-+                                                     
+")]
+/// where the [CircuitIO::I], [CircuitIO::O], [CircuitDQ::D], and [CircuitDQ::Q] types
+/// are defined by the [CircuitIO] and [CircuitDQ] traits, and the [CircuitIO::Kernel]
+/// type is a function which processes the input and feedback to produce the output
+/// and feedback.  In almost all cases, you will want to `derive` this trait using
+/// the `#[derive(Circuit)]` macro.
+///
+/// # Note
+/// Note that `Circuit: 'static + Sized + Clone + CircuitIO`.  This means that you must be
+/// able to freely clone a circuit.  A circuit must also be Sized.
+///
+/// There are implementations of `Circuit` provided for arrays of circuits, so you can
+/// create arrays of circuits and use them as a single circuit.
 pub trait Circuit: 'static + Sized + Clone + CircuitIO {
-    // State for simulation - auto derived
+    /// The simulation state type
+    /// This type is used to represent the state of the circuit during simulation.
+    /// It must be `Clone` and `PartialEq`.  It holds whatever state is needed to
+    /// compute the output of the circuit element given it's input.  This state is
+    /// typically autoderived by the `Circuit` macro, and is typically a struct
+    /// containing the states of the subcircuits, along with their last known outputs.
     type S: Clone + PartialEq;
 
-    // Simulation initial state
+    /// Simulation initial state
+    /// This method returns the initial state of the circuit for simulation.
+    /// This is typically auto-derived by the `Circuit` macro, and is typically
+    /// a struct containing the initial states of the subcircuits.
     fn init(&self) -> Self::S;
 
-    // Simulation update - auto derived
+    /// Simulate the circuit given it's current state and input.
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O;
 
-    // auto derived
+    /// A human readable description of the circuit, unique for each type.
     fn description(&self) -> String {
         format!("circuit {}", std::any::type_name::<Self>())
     }
 
-    // auto derived
+    /// Provides run time reflection of the circuit.
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError>;
 
-    // auto derived
+    /// Hardware Description Language (HDL) representation of the circuit.
+    ///
+    /// This method returns the HDL representation of the circuit.  This is typically
+    /// auto-derived by the `Circuit` macro, and is typically a Verilog representation.
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
 
+    /// Generate a netlist HDL representation of the circuit.
+    ///
+    /// This method generates a netlist representation of the circuit in HDL (typically Verilog).
     fn netlist_hdl(&self, name: &str) -> Result<rhdl_vlog::ModuleList, RHDLError> {
         let descriptor = self.descriptor(name)?;
         generate_hdl(name, &descriptor.ntl)

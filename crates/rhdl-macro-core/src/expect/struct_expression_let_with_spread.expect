@@ -1,18 +1,18 @@
 fn jnk() -> Vec<Stmt> {
     bob.block_expr(
-        11u32.into(),
+        0u32.into(),
         bob
             .block(
-                10u32.into(),
+                1u32.into(),
                 vec![
-                    bob.local_stmt(2u32.into(), 3u32.into(), bob.ident_pat(0u32.into(),
-                    stringify!(b), false), Some(bob.lit_expr(1u32.into(), bob
-                    .expr_lit_int(stringify!(3))))), bob.local_stmt(8u32.into(), 9u32
-                    .into(), bob.ident_pat(4u32.into(), stringify!(d), false), Some(bob
-                    .struct_expr(7u32.into(), bob.path(vec![bob
+                    bob.local_stmt(4u32.into(), bob.ident_pat(2u32.into(), stringify!(b),
+                    false), Some(bob.lit_expr(3u32.into(), bob
+                    .expr_lit_int(stringify!(3))))), bob.local_stmt(9u32.into(), bob
+                    .ident_pat(5u32.into(), stringify!(d), false), Some(bob
+                    .struct_expr(6u32.into(), bob.path(vec![bob
                     .path_segment(stringify!(Foo), vec![stringify!(T)])],), vec![bob
-                    .field_value(bob.member_named(stringify!(a)), bob.lit_expr(5u32
-                    .into(), bob.expr_lit_int(stringify!(1))))], Some(bob.path_expr(6u32
+                    .field_value(bob.member_named(stringify!(a)), bob.lit_expr(7u32
+                    .into(), bob.expr_lit_int(stringify!(1))))], Some(bob.path_expr(8u32
                     .into(), bob.path(vec![bob.path_segment(stringify!(b), bob
                     .path_arguments_none())],))), < Foo:: < T > as rhdl::core::Digital >
                     ::static_kind().place_holder())))
