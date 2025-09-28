@@ -1,3 +1,41 @@
+//! The core traits for all RHDL [Circuit]s.
+//!
+//! A circuit is defined by the [Circuit] trait, which in turn
+//! depends on the [CircuitIO] and [CircuitDQ] traits to define
+//! the input/output and feedback types of the circuit.
+//!
+//! The [Circuit] trait also provides methods for simulation,
+//! HDL generation, and run time reflection.
+//!
+//! In almost all cases, you will want to `derive` the [Circuit]
+//! trait using the `#[derive(Circuit)]` macro.
+//!
+//! # The Canonical Diagram
+//!
+//! The following diagram illustrates the structure of a circuit in RHDL.
+//! It shows the relationships between the input/output types, the
+//! feedback types, the kernel function, and the subcircuits.
+//!
+#![doc = badascii_doc::badascii!(r"
+       +----------------------------------------------------------------+        
+       |   +--+ CircuitIO::I                   CircuitIO::O +--+        |        
+ input |   v               +-----------------------+           v        | output 
++----->+------------------>|input            output+--------------------+------->
+       |                   |         Kernel        |                    |        
+       |              +--->|q                     d+-----+              |        
+       |              |    +-----------------------+     |              |        
+       |              |                                  |              |        
+       |              |    +-----------------------+     |              |        
+       | q.child_1 +> +----+o        child_1      i|<----+ <+ d.child_1 |        
+       |              |    +-----------------------+     |              |        
+       |              |                                  |              |        
+       |              |    +-----------------------+     |              |        
+       | q.child_2 +> +----+o        child_2      i|<----+ <+ d.child_2 |        
+       |                   +-----------------------+                    |        
+       |                                                                |        
+       +----------------------------------------------------------------+        
+")]
+//! See the [book]() for a detailed explanation of this diagram.
 use crate::{DigitalFn, Timed, digital_fn::DigitalFn2, error::RHDLError, ntl::hdl::generate_hdl};
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
