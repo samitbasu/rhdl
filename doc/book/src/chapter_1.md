@@ -50,6 +50,31 @@ where the types are:
 3. `D` is the type that describes the shape of all inputs to internal components.
 4. `O` is the type that describes the shape of all outputs out of the component.
 
+
+Here is the foundational diagram, with annotations for the various types:
+
+```badascii
+            I                                                  O                 
+            +                                                  +                 
+       +---+|+------------------------------------------------+|+-------+        
+       |    |                                                  |        |        
+ input |    v              +-----------------------+           v        | output 
++----->+------------------>|input            output+--------------------+------->
+       |                   |         Kernel        |                    |        
+       |              +--->|q                     d+-----+              |        
+       |   Q+-------->|    +-----------------------+     |<-----+D      |        
+       |              |                                  |              |        
+       |              |    +-----------------------+     |              |        
+       | q.child_1 +> +----+o        child_1      i|<----+ <+ d.child_1 |        
+       |              |    +-----------------------+     |              |        
+       |              |                                  |              |        
+       |              |    +-----------------------+     |              |        
+       | q.child_2 +> +----+o        child_2      i|<----+ <+ d.child_2 |        
+       |                   +-----------------------+                    |        
+       |                                                                |        
+       +----------------------------------------------------------------+        
+```
+
 Before diving into an example, there is a slight peculiarity here.  Components
 are structs, and child components are composed into parent components with a simple
 `struct` definition.  For the diagram above, we would have something like

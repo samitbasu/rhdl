@@ -1,4 +1,4 @@
-use crate::{Circuit, CircuitIO, RHDLError, TimedSample, trace_time};
+use crate::{Circuit, CircuitIO, TimedSample, trace_time};
 
 #[must_use = "To run the simulation, you must exhaust the iterator or collect it into a VCD"]
 pub struct Run<'a, T, I, S> {
