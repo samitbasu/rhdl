@@ -467,7 +467,25 @@ icarus xor_tb_ntl.v
 ./a.out
 ```
 
-## Synthesis!
+## Fixtures, Synthesis and Hardware
+
+As a last step, we will put our simple `XorGate` onto a physical device!  This means we need to export the design in such a way that conventional tools can understand our design, and so that we can connect it up to physical endpoints.  Typically, this involves the following steps:
+
+- We need to `Fixture` our device.  The name implies that we want to plug our design into a larger object that provides the needed inputs and outputs to interface to the physical system.
+- We need `Driver`s to connect those physical inputs and outputs to our RHDL design. 
+- We need to export the whole thing to Verilog so that external toolchains can manipulate and synthesize our design
+- We can then program a device and test it.
+
+Unfortunately, there is no simple way to do all of this with real hardware without making a bunch of assumptions.  So I will assume that you have some FPGA board and access to enough documentation to do something with it.  For this section, I will use an [Alchitry Cu](https://shop.alchitry.com/collections/products).  It is a relatively inexpensive board, is completely documented, and can be programmed using open source tools.
+
+### Setup
+
+I will assume you have an `Alchitry Cu` FPGA board and the `Alchitry Io` interface board.  But you could easily adapt this to other boards.  I just need something concrete to illustrate the process.  You will also need the `icestorm` toolchain.  For Mac OS X, you can install this with:
+
+```shell
+ ❯ brew tap ktemkin/oss-fpga
+ ❯ brew install --HEAD icestorm yosys nextpnr-ice40
+```
 
 
 
