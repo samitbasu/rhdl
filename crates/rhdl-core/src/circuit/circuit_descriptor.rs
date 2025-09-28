@@ -1,3 +1,13 @@
+//! Runtime description of a circuit.
+//!
+//! This module provides the `CircuitDescriptor` struct, which captures
+//! the runtime description of a circuit, including its unique name,
+//! input and output kinds, RTL representation, netlist, and child circuits.
+//! It also includes functions to build descriptors for both asynchronous
+//! and synchronous circuits, which are typically used by the respective
+//! proc-macros to generate the necessary metadata for circuits.
+//!
+//! You don't typically call these functions directly.
 use super::circuit_impl::Circuit;
 use crate::Kind;
 use crate::ntl::from_rtl::build_ntl_from_rtl;

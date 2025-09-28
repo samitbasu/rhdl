@@ -1,3 +1,11 @@
+//! A runtime hardware description of a [Circuit] or [Synchronous] circuit.
+//!
+//! This module defines the `HDLDescriptor` struct, which captures
+//! the HDL representation of a circuit, including its name, body,
+//! and any child circuits it may have.  It also includes a method
+//! to convert the descriptor into a flat list of Verilog modules.
+//!
+//! You typically don't create `HDLDescriptor` instances directly.
 use rhdl_vlog;
 use std::collections::BTreeMap;
 

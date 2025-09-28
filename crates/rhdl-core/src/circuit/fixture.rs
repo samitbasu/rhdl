@@ -1,3 +1,134 @@
+//! Export RHDL [Circuit] as a top level module and add custom interface logic.
+//!
+//! A fixture is a top level module that contains a circuit, and
+//! allows you to attach various drivers to drive inputs and
+//! observe outputs.  A fixture is helpful when you need to take
+//! a RHDL [Circuit] and connect it to some external system (like
+//! a testbench or a hardware description language).
+//!
+//! A fixture contains a circuit, and a set of [Driver] instances.
+//! A [Driver] is a fragment of Verilog that can be used to
+//! either drive inputs to a circuit, or collect outputs from a circuit.
+//! A driver is meant to handle the details of interfacing a circuit
+//! to the outside world.
+//!
+#![doc = badascii_doc::badascii!(r"
++-------+Fixture+--------------------------------+
+|  pin +------+                    +------+pin   |
+|  +-->|Driver+-+               +->|Driver+--->  |
+|I     +------+ |               |  +------+     O|
+|N              |               |               U|
+|P pin +------+ | I +-------+ O |  +------+pin  T|
+|U +-->|Driver+-+-->|Circuit+---+->|Driver+---> P|
+|T     +------+ |   +-------+   |  +------+     U|
+|S              |               |               T|
+|  pin +------+ |               |  +------+pin  S|
+|  +-->|Driver+-+               +->|Driver+--->  |
+|      +------+                    +------+      |
++------------------------------------------------+
+")]
+//!
+//! You can also use a single [Driver] to provide both inputs and outputs
+//! to the circuit.  For example, when using a hard IP core on an FPGA,
+//! you may have a single driver that instantiates the hard IP core, and
+//! then connects it to the circuit.
+//!
+#![doc = badascii_doc::badascii!(r"
++-+Fixture+------------------------------+   
+|        inputs        ++DRAM++          |   
+|+---------------+     |Driver|  Out pins|   
+||               |<----+      +----------+-->
+||  +-------+    |<----+      |Input pins|   
+|+->|Circuit|    +     |      |<---------+--+
+|   |       |     +--->|      |Inout pins|   
+|   |       +---->|    |      |<---------+-->
+|   |       |     +--->|      |          |   
+|   +-------+  outputs +------+          |   
++----------------------------------------+   
+")]
+//!
+//! Drivers connect to the input circuit via [MountPoint]s.  A mount point
+//! is simply a range of bits on the input or output of the circuit.
+//! It is best illustrated with a diagram:
+//!
+#![doc = badascii_doc::badascii!(r"
+                     Input            
+pin x+------+        +-+   Mount Point
++--->|      |bits<2> |8|   Input(7..9)
+pin y|Driver+------->|7|<------+      
++--->|      |        +-+              
+     +------+        | |              
+                     |.|              
+         Other +---->|.|              
+       Drivers       |.|              
+                     | |              
+                     +-+              
+")]
+//!
+//! Finally, the `bind` macro is a helper to make it easier to connect
+//! inputs and outputs of a circuit to the top level of the fixture.
+//! It allows you to specify paths on the input and output of the circuit,
+//! and automatically creates the necessary drivers and mount points.
+//!
+//# Example
+//!```rust
+//!use rhdl::prelude::*;
+//!
+//!#[kernel]
+//!fn adder(a: Signal<(b4, b4), Red>) -> Signal<b4, Red> {
+//!    let (a, b) = a.val();
+//!    signal(a + b) // Return signal with value
+//!}
+//!
+//!let adder = AsyncFunc::new::<adder>()?;
+//!let mut fixture = Fixture::new("adder_top", adder);
+//!bind!(fixture, a -> input.val().0);
+//!bind!(fixture, b -> input.val().1);
+//!bind!(fixture, sum -> output.val());
+//!let vlog = fixture.module()?;  
+//!```
+//!
+//! This example creates a top level fixture that looks like this:
+//!
+#![doc = badascii_doc::badascii!(r"
+    +-+Fixture+-------+      
+a   |                 |      
++---+---+    +-----+  |      
+    |   |    |Adder|  |      
+b   |   +--->|     +--+-> sum
++---+---+    +-----+  |      
+    |                 |      
+    +-----------------+      
+")]
+//!
+//! When exported as Verilog, the fixture will look like this:
+//!
+//!```verilog
+//!module adder_top(input wire [3:0] a, input wire [3:0] b, output wire [3:0] sum);
+//!   wire [7:0] inner_input;
+//!   wire [3:0] inner_output;
+//!   assign inner_input[3:0] = a;
+//!   assign inner_input[7:4] = b;
+//!   assign sum = inner_output[3:0];
+//!   inner inner_inst(.i(inner_input), .o(inner_output));
+//!endmodule
+//!module inner(input wire [7:0] i, output wire [3:0] o);
+//!   assign o = kernel_adder(i);
+//!   function [3:0] kernel_adder(input reg [7:0] arg_0);
+//!         reg [7:0] r0;
+//!         reg [3:0] r1;
+//!         reg [3:0] r2;
+//!         reg [3:0] r3;
+//!         begin
+//!            r0 = arg_0;
+//!            r1 = r0[3:0];
+//!            r2 = r0[7:4];
+//!            r3 = r1 + r2;
+//!            kernel_adder = r3;
+//!         end
+//!   endfunction
+//!endmodule
+//! ```
 use super::circuit_impl::Circuit;
 use crate::{
     CircuitIO, Digital, Kind, RHDLError, Timed,
@@ -311,7 +442,7 @@ pub fn constant_driver<T: Circuit, S: Digital>(
 ///Often, you will want to simply connect inputs and outputs of a circuit to
 /// the top level of the fixture.  For example, if you have an AXI bus interface,
 /// you need to export the various AXI signals at the top level using the nomenclature
-/// expected by your tooling.  The [bind!] macro is a helper to make this easier.
+/// expected by your tooling.  The `bind` macro is a helper to make this easier.
 pub struct Fixture<T> {
     name: String,
     drivers: Vec<Driver<T>>,
@@ -470,6 +601,34 @@ impl<T: Circuit> Fixture<T> {
 ///bind!(fixture, sum -> output.val());
 ///let vlog = fixture.module()?;  
 ///```
+/// When exported as Verilog, the fixture will look like this:
+///
+///```verilog
+///module adder_top(input wire [3:0] a, input wire [3:0] b, output wire [3:0] sum);
+///   wire [7:0] inner_input;
+///   wire [3:0] inner_output;
+///   assign inner_input[3:0] = a;
+///   assign inner_input[7:4] = b;
+///   assign sum = inner_output[3:0];
+///   inner inner_inst(.i(inner_input), .o(inner_output));
+///endmodule
+///module inner(input wire [7:0] i, output wire [3:0] o);
+///   assign o = kernel_adder(i);
+///   function [3:0] kernel_adder(input reg [7:0] arg_0);
+///         reg [7:0] r0;
+///         reg [3:0] r1;
+///         reg [3:0] r2;
+///         reg [3:0] r3;
+///         begin
+///            r0 = arg_0;
+///            r1 = r0[3:0];
+///            r2 = r0[7:4];
+///            r3 = r1 + r2;
+///            kernel_adder = r3;
+///         end
+///   endfunction
+///endmodule
+/// ```
 #[macro_export]
 macro_rules! bind {
     ($fixture:expr, $name:ident -> input $($path:tt)*) => {

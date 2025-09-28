@@ -1,3 +1,11 @@
+//! Build HDL description of a [Circuit] or [Synchronous] circuit.
+//!
+//! This module provides functions to build HDL descriptions for both
+//! asynchronous and synchronous circuits.  These functions are typically
+//! used by the `Circuit` and `Synchronous` proc-macros to generate the
+//! HDL representation of a circuit based on its descriptor and child circuits.
+//!
+//! You don't typically call these functions directly.
 use std::collections::BTreeMap;
 
 use crate::Digital;
