@@ -18,3 +18,9 @@ impl<T: Digital> TimedSample<T> {
         }
     }
 }
+
+impl<T: Digital> std::fmt::Display for TimedSample<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}: {:?}", self.time, self.value.typed_bits())
+    }
+}

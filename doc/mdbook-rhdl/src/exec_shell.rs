@@ -45,6 +45,7 @@ fn do_shell_thing(start_dir: &str, txt: &str) -> String {
         // Create the shell script for this individual command
         let script = format!(
             r#"#!/bin/zsh
+export ROOT_DIR=`pwd`
 cd "{}"
 # Enable colors in output
 export CLICOLOR=1
