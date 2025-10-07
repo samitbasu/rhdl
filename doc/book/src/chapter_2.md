@@ -483,12 +483,103 @@ Unfortunately, there is no simple way to do all of this with real hardware witho
 I will assume you have an `Alchitry Cu` FPGA board and the `Alchitry Io` interface board.  But you could easily adapt this to other boards.  I just need something concrete to illustrate the process.  You will also need the `icestorm` toolchain.  For Mac OS X, you can install this with:
 
 ```shell
- ❯ brew tap ktemkin/oss-fpga
+ ❯ brew tap samitbasu/oss-fpga
  ❯ brew install --HEAD icestorm yosys nextpnr-ice40
 ```
 
+For other platforms, follow the various build steps or use your built-in package manager.
 
+### Fixture
 
+The idea of a `Fixture` is meant to convey the notion of an external support that holds your circuit and provides the inputs and outputs that it needs to communicate with the outside world.  That outside world might be another set of Verilog modules, a physical device, or some other environment.  Ultimately, there are code and config pieces that need to be provided for the circuit you designed to get inputs from the physical world and provide outputs to feed them back.
 
+The concept looks something like this:
+```badascii
++-------+Fixture+--------------------------------+
+|  pin +------+                    +------+pin   |
+|  +-->|Driver+-+               +->|Driver+--->  |
+|I     +------+ |               |  +------+     O|
+|N              |               |               U|
+|P pin +------+ | I +-------+ O |  +------+pin  T|
+|U +-->|Driver+-+-->|Circuit+---+->|Driver+---> P|
+|T     +------+ |   +-------+   |  +------+     U|
+|S              |               |               T|
+|  pin +------+ |               |  +------+pin  S|
+|  +-->|Driver+-+               +->|Driver+--->  |
+|      +------+                    +------+      |
++------------------------------------------------+
+```
 
+A `Driver` is a piece of code and configuration that feeds signals from a physical port or pin to the circuit.  It may also provide a path for the circuit output to a physical port or pin.  Drivers can be more complicated and provide both input and output capabilities.  For now, we will just need basic drivers.  Basic input/output drivers can be created with the `bind!` macro.  For our `XorGate`, we will create something that looks like this:
 
+```badascii
+    +-+Fixture+-------+      
+    |                 |      
+a +-+---+    +-----+  |      
+    |   |    | XoR |  |      
+    |   +--->| Gate+--+-> y
+b +-+---+    |     |  |      
+    |        +-----+  |      
+    +-----------------+      
+```
+
+We will then use a constraints file to bind `a, b, y` to pins on the FPGA.  Using the `bind!` macro this is pretty simple:
+
+```rust,write:xor/tests/test_fixture.rs
+use rhdl::prelude::*;
+
+#[test]
+fn test_make_fixture() -> miette::Result<()> {
+    let mut fixture = Fixture::new("xor_top", xor::XorGate);
+    bind!(fixture, a -> input.val().0);
+    bind!(fixture, b -> input.val().1);
+    bind!(fixture, y -> output.val());
+    let vlog = fixture.module()?;
+    eprintln!("{vlog}");
+    std::fs::write("xor_top.v", vlog.to_string()).unwrap();
+    Ok(())
+}
+```
+
+```shell,rhdl:xor
+cargo build -q
+cargo test --test test_fixture --  --no-capture
+```
+
+### Synthesis
+
+So far, we have remained in relatively device-agnostic territory.  But now we need to adopt some tooling to get something we can put on the FPGA of interest.  For the `Io` board, we want to use the first two dip switches of the leftmost switch bank to provide the `a` and `b` inputs to our XorGate.  Based on the [schematic](https://cdn.sparkfun.com/assets/0/2/9/8/a/alchitry_io_v2.pdf) this appears to be the pins `dip1` and `dip2`.  The output LED we want to drive is labelled `l1`.  These names are not sufficient to get to pins on the FPGA.  We need to keep tracing them.  Now we now that:
+
+- Pin `dip1` is connected to connector pin `BB40`
+- Pin `dip2` is connected to connector pin `BB39`
+- Pin `l1` is connected to connector pin `BB21`
+
+Next, we need the schematic for the Cu board.  From that [schematic](https://cdn.sparkfun.com/assets/d/5/d/b/a/alchitry_cu_sch_update-2.pdf), we can see that
+
+- Connector `BB40` is labelled `IOT_174/1.2A`
+- Connector `BB39` is labelled `IOT_172/1.2A`
+- Connector `BB21` is labelled `IOR_141_GBIN2/1.4B`
+
+Some more chasing indicates that
+
+- `IOT_174` is connected to ball `C11`
+- `IOT_172` is connected to ball `C12`
+- `IOR_141_GBIN2` is connected to ball `G14`
+
+Finally!  We have enough to write the PCF file.
+
+```rust,write:xor/xor.pcf
+set_io -pullup no a C11
+set_io -pullup no b C12
+set_io y G14
+```
+
+Note that the PCF file is case sensitive.  Next, we run the synthesis using `yosys`, and the place and route using `nextpnr-ice40`.  To simplify, I will use the `just` tool to pack these into a simple task:
+
+```rust,write:xor/Justfile
+build:
+    yosys -p 'synth_ice40 -top xor_top -json xor_top.json' xor_top.v
+    nextpnr-ice40 --hx8k --json xor_top.json --pcf xor.pcf --asc xor.asc --package cb132
+    icepack xor.asc xor.bin
+    iceprog xor.bin
+```
