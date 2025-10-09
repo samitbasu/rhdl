@@ -67,7 +67,7 @@ cat half_rtl_tb.v
 We can again test it using `icarus`
 
 ```shell,rhdl:half
-icarus half_rtl_tb.v
+iverilog half_rtl_tb.v
 ./a.out
 ```
 

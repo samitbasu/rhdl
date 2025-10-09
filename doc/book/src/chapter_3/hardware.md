@@ -26,7 +26,6 @@ fn test_make_fixture() -> miette::Result<()> {
     bind!(fixture, carry -> output.carry.val());
     let vlog = fixture.module()?;
     eprintln!("{vlog}");
-    std::fs::write("half_top.v", vlog.to_string()).unwrap();
     Ok(())
 }
 ```
@@ -36,23 +35,35 @@ cargo build -q
 cargo test --test test_fixture -- --no-capture
 ```
 
-We now need a constraints file to map the `a, b, sum, carry` ports of our top level module to pins on the FPGA.  The constraint file is again magic-ed into existence:
+At this point, we can now build and flash the FPGA (if we have it).  The following integration test will do the trick:
 
-```rust,write:half/half.pcf
+```rust,write:half/tests/test_flash.rs
+use rhdl::prelude::*;
+
+#[test]
+#[ignore]
+fn test_build_flash() -> miette::Result<()> {
+    const PCF: &str = "
 set_io a H11
 set_io b G11
 set_io sum E12
 set_io carry D14
+    ";
+    let mut fixture = Fixture::new("half_top", half::HalfAdder::default());
+    bind!(fixture, a -> input.val().0);
+    bind!(fixture, b -> input.val().1);
+    bind!(fixture, sum -> output.sum.val());
+    bind!(fixture, carry -> output.carry.val());
+    rhdl_toolchains::icestorm::IceStorm::new("hx8k", "cb132", "build")
+        .clean()?
+        .build_and_flash(fixture, PCF)
+}
 ```
 
-And again, we use the `just` tool to pack these into a simple task:
-
-```rust,write:half/Justfile
-build:
-    yosys -p 'synth_ice40 -top half_top -json half_top.json' half_top.v
-    nextpnr-ice40 --hx8k --json half_top.json --pcf half.pcf --asc half.asc --package cb132
-    icepack half.asc half.bin
-    openfpgaloader --verify -b ice40_generic half.bin
+```shell,rhdl:half
+cargo nextest run test_build_flash -- --ignored
 ```
+
+At this point your board should be running the `half` circuit!  Congratulations!
 
 

@@ -10,7 +10,7 @@ Let's start by creating a new Rust project.  We want a library, since the `xor` 
 ```shell,rhdl
 cargo new --lib xor
 cd xor
-cargo add --path ~samitbasu/Devel/rhdl/crates/rhdl rhdl
+cargo add --path ~samitbasu/Devel/rhdl/crates/rhdl
 cargo add --dev miette
 ```
 

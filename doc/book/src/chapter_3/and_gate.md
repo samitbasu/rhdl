@@ -5,12 +5,13 @@
 rm -rf half
 ```
 
-Let's start by creating a new Rust project.  This will again be a library.  We will need the `rhdl` dependency. 
+Let's start by creating a new Rust project.  This will again be a library.  We will need the `rhdl` dependency, and now we know we will also need the `rhdl-toolchains` crate to help with synthesis.
 
 ```shell,rhdl
 cargo new --lib half
 cd half
-cargo add --path ~samitbasu/Devel/rhdl/crates/rhdl rhdl
+cargo add --path ~samitbasu/Devel/rhdl/crates/rhdl
+cargo add --path ~samitbasu/Devel/rhdl/crates/rhdl-toolchains
 cargo add --dev miette
 ```
 
