@@ -1,1 +1,0 @@
-[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"build:\n    yosys -p 'synth_ice40 -top half_top -json half_top.json' half_top.v\n    nextpnr-ice40 --hx8k --json half_top.json --pcf half.pcf --asc half.asc --package cb132\n    icepack half.asc half.bin\n    openfpgaloader --verify -b ice40_generic half.bin"},{"End":"CodeBlock"}]

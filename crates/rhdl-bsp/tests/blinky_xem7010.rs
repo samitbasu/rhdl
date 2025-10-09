@@ -5,7 +5,7 @@
 
 use camino::Utf8PathBuf;
 use rhdl::prelude::*;
-use rhdl_bsp::builders::vivado::tcl::{GenerateBitstream, UpdateCompileOrder};
+use rhdl_toolchains::vivado::tcl::{GenerateBitstream, UpdateCompileOrder};
 
 mod blinker {
     use super::*;
@@ -34,7 +34,7 @@ mod blinker {
 }
 
 #[test]
-fn test_blinker_fixture() -> Result<(), RHDLError> {
+fn test_blinker_fixture() -> miette::Result<()> {
     type T = Adapter<blinker::U, Red>;
     let blinker: T = Adapter::new(blinker::U::default());
     //    let inp: <T as CircuitIO>::I;
@@ -49,7 +49,7 @@ fn test_blinker_fixture() -> Result<(), RHDLError> {
     let root = env!("CARGO_TARGET_TMPDIR");
     let path = Utf8PathBuf::from(root);
     let path = path.join("ok").join("xem7010").join("blinker");
-    let builder = rhdl_bsp::builders::vivado::builder::Builder::new(
+    let builder = rhdl_toolchains::vivado::builder::Builder::new(
         path.as_str(),
         "blinker",
         "xc7a50tfgg484-1",

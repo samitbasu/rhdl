@@ -1,4 +1,4 @@
-#![warn(missing_docs)]
+#![deny(missing_docs)]
 //! This crate provides two types that are important for working with hardware
 //! designs.  The [Bits] type is a fixed-size unsigned integer type with a variable
 //! number of bits.  The [SignedBits] type is a fixed-size signed integer type with
@@ -43,12 +43,13 @@
 //! # Using the type aliases to save keystrokes
 //!
 //! The [Bits] and [SignedBits] types are generic over the number of bits they represent.  This
-//! means that you will need to specify the number of bits in the type name.  For example, if you
-//! want to represent a 32 bit value, you will need to use the type [Bits]<32>.  This can be
+//! means that you will need to specify the number of bits in the type name using the
+//! typenames provided by `rhdl-typenum`.  For example, if you
+//! want to represent a 32 bit value, you will need to use the type `Bits<U32`.  This can be
 //! tedious to type, so this crate provides a set of type aliases that you can use to save
 //! keystrokes.  These type aliases are named `b1` through `b128` for [Bits], and `s1` through
 //! `s128` for [SignedBits].  So, for example, if you want to represent a 32 bit value, you can
-//! use the type alias `b32` instead of the full type name [Bits]<32>.  For example:
+//! use the type alias `b32` instead of the full type name `Bits<U32>`.  For example:
 //! ```
 //! use rhdl_bits::alias::*;
 //! let bits: b32 = 0xDEAD_BEEF.into();
@@ -361,8 +362,8 @@
 //!
 //! The standard Rust comparison operators are implemented for both [Bits] and [SignedBits].  These
 //! operators are:
-//! - [PartialEq](std::cmp::PartialEq), [Eq](std::cmp::Eq) for `==` and `!=`
-//! - [Ord](std::cmp::Ord) and [PartialOrd](std::cmp::PartialOrd) for `<`, `>`, `<=`, and `>=`
+//! - [PartialEq], [Eq] for `==` and `!=`
+//! - [Ord] and [PartialOrd] for `<`, `>`, `<=`, and `>=`
 //!
 //! Note that the comparison operators are implemented using signed arithmetic for [SignedBits], and
 //! unsigned arithmetic for [Bits].  This is the same behavior that you would see in hardware designs.
@@ -437,9 +438,9 @@ pub mod alias {
     //!
     //! # Type Aliases
     //! This crate provides a set of type aliases that you can use to save keystrokes.
-    //! These type aliases are named `b1` through `b128` for [Bits], and `s1` through
-    //! `s128` for [SignedBits].  So, for example, if you want to represent a 32 bit value,
-    //! you can use the type alias `b32` instead of the full type name [Bits]<32>.  For example:
+    //! These type aliases are named `b1` through `b128` for [crate::Bits], and `s1` through
+    //! `s128` for [crate::SignedBits].  So, for example, if you want to represent a 32 bit value,
+    //! you can use the type alias `b32` instead of the full type name `Bits<U32>`.  For example:
     //! ```
     //! use rhdl_bits::alias::*;
     //! let bits: b32 = 0xDEAD_BEEF.into();

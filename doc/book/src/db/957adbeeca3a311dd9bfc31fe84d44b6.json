@@ -1,1 +1,0 @@
-[{"Start":"HtmlBlock"},{"Html":"<pre><code class=\"hljs hide-boring\"><span style='color:var(--cyan,#0aa)'>half ❯</span> <b>icarus half_rtl_tb.v</b>\nzsh:10: command not found: icarus\n<span style='color:var(--cyan,#0aa)'>half ❯</span> <b>./a.out</b>\nzsh:10: no such file or directory: ./a.out\n</code></pre>"},{"End":"HtmlBlock"}]
