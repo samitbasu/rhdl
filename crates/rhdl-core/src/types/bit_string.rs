@@ -6,7 +6,7 @@ use crate::{
 use rhdl_vlog as vlog;
 
 #[derive(Clone, PartialEq, Hash)]
-pub enum BitString {
+pub(crate) enum BitString {
     Signed(Vec<BitX>),
     Unsigned(Vec<BitX>),
 }
@@ -43,55 +43,39 @@ impl From<BitString> for Kind {
 }
 
 impl BitString {
-    pub fn signed(bits: Vec<BitX>) -> BitString {
-        BitString::Signed(bits)
-    }
-    pub fn unsigned(bits: Vec<BitX>) -> BitString {
-        BitString::Unsigned(bits)
-    }
-    pub fn is_signed(&self) -> bool {
+    pub(crate) fn is_signed(&self) -> bool {
         matches!(self, BitString::Signed(_))
     }
-    pub fn is_unsigned(&self) -> bool {
-        matches!(self, BitString::Unsigned(_))
-    }
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         match self {
             BitString::Signed(bits) => bits.len(),
             BitString::Unsigned(bits) => bits.len(),
         }
     }
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    pub fn bits(&self) -> &[BitX] {
+    pub(crate) fn bits(&self) -> &[BitX] {
         match self {
             BitString::Signed(bits) => bits,
             BitString::Unsigned(bits) => bits,
         }
     }
-    pub fn unsigned_cast(&self, len: usize) -> Result<BitString, RHDLError> {
+    pub(crate) fn unsigned_cast(&self, len: usize) -> Result<BitString, RHDLError> {
         let tb: TypedBits = self.into();
         let bs = tb.unsigned_cast(len)?;
         Ok(bs.into())
     }
-    pub fn signed_cast(&self, len: usize) -> Result<BitString, RHDLError> {
+    pub(crate) fn signed_cast(&self, len: usize) -> Result<BitString, RHDLError> {
         let tb: TypedBits = self.into();
         let bs = tb.signed_cast(len)?;
         Ok(bs.into())
     }
-    pub fn resize(&self, len: usize) -> Result<BitString, RHDLError> {
+    pub(crate) fn resize(&self, len: usize) -> Result<BitString, RHDLError> {
         let tb: TypedBits = self.into();
         let bs = tb.resize(len)?;
         Ok(bs.into())
     }
-    pub fn num_ones(&self) -> usize {
-        self.bits().iter().filter(|b| **b == BitX::One).count()
-    }
-    pub fn trailing_zeros(&self) -> usize {
-        self.bits().iter().take_while(|b| **b == BitX::Zero).count()
-    }
-
     pub(crate) fn is_zero(&self) -> bool {
         self.bits().iter().all(|b| *b == BitX::Zero)
     }

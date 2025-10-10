@@ -483,6 +483,39 @@ fn test_enum_match_signed_discriminant() -> miette::Result<()> {
 }
 
 #[test]
+fn test_enum_bits_same_all_variants() -> miette::Result<()> {
+    #[derive(PartialEq, Debug, Digital, Default, Clone)]
+    enum Foo {
+        #[default]
+        A,
+        B(b6),
+        C {
+            red: b6,
+            green: b6,
+            blue: b6,
+        },
+        D,
+    }
+
+    assert_eq!(Foo::BITS, 20);
+    let p = Foo::D.bin();
+    assert_eq!(p.len(), 20);
+    assert_eq!(Foo::A.bin().len(), 20);
+    assert_eq!(Foo::B(bits(3)).bin().len(), 20);
+    assert_eq!(
+        Foo::C {
+            red: bits(1),
+            green: bits(2),
+            blue: bits(3)
+        }
+        .bin()
+        .len(),
+        20
+    );
+    Ok(())
+}
+
+#[test]
 #[allow(clippy::comparison_chain)]
 fn test_enum_basic() -> miette::Result<()> {
     #[derive(PartialEq, Debug, Digital, Default, Clone)]

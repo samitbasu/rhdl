@@ -67,8 +67,8 @@ fn test_derive_digital_simple_struct() {
     let bits = &bits[range];
     assert_eq!(bits.len(), 8);
     assert_eq!(
-        bits,
-        bitx_vec(&[true, true, false, true, false, true, false, true])
+        *bits,
+        *bitx_vec(&[true, true, false, true, false, true, false, true])
     );
 }
 

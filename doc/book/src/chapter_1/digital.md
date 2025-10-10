@@ -9,7 +9,7 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
     /// Returns the [Kind] (run time type descriptor) of the value as a static method
     fn static_kind() -> Kind;
     /// Returns the binary representation of the value as a vector of [BitX].
-    fn bin(self) -> Vec<BitX>;
+    fn bin(self) -> Box<[BitX]>;
     /// Returns a "don't care" value for the type.
     fn dont_care() -> Self;
 }
@@ -19,7 +19,7 @@ Most of these are fairly easy to understand.  A `Digital` value has a total of 3
 
 1. The internal Rust representation used bu `rustc` and in your code when it's running.
 2. A bit-wise representation that may include `dont-care` bits (usually marked with an `x`) for hardware description and synthesis.
-3. A trace representation that additionally include high-impedance states (usually marked with a `z`) and don't care states.
+3. A trace representation that additionally include high-impedance states (usually marked with a `z`) and don't care states.  For almost all types, the trace representation can be inferred from the bit-wise representation.
 
 The `dont-care` bits are important, particularly for Rust enums.  But in general, you can create any data structure you want, and `impl Digital` for it, and it will be supported by RHDL, which is pretty awesome.  
 
@@ -53,6 +53,10 @@ pub struct Things {
 ```
 
 You can `impl Digital` for this type yourself.  It's not difficult, and serves as a good exercise in understanding how little magic there is in the macro that does it for you.  For the number of `BITS`, we have `4 + 1 + 10 + 0 = 15`, so this should be a 15 bit type.
+
+```admonish note
+The number of `BITS` used by a `Digital` value is generally unrelated to the `rustc` representation.  A `bool`, for example, only occupies 1 bit in RHDL, not 8.  And a `Bits<N>` bit vector occupies `N` bits.
+```
 
 ```rust
 impl Digital for Things {
@@ -89,6 +93,132 @@ fn static_kind() -> Kind {
 }
 ```
 
-As you can see, it simply delegates to the `static_kind` of each of the fields, enumerates them in the order they appear in the struct, and adds names.   
+As you can see, it simply delegates to the `static_kind` of each of the fields, enumerates them in the order they appear in the struct, and adds names.   We need only provide two additional methods.  The first packs the data into a bit vector.  We can delegate similarly to the individual fields, and pack them in source-code order (i.e., first field listed occupies the LSBs of the bit vector):
 
-We need only provide 
+```rust
+fn bin(self) -> Box<[BitX]> {
+    let mut bits = Vec::with_capacity(Self::BITS);
+    bits.extend(self.count.bin());
+    bits.extend(self.valid.bin());
+    bits.extend(self.coordinates.bin());
+    bits.extend(self.zst.bin());
+    bits.into_boxed_slice()
+}
+```
+
+Similarly, the `dont_care` method can be delegated as well:
+
+```rust
+fn dont_care() -> Self {
+    Self {
+        count: b4::dont_care(),
+        valid: bool::dont_care(),
+        coordinates: <(s6, s4)>::dont_care(),
+        zst: (),
+    }
+}
+```
+
+And that is all!  Let's check our definition of our new type.  We can visualize the `Kind` of any `impl Digital` type by rendering it to a handy SVG.  
+
+```shell,rhdl-silent
+rm -rf digital
+```
+
+Let's start by creating a new Rust library to hold our various experiments.
+
+```shell,rhdl
+cargo new --lib digital
+cd digital
+cargo add --path ~samitbasu/Devel/rhdl/crates/rhdl
+cargo add --dev miette
+```
+
+We will place our new data structure into it's own module `things.rs`:
+
+```rust,write:digital/src/things.rs
+use rhdl::prelude::*;
+
+#[derive(Copy, PartialEq, Clone)]
+pub struct Things {
+    pub count: b4,
+    pub valid: bool,
+    pub coordinates: (s6, s4),
+    pub zst: (),
+}
+
+impl Digital for Things {
+    const BITS: usize = 15;
+    fn static_kind() -> Kind {
+        let count_field = Kind::make_field("count", <b4 as Digital>::static_kind());
+        let valid_field = Kind::make_field("valid", bool::static_kind());
+        let coordinates_field =
+            Kind::make_field("coordinates", <(s6, s4) as Digital>::static_kind());
+        let zst_field = Kind::make_field("zst", <() as Digital>::static_kind());
+        Kind::make_struct(
+            "Things",
+            [count_field, valid_field, coordinates_field, zst_field].into(),
+        )
+    }
+    fn bin(self) -> Box<[BitX]> {
+        let mut bits = Vec::with_capacity(Self::BITS);
+        bits.extend(self.count.bin());
+        bits.extend(self.valid.bin());
+        bits.extend(self.coordinates.bin());
+        bits.extend(self.zst.bin());
+        bits.into_boxed_slice()
+    }
+    fn dont_care() -> Self {
+        Self {
+            count: b4::dont_care(),
+            valid: bool::dont_care(),
+            coordinates: <(s6, s4)>::dont_care(),
+            zst: (),
+        }
+    }
+}
+```
+
+and then link this into the `lib.rs`
+
+```rust,write:digital/src/lib.rs
+pub mod things;
+```
+
+We can check that this compiles
+
+```shell,rhdl:digital
+cargo check -q
+```
+
+Now let's add a simple test function that generates an SVG map of our `Things` data structure.  It is available on any `Kind`.
+
+```shell,rhdl:digital
+mkdir tests
+```
+
+```rust,write:digital/tests/make_svg.rs
+use rhdl::prelude::*;
+use digital::*;
+
+#[test]
+fn test_things_svg() {
+    let svg = things::Things::static_kind().svg("Things");
+    std::fs::write("things.svg", svg.to_string()).unwrap();
+}
+```
+
+```shell,rhdl:digital
+cargo build -q
+cargo nextest run
+```
+
+```shell,rhdl-silent:digital
+cp things.svg $ROOT_DIR/src/img/.
+```
+
+The result is the following handy SVG map of the layout of our type:
+
+![Things SVG](../img/things.svg)
+
+You can now see the precise layout of the fields in the struct, as well as the elimination of the ZST field.

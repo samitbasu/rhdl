@@ -219,7 +219,7 @@ fn test_rebind_compile() -> miette::Result<()> {
 }
 
 #[test]
-fn test_importing() {
+fn test_importing() -> miette::Result<()> {
     use rhdl::bits::alias::*;
     #[derive(PartialEq, Default, Clone, Digital)]
     pub enum Rad {
@@ -243,7 +243,8 @@ fn test_importing() {
         let d = MY_SPECIAL_NUMBER;
         signal((k, l, c, (d + a.val().resize())))
     }
-    test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_exhaustive_red()).unwrap();
+    test_kernel_vm_and_verilog::<do_stuff<Red>, _, _, _>(do_stuff, tuple_exhaustive_red())?;
+    Ok(())
 }
 
 #[test]
