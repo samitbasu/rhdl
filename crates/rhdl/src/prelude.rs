@@ -60,7 +60,7 @@ pub use rhdl_core::types::signal::signal;
 pub use rhdl_core::types::timed::Timed;
 pub use rhdl_core::types::timed_sample::TimedSample;
 pub use rhdl_core::types::timed_sample::timed_sample;
-pub use rhdl_core::{types::bit_string::BitString, util::hash_id};
+//pub use rhdl_core::{types::bit_string::BitString, util::hash_id};
 pub use rhdl_macro::Circuit;
 pub use rhdl_macro::CircuitDQ;
 pub use rhdl_macro::Digital;

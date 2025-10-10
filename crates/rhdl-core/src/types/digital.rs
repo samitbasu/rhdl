@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 use std::marker::PhantomData;
 
 use rhdl_bits::{BitWidth, Bits, SignedBits, consts::U32, consts::U64, consts::U128};
@@ -13,7 +12,6 @@ use crate::const_max;
 
 use super::kind::DiscriminantLayout;
 
-use rhdl_trace_type as rtt;
 use seq_macro::seq;
 
 /// This is the core trait for all of `RHDL` data elements.  If you
@@ -31,10 +29,16 @@ use seq_macro::seq;
 /// use [Bits] or [SignedBits] to ensure that the arithmetic
 /// operations model the behavior of the hardware.
 ///
-/// # String, Byte Array, Unit, Unit Struct, Sequence, Map
+/// # Unit and Unit Struct
 ///
-/// These are all unsupported on a hardware target.  They either
-/// have variable size or no size at all.
+/// These are supported as zero sized types.  You can include them in your
+/// data structures, and use them to enforce invariants at compile time.  They
+/// will be removed by RHDL during synthesis.
+///
+/// # Fixed Sized Arrays
+///
+/// You can represent an array of `impl Digital` types provided the size of the
+/// array is known at compile time.
 ///
 /// # Option
 ///
@@ -48,7 +52,7 @@ use seq_macro::seq;
 /// Variants with a payload are represented as a the discriminant
 /// and the payload packed into binary representation.
 ///
-/// # Structs, Tuples, Arrays, Unions
+/// # Structs, Tuples
 ///
 /// These are all supported in `RHDL`.
 ///

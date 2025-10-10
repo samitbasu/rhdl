@@ -258,7 +258,7 @@ fn variant_payload_bin(
     };
     match &variant.fields {
         syn::Fields::Unit => quote! {
-            #discriminant
+            #discriminant.to_vec()
         },
         syn::Fields::Unnamed(fields) => {
             let field_names = fields
@@ -271,6 +271,7 @@ fn variant_payload_bin(
                 #(
                     v.extend(#field_names.bin());
                 )*
+                v
             }
         }
         syn::Fields::Named(fields) => {
@@ -280,6 +281,7 @@ fn variant_payload_bin(
                 #(
                     v.extend(#field_names.bin());
                 )*
+                v
             }
         }
     }
@@ -417,8 +419,8 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
                 #(
                     Self::#variant_names #variant_destructure_args => {#bin_fns}
                 )*
-            };
-            raw.to_vec().resize(Self::BITS, rhdl::core::BitX::Zero);
+            }.to_vec();
+            raw.resize(Self::BITS, rhdl::core::BitX::Zero);
             (#swap_endian_fn).into()
         }
         fn discriminant(self) -> rhdl::core::TypedBits {

@@ -1,9 +1,10 @@
 use crate::{Digital, Kind};
 
 pub trait Timed: Digital {
-    fn static_kind() -> Kind {
-        <Self as Digital>::static_kind()
-    }
+    // FIXME - do we need this?
+    //fn static_kind() -> Kind {
+    //<Self as Digital>::static_kind()
+    //}
 }
 
 impl Timed for () {}
