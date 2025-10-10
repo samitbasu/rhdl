@@ -7,7 +7,7 @@ pub enum BitX {
     X,
 }
 
-pub fn bitx_vec(x: &[bool]) -> Vec<BitX> {
+pub fn bitx_vec(x: &[bool]) -> Box<[BitX]> {
     x.iter().map(|&b| b.into()).collect()
 }
 
@@ -15,7 +15,7 @@ pub fn bitx_string(x: &[BitX]) -> String {
     x.iter().rev().map(|b| char::from(*b)).collect()
 }
 
-pub fn bitx_parse(x: &str) -> Option<Vec<BitX>> {
+pub fn bitx_parse(x: &str) -> Option<Box<[BitX]>> {
     x.chars()
         .map(|c| match c {
             '0' => Some(BitX::Zero),
@@ -59,11 +59,7 @@ impl std::fmt::Display for BitX {
 
 impl From<bool> for BitX {
     fn from(val: bool) -> Self {
-        if val {
-            BitX::One
-        } else {
-            BitX::Zero
-        }
+        if val { BitX::One } else { BitX::Zero }
     }
 }
 

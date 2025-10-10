@@ -1,7 +1,7 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{core::delay::Delay, doc::write_svg_as_markdown};
 
-#[derive(PartialEq, Digital, Default)]
+#[derive(PartialEq, Digital, Clone, Default)]
 pub enum State {
     Init,
     Running,

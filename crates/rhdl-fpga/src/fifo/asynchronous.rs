@@ -77,7 +77,7 @@ where
     write_count_for_read_logic: cross_counter::CrossCounter<W, R, N>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Timed, Clone)]
 /// Inputs for the FIFO
 pub struct In<T: Digital, W: Domain, R: Domain> {
     /// The data to be written to the FIFO in the W domain
@@ -90,7 +90,7 @@ pub struct In<T: Digital, W: Domain, R: Domain> {
     pub cr_r: Signal<ClockReset, R>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Timed, Clone)]
 /// Outputs from the FIFO
 pub struct Out<T: Digital, W: Domain, R: Domain> {
     /// The data read from the FIFO in the R domain
@@ -215,7 +215,7 @@ mod tests {
             .join("fifo")
             .join("asynchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["ae4eb2d25a3424831f5217372db1c76702815b266d0770ef4251d5bb41d25ab5"];
+        let expect = expect!["03fe8cc6a0809859b81b7a6eedc14d4fd292c4553306df663eb1dcd8a432af76"];
         let digest = vcd
             .dump_to_file(root.join("async_fifo_write_test.vcd"))
             .unwrap();

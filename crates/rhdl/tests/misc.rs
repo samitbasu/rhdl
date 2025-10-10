@@ -40,14 +40,14 @@ fn test_cast_to_b16_of_big_number_fails() {
 #[allow(clippy::no_effect)]
 fn test_compile() -> miette::Result<()> {
     use rhdl::bits::alias::*;
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq,Clone,Digital)]
     pub struct Foo {
         a: b8,
         b: b16,
         c: [b8; 3],
     }
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum NooState {
         #[default]
         Init,
@@ -170,7 +170,7 @@ fn test_custom_suffix() {
 
 #[test]
 fn test_latte_match() -> miette::Result<()> {
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     enum MyEnum {
         #[default]
         A, // No payload
@@ -214,7 +214,7 @@ fn test_latte_opcode() -> miette::Result<()> {
 
 #[test]
 fn test_svg_diagram() {
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum MyEnum {
         #[default]
         A,
@@ -233,7 +233,7 @@ fn test_svg_diagram() {
 
 #[test]
 fn test_layout_compressed() {
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum MyEnum {
         #[default]
         A,
@@ -251,7 +251,7 @@ fn test_layout_compressed() {
 
 #[test]
 fn test_layout_example_latte25() -> miette::Result<()> {
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     #[rhdl(discriminant_width = "4")]
     pub enum Register {
         #[default]
@@ -263,7 +263,7 @@ fn test_layout_example_latte25() -> miette::Result<()> {
         R5,
     }
 
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     #[rhdl(discriminant_align = "lsb")]
     pub enum Target {
         #[default]
@@ -272,7 +272,7 @@ fn test_layout_example_latte25() -> miette::Result<()> {
         Literal(b8),
     }
 
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum OpCode {
         #[default]
         Nop,

@@ -7,7 +7,7 @@ mod sender;
 mod testing;
 
 // This captures the state of the line (either leader is writing or reading)
-#[derive(PartialEq, Debug, Default, Digital)]
+#[derive(PartialEq, Debug, Default, Digital, Clone)]
 pub enum LineState {
     Write,
     #[default]

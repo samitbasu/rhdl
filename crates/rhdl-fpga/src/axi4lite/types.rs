@@ -43,7 +43,7 @@ pub type AxilAddr = Bits<U32>;
 /// it should have `N` bits where [AxilData] has `2^(8*N)` bits.
 pub type AxilStrobe = Bits<U4>;
 
-#[derive(PartialEq, Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Default)]
 /// A data word to write, along with a strobe for the bytes
 pub struct StrobedData {
     /// The data to write
@@ -52,7 +52,7 @@ pub struct StrobedData {
     pub strobe: AxilStrobe,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// The response to a read transaction
 ///
 /// The spec indicates that a read transaction
@@ -75,7 +75,7 @@ impl Default for ReadResponse {
     }
 }
 
-#[derive(PartialEq, Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Default)]
 /// The write command
 ///
 /// The address and strobed data are sent on
@@ -110,7 +110,7 @@ pub fn strobe_to_mask(strobe: Bits<U4>) -> Bits<U32> {
     mask
 }
 
-#[derive(PartialEq, Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Default)]
 /// An AXI4-Error Enum meant to capture the two cases of
 /// SLVERR and DECERR.  The [AXI4Error] enum is
 /// easier to work with in `rhdl`.
@@ -122,7 +122,7 @@ pub enum AXI4Error {
     DECERR,
 }
 
-#[derive(PartialEq, Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Default)]
 /// Flag to indicate if the operation
 /// was exclusive or not
 pub enum ExFlag {
@@ -215,7 +215,7 @@ pub fn write_response_to_result(resp: ResponseKind) -> Result<(), AXI4Error> {
 
 */
 
-#[derive(PartialEq, Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Default)]
 /// MOSI signals for the read interface
 ///
 /// These are the address, and protocol lines for the
@@ -232,7 +232,7 @@ pub struct ReadMOSI {
     pub rready: bool,
 }
 
-#[derive(PartialEq, Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Default)]
 /// MISO signals for the read interface
 ///
 /// These are the protocol, data and error flags used
@@ -249,7 +249,7 @@ pub struct ReadMISO {
     pub rvalid: bool,
 }
 
-#[derive(PartialEq, Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Default)]
 /// MOSI signals for the write interface
 ///
 /// These are the protocol, data, and address lines
@@ -270,7 +270,7 @@ pub struct WriteMOSI {
     pub bready: bool,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Clone, Digital)]
 /// MISO signals for the write interface
 ///
 /// These are protocol and response signals used
@@ -287,7 +287,7 @@ pub struct WriteMISO {
     pub bvalid: bool,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Clone, Digital)]
 /// All MOSI signals
 ///
 /// These are the MOSI signals for a master
@@ -298,7 +298,7 @@ pub struct MOSI {
     pub write: WriteMOSI,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Clone, Digital)]
 /// All MISO signals
 ///
 /// These are the MISO signals for a master

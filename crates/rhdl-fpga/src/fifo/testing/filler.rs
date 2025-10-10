@@ -76,14 +76,14 @@ impl<N: BitWidth> FIFOFiller<N> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// Inputs to the [FIFOFiller] core
 pub struct In {
     /// Input from the `full` signal of the FIFO
     pub full: bool,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// Outputs from the [FIFOFiller] core
 pub struct Out<N: BitWidth> {
     /// The data from the filler to feed into the FIFO.

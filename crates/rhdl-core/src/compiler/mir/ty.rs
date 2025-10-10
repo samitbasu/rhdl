@@ -333,7 +333,7 @@ impl AppTypeKind for AppTuple {
             .into_iter()
             .map(|t| context.into_kind(t))
             .collect::<Result<Vec<_>, RHDLError>>()?;
-        Ok(Kind::make_tuple(elements))
+        Ok(Kind::make_tuple(elements.into()))
     }
 }
 

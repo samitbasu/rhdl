@@ -25,12 +25,12 @@ impl Default for TestFixture {
     }
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 pub struct In {
     pub cmd: Option<BlockRequest>,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 pub struct Out {
     pub reply: Option<BlockResponse>,
     pub cmd_ready: Ready<BlockRequest>,

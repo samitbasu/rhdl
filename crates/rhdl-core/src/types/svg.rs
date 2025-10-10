@@ -401,7 +401,7 @@ mod test {
                 Kind::make_variant("B", Kind::Bits(8), 1),
                 Kind::make_variant(
                     "C",
-                    Kind::make_tuple(vec![Kind::Bits(8), Kind::Bits(16)]),
+                    Kind::make_tuple(vec![Kind::Bits(8), Kind::Bits(16)].into()),
                     2,
                 ),
                 Kind::make_variant(
@@ -411,7 +411,8 @@ mod test {
                         vec![
                             Kind::make_field("a", Kind::Bits(8)),
                             Kind::make_field("b", Kind::Bits(16)),
-                        ],
+                        ]
+                        .into(),
                     ),
                     -3,
                 ),
@@ -428,17 +429,18 @@ mod test {
                 Kind::make_variant("B", Kind::Bits(8), 1),
                 Kind::make_variant(
                     "C",
-                    Kind::make_tuple(vec![Kind::Bits(8), Kind::Bits(16)]),
+                    Kind::make_tuple([Kind::Bits(8), Kind::Bits(16)].into()),
                     2,
                 ),
                 Kind::make_variant(
                     "D",
                     Kind::make_struct(
                         "Test::D",
-                        vec![
+                        [
                             Kind::make_field("a", Kind::Bits(8)),
                             Kind::make_field("b", Kind::Bits(16)),
-                        ],
+                        ]
+                        .into(),
                     ),
                     3,
                 ),
@@ -473,12 +475,12 @@ mod test {
         let disc: TypedBits = (-1_i64).into();
         let disc = disc.signed_cast(4).unwrap();
         let pad = kind.pad(disc.bits);
-        assert_eq!(template.bits, pad);
+        assert_eq!(template.bits, pad.to_vec());
         let template = kind.enum_template("B").unwrap();
         let disc: TypedBits = 1_i64.into();
         let disc = disc.signed_cast(4).unwrap();
         let pad = kind.pad(disc.bits);
-        assert_eq!(template.bits, pad);
+        assert_eq!(template.bits, pad.to_vec());
     }
 
     // Create a complex kind for testing that
@@ -510,14 +512,14 @@ mod test {
                 Variant {
                     name: "C".to_string().into(),
                     discriminant: 2,
-                    kind: Kind::make_tuple(vec![Kind::make_bits(8), Kind::make_bits(16)]),
+                    kind: Kind::make_tuple([Kind::make_bits(8), Kind::make_bits(16)].into()),
                 },
                 Variant {
                     name: "D".to_string().into(),
                     discriminant: 3,
                     kind: Kind::make_struct(
                         "Crazy::D",
-                        vec![
+                        [
                             Field {
                                 name: "a".to_string().into(),
                                 kind: Kind::make_bits(8),
@@ -526,7 +528,8 @@ mod test {
                                 name: "b".to_string().into(),
                                 kind: Kind::make_bits(16),
                             },
-                        ],
+                        ]
+                        .into(),
                     ),
                 },
                 Variant {
@@ -539,7 +542,7 @@ mod test {
                     discriminant: 5,
                     kind: Kind::make_struct(
                         "Crazy::F",
-                        vec![
+                        [
                             Field {
                                 name: "a".to_string().into(),
                                 kind: Kind::make_bits(8),
@@ -548,7 +551,8 @@ mod test {
                                 name: "b".to_string().into(),
                                 kind: Kind::make_array(Kind::make_bits(8), 4),
                             },
-                        ],
+                        ]
+                        .into(),
                     ),
                 },
                 Variant {
@@ -556,7 +560,7 @@ mod test {
                     discriminant: 6,
                     kind: Kind::make_struct(
                         "Crazy::G",
-                        vec![
+                        [
                             Field {
                                 name: "a".to_string().into(),
                                 kind: Kind::make_bits(8),
@@ -569,7 +573,8 @@ mod test {
                                 name: "c".to_string().into(),
                                 kind: Kind::make_bits(16),
                             },
-                        ],
+                        ]
+                        .into(),
                     ),
                 },
                 Variant {
@@ -625,7 +630,7 @@ mod test {
     fn test_layout_of_struct() {
         let kind = Kind::make_struct(
             "Foo",
-            vec![
+            [
                 Field {
                     name: "a".to_string().into(),
                     kind: Kind::make_bits(8),
@@ -638,7 +643,8 @@ mod test {
                     name: "c".to_string().into(),
                     kind: Kind::make_bits(32),
                 },
-            ],
+            ]
+            .into(),
         );
         let svg = kind_svg::svg_grid(&kind, "value");
         svg::save("test.svg", &svg).unwrap();
@@ -647,7 +653,7 @@ mod test {
     fn test_layout_of_struct_with_nesting() {
         let kind = Kind::make_struct(
             "Foo",
-            vec![
+            [
                 Field {
                     name: "a".to_string().into(),
                     kind: Kind::make_bits(8),
@@ -660,7 +666,7 @@ mod test {
                     name: "c".to_string().into(),
                     kind: Kind::make_struct(
                         "Foo:c",
-                        vec![
+                        [
                             Field {
                                 name: "d".to_string().into(),
                                 kind: Kind::make_bits(8),
@@ -669,10 +675,12 @@ mod test {
                                 name: "e".to_string().into(),
                                 kind: Kind::make_bits(16),
                             },
-                        ],
+                        ]
+                        .into(),
                     ),
                 },
-            ],
+            ]
+            .into(),
         );
         let svg = kind_svg::svg_grid(&kind, "value");
         svg::save("test.svg", &svg).unwrap();
@@ -711,8 +719,8 @@ mod test {
 
     #[test]
     fn test_result_recognized() {
-        use rhdl_bits::alias::*;
         use crate::Digital;
+        use rhdl_bits::alias::*;
         let a = std::result::Result::<b8, b8>::Ok(b8(42)).typed_bits();
         assert!(a.kind.is_result());
         let b = std::result::Result::<b4, ()>::Err(()).typed_bits();

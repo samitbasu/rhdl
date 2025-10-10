@@ -42,7 +42,7 @@ fn handle_call(expr: &syn::ExprCall) -> syn::Result<TokenStream> {
                     return Err(syn::Error::new_spanned(
                         func,
                         "Only min and max are supported".to_string(),
-                    ))
+                    ));
                 }
             }
         }
@@ -50,7 +50,7 @@ fn handle_call(expr: &syn::ExprCall) -> syn::Result<TokenStream> {
             return Err(syn::Error::new_spanned(
                 func,
                 "Only identifiers are supported".to_string(),
-            ))
+            ));
         }
     };
     if args.len() != 2 {
@@ -80,7 +80,7 @@ fn handle_binary_expr(expr: &syn::ExprBinary) -> syn::Result<TokenStream> {
             return Err(syn::Error::new_spanned(
                 expr.op,
                 "Only + and - are supported",
-            ))
+            ));
         }
     };
     Ok(quote::quote! { #op<#left, #right> })

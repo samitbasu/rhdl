@@ -93,7 +93,7 @@ impl<const N: usize> AxiRegBank<N> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// Input for the [AxiRegBank]
 pub struct In {
     /// AXI signals from the bus for reading
@@ -104,7 +104,7 @@ pub struct In {
     pub data: Option<(b8, AxilData)>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// Output for the [AxiRegBank]
 pub struct Out<const N: usize> {
     /// AXI signals to the bus for reading

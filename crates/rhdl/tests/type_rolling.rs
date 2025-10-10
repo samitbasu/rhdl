@@ -10,7 +10,7 @@ use rhdl::prelude::*;
 
 #[test]
 fn test_roll_your_own_binop_fails() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq,Clone,Digital)]
     struct Baz {
         a: b8,
     }
@@ -47,7 +47,7 @@ fn test_roll_your_own_binop_fails() -> miette::Result<()> {
 
 #[test]
 fn test_roll_your_own_not_fails() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq,Clone,Digital)]
     struct Baz {
         a: b8,
     }
@@ -109,7 +109,7 @@ fn test_roll_your_own_not_fails() -> miette::Result<()> {
 
 #[test]
 fn test_roll_your_own_val_fails() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq,Clone,Digital)]
     struct Baz {
         a: b8,
     }
@@ -138,7 +138,7 @@ fn test_roll_your_own_val_fails() -> miette::Result<()> {
 
 #[test]
 fn test_method_call_fails_with_roll_your_own() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq,Clone,Digital)]
     struct Baz {
         a: b8,
     }

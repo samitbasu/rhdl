@@ -25,7 +25,7 @@ impl<W: Domain, R: Domain, N: BitWidth, const Z: usize> AsyncFIFOTester<W, R, N,
     }
 }
 
-#[derive(PartialEq, Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Timed, Clone)]
 /// Inputs to the [AsyncFIFOTester] struct
 pub struct In<W: Domain, R: Domain> {
     /// Clock and reset for the write side of the FIFO
@@ -118,7 +118,7 @@ mod tests {
             .join("vcd")
             .join("fifo");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["c682b9d8e3d34f6b75cb8cfe958a1289027f340b49881cbc9a30256aca5eaad8"];
+        let expect = expect!["cc14f93aa1bb0844d40fedeefb5d8b07f3860f4dc325a6dc23924b12208b91d5"];
         let digest = vcd.dump_to_file(root.join("async_fifo_trace.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

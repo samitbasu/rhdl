@@ -4,7 +4,7 @@ use rhdl_fpga::{core::dff::DFF, doc::write_svg_as_markdown};
 // We create a state enum to track the number
 // of zeros we have seen.  This could just be
 // counter, but it's a bit easier to read this way.
-#[derive(PartialEq, Digital, Debug, Default)]
+#[derive(PartialEq, Digital, Debug, Default, Clone)]
 pub enum State {
     // Enums need to have a default
     // value.  In this case, it's

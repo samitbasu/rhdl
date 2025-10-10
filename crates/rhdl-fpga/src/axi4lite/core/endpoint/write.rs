@@ -179,7 +179,7 @@ pub fn map_result(_cr: ClockReset, resp: WriteResult) -> ResponseKind {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// Input for the [WriteEndpoint] core
 pub struct In {
     /// AXI signals from the bus
@@ -190,7 +190,7 @@ pub struct In {
     pub resp_data: Option<WriteResult>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// Output from the [WriteEndpoint] core
 pub struct Out {
     /// AXI signals to the bus

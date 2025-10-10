@@ -69,7 +69,7 @@ impl<T: Digital> Default for Xfer<T> {
 }
 
 /// Output of the [Xfer] core
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 pub struct Out<T: Digital> {
     /// The data flowing out of the core
     pub data: Option<T>,

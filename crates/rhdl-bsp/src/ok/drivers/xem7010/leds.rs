@@ -29,7 +29,7 @@ mod tests {
 
     #[test]
     fn test_led_driver() {
-        #[derive(PartialEq, Digital, Timed)]
+        #[derive(PartialEq, Digital, Clone, Timed)]
         struct O {
             leds: Signal<b8, Red>,
         }

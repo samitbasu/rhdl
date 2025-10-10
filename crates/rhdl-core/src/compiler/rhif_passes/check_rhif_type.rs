@@ -332,7 +332,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
                 let ty = fields.iter().map(slot_type).collect::<Vec<_>>();
-                eq_kinds(slot_type(lhs), Kind::make_tuple(ty), loc)?;
+                eq_kinds(slot_type(lhs), Kind::make_tuple(ty.into()), loc)?;
             }
             OpCode::Index(Index { lhs, arg, path }) => {
                 let ty = slot_type(arg).signal_data();

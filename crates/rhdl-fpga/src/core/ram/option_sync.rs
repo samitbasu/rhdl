@@ -86,7 +86,7 @@ impl<T: Digital, N: BitWidth> OptionSyncBRAM<T, N> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// The input struct for the [OptionSyncBRAM]
 pub struct In<T: Digital, N: BitWidth> {
     /// The address to read from

@@ -23,7 +23,7 @@ pub struct U {
     resp: sender::U<ResponseKind>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 pub struct I {
     // AXI bus side of the write bridge
     pub axi: WriteMOSI,
@@ -35,7 +35,7 @@ pub struct I {
     pub cmd_next: bool,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 pub struct O {
     // AXI bus side of the write bridge
     pub axi: WriteMISO,

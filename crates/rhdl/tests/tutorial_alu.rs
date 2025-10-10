@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 
-#[derive(Digital, PartialEq, Default)]
+#[derive(Digital, PartialEq, Default, Clone)]
 pub enum OpCode {
     #[default]
     Add,

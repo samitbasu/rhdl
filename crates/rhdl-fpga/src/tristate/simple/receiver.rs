@@ -2,7 +2,7 @@ use crate::core::dff;
 
 use super::*;
 
-#[derive(PartialEq, Debug, Default, Digital)]
+#[derive(PartialEq, Debug, Default, Digital, Clone)]
 pub enum State {
     #[default]
     Idle,
@@ -10,7 +10,7 @@ pub enum State {
     Read,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 pub struct I {
     pub bitz: BitZ<U8>,
     pub state: Option<LineState>,

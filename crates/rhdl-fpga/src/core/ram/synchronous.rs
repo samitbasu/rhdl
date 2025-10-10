@@ -102,7 +102,7 @@ impl<T: Digital, N: BitWidth> SyncBRAM<T, N> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// A collection of signals for a raw write interface
 pub struct Write<T: Digital, N: BitWidth> {
     /// The address for the write operation
@@ -113,7 +113,7 @@ pub struct Write<T: Digital, N: BitWidth> {
     pub enable: bool,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// Core inputs
 pub struct In<T: Digital, N: BitWidth> {
     /// The read address to provide to the [SyncBRAM]

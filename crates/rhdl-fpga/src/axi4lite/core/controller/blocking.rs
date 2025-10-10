@@ -85,7 +85,7 @@ use crate::{
 
 use super::{read::ReadController, write::WriteController};
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 /// Make a blocking read or write request on an AXI bus
 pub enum BlockRequest {
     /// Make a blocking write request with the given [WriteCommand]
@@ -106,7 +106,7 @@ impl Default for BlockRequest {
     }
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 /// The response to a [BlockRequest]
 pub enum BlockResponse {
     /// The response to a write [BlockRequest] in the form of a [WriteResult]
@@ -121,7 +121,7 @@ impl Default for BlockResponse {
     }
 }
 
-#[derive(PartialEq, Digital, Default)]
+#[derive(PartialEq, Digital, Clone, Default)]
 #[doc(hidden)]
 pub enum State {
     #[default]
@@ -144,7 +144,7 @@ pub struct BlockReadWriteController {
     state: DFF<State>,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 /// Input for the [BlockReadWriteController]
 pub struct In {
     /// The [BlockRequest] input for the request stream
@@ -157,7 +157,7 @@ pub struct In {
     pub read_axi: ReadMISO,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 /// Output for the [BlockReadWriteController]
 pub struct Out {
     /// The [BlockResponse] stream output

@@ -10,13 +10,13 @@ mod sub {
         data: dff::DFF<b2>,
     }
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Digital)]
     pub struct I {
         pub data: Option<(bool, b2)>,
         pub ready: bool,
     }
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Digital)]
     pub struct O {
         pub done: bool,
         pub data: b2,
@@ -52,13 +52,13 @@ mod master {
     #[derive(Clone, Debug, Synchronous, Default)]
     pub struct U {}
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Digital)]
     pub struct I {
         pub write: Option<(bool, b2)>,
         pub done: bool,
     }
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Digital)]
     pub struct O {
         pub ready: bool,
         pub data: Option<(b2, bool)>,

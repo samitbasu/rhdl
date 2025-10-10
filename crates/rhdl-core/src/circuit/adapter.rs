@@ -56,29 +56,15 @@ impl<I: Digital, D: Domain> Digital for AdapterInput<I, D> {
                     name: "input".to_string().into(),
                     kind: <Signal<I, D> as Digital>::static_kind(),
                 },
-            ],
+            ]
+            .into(),
         )
     }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::make_struct(
-            "AdapterInput",
-            vec![
-                rtt::Field {
-                    name: "clock_reset".into(),
-                    ty: <Signal<ClockReset, D> as Digital>::static_trace_type(),
-                },
-                rtt::Field {
-                    name: "input".into(),
-                    ty: <Signal<I, D> as Digital>::static_trace_type(),
-                },
-            ],
-        )
-    }
-    fn bin(self) -> Vec<BitX> {
+    fn bin(self) -> Box<[BitX]> {
         let mut out = vec![];
         out.extend(self.clock_reset.bin());
         out.extend(self.input.bin());
-        out
+        out.into()
     }
     fn dont_care() -> Self {
         Self {

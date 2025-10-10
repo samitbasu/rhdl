@@ -47,7 +47,7 @@ use crate::{
 };
 
 /// The state of the switch
-#[derive(PartialEq, Default, Digital)]
+#[derive(PartialEq, Default, Digital, Clone)]
 pub enum State {
     #[default]
     /// The switch is idle - no channel exists
@@ -117,7 +117,7 @@ pub fn range_check<const N: usize>(_cr: ClockReset, cmd: Command) -> Command {
 }
 
 /// Input for the Read switch
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 pub struct In<const N: usize> {
     /// AXI bus connection to the endpoint (subordinate interface)
     pub endpoint_0: ReadMOSI,
@@ -126,7 +126,7 @@ pub struct In<const N: usize> {
 }
 
 /// Output from the Read Switch
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 pub struct Out<const N: usize> {
     /// AXI bus connection from the endpoint (subordinate interface)
     pub endpoint_0: ReadMISO,

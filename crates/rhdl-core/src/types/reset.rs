@@ -1,4 +1,4 @@
-use crate::{bitx::BitX, Digital, Kind};
+use crate::{Digital, Kind, bitx::BitX};
 
 #[derive(PartialEq, Clone, Copy, Debug, Default)]
 pub struct Reset(bool);
@@ -27,8 +27,8 @@ impl Digital for Reset {
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rhdl_trace_type::TraceType::Reset
     }
-    fn bin(self) -> Vec<BitX> {
-        vec![self.0.into()]
+    fn bin(self) -> Box<[BitX]> {
+        [self.0.into()].into()
     }
     fn dont_care() -> Self {
         Reset(false)

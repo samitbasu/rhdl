@@ -15,10 +15,10 @@ use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Digital)]
     pub struct Bar(b8, b8);
 
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone, Digital)]
     pub enum Foo {
         Red(Bar),
         Blue(b8),
@@ -53,10 +53,10 @@ fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
 
 #[test]
 fn test_nested_rebind_in_if_let() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Digital)]
     pub struct Bar(b8, b8);
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Digital)]
     pub struct Foo {
         a: b8,
         b: Bar,
@@ -98,10 +98,10 @@ fn test_nested_rebind_in_if_let() -> miette::Result<()> {
 
 #[test]
 fn test_nested_rebind_inlet() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Digital)]
     pub struct Bar(b8, b8);
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Digital)]
     pub struct Foo {
         a: b8,
         b: Bar,
@@ -138,7 +138,7 @@ fn test_nested_rebind_inlet() -> miette::Result<()> {
 
 #[test]
 fn test_rebind_in_let() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Digital)]
     pub struct Foo {
         a: b8,
         b: b8,
@@ -175,7 +175,7 @@ fn test_rebind_in_let() -> miette::Result<()> {
 
 #[test]
 fn test_rebind_compile() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default, Clone)]
     pub enum SimpleEnum {
         #[default]
         Init,
@@ -221,7 +221,7 @@ fn test_rebind_compile() -> miette::Result<()> {
 #[test]
 fn test_importing() {
     use rhdl::bits::alias::*;
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Digital)]
     pub enum Rad {
         A,
         B(b4),

@@ -161,7 +161,7 @@ pub fn map_result(_cr: ClockReset, res: ReadResult) -> ReadResponse {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// Input for the [AxiReadStreams] core
 pub struct In {
     /// AXI signals for core
@@ -172,7 +172,7 @@ pub struct In {
     pub resp_data: Option<ReadResult>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// Output from the [AxiReadStreams] core
 pub struct Out {
     /// AXI signals for core

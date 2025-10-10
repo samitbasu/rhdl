@@ -85,7 +85,7 @@ impl LazyRng {
     }
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 /// Input for the [LazyRng] the `ready` signal
 /// provides backpressure.
 pub struct In {
@@ -93,7 +93,7 @@ pub struct In {
     pub ready: Ready<b32>,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 /// Data from the [LazyRng] stream.
 /// Will be [None] if the source is stalling.
 pub struct Out {
