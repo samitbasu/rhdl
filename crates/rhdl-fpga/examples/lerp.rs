@@ -8,7 +8,7 @@ use rhdl_fpga::dsp::lerp::fixed::lerp_unsigned;
 // need to fit the type signature of that function, so the
 // inputs of the `lerp` function need to be put into a single
 // struct.
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 pub struct LerpIn<N, M>
 where
     N: BitWidth,

@@ -45,7 +45,7 @@ pub struct NegatingConditioner<W: Domain, R: Domain> {
     cond: super::conditioner::ResetConditioner<W, R>,
 }
 
-#[derive(PartialEq, Digital, Timed)]
+#[derive(PartialEq, Digital, Timed, Clone)]
 /// Inputs for the [NegatingConditioner].
 pub struct In<W: Domain, R: Domain> {
     /// The active-low reset signal
@@ -105,7 +105,7 @@ mod tests {
             .join("reset")
             .join("negating_conditioner");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["4a44c223925c8409bf648c99b6b98994f89760b12db7ffd114295f95d640eae6"];
+        let expect = expect!["ed4fe977726be05c764571c83e1791e9b82575be69226420034e4f28ee21fc47"];
         let digest = vcd
             .dump_to_file(root.join("negating_conditioner.vcd"))
             .unwrap();

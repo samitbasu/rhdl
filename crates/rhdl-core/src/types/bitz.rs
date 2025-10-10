@@ -25,16 +25,17 @@ impl<N: BitWidth> Digital for BitZ<N> {
                     name: "mask".to_string().into(),
                     kind: <Bits<N> as Digital>::static_kind(),
                 },
-            ],
+            ]
+            .into(),
         )
     }
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rhdl_trace_type::TraceType::Bits(Self::TRACE_BITS)
     }
-    fn bin(self) -> Vec<BitX> {
-        [self.value.bin().as_slice(), self.mask.bin().as_slice()].concat()
+    fn bin(self) -> Box<[BitX]> {
+        [self.value.bin(), self.mask.bin()].concat().into()
     }
-    fn trace(self) -> Vec<TraceBit> {
+    fn trace(self) -> Box<[TraceBit]> {
         self.value
             .bin()
             .into_iter()

@@ -96,7 +96,7 @@ use rhdl::prelude::*;
 
 use super::StreamIO;
 
-#[derive(Debug, Default, PartialEq, Digital)]
+#[derive(Debug, Default, PartialEq, Digital, Clone)]
 #[doc(hidden)]
 pub enum State {
     #[default]

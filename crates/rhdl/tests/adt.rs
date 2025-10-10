@@ -17,7 +17,7 @@ use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 fn test_adt_use() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Digital)]
     pub enum Foo {
         Red(b8, bool),
         Green(b8, bool),
@@ -54,7 +54,7 @@ fn test_adt_use() -> miette::Result<()> {
 
 #[test]
 fn test_struct_expr_adt() -> miette::Result<()> {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Digital)]
     pub enum Foo {
         A,
         B(b8),
@@ -84,7 +84,7 @@ fn test_struct_expr_adt() -> miette::Result<()> {
 
 #[test]
 fn test_unit_enums_are_repr() -> miette::Result<()> {
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone, Digital)]
     pub enum Rad {
         #[default]
         A,
@@ -106,7 +106,7 @@ fn test_adt_inference_subset() -> miette::Result<()> {
     use rhdl::bits::alias::*;
     use rhdl::bits::bits;
 
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone, Digital)]
     pub enum Rad {
         #[default]
         A,
@@ -118,14 +118,14 @@ fn test_adt_inference_subset() -> miette::Result<()> {
         D,
     }
 
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone, Digital)]
     pub struct Foo {
         a: b8,
         b: s4,
         c: Rad,
     }
 
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone, Digital)]
     pub enum NooState {
         #[default]
         Init,
@@ -190,7 +190,7 @@ fn test_adt_inference() -> miette::Result<()> {
     use rhdl::bits::alias::*;
     use rhdl::bits::bits;
 
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone, Digital)]
     pub enum Rad {
         #[default]
         A,
@@ -202,14 +202,14 @@ fn test_adt_inference() -> miette::Result<()> {
         D,
     }
 
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone, Digital)]
     pub struct Foo {
         a: b8,
         b: s4,
         c: Rad,
     }
 
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone, Digital)]
     pub enum NooState {
         #[default]
         Init,
@@ -309,7 +309,7 @@ fn test_adt_inference() -> miette::Result<()> {
 #[test]
 #[allow(clippy::assign_op_pattern)]
 fn test_adt_shadow() {
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone, Digital)]
     pub enum NooState {
         #[default]
         Init,
@@ -360,7 +360,7 @@ fn test_adt_shadow() {
 
 #[test]
 fn test_enum_match() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default, Clone)]
     pub enum SimpleEnum {
         #[default]
         Init,
@@ -408,7 +408,7 @@ fn test_enum_match() -> miette::Result<()> {
 #[ignore]
 #[test]
 fn test_enum_unmatched_variant_not_usable() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default, Clone)]
     enum SimpleEnum {
         #[default]
         Init,
@@ -436,7 +436,7 @@ fn test_enum_unmatched_variant_not_usable() -> miette::Result<()> {
 
 #[test]
 fn test_enum_match_signed_discriminant() -> miette::Result<()> {
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone, Digital)]
     #[rhdl(discriminant_width = 4)]
     #[repr(i8)]
     pub enum SimpleEnum {
@@ -485,7 +485,7 @@ fn test_enum_match_signed_discriminant() -> miette::Result<()> {
 #[test]
 #[allow(clippy::comparison_chain)]
 fn test_enum_basic() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default, Clone)]
     enum Foo {
         #[default]
         A,
@@ -521,7 +521,7 @@ fn test_enum_basic() -> miette::Result<()> {
 
 #[test]
 fn test_match_enum() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default, Clone)]
     enum Foo {
         #[default]
         A,

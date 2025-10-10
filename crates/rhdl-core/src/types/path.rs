@@ -557,9 +557,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                             range.end - enumerate.discriminant_layout.width..range.end
                         }
                     };
-                    kind = if enumerate.discriminant_layout.ty
-                        == crate::DiscriminantType::Signed
-                    {
+                    kind = if enumerate.discriminant_layout.ty == crate::DiscriminantType::Signed {
                         Kind::make_signed(enumerate.discriminant_layout.width)
                     } else {
                         Kind::make_bits(enumerate.discriminant_layout.width)
@@ -642,7 +640,8 @@ mod tests {
             vec![
                 Kind::make_field("a", Kind::make_bits(8)),
                 Kind::make_field("b", Kind::make_array(Kind::make_bits(8), 3)),
-            ],
+            ]
+            .into(),
         );
         // Create a path with a struct, containing and array of structs
         let lev2 = Kind::make_struct(
@@ -650,7 +649,8 @@ mod tests {
             vec![
                 Kind::make_field("c", base_struct),
                 Kind::make_field("d", Kind::make_array(base_struct, 4)),
-            ],
+            ]
+            .into(),
         );
         let kind = Kind::make_enum(
             "bar",
@@ -684,7 +684,8 @@ mod tests {
             vec![
                 Kind::make_field("a", Kind::make_bits(8)),
                 Kind::make_field("b", Kind::make_array(Kind::make_bits(8), 3)),
-            ],
+            ]
+            .into(),
         );
         // Create a path with a struct, containing and array of structs
         let kind = Kind::make_struct(
@@ -692,7 +693,8 @@ mod tests {
             vec![
                 Kind::make_field("c", base_struct),
                 Kind::make_field("d", Kind::make_array(base_struct, 4)),
-            ],
+            ]
+            .into(),
         );
         let path1 = Path::default().field("c").field("a");
         assert_eq!(path_star(&kind, &path1).unwrap().len(), 1);

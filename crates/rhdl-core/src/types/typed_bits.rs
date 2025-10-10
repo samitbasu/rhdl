@@ -520,7 +520,7 @@ impl FromIterator<TypedBits> for TypedBits {
     fn from_iter<T: IntoIterator<Item = TypedBits>>(iter: T) -> Self {
         let args = iter.into_iter().collect::<Vec<_>>();
         let kinds = args.iter().map(|tb| tb.kind).collect::<Vec<_>>();
-        let kind = Kind::make_tuple(kinds);
+        let kind = Kind::make_tuple(kinds.into());
         let bits = args.into_iter().flat_map(|x| x.bits).collect::<Vec<_>>();
         TypedBits { bits, kind }
     }
@@ -946,7 +946,7 @@ mod tests {
                     vec![
                         Kind::make_variant(
                             stringify!(A),
-                            Kind::make_tuple(vec![<Bar as Digital>::static_kind()]),
+                            Kind::make_tuple(vec![<Bar as Digital>::static_kind()].into()),
                             0i64,
                         ),
                         Kind::make_variant(
@@ -956,13 +956,14 @@ mod tests {
                                 vec![Kind::make_field(
                                     stringify!(foo),
                                     <Foo as Digital>::static_kind(),
-                                )],
+                                )]
+                                .into(),
                             ),
                             1i64,
                         ),
                         Kind::make_variant(
                             stringify!(C),
-                            Kind::make_tuple(vec![<b8 as Digital>::static_kind()]),
+                            Kind::make_tuple(vec![<b8 as Digital>::static_kind()].into()),
                             2i64,
                         ),
                     ],
@@ -976,24 +977,29 @@ mod tests {
             fn static_trace_type() -> rhdl_trace_type::TraceType {
                 crate::rtt::test::kind_to_trace(&Self::static_kind())
             }
-            fn bin(self) -> Vec<BitX> {
-                self.kind().pad(match self {
-                    Self::A(_0) => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<U2>(0i64 as u128).to_bools());
-                        v.extend(_0.bin());
-                        v
-                    }
-                    Self::B { foo } => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<U2>(1i64 as u128).to_bools());
-                        v.extend(foo.bin());
-                        v
-                    }
-                    Self::C(_0) => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<U2>(2i64 as u128).to_bools());
-                        v.extend(_0.bin());
-                        v
-                    }
-                })
+            fn bin(self) -> Box<[BitX]> {
+                self.kind()
+                    .pad(match self {
+                        Self::A(_0) => {
+                            let mut v =
+                                bitx_vec(&rhdl_bits::bits::<U2>(0i64 as u128).to_bools()).to_vec();
+                            v.extend(_0.bin());
+                            v
+                        }
+                        Self::B { foo } => {
+                            let mut v =
+                                bitx_vec(&rhdl_bits::bits::<U2>(1i64 as u128).to_bools()).to_vec();
+                            v.extend(foo.bin());
+                            v
+                        }
+                        Self::C(_0) => {
+                            let mut v =
+                                bitx_vec(&rhdl_bits::bits::<U2>(2i64 as u128).to_bools()).to_vec();
+                            v.extend(_0.bin());
+                            v
+                        }
+                    })
+                    .into()
             }
             fn discriminant(self) -> TypedBits {
                 match self {
@@ -1004,15 +1010,16 @@ mod tests {
             }
             fn variant_kind(self) -> Kind {
                 match self {
-                    Self::A(_0) => Kind::make_tuple(vec![<Bar as Digital>::static_kind()]),
+                    Self::A(_0) => Kind::make_tuple(vec![<Bar as Digital>::static_kind()].into()),
                     Self::B { foo: _ } => Kind::make_struct(
                         stringify!(_Baz__B),
                         vec![Kind::make_field(
                             stringify!(foo),
                             <Foo as Digital>::static_kind(),
-                        )],
+                        )]
+                        .into(),
                     ),
-                    Self::C(_0) => Kind::make_tuple(vec![<b8 as Digital>::static_kind()]),
+                    Self::C(_0) => Kind::make_tuple(vec![<b8 as Digital>::static_kind()].into()),
                 }
             }
             fn dont_care() -> Self {
@@ -1040,14 +1047,12 @@ mod tests {
                         Kind::make_field("0", Kind::Bits(8)),
                         Kind::make_field("1", Kind::Bits(8)),
                         Kind::make_field("2", Kind::Bits(1)),
-                    ],
+                    ]
+                    .into(),
                 )
             }
-            fn static_trace_type() -> rhdl_trace_type::TraceType {
-                crate::rtt::test::kind_to_trace(&Self::static_kind())
-            }
-            fn bin(self) -> Vec<BitX> {
-                [self.0.bin(), self.1.bin(), self.2.bin()].concat()
+            fn bin(self) -> Box<[BitX]> {
+                [self.0.bin(), self.1.bin(), self.2.bin()].concat().into()
             }
             fn dont_care() -> Self {
                 Self(
@@ -1074,14 +1079,12 @@ mod tests {
                         Kind::make_field("a", Kind::Bits(8)),
                         Kind::make_field("b", Kind::Bits(8)),
                         Kind::make_field("c", Kind::Bits(1)),
-                    ],
+                    ]
+                    .into(),
                 )
             }
-            fn static_trace_type() -> rhdl_trace_type::TraceType {
-                crate::rtt::test::kind_to_trace(&Self::static_kind())
-            }
-            fn bin(self) -> Vec<BitX> {
-                [self.a.bin(), self.b.bin(), self.c.bin()].concat()
+            fn bin(self) -> Box<[BitX]> {
+                [self.a.bin(), self.b.bin(), self.c.bin()].concat().into()
             }
             fn dont_care() -> Self {
                 Self {

@@ -26,26 +26,12 @@ impl Digital for ClockReset {
                     name: "reset".to_string().into(),
                     kind: <Reset as Digital>::static_kind(),
                 },
-            ],
+            ]
+            .into(),
         )
     }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rhdl_trace_type::TraceType::Struct(rhdl_trace_type::Struct {
-            name: "ClockReset".into(),
-            fields: vec![
-                rhdl_trace_type::Field {
-                    name: "clock".to_string().into(),
-                    ty: <Clock as Digital>::static_trace_type(),
-                },
-                rhdl_trace_type::Field {
-                    name: "reset".to_string().into(),
-                    ty: <Reset as Digital>::static_trace_type(),
-                },
-            ],
-        })
-    }
-    fn bin(self) -> Vec<BitX> {
-        [self.clock.bin().as_slice(), self.reset.bin().as_slice()].concat()
+    fn bin(self) -> Box<[BitX]> {
+        [self.clock.bin(), self.reset.bin()].concat().into()
     }
     fn dont_care() -> Self {
         Self {

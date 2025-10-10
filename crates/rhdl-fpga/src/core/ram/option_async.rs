@@ -84,7 +84,7 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> OptionAsyncBRAM<T, W, R, N> 
 
 type ReadI<N> = super::asynchronous::ReadI<N>;
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// The write interface for the [OptionAsyncBRAM].
 pub struct WriteI<T: Digital, N: BitWidth> {
     /// The clock signal for the write.
@@ -93,7 +93,7 @@ pub struct WriteI<T: Digital, N: BitWidth> {
     pub data: Option<(Bits<N>, T)>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Timed, Clone)]
 /// The input struct for the [OptionAsyncBRAM]
 pub struct In<T: Digital, W: Domain, R: Domain, N: BitWidth> {
     /// The write instruction
@@ -233,7 +233,7 @@ mod tests {
             .join("ram")
             .join("option_async");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["e0a6e699f9858ae40bf823703a2e62f7e5d587f2afe79dabdc278a04a8423ce1"];
+        let expect = expect!["8a4a0963c5715659a827ff14ec833daa700e4eb3ef875684e88953205ffb69f7"];
         let digest = vcd.dump_to_file(root.join("ram_write.vcd")).unwrap();
         expect.assert_eq(&digest);
         let output = uut

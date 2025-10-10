@@ -13,13 +13,13 @@ pub struct U {
     bank: crate::axi4lite::register::bank::U<8>,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 pub struct I {
     pub write: Option<WriteCommand>,
     pub read: Option<AxilAddr>,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 pub struct O {
     pub write_full: bool,
     pub read_full: bool,

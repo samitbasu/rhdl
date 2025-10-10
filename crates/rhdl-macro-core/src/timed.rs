@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{spanned::Spanned, Data, DeriveInput};
+use syn::{Data, DeriveInput, spanned::Spanned};
 
 pub fn derive_timed(input: TokenStream) -> syn::Result<TokenStream> {
     let decl = syn::parse2::<syn::DeriveInput>(input)?;
@@ -43,11 +43,11 @@ fn derive_timed_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                     fn static_kind() -> rhdl::core::Kind {
                         rhdl::core::Kind::make_struct(
                             #fqdn,
-                            vec![
+                            [
                             #(
                                 rhdl::core::Kind::make_field(stringify!(#fields), <#field_types as rhdl::core::Timed>::static_kind()),
                             )*
-                        ],
+                        ].into(),
                     )
                     }
                 }

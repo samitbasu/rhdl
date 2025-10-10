@@ -1110,10 +1110,10 @@ mod tests {
         );
         let k = Kind::make_signal(Kind::make_bool(), Color::Blue);
         let y = Kind::make_signal(Kind::make_bool(), Color::Green);
-        let k = Kind::make_tuple(vec![k, y]);
+        let k = Kind::make_tuple(vec![k, y].into());
         assert_eq!(compute_trace_color(k), Some(TraceColor::MultiColor));
         let k = Kind::make_signal(Kind::make_bool(), Color::Blue);
-        let k = Kind::make_tuple(vec![k, k]);
+        let k = Kind::make_tuple(vec![k, k].into());
         assert_eq!(
             compute_trace_color(k),
             Some(TraceColor::Single(Color::Blue))

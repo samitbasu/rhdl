@@ -117,7 +117,7 @@ impl<T: Digital, N: BitWidth> PipeSyncBRAM<T, N> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// The inputs for the [PipeBRAM]
 pub struct In<T: Digital, N: BitWidth> {
     /// The read commands.  For the output to be

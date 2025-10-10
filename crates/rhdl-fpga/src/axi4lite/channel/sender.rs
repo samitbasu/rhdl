@@ -9,13 +9,13 @@ pub struct U<T: Digital> {
     inner: fifo_to_stream::FIFOToStream<T>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 pub struct I<T: Digital> {
     pub bus: Ready,
     pub to_send: Option<T>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 pub struct O<T: Digital> {
     pub bus: DataValid<T>,
     pub full: bool,

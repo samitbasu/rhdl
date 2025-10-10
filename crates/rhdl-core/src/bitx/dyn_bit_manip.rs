@@ -2,7 +2,7 @@ use num_bigint::BigUint;
 use num_bigint::{BigInt, Sign};
 use std::iter::repeat;
 
-use crate::bitx::{bitx_vec, BitX};
+use crate::bitx::{BitX, bitx_vec};
 
 pub fn to_bigint(bits: &[BitX]) -> Option<BigInt> {
     let bits = bits
@@ -24,11 +24,11 @@ pub fn to_bigint(bits: &[BitX]) -> Option<BigInt> {
     })
 }
 
-pub fn from_bigint(bi: &BigInt, len: usize) -> Vec<BitX> {
+pub fn from_bigint(bi: &BigInt, len: usize) -> Box<[BitX]> {
     if bi < &BigInt::ZERO {
         let bi = -bi - 1_i32;
         let bits = from_bigint(&bi, len);
-        bits.into_iter().map(|x| !x).collect::<Vec<_>>()
+        bits.into_iter().map(|x| !x).collect()
     } else {
         bitx_vec(&(0..len as u64).map(|pos| bi.bit(pos)).collect::<Vec<_>>())
     }

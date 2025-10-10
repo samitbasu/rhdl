@@ -448,7 +448,6 @@ mod tests {
     use crate::{
         Digital, DiscriminantAlignment, Kind,
         bitx::{BitX, bitx_vec},
-        rtt::test::kind_to_trace,
         types::kind::Variant,
     };
 
@@ -502,7 +501,9 @@ mod tests {
                         Variant {
                             name: "Tuple".to_string().into(),
                             discriminant: 2,
-                            kind: Kind::make_tuple(vec![Kind::make_bits(1), Kind::make_bits(3)]),
+                            kind: Kind::make_tuple(
+                                vec![Kind::make_bits(1), Kind::make_bits(3)].into(),
+                            ),
                         },
                         Variant {
                             name: "Array".to_string().into(),
@@ -517,7 +518,8 @@ mod tests {
                                 vec![
                                     Kind::make_field("a", Kind::make_bits(1)),
                                     Kind::make_field("b", Kind::make_bits(3)),
-                                ],
+                                ]
+                                .into(),
                             ),
                         },
                     ],
@@ -528,35 +530,32 @@ mod tests {
                     ),
                 )
             }
-            fn static_trace_type() -> rhdl_trace_type::TraceType {
-                kind_to_trace(&Self::static_kind())
-            }
-            fn bin(self) -> Vec<BitX> {
+            fn bin(self) -> Box<[BitX]> {
                 let raw = match self {
                     Self::None => bitx_vec(&b3(0).to_bools()),
                     Self::Bool(b) => {
-                        let mut v = bitx_vec(&b3(1).to_bools());
+                        let mut v = bitx_vec(&b3(1).to_bools()).to_vec();
                         v.extend(b.bin());
-                        v
+                        v.into()
                     }
                     Self::Tuple(b, c) => {
-                        let mut v = bitx_vec(&b3(2).to_bools());
+                        let mut v = bitx_vec(&b3(2).to_bools()).to_vec();
                         v.extend(b.bin());
                         v.extend(c.bin());
-                        v
+                        v.into()
                     }
                     Self::Array([b, c, d]) => {
-                        let mut v = bitx_vec(&b3(3).to_bools());
+                        let mut v = bitx_vec(&b3(3).to_bools()).to_vec();
                         v.extend(b.bin());
                         v.extend(c.bin());
                         v.extend(d.bin());
-                        v
+                        v.into()
                     }
                     Self::Strct { a, b } => {
-                        let mut v = bitx_vec(&b3(4).to_bools());
+                        let mut v = bitx_vec(&b3(4).to_bools()).to_vec();
                         v.extend(a.bin());
                         v.extend(b.bin());
-                        v
+                        v.into()
                     }
                 };
                 if raw.len() < self.kind().bits() {
@@ -565,7 +564,7 @@ mod tests {
                         .chain(std::iter::repeat_n(BitX::Zero, missing))
                         .collect()
                 } else {
-                    raw
+                    raw.into()
                 }
             }
             fn dont_care() -> Self {

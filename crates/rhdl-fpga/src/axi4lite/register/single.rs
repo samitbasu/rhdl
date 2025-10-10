@@ -85,7 +85,7 @@ impl AxiRegister {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// Input for the [AxiRegister]
 pub struct In {
     /// AXI signals from the bus for reading
@@ -96,7 +96,7 @@ pub struct In {
     pub data: Option<AxilData>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 /// Output for the [AxiRegister]
 pub struct Out {
     /// AXI signals to the bus for reading

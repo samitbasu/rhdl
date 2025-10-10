@@ -153,7 +153,7 @@ impl<S: Digital, T: Digital, N: BitWidth> Default for PipeWrapper<S, T, N> {
     }
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 /// Inputs for the [PipeWrapper]
 pub struct In<S: Digital, T: Digital> {
     /// Input data for the upstream
@@ -164,7 +164,7 @@ pub struct In<S: Digital, T: Digital> {
     pub from_pipe: Option<T>,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Digital)]
 /// Outputs from the [PipeWrapper]
 pub struct Out<S: Digital, T: Digital> {
     /// Output data for the downstream

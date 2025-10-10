@@ -27,7 +27,7 @@ fn mul(a: TypedBits, b: TypedBits) -> Result<TypedBits, RHDLError> {
         })?;
         let result = a_bi * b_bi;
         Ok(TypedBits {
-            bits: from_bigint(&result, a.bits.len()),
+            bits: from_bigint(&result, a.bits.len()).into(),
             kind: Kind::Signed(a.bits.len()),
         })
     } else {
@@ -64,7 +64,7 @@ fn xsub(a: TypedBits, b: TypedBits) -> Result<TypedBits, RHDLError> {
         })?;
         let result = a_bi - b_bi;
         Ok(TypedBits {
-            bits: from_bigint(&result, size_fn(a.bits.len(), b.bits.len())),
+            bits: from_bigint(&result, size_fn(a.bits.len(), b.bits.len())).into(),
             kind: Kind::Signed(size_fn(a.bits.len(), b.bits.len())),
         })
     } else {
@@ -78,7 +78,7 @@ fn xsub(a: TypedBits, b: TypedBits) -> Result<TypedBits, RHDLError> {
         let b_bi: BigInt = b_bi.into();
         let result = a_bi - b_bi;
         Ok(TypedBits {
-            bits: from_bigint(&result, size_fn(a.bits.len(), b.bits.len())),
+            bits: from_bigint(&result, size_fn(a.bits.len(), b.bits.len())).into(),
             kind: Kind::Signed(size_fn(a.bits.len(), b.bits.len())),
         })
     }
@@ -103,7 +103,7 @@ fn xadd(a: TypedBits, b: TypedBits) -> Result<TypedBits, RHDLError> {
         })?;
         let result = a_bi + b_bi;
         Ok(TypedBits {
-            bits: from_bigint(&result, size_fn(a.bits.len(), b.bits.len())),
+            bits: from_bigint(&result, size_fn(a.bits.len(), b.bits.len())).into(),
             kind: Kind::Signed(size_fn(a.bits.len(), b.bits.len())),
         })
     } else {
@@ -139,7 +139,7 @@ fn xmul(a: TypedBits, b: TypedBits) -> Result<TypedBits, RHDLError> {
         })?;
         let result = a_bi * b_bi;
         Ok(TypedBits {
-            bits: from_bigint(&result, a.bits.len() + b.bits.len()),
+            bits: from_bigint(&result, a.bits.len() + b.bits.len()).into(),
             kind: Kind::Signed(a.bits.len() + b.bits.len()),
         })
     } else {
@@ -218,7 +218,7 @@ pub fn tuple(fields: &[TypedBits]) -> TypedBits {
         .flat_map(|x| x.bits.iter().cloned())
         .collect::<Vec<_>>();
     let kinds = fields.iter().map(|x| x.kind).collect::<Vec<_>>();
-    let kind = Kind::make_tuple(kinds);
+    let kind = Kind::make_tuple(kinds.into());
     TypedBits { bits, kind }
 }
 

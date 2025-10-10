@@ -11,7 +11,7 @@ use rhdl::core::sim::testbench::kernel::{
 
 #[test]
 fn test_option_is_digital() {
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone)]
     struct Test {
         a: Option<b8>,
         b: Option<b8>,
@@ -29,7 +29,7 @@ fn test_option_is_digital() {
 
 #[test]
 fn test_result_is_digital() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default, Clone)]
     enum Eflag {
         BadNumber,
         OutOfRange,
@@ -100,14 +100,14 @@ fn test_option_is_kernel_ok() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_no_ice() -> miette::Result<()> {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -151,14 +151,14 @@ fn test_option_result_no_ice() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_match_func() -> miette::Result<()> {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -196,14 +196,14 @@ fn test_option_result_match_func() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_if_let() -> miette::Result<()> {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -242,14 +242,14 @@ fn test_option_result_if_let() -> miette::Result<()> {
 
 #[test]
 fn test_nested_matches() -> miette::Result<()> {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -257,7 +257,7 @@ fn test_nested_matches() -> miette::Result<()> {
         DECERR = 2,
     }
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub struct ReadResponse<N: BitWidth> {
         data: Bits<N>,
         resp: ResponseCode,
@@ -293,14 +293,14 @@ fn test_nested_matches() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_nested_option_result_destructure() -> miette::Result<()> {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -334,7 +334,7 @@ fn test_option_result_nested_option_result_destructure() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_nested_option_result_destructure_simple() -> miette::Result<()> {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone,Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
@@ -366,7 +366,7 @@ fn test_option_result_nested_option_result_destructure_simple() -> miette::Resul
 fn test_ok_err_variants_allowed_in_non_result() -> miette::Result<()> {
     // Check that we can use Ok and Err without the
     // compiler erroneously assuming its a standard Result type.
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone)]
     pub enum MyResult {
         Ok(b8),
         AlsoOk(b8),

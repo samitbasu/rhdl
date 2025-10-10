@@ -127,7 +127,7 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> AsyncBRAM<T, W, R, N> {
 /// them out.
 /// The read input lines contain the current address and the
 /// clock signal.
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 pub struct ReadI<N: BitWidth> {
     /// The address to read from
     pub addr: Bits<N>,
@@ -138,7 +138,7 @@ pub struct ReadI<N: BitWidth> {
 /// The write input lines control the write side of the RAM.
 /// It contains the address to write to, the data, and the
 /// enable and clock signal.
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone)]
 pub struct WriteI<T: Digital, N: BitWidth> {
     /// The address to write to
     pub addr: Bits<N>,
@@ -150,7 +150,7 @@ pub struct WriteI<T: Digital, N: BitWidth> {
     pub clock: Clock,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Timed, Clone)]
 /// The inputs for the [AsyncBRAM] core
 pub struct In<T: Digital, W: Domain, R: Domain, N: BitWidth> {
     /// The write interface
@@ -506,7 +506,7 @@ mod tests {
             .join("ram")
             .join("asynchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["883133baf98af3cbf7aca39a454ea5deb8976fd0c138362026f1534fff39f30d"];
+        let expect = expect!["ae24c8e9d3f0f61dc55d368a1777b2a5af60e7f6e770856d2cb6ef9bc8d39d8c"];
         let digest = vcd.dump_to_file(root.join("ram_write.vcd")).unwrap();
         expect.assert_eq(&digest);
         let output = uut
