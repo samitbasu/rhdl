@@ -373,7 +373,10 @@ where
         let expected: BitString = uut.apply(input).typed_bits().into();
         let actual = crate::rtl::vm::execute(&rtl, args_for_rtl)?;
         if expected.bits() != actual.bits() {
-            return Err(RHDLError::VerilogVerificationErrorRTL { expected, actual });
+            return Err(RHDLError::VerilogVerificationErrorRTL {
+                expected: expected.to_string(),
+                actual: actual.to_string(),
+            });
         }
     }
     debug!("Generating Verilog to run external checks");

@@ -127,7 +127,7 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> AsyncBRAM<T, W, R, N> {
 /// them out.
 /// The read input lines contain the current address and the
 /// clock signal.
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct ReadI<N: BitWidth> {
     /// The address to read from
     pub addr: Bits<N>,
@@ -138,7 +138,7 @@ pub struct ReadI<N: BitWidth> {
 /// The write input lines control the write side of the RAM.
 /// It contains the address to write to, the data, and the
 /// enable and clock signal.
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct WriteI<T: Digital, N: BitWidth> {
     /// The address to write to
     pub addr: Bits<N>,
@@ -150,7 +150,7 @@ pub struct WriteI<T: Digital, N: BitWidth> {
     pub clock: Clock,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed, Clone)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// The inputs for the [AsyncBRAM] core
 pub struct In<T: Digital, W: Domain, R: Domain, N: BitWidth> {
     /// The write interface

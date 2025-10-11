@@ -545,7 +545,7 @@ mod tests {
 
     #[test]
     fn test_host() -> miette::Result<()> {
-        #[derive(PartialEq, Digital, Clone, Timed)]
+        #[derive(PartialEq, Digital, Clone, Copy, Timed)]
         struct O {
             out1: Signal<b16, Red>,
             out2: Signal<b16, Red>,
@@ -555,7 +555,7 @@ mod tests {
             bt_ready: Signal<bool, Red>,
         }
 
-        #[derive(PartialEq, Digital, Clone, Timed)]
+        #[derive(PartialEq, Digital, Clone, Copy, Timed)]
         struct I {
             in1: Signal<b16, Red>,
             in2: Signal<b16, Red>,

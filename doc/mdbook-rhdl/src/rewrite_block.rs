@@ -6,19 +6,26 @@ pub struct BlockRewriter<I> {
     block_text: String,
     spool: Vec<Event<'static>>,
     proc: fn(&str, &str) -> Vec<Event<'static>>,
+    source_path: Option<std::path::PathBuf>,
     tag: &'static str,
     captured_tag: String,
     block_counter: usize,
 }
 
 impl<I> BlockRewriter<I> {
-    fn new(events: I, proc: fn(&str, &str) -> Vec<Event<'static>>, tag: &'static str) -> Self {
+    fn new(
+        source_path: &Option<std::path::PathBuf>,
+        events: I,
+        proc: fn(&str, &str) -> Vec<Event<'static>>,
+        tag: &'static str,
+    ) -> Self {
         Self {
             events,
             in_block: false,
             block_text: String::new(),
             spool: Vec::new(),
             proc,
+            source_path: source_path.clone(),
             tag,
             captured_tag: String::new(),
             block_counter: 0,
@@ -61,6 +68,11 @@ where
                 (Event::End(TagEnd::CodeBlock), true) => {
                     self.in_block = false;
                     let mut context = md5::Context::new();
+                    let path = self
+                        .source_path
+                        .as_ref()
+                        .map_or("".to_string(), |p| p.to_string_lossy().to_string());
+                    context.consume(&path);
                     context.consume(&self.captured_tag);
                     context.consume(&self.block_counter.to_le_bytes());
                     context.consume(&self.block_text);
@@ -95,13 +107,14 @@ where
 pub trait BlockRewriterExt: Iterator {
     fn rewrite_blocks(
         self,
+        source_path: &Option<std::path::PathBuf>,
         proc: fn(&str, &str) -> Vec<Event<'static>>,
         tag: &'static str,
     ) -> BlockRewriter<Self>
     where
         Self: Sized,
     {
-        BlockRewriter::new(self, proc, tag)
+        BlockRewriter::new(source_path, self, proc, tag)
     }
 }
 

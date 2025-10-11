@@ -14,7 +14,6 @@ mod synchronous;
 pub use synchronous::derive_synchronous;
 mod synchronous_dq;
 pub use synchronous_dq::derive_synchronous_dq;
-mod clone;
 mod export;
 pub mod typenum_op;
 pub use export::export_macro;

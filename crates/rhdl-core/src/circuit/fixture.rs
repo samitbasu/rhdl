@@ -131,7 +131,7 @@ b   |   +--->|     +--+-> sum
 //! ```
 use super::circuit_impl::Circuit;
 use crate::{
-    CircuitIO, Digital, Kind, RHDLError, Timed,
+    CircuitIO, Digital, Kind, RHDLError,
     types::path::{Path, bit_range, leaf_paths},
 };
 use miette::Diagnostic;

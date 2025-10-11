@@ -125,7 +125,7 @@ where
     }
 }
 
-#[derive(PartialEq, Debug, Digital, Timed, Clone)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// Inputs to the core
 pub struct In<W: Domain, R: Domain> {
     /// The input data pulses to be counted from the W clock domain
@@ -136,7 +136,7 @@ pub struct In<W: Domain, R: Domain> {
     pub cr: Signal<ClockReset, R>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed, Clone)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// Outputs from the core
 pub struct Out<R: Domain, const N: usize>
 where

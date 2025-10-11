@@ -84,7 +84,7 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> OptionAsyncBRAM<T, W, R, N> 
 
 type ReadI<N> = super::asynchronous::ReadI<N>;
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// The write interface for the [OptionAsyncBRAM].
 pub struct WriteI<T: Digital, N: BitWidth> {
     /// The clock signal for the write.
@@ -93,7 +93,7 @@ pub struct WriteI<T: Digital, N: BitWidth> {
     pub data: Option<(Bits<N>, T)>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed, Clone)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// The input struct for the [OptionAsyncBRAM]
 pub struct In<T: Digital, W: Domain, R: Domain, N: BitWidth> {
     /// The write instruction

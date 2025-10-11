@@ -100,7 +100,7 @@ impl<T: Digital> SynchronousDQ for DFF<T> {
     type Q = ();
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 #[doc(hidden)]
 pub struct S<T: Digital> {
     cr: ClockReset,

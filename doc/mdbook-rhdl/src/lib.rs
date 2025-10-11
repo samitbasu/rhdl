@@ -22,10 +22,11 @@ impl Rhdl {
     fn process_chapter(chapter: &mut Chapter) {
         let parser = pulldown_cmark::Parser::new(&chapter.content);
         let mut buf = String::with_capacity(chapter.content.len() + 128);
+        let source_path = chapter.source_path.clone();
         let events = parser.into_iter();
-        let events = events.rewrite_blocks(silent_shell, SHELL_SILENT_PREFIX);
-        let events = events.rewrite_blocks(rhdl_write::rhdl_write, WRITE_PREFIX);
-        let events = events.rewrite_blocks(exec_shell, SHELL_PREFIX);
+        let events = events.rewrite_blocks(&source_path, silent_shell, SHELL_SILENT_PREFIX);
+        let events = events.rewrite_blocks(&source_path, rhdl_write::rhdl_write, WRITE_PREFIX);
+        let events = events.rewrite_blocks(&source_path, exec_shell, SHELL_PREFIX);
         pulldown_cmark_to_cmark::cmark(events, &mut buf).unwrap();
         chapter.content = buf;
     }

@@ -1,7 +1,6 @@
 use rhdl_bits::{BitWidth, Bits};
 
 use crate::{BitX, Digital, Domain, Kind, Timed};
-use rhdl_trace_type as rtt;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Signal<T: Digital, C: Domain> {

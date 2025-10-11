@@ -2,10 +2,8 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::{
-    KernelFnKind, TypedBits,
-    circuit::yosys::YosysSynthError,
-    compiler::mir::ty::UnifyError,
-    types::{bit_string::BitString, path::PathError},
+    KernelFnKind, TypedBits, circuit::yosys::YosysSynthError, compiler::mir::ty::UnifyError,
+    types::path::PathError,
 };
 
 #[derive(Error, Debug, Diagnostic)]
@@ -53,10 +51,7 @@ pub enum RHDLError {
     #[error("Cannot convert kernel function to Verilog descriptor {value:?}")]
     CannotConvertKernelFunctionToVerilogDescriptor { value: Box<KernelFnKind> },
     #[error("Verilog Verification Error in RTL: Expected {expected:?} got {actual:?}")]
-    VerilogVerificationErrorRTL {
-        expected: BitString,
-        actual: BitString,
-    },
+    VerilogVerificationErrorRTL { expected: String, actual: String },
     #[error("Verilog verification error: {0}")]
     VerilogVerificationErrorString(String),
     #[error("Testbench Construction Error: {0}")]

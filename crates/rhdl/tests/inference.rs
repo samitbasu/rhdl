@@ -17,14 +17,14 @@ use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 #[allow(clippy::assign_op_pattern)]
 fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
     use rhdl::bits::alias::*;
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Foo {
         a: b8,
         b: b16,
         c: [b8; 3],
     }
 
-    #[derive(PartialEq, Default, Clone,Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum State {
         Init,
         Run(b8),
@@ -33,7 +33,7 @@ fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
         Unknown,
     }
 
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Bar(pub b8, pub b8);
 
     #[kernel]
@@ -213,23 +213,23 @@ fn test_struct_inference_inferred_lengths() -> miette::Result<()> {
     use rhdl::bits::alias::*;
     use rhdl::bits::bits;
 
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Rad {
         x: b4,
         y: b6,
     }
 
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Foo {
         a: b8,
         b: s4,
         c: Rad,
     }
 
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Bar(pub b8, pub b8);
 
-    #[derive(PartialEq, Default, Clone,Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum NooState {
         #[default]
         Init,
@@ -284,23 +284,23 @@ fn test_struct_inference() -> miette::Result<()> {
     use rhdl::bits::alias::*;
     use rhdl::bits::bits;
 
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Rad {
         x: b4,
         y: b6,
     }
 
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Foo {
         a: b8,
         b: s4,
         c: Rad,
     }
 
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Bar(pub b8, pub b8);
 
-    #[derive(PartialEq, Default, Clone,Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum NooState {
         #[default]
         Init,

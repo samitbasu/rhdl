@@ -16,7 +16,7 @@ use CompilationMode::Asynchronous;
 #[test]
 #[allow(clippy::let_and_return)]
 fn test_struct_follows_clock_constraints() -> miette::Result<()> {
-    #[derive(PartialEq, Digital, Timed, Clone)]
+    #[derive(PartialEq, Digital, Copy, Timed, Clone)]
     struct Foo<C: Domain, D: Domain> {
         a: Signal<b8, C>,
         b: Signal<b8, D>,
@@ -44,7 +44,7 @@ fn test_struct_follows_clock_constraints() -> miette::Result<()> {
 
 #[test]
 fn test_struct_with_splice_follows_clock_constraints() -> miette::Result<()> {
-    #[derive(PartialEq, Digital, Timed, Clone)]
+    #[derive(PartialEq, Digital, Copy, Timed, Clone)]
     struct Foo<C: Domain, D: Domain> {
         a: Signal<b8, C>,
         b: Signal<b8, D>,
@@ -70,7 +70,7 @@ fn test_struct_with_splice_follows_clock_constraints() -> miette::Result<()> {
 #[test]
 #[allow(clippy::let_and_return)]
 fn test_struct_follows_clock_constraints_fails() -> miette::Result<()> {
-    #[derive(PartialEq, Digital, Timed, Clone)]
+    #[derive(PartialEq, Digital, Copy, Timed, Clone)]
     struct Foo<C: Domain, D: Domain> {
         a: Signal<b8, C>,
         b: Signal<b8, D>,
@@ -97,7 +97,7 @@ fn test_struct_follows_clock_constraints_fails() -> miette::Result<()> {
 
 #[test]
 fn test_struct_cannot_cross_clock_domains() -> miette::Result<()> {
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     struct Foo {
         a: b8,
         b: b16,
@@ -178,7 +178,7 @@ fn test_signal_cross_clock_select_causes_type_check_error() -> miette::Result<()
 
 #[test]
 fn test_signal_coherence_in_splice_operation() -> miette::Result<()> {
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     struct Baz {
         a: b8,
         b: b8,
@@ -255,13 +255,13 @@ fn test_signal_coherence_in_branches() -> miette::Result<()> {
 
 #[test]
 fn test_signal_coherence_with_timed() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Timed, Clone)]
+    #[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
     struct Baz<C: Domain, D: Domain> {
         a: Signal<b8, C>,
         b: Signal<b8, D>,
     }
 
-    #[derive(PartialEq, Debug, Digital, Timed, Clone)]
+    #[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
     struct Container<C: Domain, D: Domain> {
         x: Baz<C, D>,
         y: Baz<C, D>,
@@ -282,7 +282,7 @@ fn test_signal_coherence_with_timed() -> miette::Result<()> {
 
 #[test]
 fn test_signal_carrying_struct() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Clone)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     struct Baz {
         a: b8,
         b: b8,
@@ -431,7 +431,7 @@ fn test_signal_tuple_crossing_fails_second_test() -> miette::Result<()> {
 
 #[test]
 fn test_enum_basic_cross_clocks() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Default, Clone, Digital)]
+    #[derive(PartialEq, Debug, Default, Clone, Copy, Digital)]
     enum Foo {
         #[default]
         A,
@@ -525,7 +525,7 @@ fn test_retime_of_comparison() -> miette::Result<()> {
 
 #[test]
 fn test_retime_of_comparison_with_structs() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Clone)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     struct Foo {
         a: b8,
     }

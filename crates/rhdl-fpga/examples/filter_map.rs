@@ -10,7 +10,7 @@ use rhdl_fpga::{
 };
 
 // Let's assume we are processing a stream of enums
-#[derive(PartialEq, Digital, Clone, Default)]
+#[derive(PartialEq, Digital, Default, Clone, Copy)]
 enum Item {
     I(b4),
     Q(b4),

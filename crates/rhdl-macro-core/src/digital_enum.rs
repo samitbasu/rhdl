@@ -391,8 +391,6 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         DiscriminantType::Signed(_) => quote! { rhdl::core::DiscriminantType::Signed },
     };
     Ok(quote! {
-    impl #impl_generics core::marker::Copy for #enum_name #ty_generics #where_clause {}
-
     impl #impl_generics rhdl::core::Digital for #enum_name #ty_generics #where_clause {
         // BITS is the width of the discriminant (#width_bits) plus the maximum width
         // of the variant payloads.  This is calculated by taking the maximum width of

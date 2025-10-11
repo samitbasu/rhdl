@@ -39,3 +39,7 @@ u8        // - the core Rust integer types, like i8,u8,i16,etc.
 ```
 
 From these base types, you can construct more complicated types using structural composition.  But it's much easier to use `struct` and `enum` instead.  
+
+```admonish note
+I want to walk you through the process of `impl Digital` manually before introducing the `#[derive(Digital)]` macro, so you understand what is happening under the hood.  In practice, the macro is much easier and less error prone.
+```

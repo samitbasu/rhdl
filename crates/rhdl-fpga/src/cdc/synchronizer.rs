@@ -177,7 +177,7 @@ pub struct Sync1Bit<W: Domain, R: Domain> {
     _r: std::marker::PhantomData<R>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed, Clone)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// Input to the synchronizer
 pub struct In<W: Domain, R: Domain> {
     /// The data signal (comes from the input clock domain)
@@ -197,7 +197,7 @@ impl<W: Domain, R: Domain> CircuitIO for Sync1Bit<W, R> {
     type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 #[doc(hidden)]
 pub struct S {
     clock: Clock,

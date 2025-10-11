@@ -1,5 +1,5 @@
 use rhdl::{
-    core::{CircuitIO, RHDLError, Timed},
+    core::{CircuitIO, RHDLError},
     prelude::{bit_range, sub_trace_type, Digital, ExportError, MountPoint, Path},
     rtt::TraceType,
 };

@@ -52,8 +52,6 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 .map(|x| &x.ty)
                 .collect::<Vec<_>>();
             Ok(quote! {
-                impl #impl_generics core::marker::Copy for #struct_name #ty_generics #where_clause {}
-
                 impl #impl_generics rhdl::core::Digital for #struct_name #ty_generics #where_clause {
                     const BITS: usize = #(
                         <#field_types as rhdl::core::Digital>::BITS
@@ -113,8 +111,6 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 .map(|x| &x.ty)
                 .collect::<Vec<_>>();
             Ok(quote! {
-                impl #impl_generics core::marker::Copy for #struct_name #ty_generics #where_clause {}
-
                 impl #impl_generics rhdl::core::Digital for #struct_name #ty_generics #where_clause {
                     const BITS: usize = #(
                         <#field_types as rhdl::core::Digital>::BITS

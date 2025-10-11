@@ -69,7 +69,7 @@ impl<T: Digital, N: BitWidth> Default for SyncFIFO<T, N> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Inputs for the FIFO
 pub struct In<T: Digital> {
     /// The data to be written to the FIFO
@@ -78,7 +78,7 @@ pub struct In<T: Digital> {
     pub next: bool,
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Outputs from the FIFO
 pub struct Out<T: Digital> {
     /// The output data
