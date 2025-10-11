@@ -1,4 +1,3 @@
-//! Run time type representation for RHDL types.
 use internment::Intern;
 use rhdl_trace_type as rtt;
 

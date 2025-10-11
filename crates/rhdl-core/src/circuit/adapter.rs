@@ -105,8 +105,8 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         let child_descriptor = self.circuit.descriptor(&format!("{name}_inner"))?;
         // This includes the clock and reset signals
         // It should be [clock, reset, inputs...]
-        let input_reg: Kind = <Self::I as Timed>::static_kind();
-        let output_reg: Kind = <Self::O as Timed>::static_kind();
+        let input_reg: Kind = <Self::I as Digital>::static_kind();
+        let output_reg: Kind = <Self::O as Digital>::static_kind();
         let ti = builder.add_input(input_reg);
         let to = builder.allocate_outputs(output_reg);
         let child_offset = builder.import(&child_descriptor.ntl);
@@ -119,10 +119,10 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         }
         Ok(CircuitDescriptor {
             unique_name: name.into(),
-            input_kind: <<Self as CircuitIO>::I as Timed>::static_kind(),
-            output_kind: <<Self as CircuitIO>::O as Timed>::static_kind(),
-            d_kind: <<Self as CircuitDQ>::D as Timed>::static_kind(),
-            q_kind: <<Self as CircuitDQ>::Q as Timed>::static_kind(),
+            input_kind: <<Self as CircuitIO>::I as Digital>::static_kind(),
+            output_kind: <<Self as CircuitIO>::O as Digital>::static_kind(),
+            d_kind: <<Self as CircuitDQ>::D as Digital>::static_kind(),
+            q_kind: <<Self as CircuitDQ>::Q as Digital>::static_kind(),
             ntl: builder.build(ntl::builder::BuilderMode::Asynchronous)?,
             rtl: None,
             children: Default::default(),

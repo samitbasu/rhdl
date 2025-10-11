@@ -182,8 +182,8 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
         Ok(CircuitDescriptor {
             unique_name: name.to_string(),
-            input_kind: <Self::I as Timed>::static_kind(),
-            output_kind: <Self::O as Timed>::static_kind(),
+            input_kind: <Self::I as Digital>::static_kind(),
+            output_kind: <Self::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             children: Default::default(),
@@ -195,9 +195,9 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = name.to_owned();
         let module_name = format_ident!("{}", module_name);
-        let reset_index = bit_range(<Self::I as Timed>::static_kind(), &path!(.reset.val()))?;
+        let reset_index = bit_range(<Self::I as Digital>::static_kind(), &path!(.reset.val()))?;
         let reset_index = syn::Index::from(reset_index.0.start);
-        let clock_index = bit_range(<Self::I as Timed>::static_kind(), &path!(.clock.val()))?;
+        let clock_index = bit_range(<Self::I as Digital>::static_kind(), &path!(.clock.val()))?;
         let clock_index = syn::Index::from(clock_index.0.start);
         let module: vlog::ModuleDef = parse_quote! {
             module #module_name(input wire [1:0] i, output wire [0:0] o);

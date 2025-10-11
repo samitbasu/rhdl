@@ -1,5 +1,10 @@
 # Summary
 - [Quickstart](./quickstart.md)
+- [The Foundation](foundation/summary.md)
+- [Bits](bits/summary.md)
+- [Digital Types](digital/summary.md)
+	- [Structs](digital/structs.md)
+	- [Enums](digital/enums.md)
 - [Chapter 1 - Rust as a Hardware Description Language](chapter_1/summary.md)
 	- [The Foundation](chapter_1/foundation.md)
 	- [Bits](chapter_1/bits.md)

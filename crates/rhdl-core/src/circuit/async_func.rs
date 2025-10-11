@@ -1,6 +1,6 @@
 use crate::{
-    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, CompilationMode, DigitalFn, HDLDescriptor,
-    Kind, RHDLError, Timed, compile_design,
+    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, CompilationMode, Digital, DigitalFn,
+    HDLDescriptor, Kind, RHDLError, Timed, compile_design,
     digital_fn::{DigitalFn1, NoKernel2},
     ntl::from_rtl::build_ntl_from_rtl,
     rtl::Object,
@@ -51,8 +51,8 @@ impl<I: Timed, O: Timed> Circuit for AsyncFunc<I, O> {
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
         Ok(CircuitDescriptor {
             unique_name: name.to_string(),
-            input_kind: <Self::I as Timed>::static_kind(),
-            output_kind: <Self::O as Timed>::static_kind(),
+            input_kind: <Self::I as Digital>::static_kind(),
+            output_kind: <Self::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             ntl: build_ntl_from_rtl(&self.module),
