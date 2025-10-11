@@ -12,7 +12,7 @@ use rhdl::{
 
 #[test]
 fn test_vcd_enum() {
-    #[derive(PartialEq, Debug, Digital, Default, Clone)]
+    #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
     enum Enum {
         #[default]
         None,
@@ -49,7 +49,7 @@ fn test_vcd_enum() {
 
 #[test]
 fn test_vcd_basic() {
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Simple {
         a: bool,
         b: Bits<U8>,
@@ -78,7 +78,7 @@ fn test_vcd_basic() {
 
 #[test]
 fn test_label_for_tuple_struct() {
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct TupleStruct(b6, b3);
 
     let tuple = TupleStruct(bits(13), bits(4));
@@ -89,7 +89,7 @@ fn test_label_for_tuple_struct() {
 
 #[test]
 fn test_label_for_struct() {
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Simple {
         a: b4,
         b: (b4, b4),
@@ -111,7 +111,7 @@ fn test_label_for_struct() {
 
 #[test]
 fn test_label_for_signed() {
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Signed {
         a: s8,
         b: b8,
@@ -128,7 +128,7 @@ fn test_label_for_signed() {
 
 #[test]
 fn test_label_for_enum() {
-    #[derive(PartialEq, Default, Clone, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     enum Value {
         #[default]
         Empty,
@@ -153,7 +153,7 @@ fn test_label_for_enum() {
 
 #[test]
 fn test_leaf_paths_for_slicing() {
-    #[derive(PartialEq, Default, Clone, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     enum Value {
         #[default]
         Empty,
@@ -176,7 +176,7 @@ fn test_leaf_paths_for_slicing() {
 
 #[test]
 fn test_time_slice_with_nested_enums() {
-    #[derive(PartialEq, Default, Clone, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     enum Value {
         #[default]
         Empty,
@@ -209,7 +209,7 @@ fn test_time_slice_with_nested_enums() {
 
 #[test]
 fn test_time_slice_for_enum_with_discriminant() {
-    #[derive(PartialEq, Default, Clone, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     enum Value {
         #[default]
         Empty,
@@ -242,7 +242,7 @@ fn test_time_slice_for_enum_with_discriminant() {
 
 #[test]
 fn test_trace_out_for_enum() {
-    #[derive(PartialEq, Default, Clone, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     enum Value {
         #[default]
         Empty,
@@ -270,7 +270,7 @@ fn test_trace_out_for_enum() {
 
 #[test]
 fn test_time_slice_for_enum() {
-    #[derive(PartialEq, Default, Clone, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     enum Value {
         #[default]
         Empty,
@@ -295,7 +295,7 @@ fn test_time_slice_for_enum() {
 
 #[test]
 fn test_time_slice_for_struct() {
-    #[derive(PartialEq, Clone, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Simple {
         a: b4,
         b: (b4, b4, bool),

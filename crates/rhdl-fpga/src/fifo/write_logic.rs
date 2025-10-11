@@ -53,7 +53,7 @@ pub struct FIFOWriteCore<N: BitWidth> {
     overflow: dff::DFF<bool>,
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// The inputs to the [FIFOWriteCore]
 pub struct In<N: BitWidth> {
     /// The current read address
@@ -62,7 +62,7 @@ pub struct In<N: BitWidth> {
     pub write_enable: bool,
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// The outputs from the [FIFOWriteCore]
 pub struct Out<N: BitWidth> {
     /// The generated full signal

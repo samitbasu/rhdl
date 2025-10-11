@@ -77,7 +77,7 @@ where
     write_count_for_read_logic: cross_counter::CrossCounter<W, R, N>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed, Clone)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// Inputs for the FIFO
 pub struct In<T: Digital, W: Domain, R: Domain> {
     /// The data to be written to the FIFO in the W domain
@@ -90,7 +90,7 @@ pub struct In<T: Digital, W: Domain, R: Domain> {
     pub cr_r: Signal<ClockReset, R>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed, Clone)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// Outputs from the FIFO
 pub struct Out<T: Digital, W: Domain, R: Domain> {
     /// The data read from the FIFO in the R domain

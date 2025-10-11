@@ -9,7 +9,7 @@ use rhdl_fpga::core::{
 };
 
 // Start with a 2x Reducer
-#[derive(Debug, PartialEq, Digital, Default, Clone)]
+#[derive(Debug, PartialEq, Digital, Default, Clone, Copy)]
 pub enum State {
     #[default]
     Empty,
@@ -41,13 +41,13 @@ where
     }
 }
 
-#[derive(Debug, PartialEq, Digital, Clone)]
+#[derive(Debug, PartialEq, Digital, Clone, Copy)]
 pub struct I<DW: BitWidth> {
     pub data: Option<Bits<DW>>,
     pub ready: bool,
 }
 
-#[derive(Debug, PartialEq, Digital, Clone)]
+#[derive(Debug, PartialEq, Digital, Clone, Copy)]
 pub struct O<DN: BitWidth> {
     pub data: Option<Bits<DN>>,
     pub ready: bool,

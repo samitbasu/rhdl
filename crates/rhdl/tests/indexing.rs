@@ -16,7 +16,7 @@ use test_log::test;
 
 #[test]
 fn test_tuple_struct_indexing() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Clone)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo(b6, b6);
 
     #[kernel]
@@ -33,7 +33,7 @@ fn test_tuple_struct_indexing() -> miette::Result<()> {
 
 #[test]
 fn test_struct_field_indexing() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Clone)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo {
         a: (b6, b6),
         b: b6,
@@ -105,7 +105,7 @@ fn rand_bits<N: BitWidth>() -> Bits<N> {
 
 #[test]
 fn test_3d_array_dynamic_indexing() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Default, Clone)]
+    #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
     pub struct VolumeBits {
         data: [[[b1; 8]; 8]; 8],
     }
@@ -152,7 +152,7 @@ fn test_3d_array_dynamic_indexing() -> miette::Result<()> {
 
 #[test]
 fn test_complex_array_dynamic_indexing() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Clone)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo {
         a: bool,
         b: [b4; 4],
@@ -169,7 +169,7 @@ fn test_complex_array_dynamic_indexing() -> miette::Result<()> {
         }
     }
 
-    #[derive(PartialEq, Debug, Digital, Clone)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Bar {
         a: b9,
         b: [Foo; 8],
@@ -288,7 +288,7 @@ fn test_array_dynamic_indexing_on_write() -> miette::Result<()> {
 
 #[test]
 fn test_field_indexing_is_order_independent() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Clone)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo {
         a: b6,
         b: b6,
@@ -308,7 +308,7 @@ fn test_field_indexing_is_order_independent() -> miette::Result<()> {
 
 #[test]
 fn test_field_indexing() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Clone)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo {
         a: b6,
         b: b6,
@@ -339,10 +339,10 @@ fn test_simple_if_expression() -> miette::Result<()> {
 
 #[test]
 fn test_link_to_bits_fn() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Clone)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     struct Tuplo(b4, s6);
 
-    #[derive(PartialEq, Debug, Default, Clone, Digital)]
+    #[derive(PartialEq, Debug, Default, Clone, Copy, Digital)]
     enum NooState {
         #[default]
         Init,

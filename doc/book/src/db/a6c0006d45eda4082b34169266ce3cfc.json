@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"use rhdl::prelude::*;\nuse digital::*;\n\n#[test]\nfn test_print_repr() {\n    let op = opcode::OpCode::Not(0xA5.into());\n    println!(\"{}\", bitx_string(&op.bin()));\n}"},{"End":"CodeBlock"}]

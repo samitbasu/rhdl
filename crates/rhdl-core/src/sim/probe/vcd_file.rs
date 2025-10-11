@@ -1,8 +1,9 @@
 use std::path::{Path, PathBuf};
 
 use crate::{
-    trace::db::{with_trace_db, TraceDBGuard},
-    trace_init_db, Digital, TimedSample,
+    Digital, TimedSample,
+    trace::db::{TraceDBGuard, with_trace_db},
+    trace_init_db,
 };
 
 pub struct VCDFile<I> {

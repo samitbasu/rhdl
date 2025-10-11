@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"use rhdl::prelude::*;\n\n//                                 👇 - New!\n#[derive(Copy, PartialEq, Clone, Digital)]\npub struct Things {\n    pub count: b4,\n    pub valid: bool,\n    pub coordinates: (s6, s4),\n    pub zst: (),\n}"},{"End":"CodeBlock"}]

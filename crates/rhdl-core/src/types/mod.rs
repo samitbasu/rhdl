@@ -1,3 +1,4 @@
+/// A string of 3-value bits (0, 1, x) that may be signed or unsigned.
 pub mod bit_string;
 pub mod bitz;
 pub mod clock;

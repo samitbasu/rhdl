@@ -42,7 +42,7 @@ where
     sink: SinkFromFn<T>,
 }
 
-#[derive(PartialEq, Clone, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 #[doc(hidden)]
 pub struct D<S, T>
 where
@@ -54,7 +54,7 @@ where
     sink: Option<T>,
 }
 
-#[derive(PartialEq, Clone, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 #[doc(hidden)]
 pub struct Q<S, T>
 where

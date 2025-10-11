@@ -3,11 +3,11 @@ use std::path::Path;
 use crate::{Clock, ClockReset, Digital, TimedSample};
 
 use super::{
-    edges::{edge_time, EdgeTime},
-    glitch_check::{glitch_check, GlitchCheck},
-    sample_at_pos_edge::{sample_at_pos_edge, SampleAtPosEdge},
-    synchronous_sample::{synchronous_sample, SynchronousSample},
-    vcd_file::{vcd_file, VCDFile},
+    edges::{EdgeTime, edge_time},
+    glitch_check::{GlitchCheck, glitch_check},
+    sample_at_pos_edge::{SampleAtPosEdge, sample_at_pos_edge},
+    synchronous_sample::{SynchronousSample, synchronous_sample},
+    vcd_file::{VCDFile, vcd_file},
 };
 
 pub trait ProbeExt<I, S> {

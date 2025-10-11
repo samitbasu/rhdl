@@ -1,1 +1,0 @@
-[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"use rhdl::prelude::*;\nuse digital::*;\n\n#[test]\nfn test_things_svg() {\n    #[test]\nfn test_things_svg() {\n    let svg = things::Things::static_kind().svg(\"Things\");\n    std::fs::write(\"things.svg\", svg.to_string()).unwrap();\n}\n}"},{"End":"CodeBlock"}]

@@ -45,7 +45,7 @@ pub struct FIFOReadCore<N: BitWidth> {
     underflow: dff::DFF<bool>,
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// The inputs to the [FIFOReadCore]
 pub struct In<N: BitWidth> {
     /// The current write address
@@ -54,7 +54,7 @@ pub struct In<N: BitWidth> {
     pub next: bool,
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// The outputs from the [FIFOReadCore]
 pub struct Out<N: BitWidth> {
     /// The empty signal

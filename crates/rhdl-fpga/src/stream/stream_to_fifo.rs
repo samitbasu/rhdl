@@ -74,7 +74,7 @@ use super::Ready;
 
 /// A READY/VALID-to-FIFO converter is a highly specialized two element
 /// FIFO backed with a pair of registers instead of a BRAM.  
-#[derive(PartialEq, Digital, Default, Debug, Clone)]
+#[derive(PartialEq, Digital, Copy, Default, Debug, Clone)]
 #[doc(hidden)]
 pub enum State {
     #[default]
@@ -114,7 +114,7 @@ impl<T: Digital> Default for StreamToFIFO<T> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Inputs to the [StreamToFIFO] buffer
 ///
 /// For inputs, we accept an `Option<T>` input from the ready/valid bus
@@ -130,7 +130,7 @@ pub struct In<T: Digital> {
     pub next: bool,
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Outputs from the [StreamToFIFO] buffer
 pub struct Out<T: Digital> {
     /// The data to the consumer

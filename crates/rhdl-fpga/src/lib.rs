@@ -1,5 +1,4 @@
 //! FPGA Support for RHDL
-#![warn(missing_docs)]
 pub mod axi4lite;
 pub mod cdc;
 pub mod core;
@@ -13,4 +12,5 @@ pub mod pipe;
 pub mod reset;
 pub mod rng;
 pub mod stream;
+/// Tristate IO support
 pub mod tristate;

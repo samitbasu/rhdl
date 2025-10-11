@@ -123,7 +123,7 @@ pub struct Carloni<T: Digital> {
     state_ff: dff::DFF<State>,
 }
 
-#[derive(PartialEq, Debug, Digital, Clone, Default)]
+#[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
 #[doc(hidden)]
 pub enum State {
     #[default]
@@ -154,7 +154,7 @@ impl<T: Digital> Carloni<T> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// The inputs for the [Carloni] buffer
 pub struct In<T: Digital> {
     /// The data coming into the buffer
@@ -165,7 +165,7 @@ pub struct In<T: Digital> {
     pub stop_in: bool,
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// The outputs for the [Carloni] buffer
 pub struct Out<T: Digital> {
     /// The data going downstream

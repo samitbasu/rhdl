@@ -8,7 +8,6 @@ use crate::{
 };
 
 use quote::{format_ident, quote};
-use rhdl_trace_type as rtt;
 use rhdl_vlog::{self as vlog, maybe_port_wire};
 use syn::parse_quote;
 

@@ -1,7 +1,7 @@
 use rhdl::prelude::*;
 use rhdl_fpga::core::{constant, dff};
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct I {
     pub enable: bool,
 }
@@ -21,13 +21,13 @@ impl<N: BitWidth> U<N> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct D<N: BitWidth> {
     counter: Bits<N>,
     threshold: (),
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct Q<N: BitWidth> {
     counter: Bits<N>,
     threshold: Bits<N>,

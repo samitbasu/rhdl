@@ -13,13 +13,13 @@ pub struct U {
     register: crate::axi4lite::register::single::U,
 }
 
-#[derive(PartialEq, Clone, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 pub struct I {
     pub write: Option<WriteCommand>,
     pub read: Option<AxilAddr>,
 }
 
-#[derive(PartialEq, Clone, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 pub struct O {
     pub read_data: Option<Result<AxilData, AXI4Error>>,
     pub write_resp: Option<Result<(), AXI4Error>>,

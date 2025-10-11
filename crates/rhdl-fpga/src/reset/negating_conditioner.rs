@@ -45,7 +45,7 @@ pub struct NegatingConditioner<W: Domain, R: Domain> {
     cond: super::conditioner::ResetConditioner<W, R>,
 }
 
-#[derive(PartialEq, Digital, Timed, Clone)]
+#[derive(PartialEq, Digital, Copy, Timed, Clone)]
 /// Inputs for the [NegatingConditioner].
 pub struct In<W: Domain, R: Domain> {
     /// The active-low reset signal

@@ -21,7 +21,7 @@ pub fn build<T: CircuitIO>(
     let drive_range: vlog::BitRange = (0..options.pins.len()).into();
     let name_ident = format_ident!("{name}");
     let drive_name = format_ident!("_drive_{name}");
-    let pin_assignments = options.pins.iter().enumerate().map(|(index, location)| {
+    let pin_assignments = options.pins.iter().enumerate().map(|(index, _)| {
         let index = syn::Index::from(index);
         quote! {
             assign #name_ident[#index] = (#drive_name[#index] == 1'b1) ? (1'b0) : (1'bz);

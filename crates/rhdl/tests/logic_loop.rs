@@ -30,13 +30,13 @@ pub struct U {
     right: inverter::U,
 }
 
-#[derive(PartialEq, Default, Clone,Digital)]
+#[derive(PartialEq, Default, Clone, Copy, Digital)]
 pub struct D {
     left: bool,
     right: bool,
 }
 
-#[derive(PartialEq, Default, Clone,Digital)]
+#[derive(PartialEq, Default, Clone, Copy, Digital)]
 pub struct Q {
     left: bool,
     right: bool,

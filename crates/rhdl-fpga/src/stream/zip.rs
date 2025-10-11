@@ -83,7 +83,7 @@ pub struct Zip<S: Digital, T: Digital> {
     out_buffer: FIFOToStream<(S, T)>,
 }
 
-#[derive(PartialEq, Clone, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 /// Input struct for the [Zip]
 pub struct In<S: Digital, T: Digital> {
     /// Input data for the `a` stream
@@ -94,7 +94,7 @@ pub struct In<S: Digital, T: Digital> {
     pub ready: Ready<(S, T)>,
 }
 
-#[derive(PartialEq, Clone, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 /// Output struct for the [Zip]
 pub struct Out<S: Digital, T: Digital> {
     /// Ready signal for the `a`` stream

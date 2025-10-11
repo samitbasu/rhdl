@@ -1,1 +1,0 @@
-[{"Start":"HtmlBlock"},{"Html":"<pre><code class=\"hljs hide-boring\"><span style='color:var(--cyan,#0aa)'>half ❯</span> <b>iverilog half_tb_ntl.v</b>\n<span style='color:var(--cyan,#0aa)'>half ❯</span> <b>./a.out</b>\nTESTBENCH OK\nhalf_tb_ntl.v:43: $finish called at 400 (1s)\n</code></pre>"},{"End":"HtmlBlock"}]

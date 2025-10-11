@@ -2,14 +2,14 @@ use crate::core::dff;
 
 use super::*;
 
-#[derive(PartialEq, Debug, Default, Digital, Clone)]
+#[derive(PartialEq, Debug, Default, Digital, Clone, Copy)]
 pub enum Cmd {
     Write(b8),
     #[default]
     Read,
 }
 
-#[derive(PartialEq, Debug, Default, Digital, Clone)]
+#[derive(PartialEq, Debug, Default, Digital, Clone, Copy)]
 pub enum State {
     #[default]
     Idle,
@@ -20,13 +20,13 @@ pub enum State {
 }
 
 // The input struct includes the tristate bus
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct I {
     pub bitz: BitZ<U8>,
     pub cmd: Option<Cmd>,
 }
 
-#[derive(PartialEq, Debug, Digital, Clone, Default)]
+#[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
 pub struct O {
     pub bitz: BitZ<U8>,
     pub control: Option<LineState>,

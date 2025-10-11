@@ -9,7 +9,7 @@ pub struct U<T: Digital> {
     inner: stream_to_fifo::StreamToFIFO<T>,
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct I<T: Digital> {
     // Connection to the bus
     pub bus: DataValid<T>,
@@ -17,7 +17,7 @@ pub struct I<T: Digital> {
     pub next: bool,
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct O<T: Digital> {
     // Data from the bus - None if there is no data
     pub data: Option<T>,

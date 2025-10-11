@@ -29,7 +29,7 @@ mod tests {
 
     #[test]
     fn test_sys_clock() {
-        #[derive(PartialEq, Digital, Clone, Timed)]
+        #[derive(PartialEq, Digital, Clone, Copy, Timed)]
         struct I {
             clock: Signal<Clock, Red>,
             reset: Signal<Reset, Red>,

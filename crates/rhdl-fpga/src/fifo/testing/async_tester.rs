@@ -25,7 +25,7 @@ impl<W: Domain, R: Domain, N: BitWidth, const Z: usize> AsyncFIFOTester<W, R, N,
     }
 }
 
-#[derive(PartialEq, Debug, Digital, Timed, Clone)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// Inputs to the [AsyncFIFOTester] struct
 pub struct In<W: Domain, R: Domain> {
     /// Clock and reset for the write side of the FIFO

@@ -100,7 +100,7 @@ pub struct ResetConditioner<W: Domain, R: Domain> {
     _r: std::marker::PhantomData<R>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed, Clone)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// The inputs to the [ResetConditioner].
 pub struct In<W: Domain, R: Domain> {
     /// The raw reset signal that is asserted asynchronously

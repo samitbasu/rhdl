@@ -23,12 +23,12 @@ impl Default for Adder {
     }
 }
 
-#[derive(PartialEq, Clone, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 pub struct In {
     pub cmd: Option<BlockRequest>,
 }
 
-#[derive(PartialEq, Clone, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 pub struct Out {
     pub reply: Option<BlockResponse>,
     pub cmd_ready: Ready<BlockRequest>,

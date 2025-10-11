@@ -15,7 +15,7 @@ use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 
 #[test]
 fn test_struct_expr_not_adt() -> miette::Result<()> {
-    #[derive(PartialEq,Clone,Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Foo {
         a: b8,
         b: b16,
@@ -39,7 +39,7 @@ fn test_struct_expr_not_adt() -> miette::Result<()> {
 
 #[test]
 fn test_tuplestruct_nested_init() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Clone)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Wrap(b8, (b8, b8), b8);
 
     #[kernel]
@@ -54,7 +54,7 @@ fn test_tuplestruct_nested_init() -> miette::Result<()> {
 
 #[test]
 fn test_tuple_struct_construction() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Clone)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo(b4, b4);
 
     #[kernel]
@@ -70,7 +70,7 @@ fn test_tuple_struct_construction() -> miette::Result<()> {
 
 #[test]
 fn test_struct_rest_syntax() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Clone)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo {
         a: (b4, b4),
         b: b4,

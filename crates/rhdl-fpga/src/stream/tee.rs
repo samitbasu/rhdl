@@ -82,7 +82,7 @@ pub struct Tee<S: Digital, T: Digital> {
 }
 
 /// Input struct for the [Tee]
-#[derive(PartialEq, Clone, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 pub struct In<S: Digital, T: Digital> {
     /// The input data for the [Tee]
     pub data: Option<(S, T)>,
@@ -93,7 +93,7 @@ pub struct In<S: Digital, T: Digital> {
 }
 
 /// Output struct for the [Tee]
-#[derive(PartialEq, Clone, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 pub struct Out<S: Digital, T: Digital> {
     /// The output data for the S stream
     pub s_data: Option<S>,

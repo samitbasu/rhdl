@@ -45,7 +45,7 @@ impl<N: BitWidth> FIFODrainer<N> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Inputs for the [FIFODrainer] - should be attached to
 /// an [Option] based FIFO interface
 pub struct In<N: BitWidth> {
@@ -53,7 +53,7 @@ pub struct In<N: BitWidth> {
     pub data: Option<Bits<N>>,
 }
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Outputs from the [FIFODrainer]
 pub struct Out {
     /// Next signal to advance the FIFO

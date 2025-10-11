@@ -4,8 +4,8 @@ use super::tcl::{self, AddFiles, FileType};
 use std::io::Write;
 
 pub struct Builder {
-    project_name: String,
-    part_name: String,
+    _project_name: String,
+    _part_name: String,
     root_path: camino::Utf8PathBuf,
     script: tcl::Script,
 }
@@ -21,8 +21,8 @@ impl Builder {
             force: true,
         });
         Ok(Self {
-            project_name: project_name.into(),
-            part_name: part_name.into(),
+            _project_name: project_name.into(),
+            _part_name: part_name.into(),
             script,
             root_path: path.into(),
         })
@@ -71,7 +71,7 @@ mod tests {
     #[test]
     fn builder_test() {
         std::fs::create_dir_all("jnk").unwrap();
-        let mig_prj_path = PathBuf::from("jnk").join("mig_a.prj");
+        let _mig_prj_path = PathBuf::from("jnk").join("mig_a.prj");
         Builder::new("jnk", "demo", "xc7a50tfgg484-1")
             .unwrap()
             .step(CreateIp::xilinx("mig_7series", "4.2", "mig7"))

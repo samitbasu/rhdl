@@ -72,7 +72,7 @@ pub struct Axi2Rhdl<T: Digital> {
     inbuf: Carloni<T>,
 }
 
-#[derive(Debug, PartialEq, Digital, Clone)]
+#[derive(Debug, PartialEq, Digital, Clone, Copy)]
 /// Inputs for the [Axi2Rhdl] core
 pub struct In<T: Digital> {
     /// The data signal on the AXI (incoming) side
@@ -83,7 +83,7 @@ pub struct In<T: Digital> {
     pub ready: Ready<T>,
 }
 
-#[derive(Debug, PartialEq, Digital, Clone)]
+#[derive(Debug, PartialEq, Digital, Clone, Copy)]
 /// Outputs from the [Axi2Rhdl] core
 pub struct Out<T: Digital> {
     /// The data to the RHDL stream

@@ -57,7 +57,7 @@ fn test_const_literal_captured_match() {
 // to re-enable the ability to use literals in match arms.
 #[test]
 fn test_struct_literal_match() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Clone)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo {
         a: b8,
         b: b8,

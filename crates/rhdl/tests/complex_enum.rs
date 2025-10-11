@@ -7,7 +7,7 @@
 
 use rhdl::prelude::*;
 
-#[derive(PartialEq, Debug, Digital, Clone)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 #[repr(i8)]
 enum Packet {
     Color { r: b8, g: b8, b: b8 } = 1,
@@ -36,7 +36,7 @@ fn test_packet_random() {
     }
 }
 
-#[derive(PartialEq, Debug, Digital, Default, Clone)]
+#[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
 enum State {
     #[default]
     Init = -2,
@@ -47,7 +47,7 @@ enum State {
     Invalid,
 }
 
-#[derive(PartialEq, Debug, Digital, Default, Clone)]
+#[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
 struct LogLevel {
     level: b8,
     active: bool,
