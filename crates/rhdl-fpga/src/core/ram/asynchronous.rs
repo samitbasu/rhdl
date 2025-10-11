@@ -242,8 +242,8 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> Circuit for AsyncBRAM<T, W, 
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
         Ok(CircuitDescriptor {
             unique_name: name.to_string(),
-            input_kind: <Self::I as Timed>::static_kind(),
-            output_kind: <Self::O as Timed>::static_kind(),
+            input_kind: <Self::I as Digital>::static_kind(),
+            output_kind: <Self::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             children: Default::default(),
@@ -312,7 +312,7 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> Circuit for AsyncBRAM<T, W, 
                 mem[#addr] = #val;
             }
         });
-        let i_kind = <<Self as CircuitIO>::I as Timed>::static_kind();
+        let i_kind = <<Self as CircuitIO>::I as Digital>::static_kind();
         let read_addr_range: vlog::BitRange = bit_range(i_kind, &path!(.read.val().addr))?.0.into();
         let read_clk_range: vlog::BitRange = bit_range(i_kind, &path!(.read.val().clock))?.0.into();
         let write_addr_range: vlog::BitRange =

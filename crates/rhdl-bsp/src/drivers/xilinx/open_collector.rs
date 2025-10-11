@@ -14,7 +14,7 @@ pub fn build<T: CircuitIO>(
     path: &Path,
     options: &Options,
 ) -> Result<Driver<T>, RHDLError> {
-    let (bits, _) = bit_range(<T::O as Timed>::static_kind(), path)?;
+    let (bits, _) = bit_range(<T::O as Digital>::static_kind(), path)?;
     let mut driver = Driver::default();
     driver.output_port(name, bits.len());
     let output = driver.read_from_inner_output(path)?;

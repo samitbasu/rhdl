@@ -1,11 +1,7 @@
-use crate::{Digital, Kind};
+#![warn(missing_docs)]
+use crate::Digital;
 
-pub trait Timed: Digital {
-    // FIXME - do we need this?
-    //fn static_kind() -> Kind {
-    //<Self as Digital>::static_kind()
-    //}
-}
+pub trait Timed: Digital {}
 
 impl Timed for () {}
 

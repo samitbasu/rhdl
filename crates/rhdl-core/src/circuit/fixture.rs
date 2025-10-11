@@ -337,14 +337,14 @@ impl<T: CircuitIO> Driver<T> {
     }
     /// Connect this driver's input to an inner input path on the circuit.
     pub fn write_to_inner_input(&mut self, path: &Path) -> Result<MountPoint, RHDLError> {
-        let (bits, _) = bit_range(<T::I as Timed>::static_kind(), path)?;
+        let (bits, _) = bit_range(<T::I as Digital>::static_kind(), path)?;
         let mount = MountPoint::Input(bits);
         self.mounts.push(mount.clone());
         Ok(mount)
     }
     /// Connect this driver's output to an inner output path on the circuit.
     pub fn read_from_inner_output(&mut self, path: &Path) -> Result<MountPoint, RHDLError> {
-        let (bits, _) = bit_range(<T::O as Timed>::static_kind(), path)?;
+        let (bits, _) = bit_range(<T::O as Digital>::static_kind(), path)?;
         let mount = MountPoint::Output(bits);
         self.mounts.push(mount.clone());
         Ok(mount)
@@ -359,7 +359,7 @@ pub fn passthrough_output_driver<T: Circuit>(
     name: &str,
     path: &Path,
 ) -> Result<Driver<T>, RHDLError> {
-    let (bits, _) = bit_range(<T::O as Timed>::static_kind(), path)?;
+    let (bits, _) = bit_range(<T::O as Digital>::static_kind(), path)?;
     let mut driver = Driver::default();
     driver.output_port(name, bits.len());
     let output = driver.read_from_inner_output(path)?;
@@ -376,7 +376,7 @@ pub fn passthrough_input_driver<T: Circuit>(
     name: &str,
     path: &Path,
 ) -> Result<Driver<T>, RHDLError> {
-    let (bits, _) = bit_range(<T::I as Timed>::static_kind(), path)?;
+    let (bits, _) = bit_range(<T::I as Digital>::static_kind(), path)?;
     let mut driver = Driver::default();
     driver.input_port(name, bits.len());
     let input = driver.write_to_inner_input(path)?;
@@ -393,7 +393,7 @@ pub fn constant_driver<T: Circuit, S: Digital>(
     val: S,
     path: &Path,
 ) -> Result<Driver<T>, RHDLError> {
-    let (_bits, sub_kind) = bit_range(<T::I as Timed>::static_kind(), path)?;
+    let (_bits, sub_kind) = bit_range(<T::I as Digital>::static_kind(), path)?;
     if S::static_kind() != sub_kind {
         return Err(RHDLError::ExportError(ExportError::WrongConstantType {
             provided: S::static_kind(),
@@ -511,9 +511,9 @@ impl<T: Circuit> Fixture<T> {
     pub fn module(&self) -> Result<vlog::ModuleList, RHDLError> {
         let ports = self.drivers.iter().flat_map(|t| t.ports.iter());
         // Declare the mount points for the circuit
-        let i_kind = <<T as CircuitIO>::I as Timed>::static_kind();
+        let i_kind = <<T as CircuitIO>::I as Digital>::static_kind();
         let inputs_len = i_kind.bits();
-        let outputs_len = <<T as CircuitIO>::O as Timed>::static_kind().bits();
+        let outputs_len = <<T as CircuitIO>::O as Digital>::static_kind().bits();
         let declarations = [
             vlog::maybe_decl_wire(inputs_len, "inner_input"),
             vlog::maybe_decl_wire(outputs_len, "inner_output"),

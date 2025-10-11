@@ -89,8 +89,8 @@ impl<C: Domain> Circuit for ResetNegation<C> {
     fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
         Ok(CircuitDescriptor {
             unique_name: name.into(),
-            input_kind: <Self::I as Timed>::static_kind(),
-            output_kind: <Self::O as Timed>::static_kind(),
+            input_kind: <Self::I as Digital>::static_kind(),
+            output_kind: <Self::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             children: Default::default(),

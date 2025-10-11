@@ -16,6 +16,8 @@ pub mod reset;
 pub mod reset_n;
 pub mod signal;
 pub mod svg;
+/// Marker trait for types in which all elements belong to a time domain
 pub mod timed;
+/// Struct that holds a Digital value, along with a timestamp
 pub mod timed_sample;
 pub mod typed_bits;
