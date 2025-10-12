@@ -1,0 +1,3 @@
+# Bit Widths
+
+While an early version of RHDL used `const` generics to express the width of the bit vectors, this approach turned out to be limited due to what can be done on stable Rust with const generics.  Unfortunately, the standard way to have type numbers in Rust, the [typenum](https://crates.io/crates/typenum) crate, encodes the types in binary notation.  Which means that it is hard to tell what size of a bit vector is by looking at the type signature in your IDE.  
