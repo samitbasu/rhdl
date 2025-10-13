@@ -13,7 +13,7 @@ mod blinker {
     #[derive(Clone, Synchronous, SynchronousDQ, Default)]
     pub struct U {
         // We need a 32 bit counter.
-        counter: rhdl_fpga::core::counter::Counter<U32>,
+        counter: rhdl_fpga::core::counter::Counter<32>,
     }
 
     impl SynchronousIO for U {

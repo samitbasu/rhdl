@@ -64,7 +64,7 @@ fn test_tuple_struct_construction() -> miette::Result<()> {
         signal(Foo(a, b))
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<4>())?;
     Ok(())
 }
 
@@ -90,6 +90,6 @@ fn test_struct_rest_syntax() -> miette::Result<()> {
         signal(d + e + b)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<4>())?;
     Ok(())
 }

@@ -25,8 +25,8 @@ macro_rules! test_op_b4xb4 {
             let g = b1 $op a2;
             signal((c.as_bits(), d.as_bits(), e.as_bits(), f, g))
         }
-        let args = exhaustive::<U4>().into_iter().flat_map(|a1| {
-            exhaustive::<U4>()
+        let args = exhaustive::<4>().into_iter().flat_map(|a1| {
+            exhaustive::<4>()
                 .into_iter()
                 .map(move |a2| (red(a1), red(a2)))
         });
@@ -47,8 +47,8 @@ macro_rules! test_op_s4xs4 {
             let e = 1 + d;
             signal((c.as_signed_bits(), d.as_signed_bits(), e.as_signed_bits()))
         }
-        let args = exhaustive_signed::<U4>().into_iter().flat_map(|a1| {
-            exhaustive_signed::<U4>()
+        let args = exhaustive_signed::<4>().into_iter().flat_map(|a1| {
+            exhaustive_signed::<4>()
                 .into_iter()
                 .map(move |a2| (red(a1), red(a2)))
         });
@@ -85,8 +85,8 @@ macro_rules! shift_test_bits {
             let e = a1 $op b2;
             signal((c.as_bits(), d.as_bits(), e.as_bits()))
         }
-        let args = exhaustive::<U8>().into_iter().flat_map(|a1| {
-            exhaustive::<U3>()
+        let args = exhaustive::<8>().into_iter().flat_map(|a1| {
+            exhaustive::<3>()
                 .into_iter()
                 .map(move |a2| (red(a1), red(a2)))
         });
@@ -116,8 +116,8 @@ macro_rules! shift_test_signed_bits {
             let e = a1 $op b2;
             signal((c.as_signed_bits(), d.as_signed_bits(), e.as_signed_bits()))
         }
-        let args = exhaustive_signed::<U8>().into_iter().flat_map(|a1| {
-            exhaustive::<U3>()
+        let args = exhaustive_signed::<8>().into_iter().flat_map(|a1| {
+            exhaustive::<3>()
                 .into_iter()
                 .map(move |a2| (red(a1), red(a2)))
         });
@@ -143,8 +143,8 @@ fn test_shl_signed_via_dyn_bits() -> miette::Result<()> {
         let d = c << 1;
         signal((c.as_signed_bits(), d.as_signed_bits()))
     }
-    let args = exhaustive_signed::<U8>().into_iter().flat_map(|a1| {
-        exhaustive::<U3>()
+    let args = exhaustive_signed::<8>().into_iter().flat_map(|a1| {
+        exhaustive::<3>()
             .into_iter()
             .map(move |a2| (red(a1), red(a2)))
     });

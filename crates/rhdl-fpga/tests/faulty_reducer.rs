@@ -18,53 +18,66 @@ pub enum State {
 }
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]
-pub struct U<DW: BitWidth, DN: BitWidth> {
+pub struct U<const DW: usize, const DN: usize>
+where
+    rhdl::bits::W<DW>: BitWidth,
+    rhdl::bits::W<DN>: BitWidth,
+{
     state: dff::DFF<State>,
     data_store: dff::DFF<Bits<DW>>,
-    // TODO - make a marker?
-    _unused: constant::Constant<Bits<DN>>,
 }
 
-impl<W, N> Default for U<W, N>
+impl<const W: usize, const N: usize> Default for U<W, N>
 where
-    W: BitWidth,
-    N: Add<N>,
-    W: IsEqualTo<Sum<N, N>>,
-    N: BitWidth,
+    rhdl::bits::W<W>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     fn default() -> Self {
         Self {
             state: dff::DFF::<State>::default(),
             data_store: dff::DFF::<Bits<W>>::default(),
-            _unused: constant::Constant::<Bits<N>>::new(bits(0)),
         }
     }
 }
 
 #[derive(Debug, PartialEq, Digital, Clone, Copy)]
-pub struct I<DW: BitWidth> {
+pub struct I<const DW: usize>
+where
+    rhdl::bits::W<DW>: BitWidth,
+{
     pub data: Option<Bits<DW>>,
     pub ready: bool,
 }
 
 #[derive(Debug, PartialEq, Digital, Clone, Copy)]
-pub struct O<DN: BitWidth> {
+pub struct O<const DN: usize>
+where
+    rhdl::bits::W<DN>: BitWidth,
+{
     pub data: Option<Bits<DN>>,
     pub ready: bool,
 }
 
-impl<DW: BitWidth, DN: BitWidth> SynchronousIO for U<DW, DN> {
+impl<const DW: usize, const DN: usize> SynchronousIO for U<DW, DN>
+where
+    rhdl::bits::W<DW>: BitWidth,
+    rhdl::bits::W<DN>: BitWidth,
+{
     type I = I<DW>;
     type O = O<DN>;
     type Kernel = kernel<DW, DN>;
 }
 
 #[kernel]
-pub fn kernel<DW: BitWidth, DN: BitWidth>(
+pub fn kernel<const DW: usize, const DN: usize>(
     _cr: ClockReset,
     i: I<DW>,
     q: Q<DW, DN>,
-) -> (O<DN>, D<DW, DN>) {
+) -> (O<DN>, D<DW, DN>)
+where
+    rhdl::bits::W<DW>: BitWidth,
+    rhdl::bits::W<DN>: BitWidth,
+{
     let mut d = D::<DW, DN>::dont_care();
     // Latch prevention
     d.state = q.state;
@@ -110,7 +123,7 @@ pub fn kernel<DW: BitWidth, DN: BitWidth>(
 
 #[test]
 fn test_no_combinatorial_paths() -> miette::Result<()> {
-    let uut = U::<U16, U8>::default();
+    let uut = U::<16, 8>::default();
     let res = drc::no_combinatorial_paths(&uut);
     let Err(err) = res else {
         panic!("Expected this to fail");

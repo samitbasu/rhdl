@@ -154,7 +154,7 @@ mod tests {
 
     #[kernel]
     fn map_item(_cr: ClockReset, t: b4) -> b2 {
-        lsbs::<U2, U4>(t)
+        lsbs::<2, 4>(t)
     }
 
     #[test]
@@ -172,7 +172,7 @@ mod tests {
         let consume = move |data: Option<b2>| {
             if let Some(data) = data {
                 let orig = b_rng.next().unwrap();
-                let orig_lsb = lsbs::<U2, U4>(orig);
+                let orig_lsb = lsbs::<2, 4>(orig);
                 assert_eq!(data, orig_lsb);
             }
             rand::random::<f64>() > 0.2

@@ -68,11 +68,11 @@ use super::write_logic;
 #[derive(Clone, Circuit, CircuitDQ, Default)]
 pub struct AsyncFIFO<T: Digital, W: Domain, R: Domain, const N: usize>
 where
-    Const<N>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
-    write_logic: Adapter<write_logic::FIFOWriteCore<Const<N>>, W>,
-    read_logic: Adapter<read_logic::FIFOReadCore<Const<N>>, R>,
-    ram: ram::option_async::OptionAsyncBRAM<T, W, R, Const<N>>,
+    write_logic: Adapter<write_logic::FIFOWriteCore<N>, W>,
+    read_logic: Adapter<read_logic::FIFOReadCore<N>, R>,
+    ram: ram::option_async::OptionAsyncBRAM<T, W, R, N>,
     read_count_for_write_logic: cross_counter::CrossCounter<R, W, N>,
     write_count_for_read_logic: cross_counter::CrossCounter<W, R, N>,
 }
@@ -109,7 +109,7 @@ pub struct Out<T: Digital, W: Domain, R: Domain> {
 
 impl<T: Digital, W: Domain, R: Domain, const N: usize> CircuitIO for AsyncFIFO<T, W, R, N>
 where
-    Const<N>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     type I = In<T, W, R>;
     type O = Out<T, W, R>;
@@ -123,7 +123,7 @@ pub fn async_fifo_kernel<T: Digital, W: Domain, R: Domain, const N: usize>(
     q: Q<T, W, R, N>,
 ) -> (Out<T, W, R>, D<T, W, R, N>)
 where
-    Const<N>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     let mut d = D::<T, W, R, N>::dont_care();
     // Clock the various components
@@ -132,7 +132,7 @@ where
     // Create a struct to drive the inputs of the RAM on the
     // write side.  These signals are all clocked in the write
     // domain.
-    let mut ram_write = ram::option_async::WriteI::<T, Const<N>>::dont_care();
+    let mut ram_write = ram::option_async::WriteI::<T, N>::dont_care();
     let ram_write_addr = q.write_logic.val().ram_write_address;
     ram_write.clock = i.cr_w.val().clock;
     let mut write_enable = false;
@@ -144,19 +144,19 @@ where
     };
     d.ram.write = signal(ram_write);
     // Do the same thing for the read side of the RAM.
-    let mut ram_read = ram::asynchronous::ReadI::<Const<N>>::dont_care();
+    let mut ram_read = ram::asynchronous::ReadI::<N>::dont_care();
     ram_read.clock = i.cr_r.val().clock;
     ram_read.addr = q.read_logic.val().ram_read_address;
     d.ram.read = signal(ram_read);
     // Provide the write logic with the enable and the
     // read address as determined by the split counter.
-    d.write_logic.input = signal(write_logic::In::<Const<N>> {
+    d.write_logic.input = signal(write_logic::In::<N> {
         read_address: q.read_count_for_write_logic.count.val(),
         write_enable,
     });
     // Provide the read logic with the next signal and the
     // write address as determined by the split counter.
-    d.read_logic.input = signal(read_logic::In::<Const<N>> {
+    d.read_logic.input = signal(read_logic::In::<N> {
         next: i.next.val(),
         write_address: q.write_count_for_read_logic.count.val(),
     });
@@ -208,7 +208,7 @@ mod tests {
             cr_r: signal(r.0),
         });
         //        let input = test_stream();
-        let uut = AsyncFIFO::<Bits<U8>, Red, Blue, 5>::default();
+        let uut = AsyncFIFO::<Bits<8>, Red, Blue, 5>::default();
         let vcd = uut.run(input.clone()).collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")

@@ -87,11 +87,11 @@ fn test_vm_unsigned_arith_function() -> miette::Result<()> {
         signal(a.val() ^ b.val())
     }
 
-    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_pair_bn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<sub<Red>, _, _, _>(sub::<Red>, tuple_pair_bn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<and<Red>, _, _, _>(and::<Red>, tuple_pair_bn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<or<Red>, _, _, _>(or::<Red>, tuple_pair_bn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<xor<Red>, _, _, _>(xor::<Red>, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_pair_bn_red::<6>())?;
+    test_kernel_vm_and_verilog::<sub<Red>, _, _, _>(sub::<Red>, tuple_pair_bn_red::<6>())?;
+    test_kernel_vm_and_verilog::<and<Red>, _, _, _>(and::<Red>, tuple_pair_bn_red::<6>())?;
+    test_kernel_vm_and_verilog::<or<Red>, _, _, _>(or::<Red>, tuple_pair_bn_red::<6>())?;
+    test_kernel_vm_and_verilog::<xor<Red>, _, _, _>(xor::<Red>, tuple_pair_bn_red::<6>())?;
     Ok(())
 }
 
@@ -107,8 +107,8 @@ fn test_vm_signed_arith_function() -> miette::Result<()> {
         signal(a.val() - b.val())
     }
 
-    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_pair_sn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<sub<Red>, _, _, _>(sub::<Red>, tuple_pair_sn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<add<Red>, _, _, _>(add::<Red>, tuple_pair_sn_red::<6>())?;
+    test_kernel_vm_and_verilog::<sub<Red>, _, _, _>(sub::<Red>, tuple_pair_sn_red::<6>())?;
     Ok(())
 }
 
@@ -144,12 +144,12 @@ fn test_vm_unsigned_binop_function() -> miette::Result<()> {
         signal(a.val() < b.val())
     }
 
-    test_kernel_vm_and_verilog::<gt<Red>, _, _, _>(gt::<Red>, tuple_pair_bn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<ge<Red>, _, _, _>(ge::<Red>, tuple_pair_bn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<eq<Red>, _, _, _>(eq::<Red>, tuple_pair_bn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<ne<Red>, _, _, _>(ne::<Red>, tuple_pair_bn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<le<Red>, _, _, _>(le::<Red>, tuple_pair_bn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<lt<Red>, _, _, _>(lt::<Red>, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<gt<Red>, _, _, _>(gt::<Red>, tuple_pair_bn_red::<6>())?;
+    test_kernel_vm_and_verilog::<ge<Red>, _, _, _>(ge::<Red>, tuple_pair_bn_red::<6>())?;
+    test_kernel_vm_and_verilog::<eq<Red>, _, _, _>(eq::<Red>, tuple_pair_bn_red::<6>())?;
+    test_kernel_vm_and_verilog::<ne<Red>, _, _, _>(ne::<Red>, tuple_pair_bn_red::<6>())?;
+    test_kernel_vm_and_verilog::<le<Red>, _, _, _>(le::<Red>, tuple_pair_bn_red::<6>())?;
+    test_kernel_vm_and_verilog::<lt<Red>, _, _, _>(lt::<Red>, tuple_pair_bn_red::<6>())?;
     Ok(())
 }
 
@@ -185,12 +185,12 @@ fn test_vm_signed_binop_function() -> miette::Result<()> {
         signal(a.val() < b.val())
     }
 
-    test_kernel_vm_and_verilog::<gt<Red>, _, _, _>(gt::<Red>, tuple_pair_sn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<ge<Red>, _, _, _>(ge::<Red>, tuple_pair_sn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<eq<Red>, _, _, _>(eq::<Red>, tuple_pair_sn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<ne<Red>, _, _, _>(ne::<Red>, tuple_pair_sn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<le<Red>, _, _, _>(le::<Red>, tuple_pair_sn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<lt<Red>, _, _, _>(lt::<Red>, tuple_pair_sn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<gt<Red>, _, _, _>(gt::<Red>, tuple_pair_sn_red::<6>())?;
+    test_kernel_vm_and_verilog::<ge<Red>, _, _, _>(ge::<Red>, tuple_pair_sn_red::<6>())?;
+    test_kernel_vm_and_verilog::<eq<Red>, _, _, _>(eq::<Red>, tuple_pair_sn_red::<6>())?;
+    test_kernel_vm_and_verilog::<ne<Red>, _, _, _>(ne::<Red>, tuple_pair_sn_red::<6>())?;
+    test_kernel_vm_and_verilog::<le<Red>, _, _, _>(le::<Red>, tuple_pair_sn_red::<6>())?;
+    test_kernel_vm_and_verilog::<lt<Red>, _, _, _>(lt::<Red>, tuple_pair_sn_red::<6>())?;
     Ok(())
 }
 

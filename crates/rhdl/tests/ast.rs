@@ -32,12 +32,12 @@ fn test_func_with_structured_args() -> miette::Result<()> {
 #[test]
 fn test_basic_cast() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<DATA: BitWidth>(a: Signal<b8, Red>) -> Signal<b8, Red> {
-        let bytes_per_word: Bits<U8> = bits(({ DATA::BITS } >> 3) as u128);
+    fn do_stuff<const DATA: usize>(a: Signal<b8, Red>) -> Signal<b8, Red> {
+        let bytes_per_word: Bits<8> = bits(({ DATA } >> 3) as u128);
         let b = a.val() + bytes_per_word;
         signal(b.resize())
     }
-    test_kernel_vm_and_verilog::<do_stuff<U32>, _, _, _>(do_stuff::<U32>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<32>, _, _, _>(do_stuff::<32>, tuple_exhaustive_red())?;
     Ok(())
 }
 
@@ -222,7 +222,7 @@ fn test_repeat_op() -> miette::Result<()> {
         signal((c, d))
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<5>())?;
     Ok(())
 }
 
@@ -244,7 +244,7 @@ fn test_exec_sub_kernel() -> miette::Result<()> {
         signal((c + a.val() + b.val()).resize())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<5>())?;
     Ok(())
 }
 
@@ -275,7 +275,7 @@ fn test_match_value() -> miette::Result<()> {
         }
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<5>())?;
     Ok(())
 }
 
@@ -463,7 +463,7 @@ fn test_signed_match() -> miette::Result<()> {
         }
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_sn_red::<U5>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_sn_red::<5>())?;
     Ok(())
 }
 
@@ -477,7 +477,7 @@ fn test_assignment_of_if_expression() -> miette::Result<()> {
         c = (if a > b { a + 1 } else { b + 2 }).resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<4>())?;
     Ok(())
 }
 
@@ -496,10 +496,13 @@ fn test_precomputation() -> miette::Result<()> {
 #[test]
 fn test_for_loop_const_generics() -> miette::Result<()> {
     #[kernel]
-    fn sum_bits<N: BitWidth>(a: Signal<Bits<N>, Red>) -> Signal<bool, Red> {
+    fn sum_bits<const N: usize>(a: Signal<Bits<N>, Red>) -> Signal<bool, Red>
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
         let mut ret = false;
         let a = a.val();
-        for i in 0..N::BITS {
+        for i in 0..N {
             if a & (1 << i) != 0 {
                 ret ^= true;
             }
@@ -507,9 +510,9 @@ fn test_for_loop_const_generics() -> miette::Result<()> {
         trace("a", &a);
         signal(ret)
     }
-    let res = compile_design::<sum_bits<U8>>(CompilationMode::Asynchronous)?;
+    let res = compile_design::<sum_bits<8>>(CompilationMode::Asynchronous)?;
     let inputs = (0..256).map(|x| (signal(bits(x)),));
-    test_kernel_vm_and_verilog::<sum_bits<U8>, _, _, _>(sum_bits::<U8>, inputs)?;
+    test_kernel_vm_and_verilog::<sum_bits<8>, _, _, _>(sum_bits::<8>, inputs)?;
     Ok(())
 }
 
@@ -600,7 +603,7 @@ fn test_multiply() -> miette::Result<()> {
         let c = a * b;
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_pair_bn_red::<U5>())?;
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_pair_bn_red::<5>())?;
     Ok(())
 }
 

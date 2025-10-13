@@ -53,13 +53,19 @@ use super::write_logic;
 /// Note that we need `T: Default`.
 ///  `N` the number bits in the address.  FIFO holds `2^{N-1}` elements
 ///  when full.
-pub struct SyncFIFO<T: Digital, N: BitWidth> {
+pub struct SyncFIFO<T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     write_logic: write_logic::FIFOWriteCore<N>,
     read_logic: read_logic::FIFOReadCore<N>,
     ram: ram::option_sync::OptionSyncBRAM<T, N>,
 }
 
-impl<T: Digital, N: BitWidth> Default for SyncFIFO<T, N> {
+impl<T: Digital, const N: usize> Default for SyncFIFO<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     fn default() -> Self {
         Self {
             write_logic: write_logic::FIFOWriteCore::default(),
@@ -95,7 +101,10 @@ pub struct Out<T: Digital> {
     pub underflow: bool,
 }
 
-impl<T: Digital, N: BitWidth> SynchronousIO for SyncFIFO<T, N> {
+impl<T: Digital, const N: usize> SynchronousIO for SyncFIFO<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = In<T>;
     type O = Out<T>;
     type Kernel = fifo_kernel<T, N>;
@@ -103,11 +112,14 @@ impl<T: Digital, N: BitWidth> SynchronousIO for SyncFIFO<T, N> {
 
 #[kernel]
 /// The compute kernel for the [SyncFIFO]
-pub fn fifo_kernel<T: Digital, N: BitWidth>(
+pub fn fifo_kernel<T: Digital, const N: usize>(
     _cr: ClockReset,
     i: In<T>,
     q: Q<T, N>,
-) -> (Out<T>, D<T, N>) {
+) -> (Out<T>, D<T, N>)
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     // This is essentially a wiring exercise.  The clock
     // and reset are propagated to the sub-elements automatically
     // so we just need to route the signals.
@@ -150,21 +162,21 @@ mod tests {
 
     use super::*;
 
-    fn write(data: b8) -> In<Bits<U8>> {
+    fn write(data: b8) -> In<Bits<8>> {
         In {
             data: Some(data),
             next: false,
         }
     }
 
-    fn read() -> In<Bits<U8>> {
+    fn read() -> In<Bits<8>> {
         In {
             data: None,
             next: true,
         }
     }
 
-    fn test_seq() -> impl Iterator<Item = TimedSample<(ClockReset, In<Bits<U8>>)>> {
+    fn test_seq() -> impl Iterator<Item = TimedSample<(ClockReset, In<Bits<8>>)>> {
         let write_seq = (0..7).map(|i| write(bits(i + 1)));
         let read_seq = (0..7).map(|_| read());
         write_seq.chain(read_seq).with_reset(1).clock_pos_edge(100)
@@ -172,7 +184,7 @@ mod tests {
 
     #[test]
     fn check_that_output_is_valid() -> miette::Result<()> {
-        let uut = SyncFIFO::<b8, U3>::default();
+        let uut = SyncFIFO::<b8, 3>::default();
         let stream = test_seq();
         let output = uut.run(stream).synchronous_sample().map(|x| x.value.2.data);
         let output = output.flatten().collect::<Vec<_>>();
@@ -184,7 +196,7 @@ mod tests {
 
     #[test]
     fn basic_write_then_read_test() -> miette::Result<()> {
-        let uut = SyncFIFO::<Bits<U8>, U3>::default();
+        let uut = SyncFIFO::<Bits<8>, 3>::default();
         let stream = test_seq();
         let vcd = uut.run(stream).collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -200,7 +212,7 @@ mod tests {
 
     #[test]
     fn test_hdl_generation_fifo() -> miette::Result<()> {
-        let uut = SyncFIFO::<Bits<U8>, U3>::default();
+        let uut = SyncFIFO::<Bits<8>, 3>::default();
         let stream = test_seq();
         let test_bench = uut.run(stream).collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
@@ -221,7 +233,7 @@ mod tests {
         let mut writer_iter = data.iter().copied().fuse();
         // The reader will read data from the FIFO if it is not empty, and if a random value is true.  The random value
         // determines how often the reader reads data from the FIFO.
-        type UC = SyncFIFO<Bits<U8>, U3>;
+        type UC = SyncFIFO<Bits<8>, 3>;
         let uut = UC::default();
         let mut writer_finished = false;
         let mut need_reset = true;

@@ -6,21 +6,21 @@ use rhdl::prelude::*;
 // "full" bit that drops low if the channel ever yields
 // an invalid value.
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
-pub struct U<N: BitWidth> {
+pub struct U<const N: usize> {
     filler: crate::fifo::testing::filler::FIFOFiller<N>,
     sender: crate::axi4lite::channel::sender::U<Bits<N>>,
     receiver: crate::axi4lite::channel::receiver::U<Bits<N>>,
     drainer: crate::fifo::testing::drainer::FIFODrainer<N>,
 }
 
-impl<N: BitWidth> SynchronousIO for U<N> {
+impl<const N: usize> SynchronousIO for U<N> {
     type I = ();
     type O = bool;
     type Kernel = fixture_kernel<N>;
 }
 
 #[kernel]
-pub fn fixture_kernel<N: BitWidth>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool, D<N>) {
+pub fn fixture_kernel<const N: usize>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool, D<N>) {
     let mut d = D::<N>::dont_care();
     // The filler needs access to the full signal of the sender
     d.filler.full = q.sender.full;
@@ -45,7 +45,7 @@ mod tests {
 
     #[test]
     fn test_channel_trace() -> miette::Result<()> {
-        let uut = U::<U6>::default();
+        let uut = U::<6>::default();
         let input = std::iter::repeat(())
             .take(1000)
             .with_reset(1)
@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn test_channel_is_valid() -> miette::Result<()> {
-        let uut = U::<U6>::default();
+        let uut = U::<6>::default();
         let input = std::iter::repeat(())
             .take(100_000)
             .with_reset(1)
@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_channel_hdl() -> miette::Result<()> {
-        let uut = U::<U6>::default();
+        let uut = U::<6>::default();
         let input = std::iter::repeat(())
             .take(100)
             .with_reset(1)

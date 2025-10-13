@@ -6,18 +6,27 @@ mod auto_counter {
     use rhdl_fpga::core::dff;
 
     #[derive(Debug, Clone, Default, SynchronousDQ, Synchronous)]
-    pub struct U<N: BitWidth> {
+    pub struct U<const N: usize>
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
         count: dff::DFF<Bits<N>>,
     }
 
-    impl<N: BitWidth> SynchronousIO for U<N> {
+    impl<const N: usize> SynchronousIO for U<N>
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
         type I = ();
         type O = Bits<N>;
         type Kernel = auto_counter_kernel<N>;
     }
 
     #[kernel]
-    pub fn auto_counter_kernel<N: BitWidth>(_cr: ClockReset, _i: (), q: Q<N>) -> (Bits<N>, D<N>) {
+    pub fn auto_counter_kernel<const N: usize>(_cr: ClockReset, _i: (), q: Q<N>) -> (Bits<N>, D<N>)
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
         (q.count, D::<N> { count: q.count + 1 })
     }
 }
@@ -26,7 +35,10 @@ mod doubler {
     use rhdl::prelude::*;
 
     #[kernel]
-    pub fn doubler<N: BitWidth>(_cr: ClockReset, i: Bits<N>) -> Bits<N> {
+    pub fn doubler<const N: usize>(_cr: ClockReset, i: Bits<N>) -> Bits<N>
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
         i << 1
     }
 }
@@ -36,7 +48,7 @@ fn test_auto_counter_counts() -> miette::Result<()> {
     let input = std::iter::repeat_n((), 100)
         .with_reset(1)
         .clock_pos_edge(100);
-    let uut = auto_counter::U::<U4>::default();
+    let uut = auto_counter::U::<4>::default();
     let vcd = uut.run(input).collect::<Vcd>();
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("vcd")
@@ -53,7 +65,7 @@ fn test_auto_counter_is_correct() -> miette::Result<()> {
     let input = std::iter::repeat_n((), 100)
         .with_reset(1)
         .clock_pos_edge(100);
-    let uut = auto_counter::U::<U4>::default();
+    let uut = auto_counter::U::<4>::default();
     let output = uut
         .run(input)
         .synchronous_sample()
@@ -70,8 +82,8 @@ fn test_chain_auto_counter() -> miette::Result<()> {
     let input = std::iter::repeat_n((), 100)
         .with_reset(1)
         .clock_pos_edge(100);
-    let c1 = auto_counter::U::<U4>::default();
-    let c2 = Func::try_new::<doubler::doubler<U4>>()?;
+    let c1 = auto_counter::U::<4>::default();
+    let c2 = Func::try_new::<doubler::doubler<4>>()?;
     let uut = Chain::new(c1, c2);
     let output = uut
         .run(input)

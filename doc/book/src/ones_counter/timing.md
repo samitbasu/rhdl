@@ -88,7 +88,7 @@ There are some new things introduced here.  First, we have a `#[kernel]` that ha
 use rhdl::prelude::*;
 #[test]
 fn test_count_ones() {
-    assert_eq!(ones::helper::count_ones::<U8, U4>(b8(0b10110010)), b4(4));
+    assert_eq!(ones::helper::count_ones::<8, 4>(b8(0b10110010)), b4(4));
 }
 ```
 
@@ -122,7 +122,7 @@ impl CircuitDQ for OneCounter {
 #[kernel]
 pub fn one_counter(input: Signal<b8, Red>, _q: ()) -> (Signal<b4, Red>, ()) {
     let input = input.val();
-    let count = helper::count_ones::<U8, U4>(input);
+    let count = helper::count_ones::<8, 4>(input);
     (signal(count), ())
 }
 ```
@@ -155,10 +155,10 @@ impl CircuitDQ for OneCounterDivided {
 #[kernel]
 pub fn one_counter_divided(input: Signal<b8, Red>, _q: ()) -> (Signal<b4, Red>, ()) {
     let input = input.val();
-    let lsbs = input.resize::<U4>();
-    let msbs = (input >> 4).resize::<U4>();
+    let lsbs = input.resize::<4>();
+    let msbs = (input >> 4).resize::<4>();
     let count =
-        crate::helper::count_ones::<U4, U4>(lsbs) + crate::helper::count_ones::<U4, U4>(msbs);
+        crate::helper::count_ones::<4, 4>(lsbs) + crate::helper::count_ones::<4, 4>(msbs);
     (signal(count), ())
 }
 ```
@@ -188,7 +188,7 @@ impl CircuitDQ for OneCounter {
 #[kernel]
 pub fn one_counter(input: Signal<b8, Red>, _q: ()) -> (Signal<b4, Red>, ()) {
     let input = input.val();
-    let count = helper::count_ones::<U8, U4>(input);
+    let count = helper::count_ones::<8, 4>(input);
     (signal(count), ())
 }
 ```

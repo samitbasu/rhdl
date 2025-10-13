@@ -70,7 +70,7 @@ use rhdl::prelude::*;
 /// Lazy, bursty random number generator as
 /// a stream.
 pub struct LazyRng {
-    filler: FIFOFiller<U32>,
+    filler: FIFOFiller<32>,
     buffer: FIFOToStream<b32>,
 }
 

@@ -102,12 +102,18 @@ use super::option_sync::OptionSyncBRAM;
 /// The unit that implements the [PipeBRAM]
 /// The `T` parameter indicates the type of data held in the BRAM.
 /// The `N` parameter indicates the number of address bits.
-pub struct PipeSyncBRAM<T: Digital, N: BitWidth> {
+pub struct PipeSyncBRAM<T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     ram: super::option_sync::OptionSyncBRAM<T, N>,
     delay: dff::DFF<bool>,
 }
 
-impl<T: Digital, N: BitWidth> PipeSyncBRAM<T, N> {
+impl<T: Digital, const N: usize> PipeSyncBRAM<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// Construct a new [PipeSyncBRAM] with the provided initial contents.
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         Self {
@@ -119,7 +125,10 @@ impl<T: Digital, N: BitWidth> PipeSyncBRAM<T, N> {
 
 #[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// The inputs for the [PipeBRAM]
-pub struct In<T: Digital, N: BitWidth> {
+pub struct In<T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// The read commands.  For the output to be
     /// valid, you provide [Some] address.  And then
     /// one cycle later, the output will also be [Some].
@@ -129,7 +138,10 @@ pub struct In<T: Digital, N: BitWidth> {
     pub write: Option<(Bits<N>, T)>,
 }
 
-impl<T: Digital, N: BitWidth> SynchronousIO for PipeSyncBRAM<T, N> {
+impl<T: Digital, const N: usize> SynchronousIO for PipeSyncBRAM<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = In<T, N>;
     type O = Option<T>;
     type Kernel = kernel<T, N>;
@@ -137,11 +149,14 @@ impl<T: Digital, N: BitWidth> SynchronousIO for PipeSyncBRAM<T, N> {
 
 #[kernel]
 /// The kernel for the [PipeBRAM]
-pub fn kernel<T: Digital, N: BitWidth>(
+pub fn kernel<T: Digital, const N: usize>(
     _cr: ClockReset,
     i: In<T, N>,
     q: Q<T, N>,
-) -> (Option<T>, D<T, N>) {
+) -> (Option<T>, D<T, N>)
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     let mut d = D::<T, N>::dont_care();
     let (tag, addr) = unpack::<Bits<N>>(i.read, bits(0));
     d.ram.write = i.write;

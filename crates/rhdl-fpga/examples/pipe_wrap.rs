@@ -40,7 +40,7 @@ pub mod delay {
         d.stage_0 = i;
         d.stage_1 = q.stage_0;
         let (tag, data) = unpack::<b6>(q.stage_1, bits(0));
-        let data = lsbs::<U4, U6>(data);
+        let data = lsbs::<4, 6>(data);
         d.stage_2 = pack::<b4>(tag, data);
         (q.stage_2, d)
     }
@@ -65,7 +65,7 @@ pub mod delay {
 struct TestFixture {
     source: SourceFromFn<b6>,
     delay: DelayLine,
-    wrapper: PipeWrapper<b6, b4, U2>,
+    wrapper: PipeWrapper<b6, b4, 2>,
     sink: SinkFromFn<b4>,
 }
 
@@ -94,7 +94,7 @@ fn main() -> Result<(), RHDLError> {
     let b_rng = stalling(b_rng, 0.13);
     let consume = move |data| {
         if let Some(data) = data {
-            let validation = lsbs::<U4, U6>(c_rng.next().unwrap());
+            let validation = lsbs::<4, 6>(c_rng.next().unwrap());
             assert_eq!(data, validation);
         }
         rand::random::<f64>() > 0.2

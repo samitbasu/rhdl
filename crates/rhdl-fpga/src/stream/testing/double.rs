@@ -3,7 +3,10 @@ use rhdl::prelude::*;
 use crate::stream::ready;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
-pub struct U<N: BitWidth> {
+pub struct U<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     filler: crate::fifo::testing::filler::FIFOFiller<N>,
     push_pull: crate::stream::fifo_to_stream::FIFOToStream<Bits<N>>,
     relay1: crate::stream::stream_buffer::StreamBuffer<Bits<N>>,
@@ -11,7 +14,10 @@ pub struct U<N: BitWidth> {
     drainer: crate::fifo::testing::drainer::FIFODrainer<N>,
 }
 
-impl<N: BitWidth> Default for U<N> {
+impl<const N: usize> Default for U<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     fn default() -> Self {
         Self {
             filler: crate::fifo::testing::filler::FIFOFiller::<N>::new(4, 0.5),
@@ -23,7 +29,10 @@ impl<N: BitWidth> Default for U<N> {
     }
 }
 
-impl<N: BitWidth> SynchronousIO for U<N> {
+impl<const N: usize> SynchronousIO for U<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = ();
     type O = bool;
     type Kernel = double_kernel<N>;
@@ -36,7 +45,10 @@ impl<N: BitWidth> SynchronousIO for U<N> {
 //  data  q  -> d       q ->  d     q ->  d
 //  ready d <-  q       d <-  q     d <-  q
 #[kernel]
-pub fn double_kernel<N: BitWidth>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool, D<N>) {
+pub fn double_kernel<const N: usize>(_cr: ClockReset, _i: (), q: Q<N>) -> (bool, D<N>)
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     let mut d = D::<N>::dont_care();
     // Fill the data values
     d.push_pull.data = q.filler.data;
@@ -60,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_double_trace() -> miette::Result<()> {
-        let uut = U::<U6>::default();
+        let uut = U::<6>::default();
         let input = std::iter::repeat_n((), 5000)
             .with_reset(1)
             .clock_pos_edge(100);
@@ -77,7 +89,7 @@ mod tests {
 
     #[test]
     fn test_double_is_valid() -> miette::Result<()> {
-        let uut = U::<U6>::default();
+        let uut = U::<6>::default();
         let input = std::iter::repeat_n((), 100_000)
             .with_reset(1)
             .clock_pos_edge(100);
@@ -88,7 +100,7 @@ mod tests {
 
     #[test]
     fn test_double_hdl() -> miette::Result<()> {
-        let uut = U::<U6>::default();
+        let uut = U::<6>::default();
         let input = std::iter::repeat_n((), 500)
             .with_reset(1)
             .clock_pos_edge(100);

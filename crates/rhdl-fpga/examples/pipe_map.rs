@@ -5,7 +5,7 @@ use rhdl_fpga::{
 
 #[kernel]
 fn map_item(_cr: ClockReset, t: b4) -> b2 {
-    lsbs::<U2, U4>(t)
+    lsbs::<2, 4>(t)
 }
 
 fn main() -> Result<(), RHDLError> {

@@ -21,7 +21,7 @@ fn test_early_return() {
         _b
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<5>()).unwrap();
 }
 
 #[test]
@@ -37,7 +37,7 @@ fn test_early_return_in_branch() {
         b
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<5>()).unwrap();
 }
 
 #[test]

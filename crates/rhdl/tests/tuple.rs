@@ -70,7 +70,7 @@ fn test_tuple_construct() -> miette::Result<()> {
         (a, b)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<5>())?;
     Ok(())
 }
 
@@ -82,7 +82,7 @@ fn test_tuple_indexing() -> miette::Result<()> {
         signal((c.0.val() + c.1.val()).resize())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<4>())?;
     Ok(())
 }
 
@@ -95,7 +95,7 @@ fn test_tuple_construct_and_deconstruct() -> miette::Result<()> {
         signal(d.val() + e.val())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<4>())?;
     Ok(())
 }
 
@@ -107,7 +107,7 @@ fn test_nested_tuple_indexing() -> miette::Result<()> {
         signal(c.1.0.val() + c.1.1.val())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<4>())?;
     Ok(())
 }
 

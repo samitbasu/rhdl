@@ -99,12 +99,12 @@ fn test_things() -> impl Iterator<Item = TestThing> {
 
 #[derive(Copy, Clone, PartialEq)]
 enum Value {
-    Signed(i128, Option<u8>),
-    Unsigned(u128, Option<u8>),
+    Signed(i128, Option<8>),
+    Unsigned(u128, Option<8>),
 }
 
 impl Value {
-    fn bits(self) -> Option<u8> {
+    fn bits(self) -> Option<8> {
         match self {
             Value::Signed(_, bits) => bits,
             Value::Unsigned(_, bits) => bits,
@@ -147,7 +147,7 @@ impl Value {
     }
 }
 
-fn fixed_op(x: Option<u8>, y: Option<u8>) -> Option<u8> {
+fn fixed_op(x: Option<8>, y: Option<8>) -> Option<8> {
     match (x, y) {
         (Some(x), Some(y)) if x == y => Some(x),
         (Some(x), None) => Some(x),
@@ -243,7 +243,7 @@ impl std::ops::BitXor for Value {
     }
 }
 
-fn shift_op_size(x: Option<u8>, _: Option<u8>) -> Option<u8> {
+fn shift_op_size(x: Option<8>, _: Option<8>) -> Option<8> {
     x
 }
 

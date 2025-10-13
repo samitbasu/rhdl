@@ -986,7 +986,7 @@ impl Context {
                 ));
             }
             let x = x.args.iter().next().unwrap();
-            quote!(Some(<#x as rhdl::bits::BitWidth>::BITS))
+            quote!(Some(#x))
         } else {
             quote!(None)
         };

@@ -277,7 +277,7 @@ pub enum Syntax {
     EmptyReturnForFunction,
     #[error("RHDL cannot infer the number of bits in an xext/xshl/xshr operation")]
     #[diagnostic(help(
-        "Use a turbofish to indicate how many bits you want to prepend (msb), e.g., a.xext::<U4>() or how many bits to shift left or right, as a.xshr<U2>()"
+        "Use a turbofish to indicate how many bits you want to prepend (msb), e.g., a.xext::<4>() or how many bits to shift left or right, as a.xshr<2>()"
     ))]
     XOpsWithoutLength,
 }

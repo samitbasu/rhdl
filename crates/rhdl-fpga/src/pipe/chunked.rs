@@ -69,17 +69,25 @@ use crate::core::{dff::DFF, option::is_some};
 /// a pipeline of `[T; N]`, assembling the array in
 /// index order, so that `t0, t1, t2, ...` are
 /// packed such that `out[0] = t0`, etc.
-pub struct Chunked<M: BitWidth, T: Digital, const N: usize> {
+pub struct Chunked<T: Digital, const M: usize, const N: usize>
+where
+    rhdl::bits::W<M>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
+{
     input: DFF<Option<T>>,
     delay_line: [DFF<T>; N],
     count: DFF<Bits<M>>,
     valid: DFF<bool>,
 }
 
-impl<M: BitWidth, T: Digital, const N: usize> Default for Chunked<M, T, N> {
+impl<T: Digital, const M: usize, const N: usize> Default for Chunked<T, M, N>
+where
+    rhdl::bits::W<M>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
+{
     fn default() -> Self {
         assert!(N > 1, "Can only chunk streams with N > 1");
-        assert!((1 << M::BITS) >= N, "Expect that the bitwidth of the counter is sufficiently large to express values up to N");
+        assert!((1 << M) >= N, "Expect that the bitwidth of the counter is sufficiently large to express values up to N");
         Self {
             input: DFF::new(None),
             delay_line: core::array::from_fn(|_| DFF::new(T::dont_care())),
@@ -95,21 +103,29 @@ pub type In<T> = Option<T>;
 /// Outputs for the [Chunked] Pipe
 pub type Out<T, const N: usize> = Option<[T; N]>;
 
-impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for Chunked<M, T, N> {
+impl<T: Digital, const M: usize, const N: usize> SynchronousIO for Chunked<T, M, N>
+where
+    rhdl::bits::W<M>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = In<T>;
     type O = Out<T, N>;
-    type Kernel = kernel<M, T, N>;
+    type Kernel = kernel<T, M, N>;
 }
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<M: BitWidth, T: Digital, const N: usize>(
+pub fn kernel<T: Digital, const M: usize, const N: usize>(
     _cr: ClockReset,
     i: In<T>,
-    q: Q<M, T, N>,
-) -> (Out<T, N>, D<M, T, N>) {
+    q: Q<T, M, N>,
+) -> (Out<T, N>, D<T, M, N>)
+where
+    rhdl::bits::W<M>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
+{
     let n_minus_1 = bits::<M>(N as u128 - 1);
-    let mut d = D::<M, T, N>::dont_care();
+    let mut d = D::<T, M, N>::dont_care();
     d.input = i;
     let run = is_some::<T>(q.input);
     d.count = q.count;
@@ -160,28 +176,30 @@ mod tests {
 
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
-        let uut = Chunked::<U2, b4, 4>::default();
+        let uut = Chunked::<b4, 2, 4>::default();
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }
 
     #[test]
     fn test_operation_n_is_2() -> miette::Result<()> {
-        test_operation_for_n::<U1, 2>()?;
+        test_operation_for_n::<1, 2>()?;
         Ok(())
     }
 
     #[test]
     fn test_operation_n_is_4() -> miette::Result<()> {
-        test_operation_for_n::<U2, 4>()?;
+        test_operation_for_n::<2, 4>()?;
         Ok(())
     }
 
-    fn test_operation_for_n<M: BitWidth, const N: usize>() -> miette::Result<()>
+    fn test_operation_for_n<const M: usize, const N: usize>() -> miette::Result<()>
     where
         [b4; N]: Default,
+        rhdl::bits::W<M>: BitWidth,
+        rhdl::bits::W<N>: BitWidth,
     {
-        let uut = Chunked::<M, b4, N>::default();
+        let uut = Chunked::<b4, M, N>::default();
         let source_rng = XorShift128::default().map(|x| bits((x & 0xF) as u128));
         let expected = source_rng.clone();
         let expected = mk_array(expected);
@@ -196,7 +214,7 @@ mod tests {
 
     #[test]
     fn test_basic() -> Result<(), RHDLError> {
-        let uut = Chunked::<U2, b4, 4>::default();
+        let uut = Chunked::<b4, 2, 4>::default();
         let source_rng = XorShift128::default().map(|x| bits((x & 0xF) as u128));
         let input = stalling(source_rng, 0.23)
             .with_reset(1)

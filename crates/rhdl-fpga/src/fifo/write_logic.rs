@@ -42,7 +42,10 @@ use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 /// The FIFO write logic as a core
-pub struct FIFOWriteCore<N: BitWidth> {
+pub struct FIFOWriteCore<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     write_address: dff::DFF<Bits<N>>,
     // We delay the write address by one clock before sending
     // it to the read side of the FIFO.  This is because it will
@@ -55,7 +58,10 @@ pub struct FIFOWriteCore<N: BitWidth> {
 
 #[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// The inputs to the [FIFOWriteCore]
-pub struct In<N: BitWidth> {
+pub struct In<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// The current read address
     pub read_address: Bits<N>,
     /// The write signal that advances the write pointer
@@ -64,7 +70,10 @@ pub struct In<N: BitWidth> {
 
 #[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// The outputs from the [FIFOWriteCore]
-pub struct Out<N: BitWidth> {
+pub struct Out<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// The generated full signal
     pub full: bool,
     /// The generated almost full signal
@@ -77,7 +86,10 @@ pub struct Out<N: BitWidth> {
     pub write_address: Bits<N>,
 }
 
-impl<N: BitWidth> SynchronousIO for FIFOWriteCore<N> {
+impl<const N: usize> SynchronousIO for FIFOWriteCore<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = In<N>;
     type O = Out<N>;
     type Kernel = write_logic<N>;
@@ -85,7 +97,10 @@ impl<N: BitWidth> SynchronousIO for FIFOWriteCore<N> {
 
 #[kernel]
 /// Kernel for the [FIFOWriteCore]
-pub fn write_logic<N: BitWidth>(cr: ClockReset, i: In<N>, q: Q<N>) -> (Out<N>, D<N>) {
+pub fn write_logic<const N: usize>(cr: ClockReset, i: In<N>, q: Q<N>) -> (Out<N>, D<N>)
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     // Compute the full flag
     let full = (q.write_address + 1) == i.read_address;
     // Compute the almost full flag
@@ -130,11 +145,11 @@ mod tests {
     #[test]
     fn test_full_condition() {
         let cr = ClockReset::dont_care();
-        let i = In::<U4> {
+        let i = In::<4> {
             read_address: bits(0b0000),
             write_enable: false,
         };
-        let q = Q::<U4> {
+        let q = Q::<4> {
             write_address: bits(0b1111),
             write_address_delayed: bits(0b1111),
             overflow: false,
@@ -151,11 +166,11 @@ mod tests {
     #[test]
     fn test_almost_full_condition() {
         let cr = ClockReset::dont_care();
-        let i = In::<U4> {
+        let i = In::<4> {
             read_address: bits(0b0000),
             write_enable: false,
         };
-        let q = Q::<U4> {
+        let q = Q::<4> {
             write_address: bits(0b1110),
             write_address_delayed: bits(0b1110),
             overflow: false,
@@ -172,11 +187,11 @@ mod tests {
     #[test]
     fn test_write_enable_increments_next_write_address() {
         let cr = ClockReset::dont_care();
-        let i = In::<U4> {
+        let i = In::<4> {
             read_address: bits(0b0000),
             write_enable: true,
         };
-        let q = Q::<U4> {
+        let q = Q::<4> {
             write_address: bits(0b1100),
             write_address_delayed: bits(0b1100),
             overflow: false,
@@ -193,11 +208,11 @@ mod tests {
     #[test]
     fn test_full_with_write_enable_leads_to_overflow() {
         let cr = ClockReset::dont_care();
-        let i = In::<U4> {
+        let i = In::<4> {
             read_address: bits(0b0000),
             write_enable: true,
         };
-        let q = Q::<U4> {
+        let q = Q::<4> {
             write_address: bits(0b1111),
             write_address_delayed: bits(0b1111),
             overflow: false,
@@ -214,11 +229,11 @@ mod tests {
     #[test]
     fn test_overflow_is_latching() {
         let cr = ClockReset::dont_care();
-        let i = In::<U4> {
+        let i = In::<4> {
             read_address: bits(0b0000),
             write_enable: false,
         };
-        let q = Q::<U4> {
+        let q = Q::<4> {
             write_address: bits(0b1111),
             write_address_delayed: bits(0b1111),
             overflow: true,
@@ -235,11 +250,11 @@ mod tests {
     #[test]
     fn test_almost_full_flag_is_clear_with_at_least_2_spots() {
         let cr = ClockReset::dont_care();
-        let i = In::<U4> {
+        let i = In::<4> {
             read_address: bits(0b0000),
             write_enable: false,
         };
-        let q = Q::<U4> {
+        let q = Q::<4> {
             write_address: bits(0b1100),
             write_address_delayed: bits(0b1100),
             overflow: false,
@@ -256,11 +271,11 @@ mod tests {
     #[test]
     fn test_reset_condition() {
         let cr = clock_reset(clock(false), reset(true));
-        let i = In::<U4> {
+        let i = In::<4> {
             read_address: bits(0b0000),
             write_enable: false,
         };
-        let q = Q::<U4> {
+        let q = Q::<4> {
             write_address: bits(0b1111),
             write_address_delayed: bits(0b1111),
             overflow: true,

@@ -159,7 +159,7 @@ mod tests {
         if (t & bits(1)).any() {
             None
         } else {
-            Some(lsbs::<U2, U4>(t))
+            Some(lsbs::<2, 4>(t))
         }
     }
 
@@ -177,7 +177,7 @@ mod tests {
             if (x & bits(1)).any() {
                 None
             } else {
-                Some(lsbs::<U2, U4>(x))
+                Some(lsbs::<2, 4>(x))
             }
         });
         let a_rng = stalling(a_rng, 0.23);
