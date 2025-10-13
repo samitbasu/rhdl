@@ -71,7 +71,7 @@ To make it easier to compare designs, we will first move the existing logic into
 use rhdl::prelude::*;
 
 #[kernel]
-pub fn count_ones<N: BitWidth, M: BitWidth>(x: Bits<N>) -> Bits<M> {
+pub fn count_ones<rhdl_bits::W<N>: BitWidth, M: BitWidth>(x: Bits<N>) -> Bits<M> {
     let mut count = bits(0);
     for i in 0..N::BITS {
         if x & (1 << i) != 0 {

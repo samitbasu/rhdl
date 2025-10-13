@@ -65,11 +65,17 @@ use rhdl::prelude::*;
 /// BRAM.  It must implement [Digital].
 /// The `N` parameter indicates the number of address bits.  Thus,
 /// the BRAM will hold `2^N` elements.
-pub struct OptionSyncBRAM<T: Digital, N: BitWidth> {
+pub struct OptionSyncBRAM<T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     inner: super::synchronous::SyncBRAM<T, N>,
 }
 
-impl<T: Digital, N: BitWidth> Default for OptionSyncBRAM<T, N> {
+impl<T: Digital, const N: usize> Default for OptionSyncBRAM<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     fn default() -> Self {
         Self {
             inner: super::synchronous::SyncBRAM::default(),
@@ -77,7 +83,10 @@ impl<T: Digital, N: BitWidth> Default for OptionSyncBRAM<T, N> {
     }
 }
 
-impl<T: Digital, N: BitWidth> OptionSyncBRAM<T, N> {
+impl<T: Digital, const N: usize> OptionSyncBRAM<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// Create a new [OptionSyncBRAM] with the provided initial contents.
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         Self {
@@ -88,7 +97,10 @@ impl<T: Digital, N: BitWidth> OptionSyncBRAM<T, N> {
 
 #[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// The input struct for the [OptionSyncBRAM]
-pub struct In<T: Digital, N: BitWidth> {
+pub struct In<T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// The address to read from
     pub read_addr: Bits<N>,
     /// The write instruction - if [Some] then take the
@@ -97,7 +109,10 @@ pub struct In<T: Digital, N: BitWidth> {
     pub write: Option<(Bits<N>, T)>,
 }
 
-impl<T: Digital, N: BitWidth> SynchronousIO for OptionSyncBRAM<T, N> {
+impl<T: Digital, const N: usize> SynchronousIO for OptionSyncBRAM<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = In<T, N>;
     type O = T;
     type Kernel = ram_kernel<T, N>;
@@ -105,11 +120,14 @@ impl<T: Digital, N: BitWidth> SynchronousIO for OptionSyncBRAM<T, N> {
 
 #[kernel(allow_weak_partial)]
 /// Kernel function for [OptionSyncBRAM]
-pub fn ram_kernel<T: Digital, N: BitWidth>(
+pub fn ram_kernel<T: Digital, const N: usize>(
     _cr: ClockReset,
     i: In<T, N>,
     q: Q<T, N>,
-) -> (T, D<T, N>) {
+) -> (T, D<T, N>)
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     let mut d = D::<T, N>::dont_care();
     d.inner.write.enable = false;
     d.inner.write.addr = bits(0);
@@ -151,7 +169,7 @@ mod tests {
 
     struct TestItem(Cmd, b8);
 
-    impl From<Cmd> for In<b8, U4> {
+    impl From<Cmd> for In<b8, 4> {
         fn from(cmd: Cmd) -> Self {
             match cmd {
                 Cmd::Write(addr, value) => In {
@@ -168,7 +186,7 @@ mod tests {
 
     #[test]
     fn test_scan_out_ram() -> miette::Result<()> {
-        type UC = OptionSyncBRAM<b8, U4>;
+        type UC = OptionSyncBRAM<b8, 4>;
         let uut: UC = OptionSyncBRAM::new(
             (0..)
                 .enumerate()
@@ -204,14 +222,14 @@ mod tests {
 
     fn random_command_stream(
         len: usize,
-    ) -> impl Iterator<Item = TimedSample<(ClockReset, In<b8, U4>)>> {
+    ) -> impl Iterator<Item = TimedSample<(ClockReset, In<b8, 4>)>> {
         let inputs = (0..).map(|_| rand_cmd().into()).take(len);
         inputs.with_reset(1).clock_pos_edge(100)
     }
 
     #[test]
     fn test_hdl_output() -> miette::Result<()> {
-        type UC = OptionSyncBRAM<b8, U4>;
+        type UC = OptionSyncBRAM<b8, 4>;
         let uut: UC = OptionSyncBRAM::new((0..).map(|ndx| (bits(ndx), bits(0))));
         let stream = random_command_stream(1000);
         let test_bench = uut.run(stream).collect::<SynchronousTestBench<_, _>>();
@@ -224,7 +242,7 @@ mod tests {
 
     #[test]
     fn test_ram_write_then_read() -> miette::Result<()> {
-        type UC = OptionSyncBRAM<b8, U4>;
+        type UC = OptionSyncBRAM<b8, 4>;
         let uut: UC = OptionSyncBRAM::new(std::iter::repeat_n((bits(0), b8::from(0)), 16));
         let test = vec![
             Cmd::Write(bits(0), bits(72)),

@@ -1,51 +1,47 @@
-use super::{
-    BitWidth, Bits, SignedBits, bits, dyn_bits::DynBits, signed, signed_dyn_bits::SignedDynBits,
-};
-use rhdl_typenum::prelude::*;
-use std::ops::Add;
+use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits, signed_dyn_bits::SignedDynBits};
+use crate::bitwidth::W;
 
 pub trait XMul<Rhs = Self> {
     type Output;
     fn xmul(self, rhs: Rhs) -> Self::Output;
 }
 
-impl<N, M> XMul<Bits<M>> for Bits<N>
+impl<const N: usize, const M: usize> XMul<Bits<M>> for Bits<N>
 where
-    N: Add<M> + BitWidth,
-    M: BitWidth,
-    op!(N + M): BitWidth,
+    W<N>: BitWidth,
+    W<M>: BitWidth,
 {
-    type Output = Bits<op!(N + M)>;
+    type Output = DynBits;
     fn xmul(self, rhs: Bits<M>) -> Self::Output {
-        bits(self.val.wrapping_mul(rhs.val))
+        self.dyn_bits().xmul(rhs)
     }
 }
 
-impl<N> XMul<Bits<N>> for DynBits
+impl<const N: usize> XMul<Bits<N>> for DynBits
 where
-    N: BitWidth,
+    W<N>: BitWidth,
 {
     type Output = DynBits;
     fn xmul(self, rhs: Bits<N>) -> Self::Output {
-        assert!(self.bits + N::BITS <= 128);
+        assert!(self.bits + N <= 128);
         DynBits {
             val: self.val.wrapping_mul(rhs.val),
-            bits: self.bits + N::BITS,
+            bits: self.bits + N,
         }
         .wrapped()
     }
 }
 
-impl<N> XMul<DynBits> for Bits<N>
+impl<const N: usize> XMul<DynBits> for Bits<N>
 where
-    N: BitWidth,
+    W<N>: BitWidth,
 {
     type Output = DynBits;
     fn xmul(self, rhs: DynBits) -> Self::Output {
-        assert!(N::BITS + rhs.bits <= 128);
+        assert!(N + rhs.bits <= 128);
         DynBits {
             val: self.val.wrapping_mul(rhs.val),
-            bits: N::BITS + rhs.bits,
+            bits: N + rhs.bits,
         }
         .wrapped()
     }
@@ -63,43 +59,42 @@ impl XMul<DynBits> for DynBits {
     }
 }
 
-impl<N, M> XMul<SignedBits<M>> for SignedBits<N>
+impl<const N: usize, const M: usize> XMul<SignedBits<M>> for SignedBits<N>
 where
-    N: Add<M> + BitWidth,
-    M: BitWidth,
-    op!(N + M): BitWidth,
+    W<N>: BitWidth,
+    W<M>: BitWidth,
 {
-    type Output = SignedBits<op!(N + M)>;
+    type Output = SignedDynBits;
     fn xmul(self, rhs: SignedBits<M>) -> Self::Output {
-        signed(self.val.wrapping_mul(rhs.val))
+        self.dyn_bits().xmul(rhs)
     }
 }
 
-impl<N> XMul<SignedBits<N>> for SignedDynBits
+impl<const N: usize> XMul<SignedBits<N>> for SignedDynBits
 where
-    N: BitWidth,
+    W<N>: BitWidth,
 {
     type Output = SignedDynBits;
     fn xmul(self, rhs: SignedBits<N>) -> Self::Output {
-        assert!(self.bits + N::BITS <= 128);
+        assert!(self.bits + N <= 128);
         SignedDynBits {
             val: self.val.wrapping_mul(rhs.val),
-            bits: self.bits + N::BITS,
+            bits: self.bits + N,
         }
         .wrapped()
     }
 }
 
-impl<N> XMul<SignedDynBits> for SignedBits<N>
+impl<const N: usize> XMul<SignedDynBits> for SignedBits<N>
 where
-    N: BitWidth,
+    W<N>: BitWidth,
 {
     type Output = SignedDynBits;
     fn xmul(self, rhs: SignedDynBits) -> Self::Output {
-        assert!(N::BITS + rhs.bits <= 128);
+        assert!(N + rhs.bits <= 128);
         SignedDynBits {
             val: self.val.wrapping_mul(rhs.val),
-            bits: N::BITS + rhs.bits,
+            bits: N + rhs.bits,
         }
         .wrapped()
     }
@@ -122,25 +117,26 @@ mod tests {
 
     use super::*;
     use crate::alias::*;
+    use crate::{bits, signed};
 
     #[test]
     fn test_xmul() {
-        let a = bits::<U32>(0x1234_5678);
-        let b = bits::<U32>(0x8765_4321);
+        let a = bits::<32>(0x1234_5678);
+        let b = bits::<32>(0x8765_4321);
         let c = a.xmul(b);
-        assert_eq!(c, bits::<U64>(0x1234_5678 * 0x8765_4321));
-        let a = signed::<U32>(-456);
-        let b = signed::<U32>(123);
+        assert_eq!(c.as_bits(), bits::<64>(0x1234_5678 * 0x8765_4321));
+        let a = signed::<32>(-456);
+        let b = signed::<32>(123);
         let c = a.xmul(b);
-        assert_eq!(c, signed::<U64>(-456 * 123));
-        let a = bits::<U8>(255);
-        let b = bits::<U8>(255);
+        assert_eq!(c.as_signed_bits(), signed::<64>(-456 * 123));
+        let a = bits::<8>(255);
+        let b = bits::<8>(255);
         let c = a.xmul(b);
-        assert_eq!(c, bits::<U16>(255 * 255));
-        let a = signed::<U8>(-128);
-        let b = signed::<U8>(-128);
+        assert_eq!(c.as_bits(), bits::<16>(255 * 255));
+        let a = signed::<8>(-128);
+        let b = signed::<8>(-128);
         let c = a.xmul(b);
-        assert_eq!(c, signed::<U16>(-128 * -128));
+        assert_eq!(c.as_signed_bits(), signed::<16>(-128 * -128));
     }
 
     #[test]
@@ -148,11 +144,11 @@ mod tests {
         let a = b127::MAX;
         let b = b1::MAX;
         let c = a.xmul(b);
-        assert_eq!(c, b127::MAX.resize());
+        assert_eq!(c.as_bits::<128>(), b127::MAX.resize());
         let a = b125::MAX;
         let b = b3::MAX;
         let c = a.xmul(b);
-        assert_eq!(c, bits(a.val * b.val));
+        assert_eq!(c.as_bits::<128>(), bits(a.val * b.val));
     }
 
     #[test]
@@ -160,10 +156,10 @@ mod tests {
         let a = s126::MAX;
         let b = s2::MAX;
         let c = a.xmul(b);
-        assert_eq!(c, s126::MAX.resize());
+        assert_eq!(c.as_signed_bits::<128>(), s126::MAX.resize());
         let a = s125::MAX;
         let b = s3::MAX;
         let c = a.xmul(b);
-        assert_eq!(c, signed(a.val * b.val));
+        assert_eq!(c.as_signed_bits::<128>(), signed(a.val * b.val));
     }
 }

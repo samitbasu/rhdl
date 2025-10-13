@@ -2,7 +2,7 @@
 use rhdl::prelude::*;
 
 pub fn exhaustive<N: BitWidth>() -> Vec<Bits<N>> {
-    (0..(1 << N::BITS)).map(bits).collect()
+    (0..(1 << N)).map(bits).collect()
 }
 
 pub fn exhaustive_signed<N: BitWidth>() -> Vec<SignedBits<N>> {

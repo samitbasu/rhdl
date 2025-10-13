@@ -104,16 +104,22 @@ use syn::parse_quote;
 /// and the read side is on the `R` clock domain.
 /// The `N` parameter indicates the number of address bits
 /// which determines the size of the BRAM.
-pub struct AsyncBRAM<T: Digital, W: Domain, R: Domain, N: BitWidth> {
+pub struct AsyncBRAM<T: Digital, W: Domain, R: Domain, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     initial: BTreeMap<Bits<N>, T>,
     _w: std::marker::PhantomData<W>,
     _r: std::marker::PhantomData<R>,
 }
 
-impl<T: Digital, W: Domain, R: Domain, N: BitWidth> AsyncBRAM<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, const N: usize> AsyncBRAM<T, W, R, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// Create a new [AsyncBRAM] with the given initialization values.
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
-        let len = (1 << N::BITS) as usize;
+        let len = (1 << N) as usize;
         Self {
             initial: initial.into_iter().take(len).collect(),
             _w: Default::default(),
@@ -128,7 +134,10 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> AsyncBRAM<T, W, R, N> {
 /// The read input lines contain the current address and the
 /// clock signal.
 #[derive(PartialEq, Debug, Digital, Clone, Copy)]
-pub struct ReadI<N: BitWidth> {
+pub struct ReadI<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// The address to read from
     pub addr: Bits<N>,
     /// The read clock
@@ -139,7 +148,10 @@ pub struct ReadI<N: BitWidth> {
 /// It contains the address to write to, the data, and the
 /// enable and clock signal.
 #[derive(PartialEq, Debug, Digital, Clone, Copy)]
-pub struct WriteI<T: Digital, N: BitWidth> {
+pub struct WriteI<T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// The address to write to
     pub addr: Bits<N>,
     /// The data to write to the BRAM
@@ -152,19 +164,28 @@ pub struct WriteI<T: Digital, N: BitWidth> {
 
 #[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// The inputs for the [AsyncBRAM] core
-pub struct In<T: Digital, W: Domain, R: Domain, N: BitWidth> {
+pub struct In<T: Digital, W: Domain, R: Domain, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// The write interface
     pub write: Signal<WriteI<T, N>, W>,
     /// The read interface
     pub read: Signal<ReadI<N>, R>,
 }
 
-impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitDQ for AsyncBRAM<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, const N: usize> CircuitDQ for AsyncBRAM<T, W, R, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type D = ();
     type Q = ();
 }
 
-impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitIO for AsyncBRAM<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, const N: usize> CircuitIO for AsyncBRAM<T, W, R, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = In<T, W, R, N>;
     type O = Signal<T, R>;
     type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
@@ -172,7 +193,10 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitIO for AsyncBRAM<T, W
 
 #[derive(PartialEq, Debug, Clone)]
 #[doc(hidden)]
-pub struct S<T: Digital, N: BitWidth> {
+pub struct S<T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     write_prev: WriteI<T, N>,
     contents: BTreeMap<Bits<N>, T>,
     read_clock: Clock,
@@ -180,7 +204,10 @@ pub struct S<T: Digital, N: BitWidth> {
     output_next: T,
 }
 
-impl<T: Digital, W: Domain, R: Domain, N: BitWidth> Circuit for AsyncBRAM<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, const N: usize> Circuit for AsyncBRAM<T, W, R, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type S = Rc<RefCell<S<T, N>>>;
 
     fn init(&self) -> Self::S {
@@ -196,7 +223,7 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> Circuit for AsyncBRAM<T, W, 
     fn description(&self) -> String {
         format!(
             "Block RAM with {} entries of type {}",
-            1 << N::BITS,
+            1 << N,
             std::any::type_name::<T>()
         )
     }
@@ -302,9 +329,9 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> Circuit for AsyncBRAM<T, W, 
         let module_name = name.to_owned();
         let module_ident = format_ident!("{}", module_name);
         let input_bits: vlog::BitRange = (0..(<Self as CircuitIO>::I::bits())).into();
-        let address_bits: vlog::BitRange = (0..N::BITS).into();
+        let address_bits: vlog::BitRange = (0..N).into();
         let data_bits: vlog::BitRange = (0..T::BITS).into();
-        let memory_size: vlog::BitRange = (0..(1 << N::BITS)).into();
+        let memory_size: vlog::BitRange = (0..(1 << N)).into();
         let initial_values = self.initial.iter().map(|(addr, val)| {
             let val: vlog::LitVerilog = val.typed_bits().into();
             let addr = syn::Index::from(addr.raw() as usize);
@@ -369,11 +396,14 @@ mod tests {
 
     use super::*;
 
-    fn get_scan_out_stream<N: BitWidth>(
+    fn get_scan_out_stream<const N: usize>(
         read_clock: u64,
         count: usize,
-    ) -> impl Iterator<Item = TimedSample<ReadI<N>>> + Clone {
-        let scan_addr = (0..(1 << N::BITS)).map(bits::<N>).cycle().take(count);
+    ) -> impl Iterator<Item = TimedSample<ReadI<N>>> + Clone
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
+        let scan_addr = (0..(1 << N)).map(bits::<N>).cycle().take(count);
         let stream_read = scan_addr.without_reset().clock_pos_edge(read_clock);
         stream_read.map(|t| {
             t.map(|(cr, val)| ReadI {
@@ -383,10 +413,13 @@ mod tests {
         })
     }
 
-    fn get_write_stream<T: Digital, N: BitWidth>(
+    fn get_write_stream<T: Digital, const N: usize>(
         write_clock: u64,
         write_data: impl Iterator<Item = Option<(Bits<N>, T)>> + Clone,
-    ) -> impl Iterator<Item = TimedSample<WriteI<T, N>>> + Clone {
+    ) -> impl Iterator<Item = TimedSample<WriteI<T, N>>> + Clone
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
         let stream_write = write_data.without_reset().clock_pos_edge(write_clock);
         stream_write.map(|t| {
             t.map(|(cr, val)| WriteI {
@@ -400,7 +433,7 @@ mod tests {
 
     #[test]
     fn test_ram_netlist() -> miette::Result<()> {
-        let uut = AsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
+        let uut = AsyncBRAM::<Bits<8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -413,7 +446,7 @@ mod tests {
 
     #[test]
     fn test_ram_as_verilog() -> miette::Result<()> {
-        let uut = AsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
+        let uut = AsyncBRAM::<Bits<8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -479,7 +512,7 @@ mod tests {
 
     #[test]
     fn test_ram_write_behavior() -> miette::Result<()> {
-        let uut = AsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
+        let uut = AsyncBRAM::<Bits<8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits(0))),
@@ -525,7 +558,7 @@ mod tests {
     fn test_ram_read_only_behavior() -> miette::Result<()> {
         // Let's start with a simple test where the RAM is pre-initialized,
         // and we just want to read it.
-        let uut = AsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
+        let uut = AsyncBRAM::<Bits<8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),

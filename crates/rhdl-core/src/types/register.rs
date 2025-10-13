@@ -1,4 +1,4 @@
-use rhdl_bits::{BitWidth, Bits, SignedBits};
+use rhdl_bits::{BitWidth, Bits, SignedBits, W};
 
 use crate::{Digital, Kind};
 
@@ -8,9 +8,9 @@ pub trait Register: Digital {
     }
 }
 
-impl<N: BitWidth> Register for Bits<N> {}
+impl<const N: usize> Register for Bits<N> where W<N>: BitWidth {}
 
-impl<N: BitWidth> Register for SignedBits<N> {}
+impl<const N: usize> Register for SignedBits<N> where W<N>: BitWidth {}
 
 pub trait SignedRegister: Digital {
     fn static_kind() -> Kind {
@@ -18,4 +18,4 @@ pub trait SignedRegister: Digital {
     }
 }
 
-impl<N: BitWidth> SignedRegister for SignedBits<N> {}
+impl<const N: usize> SignedRegister for SignedBits<N> where W<N>: BitWidth {}

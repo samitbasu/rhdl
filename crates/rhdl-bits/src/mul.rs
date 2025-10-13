@@ -13,7 +13,6 @@ impl_signed_binop!(Mul, mul, i128::wrapping_mul);
 mod tests {
     use crate::bits;
     use crate::bits_impl::bits_masked;
-    use crate::bitwidth::*;
     use crate::test_binop;
 
     #[test]
@@ -27,12 +26,12 @@ mod tests {
 
     #[test]
     fn test_mul() {
-        let a = bits::<U32>(0x1234_5678);
-        let b = bits::<U32>(0x8765_4321);
+        let a = bits::<32>(0x1234_5678);
+        let b = bits::<32>(0x8765_4321);
         let c = a * b;
         assert_eq!(
             c,
-            bits::<U32>(0x1234_5678_u32.wrapping_mul(0x8765_4321) as u128)
+            bits::<32>(0x1234_5678_u32.wrapping_mul(0x8765_4321) as u128)
         );
     }
 }

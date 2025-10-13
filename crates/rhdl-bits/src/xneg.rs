@@ -1,22 +1,18 @@
-use std::ops::Add;
-
-use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits, signed};
-use crate::signed_dyn_bits::SignedDynBits;
-use rhdl_typenum::prelude::*;
+use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits};
+use crate::{W, signed_dyn_bits::SignedDynBits, xsgn::XSgn};
 
 pub trait XNeg {
     type Output;
     fn xneg(self) -> Self::Output;
 }
 
-impl<N> XNeg for Bits<N>
+impl<const N: usize> XNeg for Bits<N>
 where
-    N: Add<U1> + BitWidth,
-    op!(N + U1): BitWidth,
+    W<N>: BitWidth,
 {
-    type Output = SignedBits<op!(N + U1)>;
+    type Output = SignedDynBits;
     fn xneg(self) -> Self::Output {
-        signed((self.raw() as i128).wrapping_neg())
+        self.xsgn().xneg()
     }
 }
 
@@ -32,14 +28,13 @@ impl XNeg for DynBits {
     }
 }
 
-impl<N> XNeg for SignedBits<N>
+impl<const N: usize> XNeg for SignedBits<N>
 where
-    N: Add<U1> + BitWidth,
-    op!(N + U1): BitWidth,
+    W<N>: BitWidth,
 {
-    type Output = SignedBits<op!(N + U1)>;
+    type Output = SignedDynBits;
     fn xneg(self) -> Self::Output {
-        signed(self.val.wrapping_neg())
+        self.dyn_bits().xneg()
     }
 }
 

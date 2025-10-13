@@ -42,8 +42,10 @@ impl<T: Digital, C: Domain> Digital for Signal<T, C> {
     }
 }
 
-impl<T: Digital, C: Domain, N: BitWidth, const M: usize> std::ops::Index<Signal<Bits<N>, C>>
+impl<T: Digital, C: Domain, const N: usize, const M: usize> std::ops::Index<Signal<Bits<N>, C>>
     for Signal<[T; M], C>
+where
+    rhdl_bits::W<N>: BitWidth,
 {
     type Output = T;
 
@@ -52,8 +54,10 @@ impl<T: Digital, C: Domain, N: BitWidth, const M: usize> std::ops::Index<Signal<
     }
 }
 
-impl<T: Digital, C: Domain, N: BitWidth, const M: usize> std::ops::IndexMut<Signal<Bits<N>, C>>
+impl<T: Digital, C: Domain, const N: usize, const M: usize> std::ops::IndexMut<Signal<Bits<N>, C>>
     for Signal<[T; M], C>
+where
+    rhdl_bits::W<N>: BitWidth,
 {
     fn index_mut(&mut self, index: Signal<Bits<N>, C>) -> &mut Self::Output {
         &mut self.val[index.val]
@@ -82,10 +86,11 @@ impl<T: Digital + std::ops::Neg<Output = T>, C: Domain> std::ops::Neg for Signal
     }
 }
 
-impl<T: Digital, const M: usize, N: BitWidth, C: Domain> std::ops::Index<Signal<Bits<N>, C>>
+impl<T: Digital, const M: usize, const N: usize, C: Domain> std::ops::Index<Signal<Bits<N>, C>>
     for [T; M]
 where
     [T; M]: Digital,
+    rhdl_bits::W<N>: BitWidth,
 {
     type Output = T;
 
@@ -94,10 +99,11 @@ where
     }
 }
 
-impl<T: Digital, const M: usize, N: BitWidth, C: Domain> std::ops::Index<Bits<N>>
+impl<T: Digital, const M: usize, const N: usize, C: Domain> std::ops::Index<Bits<N>>
     for Signal<[T; M], C>
 where
     [T; M]: Digital,
+    rhdl_bits::W<N>: BitWidth,
 {
     type Output = T;
 

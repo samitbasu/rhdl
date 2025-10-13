@@ -1,10 +1,8 @@
 pub use rhdl_bits::BitWidth;
 pub use rhdl_bits::Bits;
-pub use rhdl_bits::Const;
 pub use rhdl_bits::SignedBits;
 pub use rhdl_bits::alias::*;
 pub use rhdl_bits::bits;
-pub use rhdl_bits::consts::*;
 pub use rhdl_bits::signed;
 pub use rhdl_core::CircuitDQ;
 pub use rhdl_core::ClockReset;

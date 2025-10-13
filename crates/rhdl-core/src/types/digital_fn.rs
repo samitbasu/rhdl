@@ -167,38 +167,38 @@ where
     F::describe()
 }
 
-impl<N> DigitalFn for rhdl_bits::Bits<N>
+impl<const N: usize> DigitalFn for rhdl_bits::Bits<N>
 where
-    N: BitWidth,
+    rhdl_bits::W<N>: BitWidth,
 {
     fn kernel_fn() -> Option<KernelFnKind> {
-        Some(KernelFnKind::BitConstructor(N::BITS))
+        Some(KernelFnKind::BitConstructor(N))
     }
 }
 
-impl<N> DigitalFn for rhdl_bits::SignedBits<N>
+impl<const N: usize> DigitalFn for rhdl_bits::SignedBits<N>
 where
-    N: BitWidth,
+    rhdl_bits::W<N>: BitWidth,
 {
     fn kernel_fn() -> Option<KernelFnKind> {
-        Some(KernelFnKind::SignedBitsConstructor(N::BITS))
+        Some(KernelFnKind::SignedBitsConstructor(N))
     }
 }
 
-impl<N> DigitalFn for rhdl_bits::bits<N>
+impl<const N: usize> DigitalFn for rhdl_bits::bits<N>
 where
-    N: BitWidth,
+    rhdl_bits::W<N>: BitWidth,
 {
     fn kernel_fn() -> Option<KernelFnKind> {
-        Some(KernelFnKind::BitConstructor(N::BITS))
+        Some(KernelFnKind::BitConstructor(N))
     }
 }
 
-impl<N> DigitalFn for rhdl_bits::signed<N>
+impl<const N: usize> DigitalFn for rhdl_bits::signed<N>
 where
-    N: BitWidth,
+    rhdl_bits::W<N>: BitWidth,
 {
     fn kernel_fn() -> Option<KernelFnKind> {
-        Some(KernelFnKind::SignedBitsConstructor(N::BITS))
+        Some(KernelFnKind::SignedBitsConstructor(N))
     }
 }

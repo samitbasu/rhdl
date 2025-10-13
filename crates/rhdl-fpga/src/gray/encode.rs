@@ -9,7 +9,10 @@ use super::Gray;
 
 #[kernel]
 /// Gray encoder
-pub fn gray_code<N: BitWidth>(i: Bits<N>) -> Gray<N> {
+pub fn gray_code<const N: usize>(i: Bits<N>) -> Gray<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     Gray::<N>(i ^ (i >> 1))
 }
 
@@ -20,7 +23,7 @@ mod tests {
     #[test]
     fn test_gray_code() {
         let values = (0..128).map(bits);
-        let gray = values.map(gray_code::<U7>);
+        let gray = values.map(gray_code::<7>);
         let gray = gray.collect::<Vec<_>>();
         assert!(gray.windows(2).all(|x| {
             let a = x[0].0;

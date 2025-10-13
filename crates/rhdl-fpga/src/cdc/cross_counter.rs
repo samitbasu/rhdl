@@ -101,11 +101,11 @@ use super::synchronizer;
 ///   - `N`: The number of bits in the counter
 pub struct CrossCounter<W: Domain, R: Domain, const N: usize>
 where
-    Const<N>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     /// This counter lives in the W domain, and
     /// counts the number of input pulses.
-    counter: Adapter<dff::DFF<Bits<Const<N>>>, W>,
+    counter: Adapter<dff::DFF<Bits<N>>, W>,
     /// This is the vector of synchronizers, one per
     /// bit of the counter.  The synchronizers hold
     /// the value of the count in the read domain
@@ -115,7 +115,7 @@ where
 
 impl<W: Domain, R: Domain, const N: usize> Default for CrossCounter<W, R, N>
 where
-    Const<N>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     fn default() -> Self {
         Self {
@@ -140,15 +140,15 @@ pub struct In<W: Domain, R: Domain> {
 /// Outputs from the core
 pub struct Out<R: Domain, const N: usize>
 where
-    Const<N>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     /// The count in the R domain (combinatorial decode of internal registers)
-    pub count: Signal<Bits<Const<N>>, R>,
+    pub count: Signal<Bits<N>, R>,
 }
 
 impl<W: Domain, R: Domain, const N: usize> CircuitIO for CrossCounter<W, R, N>
 where
-    Const<N>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     type I = In<W, R>;
     type O = Out<R, N>;
@@ -162,14 +162,14 @@ pub fn cross_counter_kernel<W: Domain, R: Domain, const N: usize>(
     q: Q<W, R, N>,
 ) -> (Out<R, N>, D<W, R, N>)
 where
-    Const<N>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     let mut d = D::<W, R, { N }>::dont_care();
     // The counter increments each time the input is high
     d.counter.clock_reset = input.incr_cr;
     d.counter.input = signal(q.counter.val() + if input.incr.val() { 1 } else { 0 });
     // The current counter output is gray coded
-    let current_count = gray_code::<Const<N>>(q.counter.val()).0;
+    let current_count = gray_code::<N>(q.counter.val()).0;
     // Each synchronizer is fed a bit from the gray coded count
     for i in 0..N {
         d.syncs[i].data = signal((current_count & (1 << i)) != 0);
@@ -184,7 +184,7 @@ where
         }
     }
     // Decode this signal back to a binary count
-    let read_o = gray_decode::<Const<N>>(Gray::<Const<N>>(read_o));
+    let read_o = gray_decode::<N>(Gray::<N>(read_o));
     // The read side of the output comes from o, the
     // write side is simply the output of the internal counter
     let mut o = Out::<R, { N }>::dont_care();
