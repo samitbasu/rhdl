@@ -179,9 +179,9 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = exhaustive::<U4>()
+    let inputs = exhaustive::<4>()
         .into_iter()
-        .flat_map(|x| exhaustive::<U4>().into_iter().map(move |y| (x, y)));
+        .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
     let inputs = inputs.with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let desc = uut.descriptor("uut")?;
@@ -221,9 +221,9 @@ fn test_add_inline() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = exhaustive::<U4>()
+    let inputs = exhaustive::<4>()
         .into_iter()
-        .flat_map(|x| exhaustive::<U4>().into_iter().map(move |y| (x, y)));
+        .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
     let inputs = inputs.with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     Ok(())
@@ -294,9 +294,9 @@ fn test_async_add() -> miette::Result<()> {
     }
 
     let uut = U::default();
-    let inputs = exhaustive::<U4>()
+    let inputs = exhaustive::<4>()
         .into_iter()
-        .flat_map(|x| exhaustive::<U4>().into_iter().map(move |y| (x, y)))
+        .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)))
         .map(signal::<_, Red>)
         .enumerate()
         .map(|(ndx, val)| timed_sample((ndx * 100) as u64, val));

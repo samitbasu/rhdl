@@ -35,7 +35,7 @@ fn main() -> Result<(), RHDLError> {
     // Wrap the source into a stalling iterator to minic starvation
     let stalling_source = stalling(source_rng, 0.2);
     // Create the unit to test
-    let uut = Flatten::<U2, b4, 4>::default();
+    let uut = Flatten::<b4, 2, 4>::default();
     // Create the consumption function.  We should get the elements
     // back in the order they were generated
     let consume = move |data| {

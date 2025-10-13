@@ -52,7 +52,7 @@ fn test_vcd_basic() {
     #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Simple {
         a: bool,
-        b: Bits<U8>,
+        b: Bits<8>,
     }
 
     let simple = Simple {

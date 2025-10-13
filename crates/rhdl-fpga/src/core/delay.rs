@@ -50,11 +50,17 @@ use super::dff;
 /// The Delay core
 /// `T` is the type carried by the core
 /// `N` is the length of the delay line
-pub struct Delay<T: Digital, const N: usize> {
+pub struct Delay<T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     dffs: [dff::DFF<T>; N],
 }
 
-impl<T: Digital + Default, const N: usize> Default for Delay<T, N> {
+impl<T: Digital + Default, const N: usize> Default for Delay<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     fn default() -> Self {
         Self {
             dffs: core::array::from_fn(|_| dff::DFF::new(T::default())),
@@ -62,7 +68,10 @@ impl<T: Digital + Default, const N: usize> Default for Delay<T, N> {
     }
 }
 
-impl<T: Digital, const N: usize> Delay<T, N> {
+impl<T: Digital, const N: usize> Delay<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// Initialize the delay line with an initial design
     pub fn new_with_init(init: T) -> Self {
         Self {
@@ -71,7 +80,10 @@ impl<T: Digital, const N: usize> Delay<T, N> {
     }
 }
 
-impl<T: Digital, const N: usize> SynchronousIO for Delay<T, N> {
+impl<T: Digital, const N: usize> SynchronousIO for Delay<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = T;
     type O = T;
     type Kernel = delay<T, N>;
@@ -79,7 +91,10 @@ impl<T: Digital, const N: usize> SynchronousIO for Delay<T, N> {
 
 #[kernel]
 /// Kernel for delay core
-pub fn delay<T: Digital, const N: usize>(_cr: ClockReset, i: T, q: Q<T, N>) -> (T, D<T, N>) {
+pub fn delay<T: Digital, const N: usize>(_cr: ClockReset, i: T, q: Q<T, N>) -> (T, D<T, N>)
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     let mut d = D::<T, N>::dont_care();
     d.dffs[0] = i;
     for i in 1..N {
@@ -97,7 +112,7 @@ mod tests {
 
     use super::*;
 
-    fn test_pulse() -> impl Iterator<Item = TimedSample<(ClockReset, Option<Bits<U8>>)>> + Clone {
+    fn test_pulse() -> impl Iterator<Item = TimedSample<(ClockReset, Option<Bits<8>>)>> + Clone {
         std::iter::once(Some(bits(42)))
             .chain(std::iter::repeat(None))
             .take(100)
@@ -107,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_delay_trace() -> miette::Result<()> {
-        let uut = Delay::<Option<Bits<U8>>, 4>::default();
+        let uut = Delay::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
         let vcd = uut.run(input).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -122,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_delay_works() -> miette::Result<()> {
-        let uut = Delay::<Option<Bits<U8>>, 4>::default();
+        let uut = Delay::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
         let output = uut.run(input).synchronous_sample();
         let count = output.clone().filter(|t| t.value.2.is_some()).count();
@@ -142,7 +157,7 @@ mod tests {
 
     #[test]
     fn test_vlog_generation() -> miette::Result<()> {
-        let uut = Delay::<Option<Bits<U4>>, 2>::default();
+        let uut = Delay::<Option<Bits<4>>, 2>::default();
         let hdl = uut.hdl("top")?.as_module().pretty();
         let expect = expect![[r#"
             module top(input wire [1:0] clock_reset, input wire [4:0] i, output wire [4:0] o);
@@ -223,7 +238,7 @@ mod tests {
 
     #[test]
     fn test_delay_hdl_works() -> miette::Result<()> {
-        let uut = Delay::<Option<Bits<U8>>, 4>::default();
+        let uut = Delay::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
         let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;

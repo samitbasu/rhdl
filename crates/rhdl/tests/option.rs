@@ -258,15 +258,21 @@ fn test_nested_matches() -> miette::Result<()> {
     }
 
     #[derive(PartialEq, Default, Clone, Copy, Digital)]
-    pub struct ReadResponse<N: BitWidth> {
+    pub struct ReadResponse<const N: usize>
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
         data: Bits<N>,
         resp: ResponseCode,
     }
 
     #[kernel]
-    fn do_stuff<DATA: BitWidth>(
+    fn do_stuff<const DATA: usize>(
         a: Signal<Result<Bits<DATA>, AXI4Error>, Red>,
-    ) -> Signal<Option<ReadResponse<DATA>>, Red> {
+    ) -> Signal<Option<ReadResponse<DATA>>, Red>
+    where
+        rhdl::bits::W<DATA>: BitWidth,
+    {
         let b = match a.val() {
             Ok(data) => ReadResponse::<DATA> {
                 data,
@@ -287,7 +293,7 @@ fn test_nested_matches() -> miette::Result<()> {
         (signal(Err(AXI4Error::SLVERR)),),
         (signal(Err(AXI4Error::DECERR)),),
     ];
-    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, inputs.into_iter())?;
+    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, inputs.into_iter())?;
     Ok(())
 }
 

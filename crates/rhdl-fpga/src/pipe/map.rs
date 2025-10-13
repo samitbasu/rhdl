@@ -141,13 +141,13 @@ mod tests {
 
     #[kernel]
     fn map_item(_cr: ClockReset, t: b4) -> b2 {
-        lsbs::<U2, U4>(t)
+        lsbs::<2, 4>(t)
     }
 
     #[test]
     fn test_operation() -> Result<(), RHDLError> {
         let input = XorShift128::default().map(|x| b4(x as u128 & 0xF));
-        let expected = input.clone().map(lsbs::<U2, U4>);
+        let expected = input.clone().map(lsbs::<2, 4>);
         let uut = Map::try_new::<map_item>()?;
         let input = stalling(input, 0.23);
         let input = input.with_reset(1).clock_pos_edge(100);

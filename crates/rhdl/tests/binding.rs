@@ -256,7 +256,7 @@ fn test_assignment() {
         c
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>()).unwrap();
 }
 
 #[test]

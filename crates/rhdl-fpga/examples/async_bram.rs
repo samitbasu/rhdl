@@ -42,7 +42,7 @@ fn main() -> Result<(), RHDLError> {
         read: signal(r),
         write: signal(w),
     });
-    let uut: AsyncBRAM<b8, Red, Blue, U3> = AsyncBRAM::new((0..).map(|x| (b3(x), b8(x))));
+    let uut: AsyncBRAM<b8, Red, Blue, 3> = AsyncBRAM::new((0..).map(|x| (b3(x), b8(x))));
     let vcd = uut.run(input).collect::<Vcd>();
     let options = SvgOptions {
         label_width: 20,

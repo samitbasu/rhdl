@@ -7,38 +7,45 @@ use crate::core::{constant, dff, option::unpack, slice::lsbs};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 /// The core that provides the FIFO drainer
-pub struct FIFODrainer<N: BitWidth> {
-    _marker: constant::Constant<Bits<N>>,
+pub struct FIFODrainer<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     rng: crate::rng::xorshift::XorShift,
-    sleep_counter: dff::DFF<Bits<U4>>,
-    sleep_len: constant::Constant<Bits<U4>>,
-    read_probability: constant::Constant<Bits<U16>>,
+    sleep_counter: dff::DFF<Bits<4>>,
+    sleep_len: constant::Constant<Bits<4>>,
+    read_probability: constant::Constant<Bits<16>>,
     valid: dff::DFF<bool>,
 }
 
-impl<N: BitWidth> Default for FIFODrainer<N> {
+impl<const N: usize> Default for FIFODrainer<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     fn default() -> Self {
         Self {
-            _marker: constant::Constant::new(bits(0)),
             rng: crate::rng::xorshift::XorShift::default(),
-            sleep_counter: dff::DFF::new(bits(0)),
-            sleep_len: constant::Constant::new(bits(4)),
-            read_probability: constant::Constant::new(bits(0xD000)),
+            sleep_counter: dff::DFF::new(b4(0)),
+            sleep_len: constant::Constant::new(b4(4)),
+            read_probability: constant::Constant::new(b16(0xD000)),
             valid: dff::DFF::new(true),
         }
     }
 }
 
-impl<N: BitWidth> FIFODrainer<N> {
+impl<const N: usize> FIFODrainer<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// Create a new [FIFODrainer] that will read with
     /// probability `read_probability` and will otherwise
     /// sleep for `sleep_len` clocks.
     pub fn new(sleep_len: u8, read_probability: f32) -> Self {
         let read_probability = 65535.0 * read_probability;
         Self {
-            sleep_counter: dff::DFF::new(bits(0)),
-            sleep_len: constant::Constant::new(bits(sleep_len as u128)),
-            read_probability: constant::Constant::new(bits(read_probability as u128)),
+            sleep_counter: dff::DFF::new(b4(0)),
+            sleep_len: constant::Constant::new(b4(sleep_len as u128)),
+            read_probability: constant::Constant::new(b16(read_probability as u128)),
             valid: dff::DFF::new(true),
             ..Default::default()
         }
@@ -48,7 +55,10 @@ impl<N: BitWidth> FIFODrainer<N> {
 #[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Inputs for the [FIFODrainer] - should be attached to
 /// an [Option] based FIFO interface
-pub struct In<N: BitWidth> {
+pub struct In<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// The data elements consumed by the drainer
     pub data: Option<Bits<N>>,
 }
@@ -63,7 +73,10 @@ pub struct Out {
     pub valid: bool,
 }
 
-impl<N: BitWidth> SynchronousIO for FIFODrainer<N> {
+impl<const N: usize> SynchronousIO for FIFODrainer<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = In<N>;
     type O = Out;
     type Kernel = drain_kernel<N>;
@@ -71,7 +84,10 @@ impl<N: BitWidth> SynchronousIO for FIFODrainer<N> {
 
 #[kernel]
 #[doc(hidden)]
-pub fn drain_kernel<N: BitWidth>(cr: ClockReset, input: In<N>, q: Q<N>) -> (Out, D<N>) {
+pub fn drain_kernel<const N: usize>(cr: ClockReset, input: In<N>, q: Q<N>) -> (Out, D<N>)
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     let mut d = D::<N>::dont_care();
     let mut o = Out::dont_care();
     // Compute an is-valid bit that is latching
@@ -81,7 +97,7 @@ pub fn drain_kernel<N: BitWidth>(cr: ClockReset, input: In<N>, q: Q<N>) -> (Out,
     // If there is data available and we are not sleeping, then read the next
     // value.  Validate against the RNG, and advance the rNG
     let (data_available, data) = unpack::<Bits<N>>(input.data, bits(0));
-    let validation = lsbs::<N, U32>(q.rng);
+    let validation = lsbs::<N, 32>(q.rng);
     let data_matches = data == validation;
     let will_read = data_available && q.sleep_counter == 0;
     trace("data", &data);
@@ -96,11 +112,11 @@ pub fn drain_kernel<N: BitWidth>(cr: ClockReset, input: In<N>, q: Q<N>) -> (Out,
         d.rng = true;
         o.next = true;
         d.valid = data_matches && was_valid;
-        let p = lsbs::<U16, U32>(q.rng);
+        let p = lsbs::<16, 32>(q.rng);
         d.sleep_counter = if p > q.read_probability {
             q.sleep_len
         } else {
-            bits(0)
+            b4(0)
         }
     }
     if q.sleep_counter != 0 {
@@ -123,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_drainer_validation_works() {
-        let uut = FIFODrainer::<U16>::default();
+        let uut = FIFODrainer::<16>::default();
         let mut need_reset = true;
         let mut xorshift = crate::rng::xorshift::XorShift128::default();
         let mut rng_out = xorshift.next().unwrap();
@@ -159,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_drainer() {
-        let uut = FIFODrainer::<U16>::default();
+        let uut = FIFODrainer::<16>::default();
         let mut need_reset = true;
         let mut xorshift = crate::rng::xorshift::XorShift128::default();
         let mut rng_out = xorshift.next().unwrap();
@@ -188,7 +204,7 @@ mod tests {
 
     #[test]
     fn test_drainer_hdl() -> miette::Result<()> {
-        let uut = FIFODrainer::<U16>::default();
+        let uut = FIFODrainer::<16>::default();
         let mut need_reset = true;
         let mut xorshift = crate::rng::xorshift::XorShift128::default();
         let mut rng_out = xorshift.next().unwrap();

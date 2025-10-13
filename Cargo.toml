@@ -10,7 +10,6 @@ members = [
     "crates/rhdl-macro-core",
     "crates/rhdl-span", "crates/rhdl-toolchains",
     "crates/rhdl-trace-type",
-    "crates/rhdl-typenum",
     "crates/rhdl-vlog",
 "doc/mdbook-rhdl",
 ]

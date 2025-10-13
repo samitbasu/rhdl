@@ -5,7 +5,7 @@ use syn::Expr;
 // The op! macro converts an expression like
 //   op!(max(A, B) + U4)
 // into the equivalent type operators.  So in this case, it would become
-//   Sum<Maximum<A, B>, U4>
+//   Sum<Maximum<A, B>, 4>
 // The only operations allowed are min, max, add, sub, and the comparison operators >, >=, ==, <=, < and !=.
 pub fn typenum_op(input: TokenStream) -> syn::Result<TokenStream> {
     let expr = syn::parse2::<Expr>(input)?;
@@ -105,7 +105,7 @@ mod tests {
         let output = typenum_op(input).unwrap();
         assert_eq!(
             output.to_string(),
-            quote! { Sum<Diff<A, B>, U4> }.to_string()
+            quote! { Sum<Diff<A, B>, 4> }.to_string()
         );
     }
 
@@ -115,7 +115,7 @@ mod tests {
         let output = typenum_op(input).unwrap();
         assert_eq!(
             output.to_string(),
-            quote! { Sum<Diff<A, B>, Diff<Diff<C, D>, U4> > }.to_string()
+            quote! { Sum<Diff<A, B>, Diff<Diff<C, D>, 4> > }.to_string()
         );
     }
 
@@ -125,7 +125,7 @@ mod tests {
         let output = typenum_op(input).unwrap();
         assert_eq!(
             output.to_string(),
-            quote! { Sum<Maximum<A, B>, U4> }.to_string()
+            quote! { Sum<Maximum<A, B>, 4> }.to_string()
         );
     }
 
@@ -135,7 +135,7 @@ mod tests {
         let output = typenum_op(input).unwrap();
         assert_eq!(
             output.to_string(),
-            quote! { Sum<Minimum<A, Maximum<B, U0> >, U4> }.to_string()
+            quote! { Sum<Minimum<A, Maximum<B, U0> >, 4> }.to_string()
         );
     }
 }

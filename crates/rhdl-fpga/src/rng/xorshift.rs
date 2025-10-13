@@ -41,10 +41,10 @@ use crate::core::dff;
 /// The [XorShift] core.  Note that resetting the
 /// core resets the sequence.
 pub struct XorShift {
-    x: dff::DFF<Bits<U32>>,
-    y: dff::DFF<Bits<U32>>,
-    z: dff::DFF<Bits<U32>>,
-    w: dff::DFF<Bits<U32>>,
+    x: dff::DFF<Bits<32>>,
+    y: dff::DFF<Bits<32>>,
+    z: dff::DFF<Bits<32>>,
+    w: dff::DFF<Bits<32>>,
 }
 
 const SEED: u128 = 0x843233523a613966423b622562592c62;
@@ -74,13 +74,13 @@ impl XorShift {
 
 impl SynchronousIO for XorShift {
     type I = bool;
-    type O = Bits<U32>;
+    type O = Bits<32>;
     type Kernel = lfsr_kernel;
 }
 
 #[kernel]
 #[doc(hidden)]
-pub fn lfsr_kernel(_cr: ClockReset, strobe: bool, q: Q) -> (Bits<U32>, D) {
+pub fn lfsr_kernel(_cr: ClockReset, strobe: bool, q: Q) -> (Bits<32>, D) {
     let mut d = D::dont_care();
     d.x = q.x;
     d.y = q.y;

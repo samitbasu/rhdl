@@ -256,7 +256,7 @@ fn test_adt_inference() -> miette::Result<()> {
         let y1 = b6(6);
         let mut ar = [b4(1), b4(1), b4(3)];
         ar[1] = b4(2);
-        let _z: [Bits<U4>; 3] = ar;
+        let _z: [Bits<4>; 3] = ar;
         let _q = ar[1];
         let f: [b4; 5] = [b4(1); 5];
         let _h = f[2];
@@ -548,7 +548,7 @@ fn test_enum_basic() -> miette::Result<()> {
         })
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>())?;
     Ok(())
 }
 
@@ -584,6 +584,6 @@ fn test_match_enum() -> miette::Result<()> {
         })
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>())?;
     Ok(())
 }

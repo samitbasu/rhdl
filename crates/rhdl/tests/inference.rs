@@ -377,51 +377,57 @@ fn test_bit_inference_with_explicit_length_works() -> miette::Result<()> {
 #[test]
 fn test_resize_unsigned_inference() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<M: BitWidth>(a: Signal<b8, Red>) -> Signal<Bits<M>, Red> {
+    fn do_stuff<const M: usize>(a: Signal<b8, Red>) -> Signal<Bits<M>, Red>
+    where
+        rhdl::bits::W<M>: BitWidth,
+    {
         let a = a.val();
         let b = a + 1;
         let c = b.resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<U12>, _, _, _>(do_stuff::<U12>, tuple_exhaustive_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<U8>, _, _, _>(do_stuff::<U8>, tuple_exhaustive_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<12>, _, _, _>(do_stuff::<12>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<8>, _, _, _>(do_stuff::<8>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, tuple_exhaustive_red())?;
     Ok(())
 }
 
 #[test]
 fn test_resize_signed_inferred() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<M: BitWidth>(a: Signal<s6, Red>, b: Signal<s6, Red>) -> Signal<SignedBits<M>, Red> {
+    fn do_stuff<const M: usize>(
+        a: Signal<s6, Red>,
+        b: Signal<s6, Red>,
+    ) -> Signal<SignedBits<M>, Red>
+    where
+        rhdl::bits::W<M>: BitWidth,
+    {
         let (a, b) = (a.val(), b.val());
         let c = a + b;
         let c = c.resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<U12>, _, _, _>(
-        do_stuff::<U12>,
-        tuple_pair_sn_red::<U6>(),
-    )?;
-    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, tuple_pair_sn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<do_stuff<U6>, _, _, _>(do_stuff::<U6>, tuple_pair_sn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<do_stuff<12>, _, _, _>(do_stuff::<12>, tuple_pair_sn_red::<6>())?;
+    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, tuple_pair_sn_red::<6>())?;
+    test_kernel_vm_and_verilog::<do_stuff<6>, _, _, _>(do_stuff::<6>, tuple_pair_sn_red::<6>())?;
     Ok(())
 }
 
 #[test]
 fn test_resize_signed_explicit() -> miette::Result<()> {
-    #[kernel]
-    fn do_stuff<N: BitWidth>(a: Signal<s6, Red>, b: Signal<s6, Red>) -> Signal<s6, Red> {
+    //#[kernel]
+    fn do_stuff<const N: usize>(a: Signal<s6, Red>, b: Signal<s6, Red>) -> Signal<s6, Red>
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
         let (a, b) = (a.val(), b.val());
         let c = a + b;
         let c = c.resize::<N>();
         let c = c.resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<U12>, _, _, _>(
-        do_stuff::<U12>,
-        tuple_pair_sn_red::<U6>(),
-    )?;
-    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, tuple_pair_sn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<do_stuff<12>, _, _, _>(do_stuff::<12>, tuple_pair_sn_red::<6>())?;
+    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, tuple_pair_sn_red::<6>())?;
     Ok(())
 }
 
@@ -448,6 +454,6 @@ fn test_array_inference() -> miette::Result<()> {
         signal(c)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>())?;
     Ok(())
 }

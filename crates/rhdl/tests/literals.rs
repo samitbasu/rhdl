@@ -98,7 +98,7 @@ fn test_plain_literals() -> miette::Result<()> {
         signal((a.val() + 2 + b.val()).resize())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>())?;
     Ok(())
 }
 
@@ -109,5 +109,5 @@ fn test_plain_literals_signed_context() {
         signal(a.val() + 2 + b.val())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_sn_red::<U6>()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_sn_red::<6>()).unwrap();
 }

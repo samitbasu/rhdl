@@ -124,7 +124,7 @@ fn test_phi_mut_no_init() {
         signal(c)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<5>()).unwrap();
 }
 
 #[test]
@@ -137,7 +137,7 @@ fn test_flow_control_if_expression() {
         signal(c + 1)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<5>()).unwrap();
 }
 
 #[test]
@@ -147,5 +147,5 @@ fn test_if_expression() {
         signal(a.val() > b.val())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<4>()).unwrap();
 }

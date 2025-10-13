@@ -35,7 +35,7 @@ fn main() -> Result<(), RHDLError> {
         read: signal(r),
         write: signal(w),
     });
-    let uut: OptionAsyncBRAM<b8, Red, Blue, U3> =
+    let uut: OptionAsyncBRAM<b8, Red, Blue, 3> =
         OptionAsyncBRAM::new((0..).map(|x| (b3(x), b8(x))));
     let vcd = uut.run(input).collect::<Vcd>();
     let options = SvgOptions {

@@ -40,37 +40,46 @@ use crate::{
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 /// The FIFO Filler core
-pub struct FIFOFiller<N: BitWidth> {
+pub struct FIFOFiller<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     _marker: constant::Constant<Bits<N>>,
     rng: XorShift,
-    sleep_counter: dff::DFF<Bits<U4>>,
-    sleep_len: constant::Constant<Bits<U4>>,
-    write_probability: constant::Constant<Bits<U16>>,
+    sleep_counter: dff::DFF<Bits<4>>,
+    sleep_len: constant::Constant<Bits<4>>,
+    write_probability: constant::Constant<Bits<16>>,
 }
 
 /// The default configuration will sleep for 4 counts, with a roughly 50% probability
-impl<N: BitWidth> Default for FIFOFiller<N> {
+impl<const N: usize> Default for FIFOFiller<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     fn default() -> Self {
         Self {
             _marker: constant::Constant::new(bits(0)),
             rng: crate::rng::xorshift::XorShift::default(),
-            sleep_counter: dff::DFF::new(bits(0)),
-            sleep_len: constant::Constant::new(bits(4)),
-            write_probability: constant::Constant::new(bits(0x8000)),
+            sleep_counter: dff::DFF::new(b4(0)),
+            sleep_len: constant::Constant::new(b4(4)),
+            write_probability: constant::Constant::new(b16(0x8000)),
         }
     }
 }
 
-impl<N: BitWidth> FIFOFiller<N> {
+impl<const N: usize> FIFOFiller<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// Create a new [FIFOFiller] which writes with probability
     /// `write_probability`, and sleeps otherwise, with a
     /// duration of `sleep_len` cycles.
     pub fn new(sleep_len: u8, write_probability: f32) -> Self {
         let write_probability = 65535.0 * write_probability.clamp(0.0, 1.0);
         Self {
-            sleep_counter: dff::DFF::new(bits(0)),
-            sleep_len: constant::Constant::new(bits(sleep_len as u128)),
-            write_probability: constant::Constant::new(bits(write_probability as u128)),
+            sleep_counter: dff::DFF::new(b4(0)),
+            sleep_len: constant::Constant::new(b4(sleep_len as u128)),
+            write_probability: constant::Constant::new(b16(write_probability as u128)),
             ..Default::default()
         }
     }
@@ -85,12 +94,18 @@ pub struct In {
 
 #[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Outputs from the [FIFOFiller] core
-pub struct Out<N: BitWidth> {
+pub struct Out<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// The data from the filler to feed into the FIFO.
     pub data: Option<Bits<N>>,
 }
 
-impl<N: BitWidth> SynchronousIO for FIFOFiller<N> {
+impl<const N: usize> SynchronousIO for FIFOFiller<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = In;
     type O = Out<N>;
     type Kernel = filler_kernel<N>;
@@ -98,7 +113,10 @@ impl<N: BitWidth> SynchronousIO for FIFOFiller<N> {
 
 #[kernel]
 #[doc(hidden)]
-pub fn filler_kernel<N: BitWidth>(cr: ClockReset, i: In, q: Q<N>) -> (Out<N>, D<N>) {
+pub fn filler_kernel<const N: usize>(cr: ClockReset, i: In, q: Q<N>) -> (Out<N>, D<N>)
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     let mut d = D::<N>::dont_care();
     let mut o = Out::<N>::dont_care();
     d.rng = false;
@@ -107,13 +125,13 @@ pub fn filler_kernel<N: BitWidth>(cr: ClockReset, i: In, q: Q<N>) -> (Out<N>, D<
     d.sleep_counter = q.sleep_counter;
     // If the fifo is not full, and we are not sleeping, then write the next value to the FIFO
     if !is_full && q.sleep_counter == 0 {
-        o.data = Some(lsbs::<N, U32>(q.rng));
+        o.data = Some(lsbs::<N, 32>(q.rng));
         d.rng = true;
-        let p = msbs::<U16, U32>(q.rng);
+        let p = msbs::<16, 32>(q.rng);
         d.sleep_counter = if p > q.write_probability {
             q.sleep_len
         } else {
-            bits(0)
+            b4(0)
         };
     }
     if q.sleep_counter != 0 {
@@ -133,7 +151,7 @@ mod tests {
 
     #[test]
     fn test_filler() -> miette::Result<()> {
-        let uut = FIFOFiller::<U6>::default();
+        let uut = FIFOFiller::<6>::default();
         let input = std::iter::repeat_n(In { full: false }, 50)
             .with_reset(1)
             .clock_pos_edge(100);
@@ -151,7 +169,7 @@ mod tests {
 
     #[test]
     fn test_filler_testbench() -> miette::Result<()> {
-        let uut = FIFOFiller::<U6>::default();
+        let uut = FIFOFiller::<6>::default();
         let input = std::iter::repeat_n(In { full: false }, 50)
             .with_reset(1)
             .clock_pos_edge(100);

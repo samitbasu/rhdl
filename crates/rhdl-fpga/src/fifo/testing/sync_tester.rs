@@ -8,13 +8,21 @@ use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 /// This core provides a synchronous test fixture
-pub struct SyncTester<N: BitWidth, Z: BitWidth> {
+pub struct SyncTester<const N: usize, const Z: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+    rhdl::bits::W<Z>: BitWidth,
+{
     filler: crate::fifo::testing::filler::FIFOFiller<N>,
     fifo: crate::fifo::synchronous::SyncFIFO<Bits<N>, Z>,
     drainer: crate::fifo::testing::drainer::FIFODrainer<N>,
 }
 
-impl<N: BitWidth, Z: BitWidth> SynchronousIO for SyncTester<N, Z> {
+impl<const N: usize, const Z: usize> SynchronousIO for SyncTester<N, Z>
+where
+    rhdl::bits::W<N>: BitWidth,
+    rhdl::bits::W<Z>: BitWidth,
+{
     type I = ();
     type O = bool;
     type Kernel = fixture_kernel<N, Z>;
@@ -22,11 +30,15 @@ impl<N: BitWidth, Z: BitWidth> SynchronousIO for SyncTester<N, Z> {
 
 #[kernel]
 /// Kernel for the [SyncTester]
-pub fn fixture_kernel<N: BitWidth, Z: BitWidth>(
+pub fn fixture_kernel<const N: usize, const Z: usize>(
     _cr: ClockReset,
     _i: (),
     q: Q<N, Z>,
-) -> (bool, D<N, Z>) {
+) -> (bool, D<N, Z>)
+where
+    rhdl::bits::W<N>: BitWidth,
+    rhdl::bits::W<Z>: BitWidth,
+{
     let mut d = D::<N, Z>::dont_care();
     // The filler needs access to the full signal of the FIFO
     d.filler.full = q.fifo.full;
@@ -48,7 +60,7 @@ mod tests {
 
     #[test]
     fn test_sync_fifo_trace() -> miette::Result<()> {
-        let uut = SyncTester::<U16, U6>::default();
+        let uut = SyncTester::<16, 6>::default();
         let input = std::iter::repeat_n((), 1000)
             .with_reset(1)
             .clock_pos_edge(100);
@@ -65,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_sync_fifo_svg() -> miette::Result<()> {
-        let uut = SyncTester::<U16, U6>::default();
+        let uut = SyncTester::<16, 6>::default();
         let input = std::iter::repeat_n((), 1000)
             .with_reset(1)
             .clock_pos_edge(100)
@@ -81,7 +93,7 @@ mod tests {
 
     #[test]
     fn test_sync_fifo_valid() -> miette::Result<()> {
-        let uut = SyncTester::<U16, U6>::default();
+        let uut = SyncTester::<16, 6>::default();
         let input = std::iter::repeat_n((), 100_000)
             .with_reset(1)
             .clock_pos_edge(100);
