@@ -902,7 +902,7 @@ fn write_tuple(tuple: &Tuple, bits: &[BitX], f: &mut std::fmt::Formatter<'_>) ->
 
 #[cfg(test)]
 mod tests {
-    use rhdl_bits::{alias::*, bits, consts::U2};
+    use rhdl_bits::{alias::*, bits};
 
     use crate::{
         Digital, DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
@@ -982,19 +982,19 @@ mod tests {
                     .pad(match self {
                         Self::A(_0) => {
                             let mut v =
-                                bitx_vec(&rhdl_bits::bits::<U2>(0i64 as u128).to_bools()).to_vec();
+                                bitx_vec(&rhdl_bits::bits::<2>(0i64 as u128).to_bools()).to_vec();
                             v.extend(_0.bin());
                             v
                         }
                         Self::B { foo } => {
                             let mut v =
-                                bitx_vec(&rhdl_bits::bits::<U2>(1i64 as u128).to_bools()).to_vec();
+                                bitx_vec(&rhdl_bits::bits::<2>(1i64 as u128).to_bools()).to_vec();
                             v.extend(foo.bin());
                             v
                         }
                         Self::C(_0) => {
                             let mut v =
-                                bitx_vec(&rhdl_bits::bits::<U2>(2i64 as u128).to_bools()).to_vec();
+                                bitx_vec(&rhdl_bits::bits::<2>(2i64 as u128).to_bools()).to_vec();
                             v.extend(_0.bin());
                             v
                         }
@@ -1003,9 +1003,9 @@ mod tests {
             }
             fn discriminant(self) -> TypedBits {
                 match self {
-                    Self::A(_0) => rhdl_bits::bits::<U2>(0i64 as u128).typed_bits(),
-                    Self::B { foo: _ } => rhdl_bits::bits::<U2>(1i64 as u128).typed_bits(),
-                    Self::C(_0) => rhdl_bits::bits::<U2>(2i64 as u128).typed_bits(),
+                    Self::A(_0) => rhdl_bits::bits::<2>(0i64 as u128).typed_bits(),
+                    Self::B { foo: _ } => rhdl_bits::bits::<2>(1i64 as u128).typed_bits(),
+                    Self::C(_0) => rhdl_bits::bits::<2>(2i64 as u128).typed_bits(),
                 }
             }
             fn variant_kind(self) -> Kind {

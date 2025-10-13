@@ -1,3 +1,4 @@
+use crate::bitwidth::W;
 use crate::signed_bits_impl::signed_wrapped;
 
 use super::{BitWidth, SignedBits, dyn_bits::DynBits};
@@ -48,32 +49,32 @@ impl SignedDynBits {
         x ^= x >> 64;
         x & 1 == 1
     }
-    pub const fn xext<M: BitWidth>(self) -> SignedDynBits {
-        assert!(self.bits + M::BITS <= 128);
+    pub const fn xext<const M: usize>(self) -> SignedDynBits {
+        assert!(self.bits + M <= 128);
         SignedDynBits {
             val: self.val,
-            bits: M::BITS + self.bits,
+            bits: M + self.bits,
         }
     }
-    pub const fn xshr<M: BitWidth>(self) -> SignedDynBits {
-        assert!(self.bits > M::BITS);
+    pub const fn xshr<const M: usize>(self) -> SignedDynBits {
+        assert!(self.bits > M);
         SignedDynBits {
-            val: self.val >> M::BITS,
-            bits: self.bits - M::BITS,
+            val: self.val >> M,
+            bits: self.bits - M,
         }
     }
-    pub const fn xshl<M: BitWidth>(self) -> SignedDynBits {
-        assert!(self.bits + M::BITS <= 128);
+    pub const fn xshl<const M: usize>(self) -> SignedDynBits {
+        assert!(self.bits + M <= 128);
         SignedDynBits {
-            val: self.val << M::BITS,
-            bits: self.bits + M::BITS,
+            val: self.val << M,
+            bits: self.bits + M,
         }
     }
-    pub const fn resize<M: BitWidth>(self) -> SignedDynBits {
-        if M::BITS > self.bits {
+    pub const fn resize<const M: usize>(self) -> SignedDynBits {
+        if M > self.bits {
             SignedDynBits {
                 val: self.val,
-                bits: M::BITS,
+                bits: M,
             }
         } else {
             self.as_unsigned().resize::<M>().as_signed()
@@ -82,8 +83,11 @@ impl SignedDynBits {
     pub const fn wrapped(self) -> SignedDynBits {
         self.as_unsigned().wrapped().as_signed()
     }
-    pub const fn as_signed_bits<N: BitWidth>(self) -> SignedBits<N> {
-        assert!(N::BITS == self.bits);
+    pub const fn as_signed_bits<const N: usize>(self) -> SignedBits<N>
+    where
+        W<N>: BitWidth,
+    {
+        assert!(N == self.bits);
         signed_wrapped(self.val)
     }
     pub const fn bits(self) -> usize {

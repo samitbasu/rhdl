@@ -337,8 +337,8 @@ mod tests {
     impl From<TestCase> for AxilAddr {
         fn from(value: TestCase) -> Self {
             match value {
-                TestCase::Bank0(reg) => ROM0_BASE + (reg.resize::<U32>() << 2),
-                TestCase::Bank1(reg) => ROM1_BASE + (reg.resize::<U32>() << 2),
+                TestCase::Bank0(reg) => ROM0_BASE + (reg.resize::<32>() << 2),
+                TestCase::Bank1(reg) => ROM1_BASE + (reg.resize::<32>() << 2),
                 TestCase::Err0 => ROM0_BASE + bits(100),
                 TestCase::Err1 => ROM1_BASE + bits(100),
                 TestCase::ErrSwitch => bits(0),

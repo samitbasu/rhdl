@@ -95,7 +95,7 @@ impl<T: Digital, N: BitWidth> Default for SyncBRAM<T, N> {
 impl<T: Digital, N: BitWidth> SyncBRAM<T, N> {
     /// Create a new [SyncBRAM] with the provided initial contents.
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
-        let len = (1 << N::BITS) as usize;
+        let len = (1 << N) as usize;
         Self {
             initial: initial.into_iter().take(len).collect(),
         }
@@ -159,7 +159,7 @@ impl<T: Digital, N: BitWidth> Synchronous for SyncBRAM<T, N> {
     fn description(&self) -> String {
         format!(
             "Synchronous RAM with {} entries of type {}",
-            1 << N::BITS,
+            1 << N,
             std::any::type_name::<T>()
         )
     }
@@ -210,7 +210,7 @@ impl<T: Digital, N: BitWidth> Synchronous for SyncBRAM<T, N> {
         let input_bits: vlog::BitRange = (0..(<Self::I as Digital>::BITS)).into();
         let address_bits: vlog::BitRange = (0..(N::BITS)).into();
         let data_bits: vlog::BitRange = (0..(T::BITS)).into();
-        let memory_size: vlog::BitRange = (0..(1 << N::BITS)).into();
+        let memory_size: vlog::BitRange = (0..(1 << N)).into();
         let initial_values = self.initial.iter().map(|(addr, val)| {
             let val: vlog::LitVerilog = val.typed_bits().into();
             let addr = syn::Index::from(addr.raw() as usize);

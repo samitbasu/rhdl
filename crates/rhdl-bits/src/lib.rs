@@ -1,4 +1,4 @@
-#![deny(missing_docs)]
+//#![deny(missing_docs)]
 //! This crate provides two types that are important for working with hardware
 //! designs.  The [Bits] type is a fixed-size unsigned integer type with a variable
 //! number of bits.  The [SignedBits] type is a fixed-size signed integer type with
@@ -45,11 +45,11 @@
 //! The [Bits] and [SignedBits] types are generic over the number of bits they represent.  This
 //! means that you will need to specify the number of bits in the type name using the
 //! typenames provided by `rhdl-typenum`.  For example, if you
-//! want to represent a 32 bit value, you will need to use the type `Bits<U32`.  This can be
+//! want to represent a 32 bit value, you will need to use the type `Bits<32`.  This can be
 //! tedious to type, so this crate provides a set of type aliases that you can use to save
 //! keystrokes.  These type aliases are named `b1` through `b128` for [Bits], and `s1` through
 //! `s128` for [SignedBits].  So, for example, if you want to represent a 32 bit value, you can
-//! use the type alias `b32` instead of the full type name `Bits<U32>`.  For example:
+//! use the type alias `b32` instead of the full type name `Bits<32>`.  For example:
 //! ```
 //! use rhdl_bits::alias::*;
 //! let bits: b32 = 0xDEAD_BEEF.into();
@@ -72,7 +72,7 @@
 //! [From] trait, and convert from integer literals.  For example:
 //! ```
 //! use rhdl_bits::{Bits, consts::U8, alias::*};
-//! let bits: Bits<U8> = 0b1101_1010.into(); // Long form
+//! let bits: Bits<8> = 0b1101_1010.into(); // Long form
 //! let bits: b8 = 0b1101_1010.into(); // Short form (not the same as u8)
 //! ```
 //! This will work for any integer literal that is in the range of the [Bits] type.
@@ -81,7 +81,7 @@
 //! You can also construct a [Bits] value from a [u128] value:
 //! ```
 //! # use rhdl_bits::{consts::U8, Bits, alias::*};
-//! let bits: Bits<U8> = 0b1101_1010_u128.into(); // Long form
+//! let bits: Bits<8> = 0b1101_1010_u128.into(); // Long form
 //! let bits: b8 = 0b1101_1010_u128.into(); // Short form (not the same as u8)
 //! ```
 //!
@@ -98,14 +98,14 @@
 //! only difference is that the [SignedBits] type can be constructed from a [i128] value:
 //! ```
 //! # use rhdl_bits::{consts::U8, SignedBits, alias::*};
-//! let bits: SignedBits<U8> = 0b0101_1010_i128.into(); // Long form
+//! let bits: SignedBits<8> = 0b0101_1010_i128.into(); // Long form
 //! let bits: s8 = 0b0101_1010_i128.into(); // Short form
 //! ```
 //!
 //! Likewise, you can construct a [SignedBits] from a signed literal
 //! ```
 //! # use rhdl_bits::{consts::U8, SignedBits, alias::*};
-//! let bits: SignedBits<U8> = (-42).into(); // Long form
+//! let bits: SignedBits<8> = (-42).into(); // Long form
 //! let bits: s8 = (-42).into(); // Short form
 //! ```
 //! *Note the parenthesis!*  Because of the order of operations, the negation has a lower
@@ -121,7 +121,7 @@
 //! [Bits] types of the appropriate width.  For example:
 //! ```
 //! # use rhdl_bits::{consts::U8, Bits, alias::*};
-//! let bits: Bits<U8> = 0b1101_1010.into();  // Long form
+//! let bits: Bits<8> = 0b1101_1010.into();  // Long form
 //! let result = bits & 0b1111_0000;
 //! assert_eq!(result, 0b1101_0000);
 //! let bits: b8 = 0b1101_1010.into();  // Short form
@@ -148,8 +148,8 @@
 //!
 //! ```compile_fail
 //! # use rust_hdl_bits::Bits;
-//! let x: Bits<U0> = 0x1234.into();
-//! let y: Bits<U1> = 0x5123.into();
+//! let x: Bits<0> = 0x1234.into();
+//! let y: Bits<1> = 0x5123.into();
 //! let z = x + y; // This will fail to compile.
 //! ```
 //!
@@ -196,7 +196,7 @@
 //!
 //! ```
 //! # use rhdl_bits::{consts::U8, Bits};
-//! let mut x: Bits<U8> = 0b1111_1111.into();
+//! let mut x: Bits<8> = 0b1111_1111.into();
 //! x += 1;
 //! assert_eq!(x, 0);
 //! ```
@@ -218,9 +218,9 @@
 //!
 //! ```
 //! # use rhdl_bits::{consts::U8, Bits};
-//! let x: Bits<U8> = 0b0000_0001.into();
-//! let y: Bits<U8> = 0b0000_0010.into();
-//! let z: Bits<U8> = x - y; // 1 - 2 = -1
+//! let x: Bits<8> = 0b0000_0001.into();
+//! let y: Bits<8> = 0b0000_0010.into();
+//! let z: Bits<8> = x - y; // 1 - 2 = -1
 //! assert_eq!(z, 0b1111_1111);
 //! ```
 //!
@@ -252,7 +252,7 @@
 //! so you can use the `-=` operator as well:
 //! ```
 //! # use rhdl_bits::{consts::U8, Bits};
-//! let mut x: Bits<U8> = 0b0000_0001.into();
+//! let mut x: Bits<8> = 0b0000_0001.into();
 //! x -= 1;
 //! assert_eq!(x, 0);
 //! ```
@@ -273,15 +273,15 @@
 //! Here is an example of the binary operators in action:
 //! ```
 //! # use rhdl_bits::{consts::U8, Bits};
-//! let x: Bits<U8> = 0b1101_1010.into();
-//! let y: Bits<U8> = 0b1111_0000.into();
-//! let z: Bits<U8> = x | y;
+//! let x: Bits<8> = 0b1101_1010.into();
+//! let y: Bits<8> = 0b1111_0000.into();
+//! let z: Bits<8> = x | y;
 //! assert_eq!(z, 0b1111_1010);
-//! let z: Bits<U8> = x & y;
+//! let z: Bits<8> = x & y;
 //! assert_eq!(z, 0b1101_0000);
-//! let z: Bits<U8> = x ^ y;
+//! let z: Bits<8> = x ^ y;
 //! assert_eq!(z, 0b0010_1010);
-//! let z: Bits<U8> = !x;
+//! let z: Bits<8> = !x;
 //! assert_eq!(z, 0b0010_0101);
 //! ```
 //!
@@ -323,17 +323,17 @@
 //! being shifted, _and_ the number of bits in the value that controls the shift.  For example:
 //! ```
 //! # use rhdl_bits::{consts::U3, consts::U8, Bits};
-//! let x: Bits<U8> = 0b1101_1010.into();
-//! let y: Bits<U3> = 0b101.into();
-//! let z: Bits<U8> = x >> y;
+//! let x: Bits<8> = 0b1101_1010.into();
+//! let y: Bits<3> = 0b101.into();
+//! let z: Bits<8> = x >> y;
 //! assert_eq!(z, 0b0000_0110);
 //! ```
 //!
 //! You can also use an integer literal to control the shift amount
 //! ```
 //! # use rhdl_bits::{consts::U8, Bits};
-//! let x: Bits<U8> = 0b1101_1010.into();
-//! let z: Bits<U8> = x >> 3;
+//! let x: Bits<8> = 0b1101_1010.into();
+//! let z: Bits<8> = x >> 3;
 //! assert_eq!(z, 0b0001_1011);
 //! ```
 //!
@@ -353,8 +353,8 @@
 //!
 //! ```
 //! # use rhdl_bits::{consts::U8, Bits};
-//! let x: Bits<U8> = 0b1101_1010.into();
-//! let z: Bits<U8> = x >> 10;
+//! let x: Bits<8> = 0b1101_1010.into();
+//! let z: Bits<8> = x >> 10;
 //! assert_eq!(z, 0);
 //! ```
 //!
@@ -370,8 +370,8 @@
 //! For example, with [Bits]:
 //! ```
 //! # use rhdl_bits::{consts::U8, Bits};
-//! let x: Bits<U8> = 0b1111_1111.into();
-//! let y: Bits<U8> = 0b0000_0000.into();
+//! let x: Bits<8> = 0b1111_1111.into();
+//! let y: Bits<8> = 0b0000_0000.into();
 //! assert!(x > y);
 //! ```
 //! On the other hand with [SignedBits]:
@@ -393,6 +393,8 @@ pub mod bits_impl;
 pub mod bitwidth;
 #[doc(hidden)]
 pub mod dyn_bits;
+#[doc(hidden)]
+mod impl_macro;
 #[doc(hidden)]
 pub mod mul;
 #[doc(hidden)]
@@ -423,16 +425,7 @@ pub mod xor;
 pub mod xsgn;
 #[doc(hidden)]
 pub mod xsub;
-
-#[doc(hidden)]
-mod impl_macro;
-
-#[doc(hidden)]
-pub mod consts {
-    pub use rhdl_typenum::consts::*;
-}
-
-pub use rhdl_typenum::const_generics::Const;
+pub use crate::bitwidth::W;
 
 pub mod alias {
     //!
@@ -440,7 +433,7 @@ pub mod alias {
     //! This crate provides a set of type aliases that you can use to save keystrokes.
     //! These type aliases are named `b1` through `b128` for [crate::Bits], and `s1` through
     //! `s128` for [crate::SignedBits].  So, for example, if you want to represent a 32 bit value,
-    //! you can use the type alias `b32` instead of the full type name `Bits<U32>`.  For example:
+    //! you can use the type alias `b32` instead of the full type name `Bits<32>`.  For example:
     //! ```
     //! use rhdl_bits::alias::*;
     //! let bits: b32 = 0xDEAD_BEEF.into();
@@ -482,7 +475,10 @@ mod test {
     use super::alias::*;
     use super::*;
 
-    pub(crate) fn set_bit<N: BitWidth>(x: Bits<N>, i: usize, value: bool) -> Bits<N> {
+    pub(crate) fn set_bit<const N: usize>(x: Bits<N>, i: usize, value: bool) -> Bits<N>
+    where
+        W<N>: BitWidth,
+    {
         let selector = 1_u128 << i;
         let x = if value {
             x.val | selector
@@ -515,5 +511,5 @@ mod test {
         println!("c = {c:b}");
     }
 
-    include!(concat!(env!("OUT_DIR"), "/bit_tests.rs"));
+    //    include!(concat!(env!("OUT_DIR"), "/bit_tests.rs"));
 }

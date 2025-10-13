@@ -29,11 +29,17 @@ use super::dff;
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 /// The counter core
 ///   `N` is the bitwidth of the counter
-pub struct Counter<N: BitWidth> {
+pub struct Counter<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     count: dff::DFF<Bits<N>>,
 }
 
-impl<N: BitWidth> Default for Counter<N> {
+impl<const N: usize> Default for Counter<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     fn default() -> Self {
         Self {
             count: dff::DFF::new(Bits::<N>::default()),
@@ -41,7 +47,10 @@ impl<N: BitWidth> Default for Counter<N> {
     }
 }
 
-impl<N: BitWidth> SynchronousIO for Counter<N> {
+impl<const N: usize> SynchronousIO for Counter<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = bool;
     type O = Bits<N>;
     type Kernel = counter<N>;
@@ -49,7 +58,10 @@ impl<N: BitWidth> SynchronousIO for Counter<N> {
 
 #[kernel]
 /// Counter kernel function
-pub fn counter<N: BitWidth>(cr: ClockReset, enable: bool, q: Q<N>) -> (Bits<N>, D<N>) {
+pub fn counter<const N: usize>(cr: ClockReset, enable: bool, q: Q<N>) -> (Bits<N>, D<N>)
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     let next_count = if enable { q.count + 1 } else { q.count };
     let next_count = if cr.reset.any() { bits(0) } else { next_count };
     (q.count, D::<N> { count: next_count })

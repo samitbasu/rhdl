@@ -135,7 +135,10 @@ use super::Ready;
 /// carries elements of type `S` and the pipeline is assumed to produce elements
 /// of type `T`.  This core assumes a 1-1 relationship, i.e., each `Some(S)` will
 /// produce exactly one `Some(T)`.
-pub struct PipeWrapper<S: Digital, T: Digital, N: BitWidth> {
+pub struct PipeWrapper<S: Digital, T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     in_buffer: StreamToFIFO<S>,
     fifo: SyncFIFO<T, N>,
     out_buffer: FIFOToStream<T>,

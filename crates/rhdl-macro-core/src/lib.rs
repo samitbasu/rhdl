@@ -21,3 +21,4 @@ mod path;
 pub use path::path_macro;
 pub mod vlog;
 pub use vlog::modules;
+pub mod const_impl;

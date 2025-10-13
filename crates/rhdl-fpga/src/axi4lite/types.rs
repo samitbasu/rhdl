@@ -10,7 +10,7 @@
 use rhdl::prelude::*;
 
 /// The [ResponseKind] called out in the AXI specification
-pub type ResponseKind = Bits<U2>;
+pub type ResponseKind = Bits<2>;
 
 /// This module [response_codes] includes definitions
 /// for the 4 responses defined in the specification
@@ -31,17 +31,17 @@ pub mod response_codes {
 ///
 /// Although the specification allows for AXI data busses of any width,
 /// we implement the 32-bit width in this module.
-pub type AxilData = Bits<U32>;
+pub type AxilData = Bits<32>;
 /// AXI Address type
 ///
 /// The specification also allows for various widths of AXI addresses.
 /// Because 32 bits is the most common format, we choose that here.
-pub type AxilAddr = Bits<U32>;
+pub type AxilAddr = Bits<32>;
 /// AXI Strobe Mask
 ///
 /// This data type includes a bit-per-byte of the [AxilData] type.  Thus
 /// it should have `N` bits where [AxilData] has `2^(8*N)` bits.
-pub type AxilStrobe = Bits<U4>;
+pub type AxilStrobe = Bits<4>;
 
 #[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
 /// A data word to write, along with a strobe for the bytes
@@ -93,7 +93,7 @@ pub struct WriteCommand {
 ///
 /// This function simply converts the strobe into
 /// a mask.
-pub fn strobe_to_mask(strobe: Bits<U4>) -> Bits<U32> {
+pub fn strobe_to_mask(strobe: Bits<4>) -> Bits<32> {
     let mut mask = bits(0);
     if strobe & 1 != 0 {
         mask |= bits(0xff);
@@ -244,7 +244,7 @@ pub struct ReadMISO {
     /// Read Data
     pub rdata: AxilData,
     /// Read Data response
-    pub rresp: Bits<U2>,
+    pub rresp: Bits<2>,
     /// Read Data valid
     pub rvalid: bool,
 }
@@ -282,7 +282,7 @@ pub struct WriteMISO {
     /// Write Data ready
     pub wready: bool,
     /// Write Response
-    pub bresp: Bits<U2>,
+    pub bresp: Bits<2>,
     /// Write Response valid
     pub bvalid: bool,
 }

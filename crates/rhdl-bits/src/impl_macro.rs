@@ -7,7 +7,10 @@
 macro_rules! impl_binop {
     ($trait: ident, $op: ident, $wrap_op: path) => {
         // First the case of adding a u128 to a Bits<N>
-        impl<N: BitWidth> $trait<u128> for Bits<N> {
+        impl<const N: usize> $trait<u128> for Bits<N>
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             type Output = Bits<N>;
             fn $op(self, rhs: u128) -> Self::Output {
                 assert!(rhs <= Self::MASK.val);
@@ -15,7 +18,10 @@ macro_rules! impl_binop {
             }
         }
         // Next the case of adding a Bits<N> to a u128
-        impl<N: BitWidth> $trait<Bits<N>> for u128 {
+        impl<const N: usize> $trait<Bits<N>> for u128
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             type Output = Bits<N>;
             fn $op(self, rhs: Bits<N>) -> Self::Output {
                 assert!(self <= Bits::<N>::MASK.val);
@@ -23,7 +29,10 @@ macro_rules! impl_binop {
             }
         }
         // Adding two Bits<N> together
-        impl<N: BitWidth> $trait for Bits<N> {
+        impl<const N: usize> $trait for Bits<N>
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             type Output = Self;
             fn $op(self, rhs: Self) -> Self::Output {
                 bits_masked($wrap_op(self.val, rhs.val))
@@ -66,18 +75,24 @@ macro_rules! impl_binop {
             }
         }
         // Adding a DynBit to a Bits<N>
-        impl<N: BitWidth> $trait<Bits<N>> for DynBits {
+        impl<const N: usize> $trait<Bits<N>> for DynBits
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             type Output = Bits<N>;
             fn $op(self, rhs: Bits<N>) -> Self::Output {
-                assert_eq!(self.bits, N::BITS);
+                assert_eq!(self.bits, { N });
                 bits_masked($wrap_op(self.val, rhs.val))
             }
         }
         // Adding a Bits<N> to a DynBits
-        impl<N: BitWidth> $trait<DynBits> for Bits<N> {
+        impl<const N: usize> $trait<DynBits> for Bits<N>
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             type Output = Bits<N>;
             fn $op(self, rhs: DynBits) -> Self::Output {
-                assert_eq!(rhs.bits, N::BITS);
+                assert_eq!(rhs.bits, { N });
                 bits_masked($wrap_op(self.val, rhs.val))
             }
         }
@@ -88,14 +103,20 @@ macro_rules! impl_binop {
 macro_rules! impl_assign_op {
     ($trait: ident, $op: ident, $wrap_op: path) => {
         // First the case of adding a u128 to a Bits<N>
-        impl<N: BitWidth> $trait<u128> for Bits<N> {
+        impl<const N: usize> $trait<u128> for Bits<N>
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             fn $op(&mut self, rhs: u128) {
                 assert!(rhs <= Self::MASK.val);
                 *self = bits_masked($wrap_op(self.val, rhs));
             }
         }
         // Adding two Bits<N> together
-        impl<N: BitWidth> $trait for Bits<N> {
+        impl<const N: usize> $trait for Bits<N>
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             fn $op(&mut self, rhs: Self) {
                 *self = bits_masked($wrap_op(self.val, rhs.val));
             }
@@ -117,17 +138,23 @@ macro_rules! impl_assign_op {
             }
         }
         // Adding a DynBit to a Bits<N>
-        impl<N: BitWidth> $trait<Bits<N>> for DynBits {
+        impl<const N: usize> $trait<Bits<N>> for DynBits
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             fn $op(&mut self, rhs: Bits<N>) {
-                assert_eq!(self.bits, N::BITS);
+                assert_eq!(self.bits, { N });
                 self.val = $wrap_op(self.val, rhs.val);
                 *self = self.wrapped();
             }
         }
         // Adding a Bits<N> to a DynBits
-        impl<N: BitWidth> $trait<DynBits> for Bits<N> {
+        impl<const N: usize> $trait<DynBits> for Bits<N>
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             fn $op(&mut self, rhs: DynBits) {
-                assert_eq!(rhs.bits, N::BITS);
+                assert_eq!(rhs.bits, { N });
                 *self = bits_masked($wrap_op(self.val, rhs.val));
             }
         }
@@ -139,7 +166,10 @@ macro_rules! impl_assign_op {
 macro_rules! impl_signed_binop {
     ($trait: ident, $op: ident, $wrap_op: path) => {
         // First the case of adding an i128 to a SignedBits<N>
-        impl<N: BitWidth> $trait<i128> for SignedBits<N> {
+        impl<const N: usize> $trait<i128> for SignedBits<N>
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             type Output = SignedBits<N>;
             fn $op(self, rhs: i128) -> Self::Output {
                 assert!(rhs <= Self::MAX);
@@ -148,9 +178,9 @@ macro_rules! impl_signed_binop {
             }
         }
         // Next the case of adding a SignedBits<N> to an i128
-        impl<N: BitWidth> $trait<SignedBits<N>> for i128
+        impl<const N: usize> $trait<SignedBits<N>> for i128
         where
-            N: BitWidth,
+            crate::bitwidth::W<N>: BitWidth,
         {
             type Output = SignedBits<N>;
             fn $op(self, rhs: SignedBits<N>) -> Self::Output {
@@ -160,7 +190,10 @@ macro_rules! impl_signed_binop {
             }
         }
         // Adding two SignedBits<N> together
-        impl<N: BitWidth> $trait for SignedBits<N> {
+        impl<const N: usize> $trait for SignedBits<N>
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             type Output = Self;
             fn $op(self, rhs: Self) -> Self::Output {
                 signed_wrapped($wrap_op(self.val, rhs.val))
@@ -205,18 +238,24 @@ macro_rules! impl_signed_binop {
             }
         }
         // Adding a SignedDynBit to a SignedBits<N>
-        impl<N: BitWidth> $trait<SignedBits<N>> for SignedDynBits {
+        impl<const N: usize> $trait<SignedBits<N>> for SignedDynBits
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             type Output = SignedBits<N>;
             fn $op(self, rhs: SignedBits<N>) -> Self::Output {
-                assert_eq!(self.bits, N::BITS);
+                assert_eq!(self.bits, { N });
                 signed_wrapped($wrap_op(self.val, rhs.val))
             }
         }
         // Adding a SignedBits<N> to a SignedDynBits
-        impl<N: BitWidth> $trait<SignedDynBits> for SignedBits<N> {
+        impl<const N: usize> $trait<SignedDynBits> for SignedBits<N>
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             type Output = SignedBits<N>;
             fn $op(self, rhs: SignedDynBits) -> Self::Output {
-                assert_eq!(rhs.bits, N::BITS);
+                assert_eq!(rhs.bits, { N });
                 signed_wrapped($wrap_op(self.val, rhs.val))
             }
         }
@@ -227,7 +266,10 @@ macro_rules! impl_signed_binop {
 macro_rules! impl_assigned_signed_op {
     ($trait: ident, $op: ident, $wrap_op: path) => {
         // First the case of adding an i128 to a SignedBits<N>
-        impl<N: BitWidth> $trait<i128> for SignedBits<N> {
+        impl<const N: usize> $trait<i128> for SignedBits<N>
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             fn $op(&mut self, rhs: i128) {
                 assert!(rhs <= Self::MAX);
                 assert!(rhs >= Self::MIN);
@@ -235,7 +277,10 @@ macro_rules! impl_assigned_signed_op {
             }
         }
         // Adding two SignedBits<N> together
-        impl<N: BitWidth> $trait for SignedBits<N> {
+        impl<const N: usize> $trait for SignedBits<N>
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             fn $op(&mut self, rhs: Self) {
                 *self = signed_wrapped($wrap_op(self.val, rhs.val));
             }
@@ -258,17 +303,23 @@ macro_rules! impl_assigned_signed_op {
             }
         }
         // Adding a SignedDynBit to a SignedBits<N>
-        impl<N: BitWidth> $trait<SignedBits<N>> for SignedDynBits {
+        impl<const N: usize> $trait<SignedBits<N>> for SignedDynBits
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             fn $op(&mut self, rhs: SignedBits<N>) {
-                assert_eq!(self.bits, N::BITS);
+                assert_eq!(self.bits, { N });
                 self.val = $wrap_op(self.val, rhs.val);
                 *self = self.wrapped();
             }
         }
         // Adding a SignedBits<N> to a SignedDynBits
-        impl<N: BitWidth> $trait<SignedDynBits> for SignedBits<N> {
+        impl<const N: usize> $trait<SignedDynBits> for SignedBits<N>
+        where
+            crate::bitwidth::W<N>: BitWidth,
+        {
             fn $op(&mut self, rhs: SignedDynBits) {
-                assert_eq!(rhs.bits, N::BITS);
+                assert_eq!(rhs.bits, { N });
                 *self = signed_wrapped($wrap_op(self.val, rhs.val));
             }
         }
@@ -281,7 +332,6 @@ macro_rules! test_binop {
         {
             use $crate::alias::*;
             use $crate::bits;
-            use $crate::consts::*;
             // We will generate some test data
             let x : b8 = bits($val1);
             let y : u128 = $val2;
@@ -293,9 +343,9 @@ macro_rules! test_binop {
             assert_eq!(y $op x, bits_masked($wrap(y, x.val)));
             assert_eq!(x $op z, bits_masked($wrap(x.val, z.val)));
             assert_eq!(z $op x, bits_masked($wrap(z.val, x.val)));
-            assert_eq!(z $op y, bits_masked::<U8>($wrap(z.val, y)).dyn_bits());
-            assert_eq!(y $op z, bits_masked::<U8>($wrap(y, z.val)).dyn_bits());
-            assert_eq!(z $op z, bits_masked::<U8>($wrap(z.val, z.val)).dyn_bits());
+            assert_eq!(z $op y, bits_masked::<8>($wrap(z.val, y)).dyn_bits());
+            assert_eq!(y $op z, bits_masked::<8>($wrap(y, z.val)).dyn_bits());
+            assert_eq!(z $op z, bits_masked::<8>($wrap(z.val, z.val)).dyn_bits());
             assert_eq!(x $op x, bits_masked($wrap(x.val, x.val)));
             // Assert that all of the outputs are the same size ( 8 bits )
             assert_eq!((z $op y).bits(), 8);

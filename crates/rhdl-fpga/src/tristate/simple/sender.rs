@@ -22,13 +22,13 @@ pub enum State {
 // The input struct includes the tristate bus
 #[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct I {
-    pub bitz: BitZ<U8>,
+    pub bitz: BitZ<8>,
     pub cmd: Option<Cmd>,
 }
 
 #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
 pub struct O {
-    pub bitz: BitZ<U8>,
+    pub bitz: BitZ<8>,
     pub control: Option<LineState>,
     pub data: Option<b8>,
 }

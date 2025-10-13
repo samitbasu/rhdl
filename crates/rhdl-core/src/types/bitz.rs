@@ -5,14 +5,20 @@ use crate::{Digital, Kind, bitx::BitX, trace::bit::TraceBit};
 use super::kind::Field;
 
 #[derive(Debug, Clone, PartialEq, Copy, Default)]
-pub struct BitZ<N: BitWidth> {
+pub struct BitZ<const N: usize>
+where
+    rhdl_bits::W<N>: BitWidth,
+{
     pub value: Bits<N>,
     pub mask: Bits<N>,
 }
 
-impl<N: BitWidth> Digital for BitZ<N> {
-    const BITS: usize = 2 * N::BITS;
-    const TRACE_BITS: usize = N::BITS;
+impl<const N: usize> Digital for BitZ<N>
+where
+    rhdl_bits::W<N>: BitWidth,
+{
+    const BITS: usize = 2 * N;
+    const TRACE_BITS: usize = N;
     fn static_kind() -> Kind {
         Kind::make_struct(
             "BitZ",

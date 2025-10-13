@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use rhdl_bits::{BitWidth, Bits, SignedBits, consts::U32, consts::U64, consts::U128};
+use rhdl_bits::{BitWidth, Bits, SignedBits};
 
 use crate::{
     DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
@@ -245,7 +245,7 @@ impl Digital for u128 {
         Kind::make_bits(128)
     }
     fn bin(self) -> Box<[BitX]> {
-        bitx_vec(&Bits::<U128>::from(self).to_bools()).into()
+        bitx_vec(&Bits::<128>::from(self).to_bools()).into()
     }
     fn dont_care() -> Self {
         Self::default()
@@ -258,7 +258,7 @@ impl Digital for i128 {
         Kind::make_signed(128)
     }
     fn bin(self) -> Box<[BitX]> {
-        bitx_vec(&SignedBits::<U128>::from(self).as_unsigned().to_bools())
+        bitx_vec(&SignedBits::<128>::from(self).as_unsigned().to_bools())
     }
     fn dont_care() -> Self {
         Self::default()
@@ -272,8 +272,8 @@ impl Digital for usize {
     }
     fn bin(self) -> Box<[BitX]> {
         match usize::BITS {
-            32 => bitx_vec(&Bits::<U32>::from(self as u128).to_bools()),
-            64 => bitx_vec(&Bits::<U64>::from(self as u128).to_bools()),
+            32 => bitx_vec(&Bits::<32>::from(self as u128).to_bools()),
+            64 => bitx_vec(&Bits::<64>::from(self as u128).to_bools()),
             _ => panic!("Unsupported usize bit width"),
         }
     }
@@ -282,10 +282,13 @@ impl Digital for usize {
     }
 }
 
-impl<N: BitWidth> Digital for Bits<N> {
-    const BITS: usize = N::BITS;
+impl<const N: usize> Digital for Bits<N>
+where
+    rhdl_bits::W<N>: BitWidth,
+{
+    const BITS: usize = N;
     fn static_kind() -> Kind {
-        Kind::make_bits(N::BITS)
+        Kind::make_bits(N)
     }
     fn bin(self) -> Box<[BitX]> {
         bitx_vec(&self.to_bools())
@@ -295,10 +298,13 @@ impl<N: BitWidth> Digital for Bits<N> {
     }
 }
 
-impl<N: BitWidth> Digital for SignedBits<N> {
-    const BITS: usize = N::BITS;
+impl<const N: usize> Digital for SignedBits<N>
+where
+    rhdl_bits::W<N>: BitWidth,
+{
+    const BITS: usize = N;
     fn static_kind() -> Kind {
-        Kind::make_signed(N::BITS)
+        Kind::make_signed(N)
     }
     fn bin(self) -> Box<[BitX]> {
         bitx_vec(&self.as_unsigned().to_bools())
@@ -421,7 +427,7 @@ mod test {
         rtt::test::kind_to_trace,
         types::kind::{DiscriminantAlignment, Variant},
     };
-    use rhdl_bits::{alias::*, consts::U3};
+    use rhdl_bits::alias::*;
 
     #[test]
     #[allow(dead_code)]
@@ -431,11 +437,11 @@ mod test {
             #[default]
             None,
             Bool(bool),
-            Tuple(bool, Bits<U3>),
+            Tuple(bool, Bits<3>),
             Array([bool; 3]),
             Strct {
                 a: bool,
-                b: Bits<U3>,
+                b: Bits<3>,
             },
             Invalid,
         }
@@ -498,32 +504,32 @@ mod test {
             }
             fn bin(self) -> Box<[BitX]> {
                 let raw = match self {
-                    Self::None => bitx_vec(&rhdl_bits::bits::<U3>(0).to_bools()),
+                    Self::None => bitx_vec(&rhdl_bits::bits::<3>(0).to_bools()),
                     Self::Bool(b) => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<U3>(1).to_bools()).to_vec();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(1).to_bools()).to_vec();
                         v.extend(b.bin());
                         v.into()
                     }
                     Self::Tuple(b, c) => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<U3>(2).to_bools()).to_vec();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(2).to_bools()).to_vec();
                         v.extend(b.bin());
                         v.extend(c.bin());
                         v.into()
                     }
                     Self::Array([b, c, d]) => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<U3>(3).to_bools()).to_vec();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(3).to_bools()).to_vec();
                         v.extend(b.bin());
                         v.extend(c.bin());
                         v.extend(d.bin());
                         v.into()
                     }
                     Self::Strct { a, b } => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<U3>(4).to_bools()).to_vec();
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(4).to_bools()).to_vec();
                         v.extend(a.bin());
                         v.extend(b.bin());
                         v.into()
                     }
-                    Self::Invalid => bitx_vec(&rhdl_bits::bits::<U3>(5).to_bools()),
+                    Self::Invalid => bitx_vec(&rhdl_bits::bits::<3>(5).to_bools()),
                 };
                 if raw.len() < self.kind().bits() {
                     let missing = self.kind().bits() - raw.len();
@@ -605,12 +611,12 @@ mod test {
             }
             fn bin(self) -> Box<[BitX]> {
                 bitx_vec(&match self {
-                    Self::Init => rhdl_bits::bits::<U3>(0).to_bools(),
-                    Self::Boot => rhdl_bits::bits::<U3>(1).to_bools(),
-                    Self::Running => rhdl_bits::bits::<U3>(2).to_bools(),
-                    Self::Stop => rhdl_bits::bits::<U3>(3).to_bools(),
-                    Self::Boom => rhdl_bits::bits::<U3>(4).to_bools(),
-                    Self::Invalid => rhdl_bits::bits::<U3>(5).to_bools(),
+                    Self::Init => rhdl_bits::bits::<3>(0).to_bools(),
+                    Self::Boot => rhdl_bits::bits::<3>(1).to_bools(),
+                    Self::Running => rhdl_bits::bits::<3>(2).to_bools(),
+                    Self::Stop => rhdl_bits::bits::<3>(3).to_bools(),
+                    Self::Boom => rhdl_bits::bits::<3>(4).to_bools(),
+                    Self::Invalid => rhdl_bits::bits::<3>(5).to_bools(),
                 })
             }
             fn dont_care() -> Self {
@@ -619,7 +625,7 @@ mod test {
         }
 
         let val = State::Boom;
-        assert_eq!(val.bin(), bitx_vec(&rhdl_bits::bits::<U3>(4).to_bools()));
+        assert_eq!(val.bin(), bitx_vec(&rhdl_bits::bits::<3>(4).to_bools()));
         assert_eq!(
             val.kind(),
             Kind::make_enum(

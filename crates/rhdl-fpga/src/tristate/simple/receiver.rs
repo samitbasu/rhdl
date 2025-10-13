@@ -12,7 +12,7 @@ pub enum State {
 
 #[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct I {
-    pub bitz: BitZ<U8>,
+    pub bitz: BitZ<8>,
     pub state: Option<LineState>,
 }
 
@@ -24,16 +24,16 @@ pub struct U {
 
 impl SynchronousIO for U {
     type I = I;
-    type O = BitZ<U8>;
+    type O = BitZ<8>;
     type Kernel = trizrcv;
 }
 
 #[kernel]
-pub fn trizrcv(_cr: ClockReset, i: I, q: Q) -> (BitZ<U8>, D) {
+pub fn trizrcv(_cr: ClockReset, i: I, q: Q) -> (BitZ<8>, D) {
     let mut d = D::dont_care();
     d.reg = q.reg;
     let mut state = q.state;
-    let mut o = BitZ::<U8>::default();
+    let mut o = BitZ::<8>::default();
     match state {
         State::Idle => {
             if let Some(i_state) = i.state {

@@ -1,4 +1,4 @@
-use crate::bits_impl::bits_masked;
+use crate::{bits_impl::bits_masked, bitwidth::W};
 
 use super::{BitWidth, Bits, signed_dyn_bits::SignedDynBits};
 
@@ -24,31 +24,31 @@ impl DynBits {
     pub const fn mask(self) -> u128 {
         u128::MAX >> (128 - self.bits)
     }
-    pub const fn xext<M: BitWidth>(self) -> DynBits {
-        assert!((M::BITS + self.bits) <= 128);
+    pub const fn xext<const M: usize>(self) -> DynBits {
+        assert!((M + self.bits) <= 128);
         DynBits {
             val: self.val,
-            bits: M::BITS + self.bits,
+            bits: M + self.bits,
         }
     }
-    pub const fn xshr<M: BitWidth>(self) -> DynBits {
-        assert!(self.bits > M::BITS);
+    pub const fn xshr<const M: usize>(self) -> DynBits {
+        assert!(self.bits > M);
         DynBits {
-            val: self.val >> M::BITS,
-            bits: self.bits - M::BITS,
+            val: self.val >> M,
+            bits: self.bits - M,
         }
     }
-    pub const fn xshl<M: BitWidth>(self) -> DynBits {
-        assert!((M::BITS + self.bits) <= 128);
+    pub const fn xshl<const M: usize>(self) -> DynBits {
+        assert!((M + self.bits) <= 128);
         DynBits {
-            val: self.val << M::BITS,
-            bits: self.bits + M::BITS,
+            val: self.val << M,
+            bits: self.bits + M,
         }
     }
-    pub const fn resize<M: BitWidth>(self) -> DynBits {
+    pub const fn resize<const M: usize>(self) -> DynBits {
         DynBits {
             val: self.val,
-            bits: M::BITS,
+            bits: M,
         }
         .masked()
     }
@@ -91,8 +91,11 @@ impl DynBits {
             bits: self.bits,
         }
     }
-    pub const fn as_bits<N: BitWidth>(self) -> Bits<N> {
-        assert!(self.bits == N::BITS);
+    pub const fn as_bits<const N: usize>(self) -> Bits<N>
+    where
+        W<N>: BitWidth,
+    {
+        assert!(self.bits == N);
         bits_masked(self.val)
     }
     pub const fn bits(self) -> usize {

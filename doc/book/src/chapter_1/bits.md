@@ -1,12 +1,12 @@
 # Bits
 
-Hardware design tends to involve the manipulation of various numbers of bits, not just the usual `8, 16, 32, 64, 128` that one deals with in normal software.  For example, if we have a physical connection to a device that contains 4 LEDs, we will need to provide exactly `4` bits to indicate which LED should be lit.  To that end, RHDL provides a set of types to model different bit widths.  The base type of interest is `Bits<U>` where `U: BitWidth`.  While ideally, `U` would be a const-generic (like `Bits<const N: usize>`) that really doesn't work well enough in stable for what we need.  So RHDL includes a set of typenums `U1, U2,... U128` to indicate the width of the bit vector.  You cannot construct a single bitvector that is larger than 128 bits currently, but of course, you can concatenate multiple bitvectors into a single data structure to create bit vectors of arbitrary (but finite) size.
+Hardware design tends to involve the manipulation of various numbers of bits, not just the usual `8, 16, 32, 64, 128` that one deals with in normal software.  For example, if we have a physical connection to a device that contains 4 LEDs, we will need to provide exactly `4` bits to indicate which LED should be lit.  To that end, RHDL provides a set of types to model different bit widths.  The base type of interest is `Bits<>` where `U: BitWidth`.  While ideally, `U` would be a const-generic (like `Bits<const N: usize>`) that really doesn't work well enough in stable for what we need.  So RHDL includes a set of typenums `U1, U2,... U128` to indicate the width of the bit vector.  You cannot construct a single bitvector that is larger than 128 bits currently, but of course, you can concatenate multiple bitvectors into a single data structure to create bit vectors of arbitrary (but finite) size.
 
 The documentation of `rhdl-bits` is fairly extensive, but basically, the following is the short-intro.
 
-- There is a `Copy` type that is generic over the bit width, and can hold up to 128 bits.  It is called `Bits<U>`.
-- There are aliased types for each size from 1 to 128 bits.  These types are called `b1, b2, ..., b128`, and are simply aliases like: `type b2 = Bits<U2>`.
-- There are constructor functions also called `b1, b2, ..., b128` that allow you to make `Bits<U>` from a literal `u128` value, and will panic if you provide an out-of-range value.
+- There is a `Copy` type that is generic over the bit width, and can hold up to 128 bits.  It is called `Bits<>`.
+- There are aliased types for each size from 1 to 128 bits.  These types are called `b1, b2, ..., b128`, and are simply aliases like: `type b2 = Bits<2>`.
+- There are constructor functions also called `b1, b2, ..., b128` that allow you to make `Bits<>` from a literal `u128` value, and will panic if you provide an out-of-range value.
 
 All of these are basically illustrated in the following short code snippet:
 
@@ -16,12 +16,12 @@ use rhdl_bits::prelude::*;
 let a = b4(6); // a is a 4-bit wide bit-vector
 let b = a;     // It implements copy
 let c: b4 = b; // b4 is both the type and constructor name
-let d: Bits<U4> = c; // Long form for writing a nibble.
+let d: Bits<4> = c; // Long form for writing a nibble.
 ```
 
-- There is a `Copy` type that is generic over the bit width, and can hold up to a 128 bit _signed_ integer.  It is called `SignedBits<U>`.
-- There are aliased types for each size of signed bits from 1 to 128 bit wide.  These are called `s1, s2, ..., s128`, and are simply aliases like: `type s2 = SignedBits<U2>`.
-- There are constructor functions also called `s1, s2, ..., s128` that allow you to make `SignedBits<U>` from a literal `i128` value and will panic if you provide an out-of-range value.
+- There is a `Copy` type that is generic over the bit width, and can hold up to a 128 bit _signed_ integer.  It is called `SignedBits<>`.
+- There are aliased types for each size of signed bits from 1 to 128 bit wide.  These are called `s1, s2, ..., s128`, and are simply aliases like: `type s2 = SignedBits<2>`.
+- There are constructor functions also called `s1, s2, ..., s128` that allow you to make `SignedBits<>` from a literal `i128` value and will panic if you provide an out-of-range value.
 
 ```rust
 use rhdl_bits::prelude::*;
@@ -29,7 +29,7 @@ use rhdl_bits::prelude::*;
 let a = s4(-3); // a is a 4-bit wide signed bit-vector 
 let b = a;     // It implements copy
 let c: b4 = b; // b4 is both the type and constructor name
-let d: SignedBits<U4> = c; // Long form for writing a nibble.
+let d: SignedBits<4> = c; // Long form for writing a nibble.
 ```
 
 
