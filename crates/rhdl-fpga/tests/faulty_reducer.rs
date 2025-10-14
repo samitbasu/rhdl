@@ -1,9 +1,7 @@
 use rhdl::prelude::*;
 
-use std::ops::Add;
-
 use rhdl_fpga::core::{
-    constant, dff,
+    dff,
     option::unpack,
     slice::{lsbs, msbs},
 };

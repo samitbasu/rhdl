@@ -85,7 +85,7 @@ impl ClockDomainContext<'_> {
         debug!("Slot map:");
         for (slot, ty) in &self.slot_map {
             let ty = self.ctx.apply(*ty);
-            debug!("{:?} -> {:?}", slot, self.ctx.desc(ty));
+            debug!("{:?} -> {}", slot, ty);
         }
         let elements = slots
             .iter()
@@ -265,7 +265,7 @@ impl ClockDomainContext<'_> {
         let arg_ty = self.slot_type(&arg_slot);
         let mut arg = self.ctx.apply(arg_ty);
         for element in path.iter() {
-            debug!("Path project {} {:?}", self.ctx.desc(arg), element);
+            debug!("Path project {arg} {:?}", element);
             match element {
                 PathElement::Index(ndx) => {
                     arg = self
@@ -335,8 +335,7 @@ impl ClockDomainContext<'_> {
             .map(|(k, v)| (k, self.ctx.apply(v)))
             .collect::<Vec<_>>();
         for ty in &resolved_map {
-            let desc = self.ctx.desc(ty.1);
-            debug!("Slot {} has type {:?}", ty.0, desc);
+            debug!("Slot {} has type {}", ty.0, ty.1);
         }
     }
     fn slot_type(&mut self, slot: &Slot) -> TypeId {
@@ -447,10 +446,10 @@ impl ClockDomainContext<'_> {
                     let orig_ty = self.slot_type(&splice.orig);
                     let subst_ty = self.slot_type(&splice.subst);
                     let path_ty = self.ty_path_project(splice.orig, &splice.path, loc)?;
-                    debug!("lhs_ty: {:?}", self.ctx.desc(lhs_ty));
-                    debug!("orig_ty: {:?}", self.ctx.desc(orig_ty));
-                    debug!("subst_ty: {:?}", self.ctx.desc(subst_ty));
-                    debug!("path_ty: {:?}", self.ctx.desc(path_ty));
+                    debug!("lhs_ty: {}", lhs_ty);
+                    debug!("orig_ty: {}", orig_ty);
+                    debug!("subst_ty: {}", subst_ty);
+                    debug!("path_ty: {}", path_ty);
                     if self.ctx.unify(orig_ty, lhs_ty).is_err() {
                         return Err(self
                             .raise_clock_domain_error(
@@ -474,10 +473,10 @@ impl ClockDomainContext<'_> {
                     let orig_ty = self.ctx.apply(orig_ty);
                     let subst_ty = self.ctx.apply(subst_ty);
                     let path_ty = self.ctx.apply(path_ty);
-                    debug!("lhs_ty: {:?}", self.ctx.desc(lhs_ty));
-                    debug!("orig_ty: {:?}", self.ctx.desc(orig_ty));
-                    debug!("subst_ty: {:?}", self.ctx.desc(subst_ty));
-                    debug!("path_ty: {:?}", self.ctx.desc(path_ty));
+                    debug!("lhs_ty: {}", lhs_ty);
+                    debug!("orig_ty: {}", orig_ty);
+                    debug!("subst_ty: {}", subst_ty);
+                    debug!("path_ty: {}", path_ty);
                 }
                 OpCode::Array(array) => {
                     let ty_lhs = self.slot_type(&array.lhs);
@@ -537,7 +536,7 @@ impl ClockDomainContext<'_> {
                     let ty_rhs = self.ctx.ty_tuple(loc, ty_rhs_elements);
                     let tl = self.ctx.apply(ty_lhs);
                     let tr = self.ctx.apply(ty_rhs);
-                    debug!("Tuple {:?} U {:?}", self.ctx.desc(tl), self.ctx.desc(tr));
+                    debug!("Tuple {tl} U {tr}",);
                     if self.ctx.unify(ty_lhs, ty_rhs).is_err() {
                         let slots = std::iter::once(tuple.lhs)
                             .chain(tuple.fields.iter().copied())
@@ -625,8 +624,7 @@ impl ClockDomainContext<'_> {
             .map(|(k, v)| (k, self.ctx.apply(v)))
             .collect::<Vec<_>>();
         for ty in &resolved_map {
-            let desc = self.ctx.desc(ty.1);
-            debug!("Slot {:?} has type {:?}", ty.0, desc);
+            debug!("Slot {:?} has type {}", ty.0, ty.1);
             if self.ctx.is_unresolved(ty.1) {
                 // Special case zst
                 if self.obj.kind(ty.0).is_empty() {

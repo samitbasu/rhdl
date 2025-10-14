@@ -1,8 +1,14 @@
 use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits, signed_dyn_bits::SignedDynBits};
 use crate::bitwidth::W;
 
+/// Extended multiplication trait.  Represents a bit-preserving multiplication
+/// of two values (either signed or unsigned) where the output
+/// size is the sum of the sizes of the two inputs.
+/// This is useful for avoiding overflow in multiplication operations.
 pub trait XMul<Rhs = Self> {
+    /// The output type of the multiplication.
     type Output;
+    /// Perform the extended multiplication operation.
     fn xmul(self, rhs: Rhs) -> Self::Output;
 }
 

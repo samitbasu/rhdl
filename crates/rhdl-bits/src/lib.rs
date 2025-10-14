@@ -1,4 +1,4 @@
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
 //! This crate provides two types that are important for working with hardware
 //! designs.  The [Bits] type is a fixed-size unsigned integer type with a variable
 //! number of bits.  The [SignedBits] type is a fixed-size signed integer type with
@@ -382,48 +382,47 @@
 //! assert!(x < y);
 //! assert_eq!(x.as_unsigned(), 0b1111_1111);
 //! ```
-//!
-#[doc(hidden)]
+/// Support for addition of [Bits] and [SignedBits]
 pub mod add;
-#[doc(hidden)]
+/// Support for bitwise AND of [Bits]
 pub mod and;
-#[doc(hidden)]
+/// Implementation details for the [Bits] type
 pub mod bits_impl;
-#[doc(hidden)]
+/// Trait (and type) used to constrain the bit width parameter
 pub mod bitwidth;
-#[doc(hidden)]
+/// Support for bit vectors with run-time defined size
 pub mod dyn_bits;
 #[doc(hidden)]
 mod impl_macro;
-#[doc(hidden)]
+/// Support for multiplication of [Bits] and [SignedBits]
 pub mod mul;
-#[doc(hidden)]
+/// Support for negation of [SignedBits]
 pub mod neg;
-#[doc(hidden)]
+/// Support for bitwise NOT of [Bits]
 pub mod not;
-#[doc(hidden)]
+/// Support for bitwise OR of [Bits]
 pub mod or;
-#[doc(hidden)]
+/// Support for left shifting of [Bits] and [SignedBits]
 pub mod shl;
-#[doc(hidden)]
+/// Support for right shifting of [Bits] and [SignedBits]
 pub mod shr;
-#[doc(hidden)]
+/// Implementation details for the [SignedBits] type
 pub mod signed_bits_impl;
-#[doc(hidden)]
+/// Support for signed bit vectors with run-time defined size
 pub mod signed_dyn_bits;
-#[doc(hidden)]
+/// Support for subtraction of [Bits] and [SignedBits]
 pub mod sub;
-#[doc(hidden)]
+/// Support for extended addition (addition without wrap around) of [Bits] and [SignedBits]
 pub mod xadd;
-#[doc(hidden)]
+/// Support for extended multiplication (multiplication without wrap around) of [Bits] and [SignedBits]
 pub mod xmul;
-#[doc(hidden)]
+/// Support for extended negation of [SignedBits]
 pub mod xneg;
-#[doc(hidden)]
+/// Support for bitwise XOR of [Bits]
 pub mod xor;
-#[doc(hidden)]
+/// Support for signed promotion of [Bits] without wrap around
 pub mod xsgn;
-#[doc(hidden)]
+/// Support for extended subtraction (subtraction without wrap around) of [Bits] and [SignedBits]
 pub mod xsub;
 pub use crate::bitwidth::W;
 

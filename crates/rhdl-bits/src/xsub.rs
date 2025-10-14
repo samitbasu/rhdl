@@ -1,8 +1,14 @@
 use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits, signed_dyn_bits::SignedDynBits};
 use crate::bitwidth::W;
 
+/// Extended subtraction trait.  Represents a bit-preserving subtraction
+/// of two values (either signed or unsigned) where the output
+/// size is one bit larger than the larger of the two inputs.
+/// This is useful for avoiding overflow in subtraction operations.
 pub trait XSub<Rhs = Self> {
+    /// The output type of the subtraction.
     type Output;
+    /// Perform the extended subtraction operation.
     fn xsub(self, rhs: Rhs) -> Self::Output;
 }
 

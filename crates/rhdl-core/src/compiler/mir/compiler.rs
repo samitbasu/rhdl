@@ -1569,12 +1569,12 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
             .into());
     };
     compiler.bind_slot_to_type(return_slot, func.inner().ret);
-    if let Some(kind) = compiler.ty.get(&return_slot) {
-        if kind.is_empty() {
-            return Err(compiler
-                .raise_syntax_error(Syntax::EmptyReturnForFunction, func.inner().id)
-                .into());
-        }
+    if let Some(kind) = compiler.ty.get(&return_slot)
+        && kind.is_empty()
+    {
+        return Err(compiler
+            .raise_syntax_error(Syntax::EmptyReturnForFunction, func.inner().id)
+            .into());
     }
     let fn_id = compiler.fn_id;
     let symtab = compiler

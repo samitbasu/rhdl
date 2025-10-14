@@ -817,7 +817,7 @@ impl UnifyContext {
         matches!(ty.kind.as_ref(), TypeKind::Var(_))
     }
 
-    pub fn desc(&self, ty: TypeId) -> String {
+    fn desc(ty: TypeId) -> String {
         match ty.kind.as_ref() {
             TypeKind::Var(v) => format!("V{}", v.0),
             TypeKind::Const(c) => match c {
@@ -841,7 +841,7 @@ impl UnifyContext {
                     strukt
                         .fields
                         .iter()
-                        .map(|(f, t)| format!("{}:{}", f, self.desc(*t)))
+                        .map(|(f, t)| format!("{}:{}", f, Self::desc(*t)))
                         .collect::<Vec<_>>()
                         .join(", ")
                 ),
@@ -851,41 +851,47 @@ impl UnifyContext {
                         tuple
                             .elements
                             .iter()
-                            .map(|t| self.desc(*t))
+                            .map(|t| Self::desc(*t))
                             .collect::<Vec<_>>()
                             .join(", ")
                     )
                 }
                 AppType::Enum(enumerate) => format!(
                     "enum {}<{}>",
-                    self.desc(enumerate.name),
+                    Self::desc(enumerate.name),
                     enumerate
                         .variants
                         .iter()
-                        .map(|(v, t)| format!("{}:{}", v.name, self.desc(*t)))
+                        .map(|(v, t)| format!("{}:{}", v.name, Self::desc(*t)))
                         .collect::<Vec<_>>()
                         .join(", ")
                 ),
                 AppType::Bits(bits) => {
-                    format!("{}_{}", self.desc(bits.sign_flag), self.desc(bits.len))
+                    format!("{}_{}", Self::desc(bits.sign_flag), Self::desc(bits.len))
                 }
                 AppType::Signal(signal) => format!(
                     "signal<{}, {}>",
-                    self.desc(signal.data),
-                    self.desc(signal.clock)
+                    Self::desc(signal.data),
+                    Self::desc(signal.clock)
                 ),
                 AppType::Array(array) => {
-                    format!("[{}; {}]", self.desc(array.base), self.desc(array.len))
+                    format!("[{}; {}]", Self::desc(array.base), Self::desc(array.len))
                 }
             },
         }
     }
 }
 
+impl Display for TypeId {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", UnifyContext::desc(*self))
+    }
+}
+
 impl Display for UnifyContext {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         for (v, t) in &self.substitution_map {
-            writeln!(f, "V{} -> {}", v.0, self.desc(*t))?;
+            writeln!(f, "V{} -> {}", v.0, UnifyContext::desc(*t))?;
         }
         Ok(())
     }
