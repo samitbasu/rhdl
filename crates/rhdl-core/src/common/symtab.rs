@@ -67,12 +67,12 @@ impl<K: SymbolKind> SlotKey for RegisterId<K> {
 }
 impl<K: SymbolKind> std::fmt::Display for RegisterId<K> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", "r", self.index)
+        write!(f, "r{}", self.index)
     }
 }
 impl<K: SymbolKind> std::fmt::Debug for RegisterId<K> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}{}", K::NAME, "r", self.index)
+        write!(f, "{}r{}", K::NAME, self.index)
     }
 }
 

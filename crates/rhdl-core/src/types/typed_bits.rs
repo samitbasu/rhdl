@@ -978,28 +978,26 @@ mod tests {
                 crate::rtt::test::kind_to_trace(&Self::static_kind())
             }
             fn bin(self) -> Box<[BitX]> {
-                self.kind()
-                    .pad(match self {
-                        Self::A(_0) => {
-                            let mut v =
-                                bitx_vec(&rhdl_bits::bits::<2>(0i64 as u128).to_bools()).to_vec();
-                            v.extend(_0.bin());
-                            v
-                        }
-                        Self::B { foo } => {
-                            let mut v =
-                                bitx_vec(&rhdl_bits::bits::<2>(1i64 as u128).to_bools()).to_vec();
-                            v.extend(foo.bin());
-                            v
-                        }
-                        Self::C(_0) => {
-                            let mut v =
-                                bitx_vec(&rhdl_bits::bits::<2>(2i64 as u128).to_bools()).to_vec();
-                            v.extend(_0.bin());
-                            v
-                        }
-                    })
-                    .into()
+                self.kind().pad(match self {
+                    Self::A(_0) => {
+                        let mut v =
+                            bitx_vec(&rhdl_bits::bits::<2>(0i64 as u128).to_bools()).to_vec();
+                        v.extend(_0.bin());
+                        v
+                    }
+                    Self::B { foo } => {
+                        let mut v =
+                            bitx_vec(&rhdl_bits::bits::<2>(1i64 as u128).to_bools()).to_vec();
+                        v.extend(foo.bin());
+                        v
+                    }
+                    Self::C(_0) => {
+                        let mut v =
+                            bitx_vec(&rhdl_bits::bits::<2>(2i64 as u128).to_bools()).to_vec();
+                        v.extend(_0.bin());
+                        v
+                    }
+                })
             }
             fn discriminant(self) -> TypedBits {
                 match self {

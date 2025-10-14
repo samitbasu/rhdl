@@ -69,11 +69,7 @@ impl Object {
         hasher.finish()
     }
     pub fn bitx(&self, wire: Wire) -> Option<BitX> {
-        if let Some(lid) = wire.lit() {
-            Some(self.symtab[lid])
-        } else {
-            None
-        }
+        wire.lit().map(|lid| self.symtab[lid])
     }
     pub fn as_vlog(&self, name: &str) -> Result<rhdl_vlog::ModuleList, RHDLError> {
         generate_hdl(name, self)

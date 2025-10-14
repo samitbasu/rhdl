@@ -78,7 +78,7 @@ fn path_star_with_index_tracking(
             PathElement::DynamicIndex(slot) => {
                 let Kind::Array(array) = kind else {
                     return Err(rhdl_error(PathError::DynamicIndexOnNonArray {
-                        element: element.clone(),
+                        element: *element,
                         kind,
                     }));
                 };

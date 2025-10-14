@@ -415,7 +415,7 @@ fn test_resize_signed_inferred() -> miette::Result<()> {
 
 #[test]
 fn test_resize_signed_explicit() -> miette::Result<()> {
-    //#[kernel]
+    #[kernel]
     fn do_stuff<const N: usize>(a: Signal<s6, Red>, b: Signal<s6, Red>) -> Signal<s6, Red>
     where
         rhdl::bits::W<N>: BitWidth,
@@ -423,7 +423,7 @@ fn test_resize_signed_explicit() -> miette::Result<()> {
         let (a, b) = (a.val(), b.val());
         let c = a + b;
         let c = c.resize::<N>();
-        let c = c.resize();
+        let c = c.resize::<6>();
         signal(c)
     }
     test_kernel_vm_and_verilog::<do_stuff<12>, _, _, _>(do_stuff::<12>, tuple_pair_sn_red::<6>())?;

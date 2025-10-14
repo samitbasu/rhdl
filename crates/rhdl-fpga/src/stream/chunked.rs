@@ -167,7 +167,7 @@ where
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<T: Digital, const M: usize, const N: usize>(
+pub fn kernel<T, const M: usize, const N: usize>(
     _cr: ClockReset,
     i: In<T, N>,
     q: Q<T, M, N>,

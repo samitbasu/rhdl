@@ -136,16 +136,14 @@ impl<T: Digital> Digital for Option<T> {
         )
     }
     fn bin(self) -> Box<[BitX]> {
-        self.kind()
-            .pad(match self {
-                Self::None => vec![BitX::Zero],
-                Self::Some(t) => {
-                    let mut v = vec![BitX::One];
-                    v.extend(t.bin());
-                    v
-                }
-            })
-            .into()
+        self.kind().pad(match self {
+            Self::None => vec![BitX::Zero],
+            Self::Some(t) => {
+                let mut v = vec![BitX::One];
+                v.extend(t.bin());
+                v
+            }
+        })
     }
     fn discriminant(self) -> TypedBits {
         match self {
@@ -245,7 +243,7 @@ impl Digital for u128 {
         Kind::make_bits(128)
     }
     fn bin(self) -> Box<[BitX]> {
-        bitx_vec(&Bits::<128>::from(self).to_bools()).into()
+        bitx_vec(&Bits::<128>::from(self).to_bools())
     }
     fn dont_care() -> Self {
         Self::default()

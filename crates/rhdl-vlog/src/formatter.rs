@@ -29,12 +29,12 @@ impl Formatter {
             self.contents.push_str(&TAB.repeat(self.indent_level));
             self.start_of_line = false;
         }
-        self.contents.push_str(&format!("{}", text));
+        self.contents.push_str(text);
         self.start_of_line = text.ends_with('\n');
     }
 
     pub fn newline(&mut self) {
-        self.contents.push_str("\n");
+        self.contents.push('\n');
         self.start_of_line = true;
     }
 

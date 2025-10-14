@@ -564,7 +564,7 @@ mod tests {
                         .chain(std::iter::repeat_n(BitX::Zero, missing))
                         .collect()
                 } else {
-                    raw.into()
+                    raw
                 }
             }
             fn dont_care() -> Self {

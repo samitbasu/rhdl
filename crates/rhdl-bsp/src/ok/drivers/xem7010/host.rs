@@ -35,12 +35,12 @@ pub enum OkHostError {
     DuplicatePipeOutAddress(u8),
 }
 
-const WIRE_IN_ADDRESS_RANGE: std::ops::Range<8> = 0x00..0x20;
-const WIRE_OUT_ADDRESS_RANGE: std::ops::Range<8> = 0x20..0x40;
-const TRIGGER_IN_ADDRESS_RANGE: std::ops::Range<8> = 0x40..0x60;
-const TRIGGER_OUT_ADDRESS_RANGE: std::ops::Range<8> = 0x60..0x80;
-const PIPE_IN_ADDRESS_RANGE: std::ops::Range<8> = 0x80..0xA0;
-const PIPE_OUT_ADDRESS_RANGE: std::ops::Range<8> = 0xA0..0xC0;
+const WIRE_IN_ADDRESS_RANGE: std::ops::Range<u8> = 0x00..0x20;
+const WIRE_OUT_ADDRESS_RANGE: std::ops::Range<u8> = 0x20..0x40;
+const TRIGGER_IN_ADDRESS_RANGE: std::ops::Range<u8> = 0x40..0x60;
+const TRIGGER_OUT_ADDRESS_RANGE: std::ops::Range<u8> = 0x60..0x80;
+const PIPE_IN_ADDRESS_RANGE: std::ops::Range<u8> = 0x80..0xA0;
+const PIPE_OUT_ADDRESS_RANGE: std::ops::Range<u8> = 0xA0..0xC0;
 
 pub struct Host<T> {
     marker: std::marker::PhantomData<T>,

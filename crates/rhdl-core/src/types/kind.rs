@@ -94,7 +94,7 @@ impl Struct {
     ///
     pub fn get_field_kind(&self, member: &Member) -> Result<Kind> {
         let field_name = match member {
-            Member::Named(name) => name.clone(),
+            Member::Named(name) => *name,
             Member::Unnamed(ndx) => ndx.to_string().into(),
         };
         let field = self.fields.iter().find(|x| x.name == field_name);
@@ -316,7 +316,7 @@ impl Kind {
     ///
     pub fn get_field_kind(&self, member: &Member) -> Result<Kind> {
         let field_name = match member {
-            Member::Named(name) => name.clone(),
+            Member::Named(name) => *name,
             Member::Unnamed(ndx) => ndx.to_string().into(),
         };
         match self {
@@ -347,7 +347,7 @@ impl Kind {
     /// - Returns an error if the kind is not an array.
     pub fn get_base_kind(&self) -> Result<Kind> {
         match self {
-            Kind::Array(array) => Ok(*array.base.clone()),
+            Kind::Array(array) => Ok(*array.base),
             _ => Err(rhdl_error(DynamicTypeError::NotAnArray { kind: *self })),
         }
     }
@@ -442,7 +442,7 @@ impl Kind {
     /// The length of the bits matches the kind's bit width.
     /// # Errors
     /// - Returns an error if the kind is not an enum or if the variant does not exist.
-    /// Note that this is not necessarily a valid value for the type!
+    ///   Note that this is not necessarily a valid value for the type!
     pub fn enum_template(&self, variant: &str) -> Result<TypedBits> {
         let Kind::Enum(e) = &self else {
             return Err(rhdl_error(DynamicTypeError::NotAnEnum { kind: *self }));

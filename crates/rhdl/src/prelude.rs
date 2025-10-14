@@ -108,7 +108,6 @@ pub use rhdl_core::sim::vcd::Vcd;
 pub use rhdl_core::trace::svg::SvgOptions;
 pub use rhdl_core::types::path::sub_trace_type;
 pub use rhdl_macro::export;
-pub use rhdl_macro::op;
 pub use rhdl_macro::path;
 pub use rhdl_vlog as vlog;
 pub use rhdl_vlog::formatter::Pretty;

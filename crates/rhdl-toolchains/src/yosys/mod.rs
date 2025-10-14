@@ -9,11 +9,11 @@ pub fn synth_ice40(
 ) -> miette::Result<YosysOutput> {
     let path = path.as_ref();
     std::fs::create_dir_all(path).map_err(|e| miette::miette!(e.to_string()))?;
-    std::fs::write((&path).join("top.v"), code.to_string())
+    std::fs::write(path.join("top.v"), code.to_string())
         .map_err(|e| miette::miette!(e.to_string()))?;
     // First synthesize it
     let mut cmd = std::process::Command::new("yosys");
-    cmd.current_dir(&path);
+    cmd.current_dir(path);
     let arg = format!("-p synth_ice40 -top {top} -json rhdl.json");
     cmd.arg(arg).arg("top.v");
     let output = cmd.output().map_err(|e| miette::miette!(e.to_string()))?;

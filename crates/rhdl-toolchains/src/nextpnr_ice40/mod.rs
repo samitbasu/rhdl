@@ -64,7 +64,7 @@ pub fn place_and_route(
     let path = path.as_ref();
     std::fs::create_dir_all(path).map_err(|e| miette::miette!(e.to_string()))?;
     let mut cmd = std::process::Command::new("nextpnr-ice40");
-    cmd.current_dir(&path);
+    cmd.current_dir(path);
     cmd.arg(format!("--{part}"));
     cmd.arg("--package").arg(package);
     if let Some(constraints) = constraints {

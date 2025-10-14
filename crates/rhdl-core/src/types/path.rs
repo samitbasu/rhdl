@@ -152,9 +152,7 @@ impl Path {
     }
     pub fn member(mut self, member: &Member) -> Self {
         match member {
-            Member::Named(name) => self
-                .elements
-                .push(PathElement::Field(name.to_owned().into())),
+            Member::Named(name) => self.elements.push(PathElement::Field(name.to_owned())),
             Member::Unnamed(ndx) => self.elements.push(PathElement::TupleIndex(*ndx as usize)),
         }
         self
@@ -235,7 +233,7 @@ impl Path {
                 .iter()
                 .map(|e| match e {
                     PathElement::DynamicIndex(_) => PathElement::Index(0),
-                    _ => e.clone(),
+                    _ => *e,
                 })
                 .collect(),
         }
@@ -252,7 +250,7 @@ impl Path {
                 .map(|e| match e {
                     PathElement::DynamicIndex(s) if s == &slot => PathElement::Index(1),
                     PathElement::DynamicIndex(_) => PathElement::Index(0),
-                    _ => e.clone(),
+                    _ => *e,
                 })
                 .collect(),
         }
@@ -275,7 +273,7 @@ impl From<Member> for Path {
     fn from(member: Member) -> Self {
         match member {
             Member::Named(name) => Path {
-                elements: vec![PathElement::Field(name.to_owned().into())],
+                elements: vec![PathElement::Field(name.to_owned())],
             },
             Member::Unnamed(ndx) => Path {
                 elements: vec![PathElement::TupleIndex(ndx as usize)],
@@ -327,7 +325,7 @@ pub fn path_star(kind: &Kind, path: &Path) -> Result<Vec<Path>> {
             PathElement::DynamicIndex(_) => {
                 let Kind::Array(array) = kind else {
                     return Err(rhdl_error(PathError::DynamicIndexOnNonArray {
-                        element: element.clone(),
+                        element: *element,
                         kind: *kind,
                     }));
                 };
@@ -340,9 +338,7 @@ pub fn path_star(kind: &Kind, path: &Path) -> Result<Vec<Path>> {
                 return Ok(paths);
             }
             p => {
-                let prefix_path = Path {
-                    elements: vec![p.clone()],
-                };
+                let prefix_path = Path { elements: vec![*p] };
                 let prefix_kind = sub_kind(*kind, &prefix_path)?;
                 let suffix_path = path.strip_prefix(&prefix_path)?;
                 let suffix_star = path_star(&prefix_kind, &suffix_path)?;
@@ -403,7 +399,7 @@ pub fn sub_trace_type(trace: TraceType, path: &Path) -> Result<TraceType> {
                 TraceType::Struct(strukt) => {
                     if !strukt.fields.iter().any(|f| f.name == **field) {
                         return Err(rhdl_error(PathError::FieldNotFoundTrace {
-                            field: field.clone(),
+                            field: *field,
                             trace,
                         }));
                     }
@@ -486,7 +482,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                         }));
                     }
                     range = range.start + i * element_size..range.start + (i + 1) * element_size;
-                    kind = *array.base.clone();
+                    kind = *array.base;
                 }
                 Kind::Struct(structure) => {
                     if i >= &structure.fields.len() {
@@ -517,7 +513,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                         }));
                     }
                     range = range.start + i * element_size..range.start + (i + 1) * element_size;
-                    kind = *array.base.clone();
+                    kind = *array.base;
                 }
                 _ => return Err(rhdl_error(PathError::IndexingNotAllowed { kind })),
             },
@@ -525,7 +521,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                 Kind::Struct(structure) => {
                     if !structure.fields.iter().any(|f| &f.name == field) {
                         return Err(rhdl_error(PathError::FieldNotFound {
-                            field: field.clone(),
+                            field: *field,
                             kind,
                         }));
                     }
@@ -574,10 +570,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
                         .iter()
                         .find(|f| &f.name == name)
                         .ok_or_else(|| {
-                            rhdl_error(PathError::EnumPayloadNotFound {
-                                name: name.clone(),
-                                kind,
-                            })
+                            rhdl_error(PathError::EnumPayloadNotFound { name: *name, kind })
                         })?
                         .kind;
                     range = match enumerate.discriminant_layout.alignment {

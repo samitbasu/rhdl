@@ -177,6 +177,9 @@ impl WidthSpec {
     pub fn len(&self) -> usize {
         (self.bit_range.end - self.bit_range.start + 1) as usize
     }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl Parse for WidthSpec {
@@ -214,6 +217,9 @@ impl SignedWidth {
         match self {
             SignedWidth::Signed(width) | SignedWidth::Unsigned(width) => width.len(),
         }
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 
