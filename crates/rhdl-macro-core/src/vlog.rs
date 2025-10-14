@@ -90,7 +90,7 @@ mod tests {
           endfunction
         endmodule
         };
-        let sink = module(kitchen_sink).unwrap();
+        let sink = syn::parse2::<rhdl_vlog::ModuleList>(kitchen_sink).unwrap();
         let expect = expect_file!["expect/vlog_modules.expect"];
         expect.assert_eq(&sink.to_string());
     }

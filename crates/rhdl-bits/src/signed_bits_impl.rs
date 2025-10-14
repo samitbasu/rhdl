@@ -23,30 +23,12 @@ use seq_macro::seq;
 ///
 /// If you want to right shift a signed value without sign extension,
 /// then you should convert it to a [Bits] type first.
-#[derive(Clone, Debug, Copy, PartialEq, Eq)]
+#[derive(Clone, Debug, Copy, PartialEq, PartialOrd, Ord, Eq)]
 pub struct SignedBits<const N: usize>
 where
     W<N>: BitWidth,
 {
     pub val: i128,
-}
-
-impl<const N: usize> std::cmp::PartialOrd for SignedBits<N>
-where
-    W<N>: BitWidth,
-{
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.val.cmp(&other.val))
-    }
-}
-
-impl<const N: usize> std::cmp::Ord for SignedBits<N>
-where
-    W<N>: BitWidth,
-{
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.val.cmp(&other.val)
-    }
 }
 
 impl<const N: usize> std::fmt::Display for SignedBits<N>
@@ -254,6 +236,15 @@ where
         } else {
             self.as_unsigned().resize::<M>().as_signed()
         }
+    }
+    pub fn xshl<const M: usize>(self) -> SignedDynBits {
+        self.dyn_bits().xshl::<M>()
+    }
+    pub fn xshr<const M: usize>(self) -> SignedDynBits {
+        self.dyn_bits().xshr::<M>()
+    }
+    pub fn xext<const M: usize>(self) -> SignedDynBits {
+        self.dyn_bits().xext::<M>()
     }
 }
 

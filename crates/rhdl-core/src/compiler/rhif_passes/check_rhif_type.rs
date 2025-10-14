@@ -38,7 +38,7 @@ fn approximate_dynamic_paths(path: &Path) -> Path {
     path.iter()
         .map(|e| match e {
             PathElement::DynamicIndex(_) => PathElement::Index(0),
-            _ => e.clone(),
+            _ => *e,
         })
         .collect()
 }
@@ -418,7 +418,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                         obj.symtab[lhs].location,
                     ));
                 };
-                eq_kinds(ty, Kind::make_array(*array_ty.base.clone(), *len as _), loc)?;
+                eq_kinds(ty, Kind::make_array(*array_ty.base, *len as _), loc)?;
             }
             OpCode::Case(Case {
                 lhs,

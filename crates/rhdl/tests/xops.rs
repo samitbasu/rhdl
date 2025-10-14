@@ -177,7 +177,7 @@ fn test_xshl_unsigned() -> miette::Result<()> {
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b10, Red> {
         let b = a.val();
         let b = b.xshl::<2>();
-        signal(b)
+        signal(b.as_bits())
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_b8::<Red>())?;
@@ -188,7 +188,7 @@ fn test_xshl_unsigned() -> miette::Result<()> {
 fn test_xshl_signed() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<s8, Red>) -> Signal<s10, Red> {
-        signal(a.val().xshl::<2>())
+        signal(a.val().xshl::<2>().as_signed_bits())
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, s8_red())?;
@@ -199,12 +199,12 @@ fn test_xshl_signed() -> miette::Result<()> {
 fn test_xshr_unsigned() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b6, Red> {
-        signal(a.val().xshr::<2>())
+        signal(a.val().xshr::<2>().as_bits())
     }
 
     // Test that xshr does the right thing.
     let x = b8(0b1010_1111);
-    let y = x.xshr::<2>();
+    let y = x.xshr::<2>().as_bits();
     assert_eq!(y, b6(0b10_1011));
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_b8::<Red>())?;
@@ -215,7 +215,7 @@ fn test_xshr_unsigned() -> miette::Result<()> {
 fn test_xshr_signed() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<s8, Red>) -> Signal<s6, Red> {
-        signal(a.val().xshr::<2>())
+        signal(a.val().xshr::<2>().as_signed_bits())
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, s8_red())?;
@@ -226,7 +226,7 @@ fn test_xshr_signed() -> miette::Result<()> {
 fn test_xext_unsigned() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b9, Red> {
-        signal(a.val().xext::<1>())
+        signal(a.val().xext::<1>().as_bits())
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_b8::<Red>())?;
@@ -237,7 +237,7 @@ fn test_xext_unsigned() -> miette::Result<()> {
 fn test_xext_signed() -> miette::Result<()> {
     #[kernel]
     fn do_stuff(a: Signal<s8, Red>) -> Signal<s9, Red> {
-        signal(a.val().xext::<1>())
+        signal(a.val().xext::<1>().as_signed_bits())
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, s8_red())?;
@@ -250,7 +250,7 @@ fn test_xext_unsigned_inferred() -> miette::Result<()> {
     fn do_stuff(a: Signal<b8, Red>) -> Signal<b10, Red> {
         let a = a.val();
         let b = a.xext::<2>();
-        signal(b)
+        signal(b.as_bits())
     }
 
     test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_b8::<Red>())?;

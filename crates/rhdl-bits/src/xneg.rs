@@ -1,5 +1,5 @@
 use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits};
-use crate::{W, signed_dyn_bits::SignedDynBits, xsgn::XSgn};
+use crate::{W, signed_dyn_bits::SignedDynBits};
 
 pub trait XNeg {
     type Output;
@@ -12,19 +12,21 @@ where
 {
     type Output = SignedDynBits;
     fn xneg(self) -> Self::Output {
-        self.xsgn().xneg()
+        assert!(N < 128);
+        let val = (self.val as i128).wrapping_neg();
+        SignedDynBits { val, bits: N + 1 }
     }
 }
 
 impl XNeg for DynBits {
-    type Output = DynBits;
+    type Output = SignedDynBits;
     fn xneg(self) -> Self::Output {
         assert!(self.bits < 128);
-        DynBits {
-            val: self.val.wrapping_neg(),
+        let val = (self.val as i128).wrapping_neg();
+        SignedDynBits {
+            val,
             bits: self.bits + 1,
         }
-        .wrapped()
     }
 }
 

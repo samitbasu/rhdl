@@ -739,7 +739,7 @@ pub fn try_path(t: &TypedBits, path: &Path) -> Option<TypedBits> {
                 }
             }
             x => {
-                t = t.path(&Path::with_element(x.clone())).ok()?;
+                t = t.path(&Path::with_element(*x)).ok()?;
             }
         }
     }

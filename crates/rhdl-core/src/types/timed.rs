@@ -10,7 +10,7 @@ use crate::Digital;
 /// that either:
 ///
 /// - The type is a `Signal<T, C>` for some `T: Digital` and `C: Domain`, in which case it represents
-/// a value `T` in the time domain `C`.
+///   a value `T` in the time domain `C`.
 /// - The type is zero-sized, and can be freely moved between time domains.  This includes `()`.
 ///
 /// The `Timed` trait is automatically implemented for tuples and arrays of `Timed` types.

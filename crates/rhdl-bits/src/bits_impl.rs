@@ -22,30 +22,12 @@ use seq_macro::seq;
 /// will need the [SignedBits] type.
 ///
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Ord, Eq)]
 pub struct Bits<const N: usize>
 where
     W<N>: BitWidth,
 {
     pub val: u128,
-}
-
-impl<const N: usize> std::cmp::PartialOrd for Bits<N>
-where
-    W<N>: BitWidth,
-{
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.val.cmp(&other.val))
-    }
-}
-
-impl<const N: usize> std::cmp::Ord for Bits<N>
-where
-    W<N>: BitWidth,
-{
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.val.cmp(&other.val)
-    }
 }
 
 impl<const N: usize> std::fmt::Debug for Bits<N>
@@ -146,6 +128,9 @@ where
     pub const fn len(&self) -> usize {
         N
     }
+    pub const fn is_empty(&self) -> bool {
+        N == 0
+    }
     /// Return a [Bits] value with all bits set to 1.
     /// ```
     /// # use rhdl_bits::{consts::U8, Bits};
@@ -213,6 +198,15 @@ where
         x ^= x >> 32;
         x ^= x >> 64;
         x & 1 == 1
+    }
+    pub fn xshl<const M: usize>(self) -> DynBits {
+        self.dyn_bits().xshl::<M>()
+    }
+    pub fn xshr<const M: usize>(self) -> DynBits {
+        self.dyn_bits().xshr::<M>()
+    }
+    pub fn xext<const M: usize>(self) -> DynBits {
+        self.dyn_bits().xext::<M>()
     }
 }
 

@@ -42,7 +42,7 @@ fn derive_timed_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 })
                 .collect();
             let where_clause = if let Some(mut wc) = where_clause.cloned() {
-                wc.predicates.extend(field_where_clauses.into_iter());
+                wc.predicates.extend(field_where_clauses);
                 wc
             } else {
                 syn::WhereClause {
@@ -73,7 +73,9 @@ mod tests {
             }
         };
         let derived = super::derive_timed(t).unwrap();
-        let expected = expect_test::expect!["impl < W : Domain , R : Domain > rhdl :: core :: Timed for In < W , R > where Signal < bool , W > : rhdl :: core :: Timed , Signal < ClockReset , R > : rhdl :: core :: Timed { }"];
+        let expected = expect_test::expect![
+            "impl < W : Domain , R : Domain > rhdl :: core :: Timed for In < W , R > where Signal < bool , W > : rhdl :: core :: Timed , Signal < ClockReset , R > : rhdl :: core :: Timed { }"
+        ];
         expected.assert_eq(&derived.to_string());
     }
 }

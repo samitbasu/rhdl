@@ -451,7 +451,7 @@ impl Parse for FunctionDef {
 
 impl Pretty for FunctionDef {
     fn pretty_print(&self, formatter: &mut Formatter) {
-        formatter.write(&format!("function "));
+        formatter.write("function ");
         formatter.scoped(|formatter| {
             self.signed_width.pretty_print(formatter);
             formatter.write(&format!(" {}", self.name));

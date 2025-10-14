@@ -73,22 +73,6 @@ pub fn path(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn const_impl(input: TokenStream) -> TokenStream {
-    match rhdl_macro_core::const_impl::const_impl(input.into()) {
-        Ok(output) => output.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
-}
-
-#[proc_macro]
-pub fn op(input: TokenStream) -> TokenStream {
-    match rhdl_macro_core::typenum_op::typenum_op(input.into()) {
-        Ok(output) => output.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
-}
-
-#[proc_macro]
 pub fn vlog_modules(input: TokenStream) -> TokenStream {
     match rhdl_macro_core::vlog::modules(input.into()) {
         Ok(output) => output.into(),

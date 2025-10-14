@@ -91,7 +91,6 @@ impl<T, I: SlotKey> SlotVec<T, I> {
             index: std::marker::PhantomData,
         })
     }
-    #[must_use]
     pub fn merge(&mut self, mut other: Self) -> impl Fn(I) -> I + use<T, I> {
         let offset = self.vals.len();
         self.vals.append(&mut other.vals);
@@ -110,7 +109,6 @@ impl<T, I: SlotKey> SlotVec<T, I> {
             I::new(self_id, ndx)
         }
     }
-    #[must_use]
     pub fn retain<F: Fn(I, &T) -> bool>(&mut self, f: F) -> impl Fn(I) -> Option<I> + use<T, I, F> {
         let mut reorder = BTreeMap::default();
         let mut counter = 0;

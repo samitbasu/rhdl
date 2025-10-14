@@ -138,13 +138,13 @@ impl ClockDomainContext<'_> {
                     .iter()
                     .map(|field| {
                         let tid = self.import_kind_with_single_domain(id, &field.kind, domain);
-                        (field.name.clone(), tid)
+                        (field.name, tid)
                     })
                     .collect();
-                self.ctx.ty_dyn_struct(id, strukt.name.clone(), fields)
+                self.ctx.ty_dyn_struct(id, strukt.name, fields)
             }
             Kind::Enum(enumerate) => {
-                let name = enumerate.name.clone();
+                let name = enumerate.name;
                 let variants = enumerate
                     .variants
                     .iter()
@@ -186,10 +186,10 @@ impl ClockDomainContext<'_> {
                     .iter()
                     .map(|field| {
                         let tid = self.import_kind_with_unknown_domains(id, &field.kind);
-                        (field.name.clone(), tid)
+                        (field.name, tid)
                     })
                     .collect();
-                self.ctx.ty_dyn_struct(id, strukt.name.clone(), fields)
+                self.ctx.ty_dyn_struct(id, strukt.name, fields)
             }
             Kind::Signal(base, color) => {
                 let domain = self.ctx.ty_clock(id, *color);
@@ -209,7 +209,7 @@ impl ClockDomainContext<'_> {
     }
     fn import_registers(&mut self) {
         for (reg_id, (kind, det)) in self.obj.symtab.iter_reg() {
-            let ty = self.import_kind_with_unknown_domains(det.location, &kind);
+            let ty = self.import_kind_with_unknown_domains(det.location, kind);
             self.slot_map.insert(reg_id.into(), ty);
         }
     }

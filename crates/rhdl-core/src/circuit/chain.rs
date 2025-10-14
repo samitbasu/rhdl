@@ -153,7 +153,7 @@ where
         Ok(HDLDescriptor {
             name: name.into(),
             body: module,
-            children: BTreeMap::from_iter(vec![(a_name.into(), a_hdl), (b_name.into(), b_hdl)]),
+            children: BTreeMap::from_iter(vec![(a_name, a_hdl), (b_name, b_hdl)]),
         })
     }
 }

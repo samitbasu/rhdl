@@ -215,7 +215,7 @@ mod tests {
             .join("fifo")
             .join("asynchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["03fe8cc6a0809859b81b7a6eedc14d4fd292c4553306df663eb1dcd8a432af76"];
+        let expect = expect!["3b1df4fc872013dd6a0984a5eceaceb373518734d3f3f02b146d658bc86fe4e9"];
         let digest = vcd
             .dump_to_file(root.join("async_fifo_write_test.vcd"))
             .unwrap();

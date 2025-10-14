@@ -233,7 +233,7 @@ impl AppTypeKind for AppStruct {
             fields: self
                 .fields
                 .iter()
-                .map(|(f, t)| (f.clone(), context.apply(*t)))
+                .map(|(f, t)| (*f, context.apply(*t)))
                 .collect(),
             ..self
         }
@@ -244,10 +244,7 @@ impl AppTypeKind for AppStruct {
             .into_iter()
             .map(|(name, t)| {
                 let kind = context.into_kind(t)?;
-                Ok(Field {
-                    name: name.into(),
-                    kind,
-                })
+                Ok(Field { name, kind })
             })
             .collect::<Result<_, RHDLError>>()?;
         Ok(Kind::make_struct(&self.name, fields))
@@ -290,7 +287,7 @@ impl AppTypeKind for AppEnum {
             .map(|(v, t)| {
                 let kind = context.into_kind(t)?;
                 Ok(crate::types::kind::Variant {
-                    name: v.name.into(),
+                    name: v.name,
                     kind,
                     discriminant: v.discriminant,
                 })
@@ -575,7 +572,7 @@ impl UnifyContext {
             .variants
             .iter()
             .map(|variant| {
-                let name = variant.name.clone();
+                let name = variant.name;
                 let ty = self.from_kind(loc, variant.kind);
                 let tag = VariantTag {
                     name,
@@ -585,7 +582,7 @@ impl UnifyContext {
             })
             .collect();
         let discriminant = self.ty_discriminant(loc, enumerate.discriminant_layout);
-        let name = self.ty_const(loc, Const::String(enumerate.name.clone()));
+        let name = self.ty_const(loc, Const::String(enumerate.name));
         self.ty_app(
             loc,
             AppType::Enum(AppEnum {
@@ -769,18 +766,14 @@ impl UnifyContext {
     pub fn into_kind(&mut self, ty: TypeId) -> Result<Kind, RHDLError> {
         let x = self.apply(ty);
         match x.kind.as_ref() {
-            TypeKind::Var(_) => {
-                return Err(self.raise_type_error(UnifyError::UnboundVariable {
-                    kind: x.kind.as_ref().clone(),
-                }));
-            }
+            TypeKind::Var(_) => Err(self.raise_type_error(UnifyError::UnboundVariable {
+                kind: x.kind.as_ref().clone(),
+            })),
             TypeKind::Const(c) => match c {
                 Const::Empty => Ok(Kind::Empty),
-                _ => {
-                    return Err(self.raise_type_error(UnifyError::ExpectedConstant {
-                        kind: x.kind.as_ref().clone(),
-                    }));
-                }
+                _ => Err(self.raise_type_error(UnifyError::ExpectedConstant {
+                    kind: x.kind.as_ref().clone(),
+                })),
             },
             TypeKind::App(app) => app.clone().into_kind(self),
         }
@@ -917,7 +910,7 @@ impl UnifyContext {
                 kind: ty.kind.as_ref().clone(),
             }));
         };
-        if let Some(t) = self.substitution_map.get(&v) {
+        if let Some(t) = self.substitution_map.get(v) {
             return Ok(Some(*t));
         }
         Ok(None)
@@ -1108,12 +1101,8 @@ impl UnifyContext {
         }
         for (a, b) in x.fields.iter().zip(y.fields.iter()) {
             if a.0 != b.0 {
-                return Err(
-                    self.raise_type_error(UnifyError::CannotUnifyFieldsWithNames {
-                        x: a.0.clone(),
-                        y: b.0.clone(),
-                    }),
-                );
+                return Err(self
+                    .raise_type_error(UnifyError::CannotUnifyFieldsWithNames { x: a.0, y: b.0 }));
             }
             self.unify(a.1, b.1)?;
         }

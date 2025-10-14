@@ -88,7 +88,7 @@ pub fn build_hdl<C: Circuit>(
         endmodule
     }?;
     Ok(HDLDescriptor {
-        name: descriptor.unique_name.into(),
+        name: descriptor.unique_name,
         body: module,
         children,
     })
@@ -172,7 +172,7 @@ pub fn build_synchronous_hdl<C: Synchronous>(
         endmodule
     }?;
     Ok(HDLDescriptor {
-        name: descriptor.unique_name.into(),
+        name: descriptor.unique_name,
         body: module,
         children,
     })

@@ -59,7 +59,7 @@ impl VMState<'_> {
                     let ndx = slot.as_i64()?;
                     result = result.index(ndx as usize);
                 }
-                _ => result.push(element.clone()),
+                _ => result.push(*element),
             }
         }
         Ok(result)

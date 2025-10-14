@@ -322,8 +322,8 @@ impl TranslationContext<'_> {
             })
             .collect::<Vec<vlog::Item>>();
         // Add these to the preamble
-        self.func.items.extend(reg_decls.into_iter());
-        self.func.items.extend(lit_decls.into_iter());
+        self.func.items.extend(reg_decls);
+        self.func.items.extend(lit_decls);
         // Bind the argument registers
         for (ndx, reg) in self.rtl.arguments.iter().enumerate() {
             if let Some(reg) = reg {
