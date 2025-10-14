@@ -1,8 +1,14 @@
 use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits};
 use crate::{W, signed_dyn_bits::SignedDynBits};
 
+/// Extended negation trait.  Represents a bit-preserving negation
+/// of a signed value where the output size is one bit larger
+/// than the input.  This is useful for avoiding overflow in
+/// negation operations.
 pub trait XNeg {
+    /// The output type of the negation.
     type Output;
+    /// Perform the extended negation operation.
     fn xneg(self) -> Self::Output;
 }
 

@@ -10,7 +10,8 @@ use seq_macro::seq;
 /// you can easily express larger constructs in hardware using arrays,
 /// tuples and structs.  The only real limitation of the [SignedBits]
 /// type being 128 bits is that you cannot perform arbitrary arithmetic
-/// on longer bit values in your hardware designs.
+/// on longer bit values in your hardware designs.  Even that limitation
+/// can be worked around.
 ///
 /// Signed arithmetic is performed using 2's complement arithmetic.
 /// See <https://en.wikipedia.org/wiki/Two%27s_complement> for more
@@ -28,7 +29,7 @@ pub struct SignedBits<const N: usize>
 where
     W<N>: BitWidth,
 {
-    pub val: i128,
+    pub(crate) val: i128,
 }
 
 impl<const N: usize> std::fmt::Display for SignedBits<N>
@@ -85,7 +86,9 @@ where
 
 seq!(N in 2..=128 {
     #(
+        /// Alias for `SignedBits<N>`
         pub type s~N = SignedBits<N>;
+        /// Helper function for creating a signed bits value
         pub const fn s~N(value: i128) -> s~N {
             signed::<N>(value)
         }
@@ -115,6 +118,8 @@ where
     SignedBits { val }
 }
 
+/// Like `signed()`, but wraps the value to fit in the specified
+/// number of bits.
 pub const fn signed_wrapped<const N: usize>(val: i128) -> SignedBits<N>
 where
     W<N>: BitWidth,
@@ -122,6 +127,9 @@ where
     bits_masked::<N>(val as u128).as_signed()
 }
 
+/// This struct is needed so that the `signed` function can be used in synthesizable
+/// contexts.
+#[doc(hidden)]
 pub struct signed<const N: usize>
 where
     W<N>: BitWidth, {}
@@ -130,13 +138,17 @@ impl<const N: usize> SignedBits<N>
 where
     W<N>: BitWidth,
 {
+    /// The largest positive value that can be represented
+    /// by this sized [SignedBits] value.
     pub const MAX: Self = Self {
         val: Self::max_value(),
     };
+    /// The smallest negative value that can be represented
+    /// by this sized [SignedBits] value.
     pub const MIN: Self = Self {
         val: Self::min_value(),
     };
-    /// Return a [SignedBits] value with all bits set to 1.
+    /// The zero value for this sized [SignedBits] value.
     pub const ZERO: Self = Self { val: 0 };
     /// Return the largest positive value that can be represented
     /// by this sized [SignedBits] value.
@@ -180,7 +192,7 @@ where
     }
     /// Reinterpret the [SignedBits] value as an unsigned
     /// [Bits] value.  This is useful for performing
-    /// bit manipulations on the value that may or not
+    /// bit manipulations on the value that may or may not
     /// preserve the 2's complement nature of the value.
     /// ```
     /// # use rhdl_bits::{consts::U8, Bits, SignedBits, signed};
@@ -206,16 +218,23 @@ where
     }
     /// Build a (dynamic, stack allocated) vector
     /// containing the bits that make up this value.
-    /// This will be slow.
+    /// This will be slow.  Not available in synthesizable
+    /// contexts.
     pub fn to_bools(self) -> Vec<bool> {
         self.as_unsigned().to_bools()
     }
+    /// Returns true if any bit is set.
+    /// Can be called in a synthesizable context
     pub const fn any(self) -> bool {
         self.val != 0
     }
+    /// Returns true if all bits are set.
+    /// Can be called in a synthesizable context
     pub const fn all(self) -> bool {
         self.val == -1
     }
+    /// Returns true if the number of set bits is odd.
+    /// Can be called in a synthesizable context
     pub const fn xor(self) -> bool {
         let mut x = self.val;
         x ^= x >> 1;
@@ -227,6 +246,11 @@ where
         x ^= x >> 64;
         x & 1 == 1
     }
+    /// Resize the [SignedBits] value to a different number of bits.
+    /// If the new size is larger than the current size, then sign
+    /// extension is performed.  If the new size is smaller than the
+    /// current size, then the value is truncated to fit in the
+    /// smaller size.
     pub const fn resize<const M: usize>(self) -> SignedBits<M>
     where
         W<M>: BitWidth,
@@ -237,12 +261,20 @@ where
             self.as_unsigned().resize::<M>().as_signed()
         }
     }
+    /// Shift left by a constant amount, returning a [SignedDynBits] value.
+    /// The output size is the input size plus the shift amount.
+    /// Available in synthesizable contexts.
     pub fn xshl<const M: usize>(self) -> SignedDynBits {
         self.dyn_bits().xshl::<M>()
     }
+    /// Shift right by a constant amount, returning a [SignedDynBits] value.
+    /// The output size is the input size minus the shift amount.
     pub fn xshr<const M: usize>(self) -> SignedDynBits {
         self.dyn_bits().xshr::<M>()
     }
+    /// Sign extend the value by the given number of bits, returning a [SignedDynBits] value.
+    /// The output size is the input size plus the extension amount.
+    /// Available in synthesizable contexts.
     pub fn xext<const M: usize>(self) -> SignedDynBits {
         self.dyn_bits().xext::<M>()
     }

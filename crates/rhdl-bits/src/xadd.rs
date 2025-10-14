@@ -1,8 +1,14 @@
 use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits, signed_dyn_bits::SignedDynBits};
 use crate::bitwidth::W;
 
+/// Extended addition trait.  Represents a bit-preserving addition
+/// of two values (either signed or unsigned) where the output
+/// size is one bit larger than the larger of the two inputs.
+/// This is useful for avoiding overflow in addition operations.
 pub trait XAdd<Rhs = Self> {
+    /// The output type of the addition.
     type Output;
+    /// Perform the extended addition operation.
     fn xadd(self, rhs: Rhs) -> Self::Output;
 }
 

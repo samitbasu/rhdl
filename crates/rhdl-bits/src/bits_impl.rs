@@ -21,13 +21,13 @@ use seq_macro::seq;
 /// the purposes of comparisons.  If you need signed comparisons, you
 /// will need the [SignedBits] type.
 ///
-
 #[derive(Clone, Copy, PartialEq, PartialOrd, Ord, Eq)]
 pub struct Bits<const N: usize>
 where
     W<N>: BitWidth,
 {
-    pub val: u128,
+    /// The raw value of the bits.  Only the lowest N bits are used.
+    pub(crate) val: u128,
 }
 
 impl<const N: usize> std::fmt::Debug for Bits<N>
@@ -77,7 +77,9 @@ where
 
 seq!(N in 1..=128 {
     #(
+        /// A helper type alias for [Bits] of size N.
         pub type b~N = Bits<N>;
+        /// A helper function for creating a [Bits] value of size N
         pub const fn b~N(value: u128) -> b~N {
             bits::<N>(value)
         }
@@ -87,14 +89,14 @@ seq!(N in 1..=128 {
 /// Helper function for creating a bits value from
 /// a constant.
 /// ```
-/// # use rhdl_bits::{consts::U8, Bits, bits};
+/// # use rhdl_bits::{Bits, bits};
 /// let value : Bits<8> = bits(0b1010_1010);
 /// assert_eq!(value, 0b1010_1010);
 /// ```
 /// Because the function is `const`, you can use it a constant
 /// context:
 /// ```
-/// # use rhdl_bits::{consts::U8, Bits, bits};
+/// # use rhdl_bits::{Bits, bits};
 /// const VALUE : Bits<8> = bits(0b1010_1010);
 /// ```
 pub const fn bits<const N: usize>(value: u128) -> Bits<N>
@@ -104,6 +106,20 @@ where
     assert!(value <= Bits::<N>::mask().val);
     Bits { val: value }
 }
+
+/// Helper function for creating a bits value from
+/// a constant, masking off any excess bits.
+/// ```
+/// # use rhdl_bits::{Bits, bits_masked};
+/// let value : Bits<8> = bits_masked(0b1_1010_1010);
+/// assert_eq!(value, 0b1010_1010);
+/// ```
+/// Because the function is `const`, you can use it a constant context:
+/// ```
+/// # use rhdl_bits::{Bits, bits_masked};
+/// const VALUE : Bits<8> = bits_masked(0b1_1010_1010);
+/// assert_eq!(VALUE, 0b1010_1010);
+/// ```
 pub const fn bits_masked<const N: usize>(value: u128) -> Bits<N>
 where
     W<N>: BitWidth,
@@ -113,6 +129,9 @@ where
     }
 }
 
+/// This struct is needed so that the `bits` function can be used in synthesizable
+/// contexts.
+#[doc(hidden)]
 pub struct bits<const N: usize>
 where
     W<N>: BitWidth, {}
@@ -123,11 +142,15 @@ where
 {
     /// Defines a constant Bits value with all bits set to 1.
     pub const MASK: Self = Self::mask();
+    /// Defines a constant Bits value set to the maximum storable value.
     pub const MAX: Self = Self::mask();
+    /// Defines a constant Bits value set to zero.
     pub const ZERO: Self = Self { val: 0 };
+    /// The number of bits in this [Bits] value.
     pub const fn len(&self) -> usize {
         N
     }
+    /// Return true if the [Bits] value has zero bits.
     pub const fn is_empty(&self) -> bool {
         N == 0
     }
@@ -142,6 +165,17 @@ where
             val: u128::MAX >> (128 - { N }),
         }
     }
+    /// Resize the [Bits] value to a different size.
+    /// If the new size is smaller, the value is truncated.
+    /// If the new size is larger, the value is zero-extended.
+    /// ```
+    /// # use rhdl_bits::{Bits, bits};
+    /// let bits: Bits<8> = bits(0b1101_1010);
+    /// let new_bits: Bits<4> = bits.resize();
+    /// assert_eq!(new_bits, 0b1010);
+    /// let new_bits: Bits<16> = bits.resize();
+    /// assert_eq!(new_bits, 0b0000_0000_1101_1010);
+    /// ```
     pub const fn resize<const M: usize>(self) -> Bits<M>
     where
         W<M>: BitWidth,
@@ -173,6 +207,7 @@ where
     }
     /// Build a (dynamic, stack allocated) vector containing
     /// the bits that make up this value.  This will be slow.
+    /// Not available in synthesizable functions.
     pub fn to_bools(self) -> Vec<bool> {
         let mut v = Vec::with_capacity(N);
         let mut x = self.val;
@@ -182,12 +217,18 @@ where
         }
         v
     }
+    /// Return true if any bit is set.
+    /// Available in synthesizable functions.
     pub fn any(self) -> bool {
         (self.val & Self::mask().val) != 0
     }
+    /// Return true if all bits are set.
+    /// Available in synthesizable functions.
     pub fn all(self) -> bool {
         (self.val & Self::mask().val) == Self::mask().val
     }
+    /// Return true if an odd number of bits are set.
+    /// Available in synthesizable functions.
     pub fn xor(self) -> bool {
         let mut x = self.val & Self::mask().val;
         x ^= x >> 1;
@@ -199,12 +240,21 @@ where
         x ^= x >> 64;
         x & 1 == 1
     }
+    /// Shift left by a constant amount, returning a [DynBits] value.
+    /// The output size is increased by the shift amount.
+    /// Available in synthesizable functions.
     pub fn xshl<const M: usize>(self) -> DynBits {
         self.dyn_bits().xshl::<M>()
     }
+    /// Shift right by a constant amount, returning a [DynBits] value.
+    /// The output size is decreased by the shift amount.
+    /// Available in synthesizable functions.
     pub fn xshr<const M: usize>(self) -> DynBits {
         self.dyn_bits().xshr::<M>()
     }
+    /// Pad the [Bits] value to a larger size, returning a [DynBits] value.
+    /// The output size is increased by M bits.
+    /// Available in synthesizable functions.
     pub fn xext<const M: usize>(self) -> DynBits {
         self.dyn_bits().xext::<M>()
     }

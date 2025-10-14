@@ -36,7 +36,7 @@ mod tests {
     use crate::tristate::simple::sender::Cmd;
 
     use super::*;
-    use std::iter::{once, repeat};
+    use std::iter::once;
 
     #[test]
     fn test_basic_trace() -> miette::Result<()> {
