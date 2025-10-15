@@ -1,4 +1,4 @@
-//! Extending Addition (XAdd) trait and implementations for [Bits], [SignedBits], [DynBits], and [SignedDynBits]
+//! Extending Addition (XAdd) trait and implementations
 //!
 //! The `XAdd` trait provides a way to perform addition operations that preserve the bit width of the operands,
 //! resulting in an output that is one bit larger than the larger of the two inputs. This is particularly useful
