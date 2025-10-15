@@ -156,8 +156,8 @@ where
     }
     /// Return a [Bits] value with all bits set to 1.
     /// ```
-    /// # use rhdl_bits::{consts::U8, Bits};
-    /// let bits = bits::<8>::mask();
+    /// # use rhdl_bits::{Bits};
+    /// let bits = Bits::<8>::mask();
     /// assert_eq!(bits, 0xFF);
     /// ```
     pub const fn mask() -> Self {

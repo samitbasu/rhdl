@@ -1,6 +1,39 @@
+//! # Boolean AND operations via `&` and `&=`
+//!
+//! Use the `&` operator as usual:
+//!
+//! Here are a simple example of anding 2 8-bit unsigned values:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: Bits<8> = 0b1101_1010.into();
+//! let b: Bits<8> = 0b0000_1010.into();
+//! let c = a & b; // 0b0000_1010
+//! assert_eq!(c, b8(0b0000_1010));
+//! ```
+//!
+//! We can convert them to [DynBits] and AND them too:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a: Bits<8> = 0b1101_1010.into();
+//! # let b: Bits<8> = 0b0000_1010.into();
+//! let a = a.dyn_bits();
+//! let b = b.dyn_bits();
+//! let c = a & b; // 0b0000_1010
+//! assert_eq!(c.as_bits::<8>(), b8(0b0000_1010));
+//! ```
+//!
+//! You can also use the `&=` operator to AND assign in place:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let mut a: Bits<8> = 0b0001_1010.into();
+//! let b: Bits<8> = 0b0000_1010.into();
+//! a &= b; // a is now 0b0000_1010
+//! assert_eq!(a, b8(0b0000_1010));
+//! ```
 use std::ops::{BitAnd, BitAndAssign};
-
-use crate::{impl_assign_op, impl_binop};
 
 use super::bits_impl::bits_masked;
 use super::{BitWidth, bits_impl::Bits, dyn_bits::DynBits};
@@ -11,7 +44,6 @@ impl_assign_op!(BitAndAssign, bitand_assign, u128::bitand);
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_binop;
 
     #[test]
     fn test_and() {

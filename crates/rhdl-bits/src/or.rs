@@ -1,8 +1,40 @@
+//! # Boolean OR operations via `|` and `|=`
+//!
+//! Use the `|` operator as usual:
+//!
+//! Here are a simple example of oring 2 8-bit unsigned values:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: Bits<8> = 0b1101_1010.into();
+//! let b: Bits<8> = 0b0000_1010.into();
+//! let c = a | b; // 0b1101_1010
+//! assert_eq!(c, b8(0b1101_1010));
+//! ```
+//!
+//! We can convert them to [DynBits] and OR them too:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a: Bits<8> = 0b1101_1010.into();
+//! # let b: Bits<8> = 0b0000_1010.into();
+//! let a = a.dyn_bits();
+//! let b = b.dyn_bits();
+//! let c = a | b; // 0b1101_1010
+//! assert_eq!(c.as_bits::<8>(), b8(0b1101_1010));
+//! ```
+//!
+//! You can also use the `|=` operator to OR and assign in place:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let mut a: Bits<8> = 0b0001_1010.into();
+//! let b: Bits<8> = 0b0000_1010.into();
+//! a |= b; // a is now 0b0001_1010
+//! assert_eq!(a, b8(0b0001_1010));
+//! ```
 use std::ops::BitOr;
 use std::ops::BitOrAssign;
-
-use crate::impl_assign_op;
-use crate::impl_binop;
 
 use super::BitWidth;
 use super::bits_impl::Bits;
@@ -15,7 +47,6 @@ impl_assign_op!(BitOrAssign, bitor_assign, u128::bitor);
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_binop;
 
     #[test]
     fn test_or() {

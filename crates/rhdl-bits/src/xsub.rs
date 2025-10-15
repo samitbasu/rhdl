@@ -1,3 +1,47 @@
+//! Extending Subtraction (XSub) trait and implementations
+//!
+//! The `XSub` trait provides a way to perform subtraction operations that preserve the bit width of the operands,
+//! resulting in an output that is one bit larger than the larger of the two inputs. This is particularly useful
+//! in scenarios where overflow needs to be avoided.
+//!
+//! Because of limitations in stable Rust, the application of applying the `.xsub()` method to a [Bits] or [SignedBits]
+//! value will always return a [SignedDynBits] value.  This is because the output
+//! size is not expressible at compile time using const generics.
+//!
+//!```
+//!# use rhdl_bits::*;
+//!# use rhdl_bits::alias::*;
+//! let a: Bits<8> = 100.into();
+//! let b: Bits<8> = 200.into();
+//! let c = a.xsub(b); // -100, which fits in 9 bits
+//! assert_eq!(c.as_signed_bits::<9>(), s9(-100)); // c is a SignedDynBits with 9 bits
+//!```
+//!
+//! Note that the sizes of the inputs do not need to be the same.  The output size is always
+//! one bit larger than the larger of the two input sizes:
+//!
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: Bits<8> = 100.into();
+//! let b: Bits<7> = 50.into();
+//! let c = a.xsub(b); // 50, which fits in 9 bits
+//! assert_eq!(c.as_signed_bits::<9>(), s9(50)); // c is a SignedDynBits with 9 bits
+//! ```
+//!
+//! If the arguments are already [DynBits] the output will also be [SignedDynBits]:
+//!
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a: Bits<8> = 100.into();
+//! # let b: Bits<7> = 50.into();
+//! let a = a.dyn_bits();
+//! let b = b.dyn_bits();
+//! let c = a.xsub(b); // 50, which fits in 9 bits
+//! assert_eq!(c, s9(50).dyn_bits()); // c is a SignedDynBits with 9 bits
+//! ```
+//!
 use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits, signed_dyn_bits::SignedDynBits};
 use crate::bitwidth::W;
 

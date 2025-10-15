@@ -1,3 +1,75 @@
+//! Extended multiplication (multiplication without wrap around)
+//!
+//! This module provides the [XMul] trait, which defines the `xmul` method for performing
+//! multiplication operations that preserve the bit width of the operands, resulting in an output
+//! that is the sum of the sizes of the two inputs. This is particularly useful in scenarios
+//! where overflow needs to be avoided.
+//!
+//! Because of limitations in stable Rust, the application of applying the `.xmul()` method to a [Bits] or [SignedBits]
+//! value will always return a [DynBits] or [SignedDynBits] value, respectively.  This is because the output
+//! size is not expressible at compile time using const generics.
+//!
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: Bits<8> = 200.into();
+//! let b: Bits<8> = 100.into();
+//! let c = a.xmul(b); // 20000, which fits in 16 bits
+//! assert_eq!(c.as_bits::<16>(), b16(20000)); // c is a DynBits with 16 bits
+//! ```
+//!
+//! Note that the sizes of the inputs do not need to be the same.  The output size is always
+//! the sum of the sizes of the two inputs:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: Bits<8> = 200.into();
+//! let b: Bits<4> = 10.into();
+//! let c = a.xmul(b); // 2000, which fits in 12 bits
+//! assert_eq!(c.as_bits::<12>(), b12(2000)); // c is a DynBits with 12 bits
+//! ```
+//! If the arguments are already [DynBits] the output will also be [DynBits]:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a: Bits<8> = 200.into();
+//! # let b: Bits<4> = 10.into();
+//! let a = a.dyn_bits();
+//! let b = b.dyn_bits();
+//! let c = a.xmul(b); // 2000, which fits in 12 bits
+//! assert_eq!(c, b12(2000).dyn_bits()); // c is a DynBits with 12 bits
+//! ```
+//!
+//! The same applies to signed values:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: SignedBits<8> = (-50).into();
+//! let b: SignedBits<4> = 3.into();
+//! let c = a.xmul(b); // -150, which fits in 12 bits
+//! assert_eq!(c.as_signed_bits::<12>(), s12(-150)); // c is a SignedDynBits with 12 bits
+//!```
+//!
+//! If the arguments are already [SignedDynBits] the output will also be [SignedDynBits]:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a: SignedBits<8> = (-50).into();
+//! # let b: SignedBits<4> = 3.into();
+//! let a = a.dyn_bits();
+//! let b = b.dyn_bits();
+//! let c = a.xmul(b); // -150, which fits in 12 bits
+//! assert_eq!(c, s12(-150).dyn_bits()); // c is a SignedDynBits with 12 bits
+//! ```
+//!
+//! Note that the maximum supported bit width for [Bits], [SignedBits], [DynBits] and [SignedDynBits] is 128 bits.
+//! Therefore, the sum of the sizes of the two inputs to the `xmul` method must not exceed 128 bits.
+//! Attempting to multiply two values whose combined bit width exceeds this limit will result in a panic at runtime.
+//!
+//! Also, note that while multipliers are generally synthesizable, exactly how they are implemented can vary
+//! greatly between synthesis tools and target technologies. Therefore, it's advisable to consult the documentation
+//! for your specific toolchain and target architecture to understand the implications of using extended multiplication.
+//!
 use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits, signed_dyn_bits::SignedDynBits};
 use crate::bitwidth::W;
 

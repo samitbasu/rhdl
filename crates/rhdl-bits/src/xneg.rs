@@ -1,3 +1,47 @@
+//! Support for extended negation (negation without wrap around)
+//!
+//! This provides the [XNeg] trait which defines
+//! the `xneg` method.  This method performs a negation operation
+//! that increases the bit width of the operand by one, thus avoiding
+//! overflow issues that can occur with standard negation.
+//!
+//! ```
+//! use rhdl_bits::*;
+//! use rhdl_bits::alias::*;
+//! let a: Bits<8> = 38.into();
+//! let b = a.xneg(); // -38
+//! assert_eq!(b.as_signed_bits::<9>(), s9(-38)); // b is a SignedDynBits with 9 bits
+//! ```
+//!
+//! You can also use `xneg` on [DynBits]:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a: Bits<8> = 38.into();
+//! let a = a.dyn_bits();
+//! let b = a.xneg(); // -38
+//! assert_eq!(b.as_signed_bits::<9>(), s9(-38)); // b is a SignedDynBits with 9 bits
+//! ```
+//!
+//! You can use `xneg` on [SignedBits] as well:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: SignedBits<8> = 38.into();
+//! let b = a.xneg(); // -38
+//! assert_eq!(b.as_signed_bits::<9>(), s9(-38)); // b is a SignedDynBits with 9 bits
+//! ```
+//!
+//! You can also use `xneg` on [SignedDynBits]:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a: SignedBits<8> = 38.into();
+//! let a = a.dyn_bits();
+//! let b = a.xneg(); // -38
+//! assert_eq!(b.as_signed_bits::<9>(), s9(-38)); // b is a SignedDynBits with 9 bits
+//! ```
+//!
 use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits};
 use crate::{W, signed_dyn_bits::SignedDynBits};
 

@@ -1,3 +1,98 @@
+//! # Support for right shifting via `>>` and `>>=`
+//!
+//! Right shift operations are wrapping, meaning that bits shifted out on the right are discarded,
+//! and zeros are shifted in on the left if the value is unsigned.  If the value is signed, then sign bits are shifted in.
+//! Use the `>>` operator as usual:
+//!
+//! Here are a simple example of right shifting a 8-bit unsigned value:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: Bits<8> = 0b1101_1010.into();
+//! let b = a >> 4; // 0b0000_1101
+//! assert_eq!(b, b8(0b0000_1101));
+//! ```
+//!
+//! We can also right shift by a [Bits] value:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a: Bits<8> = 0b1101_1010.into();
+//! let shift: Bits<4> = 4.into();
+//! let b = a >> shift; // 0b0000_1101
+//! assert_eq!(b, b8(0b0000_1101));
+//! ```
+//!
+//! We can convert them to [DynBits] and right shift them too:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a: Bits<8> = 0b1101_1010.into();
+//! let a = a.dyn_bits();
+//! let b = a >> 4; // 0b0000_1101
+//! assert_eq!(b.as_bits::<8>(), b8(0b0000_1101));
+//! ```
+//! We can also right shift [DynBits] by a [Bits] value:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a: Bits<8> = 0b1101_1010.into();
+//! let a = a.dyn_bits();
+//! let shift: Bits<4> = 4.into();
+//! let b = a >> shift; // 0b0000_1101
+//! assert_eq!(b.as_bits::<8>(), b8(0b0000_1101));
+//! ```
+//!
+//! When working with signed values, remember to put parentheses around negative literals, and that
+//! the shift amount is always unsigned:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a : SignedBits<8> = (-38).into();
+//! let b = a >> 1; // -19
+//! assert_eq!(b, s8(-19));
+//! ```
+//!
+//! You can also right shift [SignedBits] by a [Bits] value:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a : SignedBits<8> = (-38).into();
+//! let shift: Bits<3> = 1.into();
+//! let b = a >> shift; // -19
+//! assert_eq!(b, s8(-19));
+//! ```
+//!
+//! You can convert them to [SignedDynBits] and right shift them too:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a : SignedBits<8> = (-38).into();
+//! let a = a.dyn_bits();
+//! let b = a >> 1; // -19
+//! assert_eq!(b.as_signed_bits::<8>(), s8(-19));
+//! ```
+//!
+//! You can also right shift [SignedDynBits] by a [Bits] value:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a : SignedBits<8> = (-38).into();
+//! let a = a.dyn_bits();
+//! let shift: Bits<3> = 1.into();
+//! let b = a >> shift; // -19
+//! assert_eq!(b.as_signed_bits::<8>(), s8(-19));
+//! ```
+//!
+//! You can also use the `>>=` operator to right shift and assign in place:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let mut a: Bits<8> = 0b1101_1010.into();
+//! a >>= 4; // a is now 0b0000_1101
+//! assert_eq!(a, b8(0b0000_1101));
+//! ```
+
 use std::ops::Shr;
 use std::ops::ShrAssign;
 

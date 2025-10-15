@@ -1,3 +1,35 @@
+//! # Negation via the `-` operator
+//!
+//! You can use the unary `-` operator to negate a [SignedBits] value:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: SignedBits<8> = 38.into();
+//! let b = -a; // -38
+//! assert_eq!(b, s8(-38));
+//! ```
+//!
+//! You can also negate a [SignedDynBits] value:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: SignedBits<8> = (-38).into();
+//! let a = a.dyn_bits();
+//! let b = -a; // 38
+//! assert_eq!(b.as_signed_bits::<8>(), s8(38));
+//! ```
+//!
+//! Note that negation wraps around on overflow, just like normal Rust integer types:
+//!
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: SignedBits<8> = (-128).into();
+//! let b = -a; // -128 (not 128, which is out of range for 8-bit signed)
+//! assert_eq!(b, s8(-128));
+//! ```
+//!
+//! If you want to perform negation without wrapping, use the [XNeg](crate::xneg::XNeg) operator instead.
 use crate::bitwidth::W;
 
 use super::signed_bits_impl::signed_wrapped;

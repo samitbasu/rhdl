@@ -3,7 +3,7 @@
 // the result is the same size as the inputs).  To handle
 // the cases we have a generic macro here, and then instantiate
 // it as needed.
-#[macro_export]
+#[doc(hidden)]
 macro_rules! impl_binop {
     ($trait: ident, $op: ident, $wrap_op: path) => {
         // First the case of adding a u128 to a Bits<N>
@@ -99,7 +99,6 @@ macro_rules! impl_binop {
     };
 }
 
-#[macro_export]
 macro_rules! impl_assign_op {
     ($trait: ident, $op: ident, $wrap_op: path) => {
         // First the case of adding a u128 to a Bits<N>
@@ -162,7 +161,6 @@ macro_rules! impl_assign_op {
 }
 
 // Macro to generate impls for signed values
-#[macro_export]
 macro_rules! impl_signed_binop {
     ($trait: ident, $op: ident, $wrap_op: path) => {
         // First the case of adding an i128 to a SignedBits<N>
@@ -262,7 +260,6 @@ macro_rules! impl_signed_binop {
     };
 }
 
-#[macro_export]
 macro_rules! impl_assigned_signed_op {
     ($trait: ident, $op: ident, $wrap_op: path) => {
         // First the case of adding an i128 to a SignedBits<N>
@@ -326,7 +323,7 @@ macro_rules! impl_assigned_signed_op {
     };
 }
 
-#[macro_export]
+#[cfg(test)]
 macro_rules! test_binop {
     ($op: tt, $wrap: path, $val1: expr, $val2: expr) => {
         {

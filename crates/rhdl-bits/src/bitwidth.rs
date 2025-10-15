@@ -1,8 +1,20 @@
-/// A marker trait used to constrain a const generic parameter to the range 1..=128
-/// This is used to ensure that the number of bits in a [Bits] or [SignedBits]
+//! # Bit width marker trait and type
+//!
+//! This module provides a marker trait and a type-level representation for bit widths
+//! in the range 1..=128. This is used to ensure that the number of bits in a [Bits](crate::Bits) or
+//! [SignedBits](crate::SignedBits) value is in a valid range.
+//! ```
+//! use rhdl_bits::*;
+//! fn takes_variable_bit_widths<const N: usize>(value: Bits<N>) where W<N> : BitWidth {}
+//! ```
+//! This is a work around for the constraint `where N >= 1 && N <= 128` which is not
+//! currently supported in Rust.
+
+/// A marker trait used to constrain a const generic parameter to the range `1..=128`
+/// This is used to ensure that the number of bits in a [Bits](crate::Bits) or [SignedBits](crate::SignedBits)
 /// value is in a valid range.
 /// ```
-/// use rhdl_bits::consts::*;
+/// use rhdl_bits::*;
 /// fn takes_variable_bit_widths<const N: usize>(value: Bits<N>) where W<N> : BitWidth {}
 /// ```
 /// This is a work around for the constraint `where N >= 1 && N <= 128` which is not
@@ -11,11 +23,11 @@
 pub trait BitWidth {}
 
 /// A type-level representation of a bit width.  This is used to constrain
-/// const generic parameters to the range 1..=128.
+/// const generic parameters to the range `1..=128`.
 ///
 /// This is a work around for the constraint `where N >= 1 && N <= 128` which is not
 /// currently supported in Rust.  So instead, you write `W<N>: BitWidth`, which is only
-/// valid if `N` is in the range 1..=128.
+/// valid if `N` is in the range `1..=128``.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct W<const N: usize>;
 
