@@ -99,12 +99,12 @@ fn test_things() -> impl Iterator<Item = TestThing> {
 
 #[derive(Copy, Clone, PartialEq)]
 enum Value {
-    Signed(i128, Option<8>),
-    Unsigned(u128, Option<8>),
+    Signed(i128, Option<u8>),
+    Unsigned(u128, Option<u8>),
 }
 
 impl Value {
-    fn bits(self) -> Option<8> {
+    fn bits(self) -> Option<u8> {
         match self {
             Value::Signed(_, bits) => bits,
             Value::Unsigned(_, bits) => bits,
@@ -147,7 +147,7 @@ impl Value {
     }
 }
 
-fn fixed_op(x: Option<8>, y: Option<8>) -> Option<8> {
+fn fixed_op(x: Option<u8>, y: Option<u8>) -> Option<u8> {
     match (x, y) {
         (Some(x), Some(y)) if x == y => Some(x),
         (Some(x), None) => Some(x),
@@ -243,7 +243,7 @@ impl std::ops::BitXor for Value {
     }
 }
 
-fn shift_op_size(x: Option<8>, _: Option<8>) -> Option<8> {
+fn shift_op_size(x: Option<u8>, _: Option<u8>) -> Option<u8> {
     x
 }
 
@@ -423,14 +423,9 @@ fn test_result_binop(thing1: TestThing, thing2: TestThing, op: Op) -> Option<Tes
         } else {
             TestThing::as_static(output_value)
         }
-    } else if op.is_xop() {
-        if thing1.is_dyn() || thing2.is_dyn() {
-            TestThing::as_dyn(output_value)
-        } else {
-            TestThing::as_static(output_value)
-        }
     } else if (thing1.is_dyn() && (thing2.is_dyn() || thing2.is_lit()))
         || (thing2.is_dyn() && (thing1.is_dyn() || thing1.is_lit()))
+        || op.is_xop()
     {
         TestThing::as_dyn(output_value)
     } else {

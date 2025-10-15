@@ -1,3 +1,71 @@
+//! Extending Addition (XAdd) trait and implementations for [Bits], [SignedBits], [DynBits], and [SignedDynBits]
+//!
+//! The `XAdd` trait provides a way to perform addition operations that preserve the bit width of the operands,
+//! resulting in an output that is one bit larger than the larger of the two inputs. This is particularly useful
+//! in scenarios where overflow needs to be avoided.
+//!
+//! Because of limitations in stable Rust, the application of applying the `.xadd()` method to a [Bits] or [SignedBits]
+//! value will always return a [DynBits] or [SignedDynBits] value, respectively.  This is because the output
+//! size is not expressible at compile time using const generics.
+//!
+//!```
+//!# use rhdl_bits::*;
+//!# use rhdl_bits::alias::*;
+//! let a: Bits<8> = 200.into();
+//! let b: Bits<8> = 100.into();
+//! let c = a.xadd(b); // 300, which fits in 9 bits
+//! assert_eq!(c.as_bits::<9>(), b9(300)); // c is a DynBits with 9 bits
+//!```
+//!
+//! Note that the sizes of the inputs do not need to be the same.  The output size is always
+//! one bit larger than the larger of the two input sizes:
+//!
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: Bits<8> = 200.into();
+//! let b: Bits<7> = 100.into();
+//! let c = a.xadd(b); // 300, which fits in 9 bits
+//! assert_eq!(c.as_bits::<9>(), b9(300)); // c is a DynBits with 9 bits
+//! ```
+//!
+//! If the arguments are already [DynBits] the output will also be [DynBits]:
+//!
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a: Bits<8> = 200.into();
+//! # let b: Bits<7> = 100.into();
+//! let a = a.dyn_bits();
+//! let b = b.dyn_bits();
+//! let c = a.xadd(b); // 300, which fits in 9 bits
+//! assert_eq!(c, b9(300).dyn_bits()); // c is a DynBits with 9 bits
+//! ```
+//!
+//! The same applies to signed values:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: SignedBits<8> = (-50).into();
+//! let b: SignedBits<7> = 30.into();
+//! let c = a.xadd(b); // -20, which fits in 9 bits
+//! assert_eq!(c.as_signed_bits::<9>(), s9(-20)); // c is a SignedDynBits with 9 bits
+//!```
+//!
+//! If the arguments are already [SignedDynBits] the output will also be [SignedDynBits]:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a: SignedBits<8> = (-50).into();
+//! # let b: SignedBits<7> = 30.into();
+//! let a = a.dyn_bits();
+//! let b = b.dyn_bits();
+//! let c = a.xadd(b); // -20, which fits in 9 bits
+//! assert_eq!(c, s9(-20).dyn_bits()); // c is a SignedDynBits with 9 bits
+//!```
+//!
+//! Note that you cannot mix signed and unsigned types, any more than you can add `i8` and `u8` in normal Rust.
+
 use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits, signed_dyn_bits::SignedDynBits};
 use crate::bitwidth::W;
 

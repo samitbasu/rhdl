@@ -1,3 +1,22 @@
+//! Support for bit vectors with run-time defined size
+//!
+//! A [DynBits] value can be created from a [Bits] using the [Bits::dyn_bits] method:
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: Bits<8> = 0b1101_1010.into();
+//! let b = a.dyn_bits(); // b is now a DynBits with 8 bits and value 0b1101_1010
+//! assert_eq!(b.as_bits::<8>(), b8(0b1101_1010));
+//! ```
+//!
+//! The reason we need [DynBits] is that Rust support for const generics is still limited,
+//! and we cannot write functions that change the number of bits in a [Bits] value at compile time.
+//! For example, we cannot write a function that takes a [Bits] of size `Bits::<N>` and returns
+//! a [Bits] of size `Bits::<N+1>`. With [DynBits], we can write such functions, and then convert
+//! back to [Bits] if needed.
+//!
+//! The RHDL compiler will check that the bit conversions are valid.
+//!
 use crate::{bits_impl::bits_masked, bitwidth::W};
 
 use super::{BitWidth, Bits, signed_dyn_bits::SignedDynBits};

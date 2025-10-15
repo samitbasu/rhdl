@@ -71,7 +71,7 @@
 //! There are several ways to construct a [Bits] value.  The simplest is to use the
 //! [From] trait, and convert from integer literals.  For example:
 //! ```
-//! use rhdl_bits::{Bits, consts::U8, alias::*};
+//! use rhdl_bits::{Bits, alias::*};
 //! let bits: Bits<8> = 0b1101_1010.into(); // Long form
 //! let bits: b8 = 0b1101_1010.into(); // Short form (not the same as u8)
 //! ```
@@ -80,7 +80,7 @@
 //!
 //! You can also construct a [Bits] value from a [u128] value:
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits, alias::*};
+//! # use rhdl_bits::{Bits, alias::*};
 //! let bits: Bits<8> = 0b1101_1010_u128.into(); // Long form
 //! let bits: b8 = 0b1101_1010_u128.into(); // Short form (not the same as u8)
 //! ```
@@ -97,14 +97,14 @@
 //! The [SignedBits] type can be constructed in the same way as the [Bits] type.  The
 //! only difference is that the [SignedBits] type can be constructed from a [i128] value:
 //! ```
-//! # use rhdl_bits::{consts::U8, SignedBits, alias::*};
+//! # use rhdl_bits::{SignedBits, alias::*};
 //! let bits: SignedBits<8> = 0b0101_1010_i128.into(); // Long form
 //! let bits: s8 = 0b0101_1010_i128.into(); // Short form
 //! ```
 //!
 //! Likewise, you can construct a [SignedBits] from a signed literal
 //! ```
-//! # use rhdl_bits::{consts::U8, SignedBits, alias::*};
+//! # use rhdl_bits::{SignedBits, alias::*};
 //! let bits: SignedBits<8> = (-42).into(); // Long form
 //! let bits: s8 = (-42).into(); // Short form
 //! ```
@@ -120,7 +120,7 @@
 //! of the _same width_, or you can use integer literals, which will be converted to
 //! [Bits] types of the appropriate width.  For example:
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits, alias::*};
+//! # use rhdl_bits::{Bits, alias::*};
 //! let bits: Bits<8> = 0b1101_1010.into();  // Long form
 //! let result = bits & 0b1111_0000;
 //! assert_eq!(result, 0b1101_0000);
@@ -195,7 +195,7 @@
 //! overflow, you will need to implement that yourself.
 //!
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl_bits::{Bits};
 //! let mut x: Bits<8> = 0b1111_1111.into();
 //! x += 1;
 //! assert_eq!(x, 0);
@@ -217,7 +217,7 @@
 //! circumstances.
 //!
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl_bits::{Bits};
 //! let x: Bits<8> = 0b0000_0001.into();
 //! let y: Bits<8> = 0b0000_0010.into();
 //! let z: Bits<8> = x - y; // 1 - 2 = -1
@@ -251,7 +251,7 @@
 //! The [SubAssign](std::ops::SubAssign) trait is implemented for both [Bits] and [SignedBits],
 //! so you can use the `-=` operator as well:
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl_bits::{Bits};
 //! let mut x: Bits<8> = 0b0000_0001.into();
 //! x -= 1;
 //! assert_eq!(x, 0);
@@ -272,7 +272,7 @@
 //!
 //! Here is an example of the binary operators in action:
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl_bits::{Bits};
 //! let x: Bits<8> = 0b1101_1010.into();
 //! let y: Bits<8> = 0b1111_0000.into();
 //! let z: Bits<8> = x | y;
@@ -322,7 +322,7 @@
 //! In order to model this, the shift operators are generic over both the number of bits in the value
 //! being shifted, _and_ the number of bits in the value that controls the shift.  For example:
 //! ```
-//! # use rhdl_bits::{consts::U3, consts::U8, Bits};
+//! # use rhdl_bits::{Bits};
 //! let x: Bits<8> = 0b1101_1010.into();
 //! let y: Bits<3> = 0b101.into();
 //! let z: Bits<8> = x >> y;
@@ -331,7 +331,7 @@
 //!
 //! You can also use an integer literal to control the shift amount
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl_bits::{Bits};
 //! let x: Bits<8> = 0b1101_1010.into();
 //! let z: Bits<8> = x >> 3;
 //! assert_eq!(z, 0b0001_1011);
@@ -352,7 +352,7 @@
 //! in RHDL.
 //!
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl_bits::{Bits};
 //! let x: Bits<8> = 0b1101_1010.into();
 //! let z: Bits<8> = x >> 10;
 //! assert_eq!(z, 0);
@@ -369,7 +369,7 @@
 //! unsigned arithmetic for [Bits].  This is the same behavior that you would see in hardware designs.
 //! For example, with [Bits]:
 //! ```
-//! # use rhdl_bits::{consts::U8, Bits};
+//! # use rhdl_bits::{Bits};
 //! let x: Bits<8> = 0b1111_1111.into();
 //! let y: Bits<8> = 0b0000_0000.into();
 //! assert!(x > y);
@@ -382,55 +382,42 @@
 //! assert!(x < y);
 //! assert_eq!(x.as_unsigned(), 0b1111_1111);
 //! ```
-/// Support for addition of [Bits] and [SignedBits]
+
+#[doc(hidden)]
+#[macro_use]
+mod impl_macro;
 pub mod add;
-/// Support for bitwise AND of [Bits]
 pub mod and;
 /// Implementation details for the [Bits] type
 pub mod bits_impl;
 /// Trait (and type) used to constrain the bit width parameter
 pub mod bitwidth;
-/// Support for bit vectors with run-time defined size
 pub mod dyn_bits;
-#[doc(hidden)]
-mod impl_macro;
-/// Support for multiplication of [Bits] and [SignedBits]
 pub mod mul;
-/// Support for negation of [SignedBits]
 pub mod neg;
-/// Support for bitwise NOT of [Bits]
 pub mod not;
-/// Support for bitwise OR of [Bits]
 pub mod or;
-/// Support for left shifting of [Bits] and [SignedBits]
 pub mod shl;
-/// Support for right shifting of [Bits] and [SignedBits]
 pub mod shr;
 /// Implementation details for the [SignedBits] type
 pub mod signed_bits_impl;
 /// Support for signed bit vectors with run-time defined size
 pub mod signed_dyn_bits;
-/// Support for subtraction of [Bits] and [SignedBits]
 pub mod sub;
-/// Support for extended addition (addition without wrap around) of [Bits] and [SignedBits]
 pub mod xadd;
-/// Support for extended multiplication (multiplication without wrap around) of [Bits] and [SignedBits]
 pub mod xmul;
-/// Support for extended negation of [SignedBits]
 pub mod xneg;
-/// Support for bitwise XOR of [Bits]
 pub mod xor;
-/// Support for signed promotion of [Bits] without wrap around
 pub mod xsgn;
-/// Support for extended subtraction (subtraction without wrap around) of [Bits] and [SignedBits]
 pub mod xsub;
 pub use crate::bitwidth::W;
 
 pub mod alias {
     //!
-    //! # Type Aliases
+    //! # Type aliases for [Bits](crate::Bits) and [SignedBits](crate::SignedBits) ([b1](b1())..[b128](b128()) and [s2](s2())..[s128](s128()))
+    //!
     //! This crate provides a set of type aliases that you can use to save keystrokes.
-    //! These type aliases are named `b1` through `b128` for [crate::Bits], and `s1` through
+    //! These type aliases are named `b1` through `b128` for [crate::Bits], and `s2` through
     //! `s128` for [crate::SignedBits].  So, for example, if you want to represent a 32 bit value,
     //! you can use the type alias `b32` instead of the full type name `Bits<32>`.  For example:
     //! ```
@@ -461,9 +448,15 @@ pub mod alias {
 
 pub use bits_impl::Bits;
 pub use bits_impl::bits;
+pub use bits_impl::bits_masked;
 pub use bitwidth::BitWidth;
 pub use signed_bits_impl::SignedBits;
 pub use signed_bits_impl::signed;
+pub use xadd::XAdd;
+pub use xmul::XMul;
+pub use xneg::XNeg;
+pub use xsgn::XSgn;
+pub use xsub::XSub;
 
 #[cfg(test)]
 #[allow(unused_parens)]
@@ -510,5 +503,5 @@ mod test {
         println!("c = {c:b}");
     }
 
-    //    include!(concat!(env!("OUT_DIR"), "/bit_tests.rs"));
+    include!(concat!(env!("OUT_DIR"), "/bit_tests.rs"));
 }

@@ -1,3 +1,24 @@
+//! # Bitwise NOT operation via `!`
+//!
+//! You can use the unary `!` operator to compute the bitwise NOT of a [Bits] or [SignedBits] values.
+//!
+//!```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: Bits<8> = 0b1101_1010.into();
+//! let b = !a; // 0b0010_0101
+//! assert_eq!(b, b8(0b0010_0101));
+//!```
+//!
+//! We can also compute the bitwise NOT of [SignedBits]:
+//!```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: SignedBits<8> = (-4).into(); // 0b1111_1100
+//! let b = !a; // 0b0000_0011
+//! assert_eq!(b, s8(3));
+//!```
+//!
 use std::ops::Not;
 
 use crate::bitwidth::W;
