@@ -1,3 +1,18 @@
+//! Support for signed bit vectors whose size is determined at runtime
+//!
+//! The [SignedDynBits] type is a signed bit vector whose size is determined at runtime.
+//! It is meant to overcome limitations in stable Rust that prevent the use of
+//! const generics in certain situations, such as in the implementation of the
+//! extended arithmetic operations defined in this crate.
+//!
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: SignedBits<8> = (-50).into(); // a is a signed 8-bit value
+//! let b = a.dyn_bits(); // b is now a SignedDynBits with 8 bits and value -50
+//! let c = b.as_signed_bits::<8>(); // c is back to a SignedBits<8> with value -50
+//! assert_eq!(c, s8(-50));
+//! ```
 use crate::bitwidth::W;
 use crate::signed_bits_impl::signed_wrapped;
 
