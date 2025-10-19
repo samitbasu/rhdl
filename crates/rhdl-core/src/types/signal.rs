@@ -2,12 +2,23 @@ use rhdl_bits::{BitWidth, Bits};
 
 use crate::{BitX, Digital, Domain, Kind, Timed};
 
+/// A signal carrying a Digital value in a specific time domain.
+///
+/// The `Signal` struct is parameterized by a type `T` that implements
+/// the `Digital` trait, representing the value type of the signal, and a
+/// type `C` that implements the `Domain` trait, representing the time domain
+/// of the signal.
+///
+/// In synthesizable code, you can usually just extract the underlying value with
+/// `val()`, and then resynthesize it into a new signal using the [signal] function and
+/// type inference.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Signal<T: Digital, C: Domain> {
     val: T,
     domain: std::marker::PhantomData<C>,
 }
 
+/// Create a new signal with the given value in the specified domain.
 pub fn signal<T: Digital, C: Domain>(val: T) -> Signal<T, C> {
     Signal {
         val,
@@ -16,9 +27,15 @@ pub fn signal<T: Digital, C: Domain>(val: T) -> Signal<T, C> {
 }
 
 impl<T: Digital, C: Domain> Signal<T, C> {
+    /// Get the underlying value of the signal.
+    ///
+    /// Can be used in synthesizable context.
     pub fn val(&self) -> T {
         self.val
     }
+    /// Get a mutable reference to the underlying value of the signal.
+    ///
+    /// Cannot be used in synthesizable context.
     pub fn val_mut(&mut self) -> &mut T {
         &mut self.val
     }

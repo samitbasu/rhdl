@@ -44,7 +44,7 @@ use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor
 ///
 /// This trait defines the input and output types of a circuit, as well as the kernel
 /// function that processes the input to produce the output.  It is used in conjunction
-/// with the `Circuit` trait to define the behavior of a circuit.
+/// with the [Circuit] trait to define the behavior of a circuit.
 ///
 /// Note: This trait cannot be auto-derived.  You need to specify it manually.
 ///
@@ -113,11 +113,12 @@ pub trait CircuitIO: 'static + Sized + Clone + CircuitDQ {
 ///
 /// where `C1`, `C2`, and `C3` are themselves circuits.  Then the `D` and `Q` types must
 /// be defined such that:
+///
 /// 1.  The `D` type must have fields named `c1`, `c2`, `c3`.
 /// 2.  The `Q` type must have fields named `c1`, `c2`, `c3`.
-/// 3.  The type of `D.c1` be the same as the `O` type of `C1`, the type of `D.c2` be the same
+/// 3.  The type of `Q.c1` be the same as the `O` type of `C1`, the type of `Q.c2` be the same
 ///    as the `O` type of `C2`, etc.
-/// 4.  The type of `Q.c1` be the same as the `I` type of `C1`, the type of `Q.c2` be the same
+/// 4.  The type of `D.c1` be the same as the `I` type of `C1`, the type of `D.c2` be the same
 ///    as the `I` type of `C2`, etc.
 ///
 /// That is to say, the `D` type must be structurally equiavelent to:
@@ -192,7 +193,8 @@ pub trait CircuitDQ: 'static + Sized + Clone {
 /// terms of the canonical diagram, a circuit is defined as:
 #[doc = badascii_doc::badascii!(r"
                 CircuitIO::I    CircuitIO::Kernel          CircuitIO::O          
-                      +                 +                          +             
+                      +                 +                          +         
+                      |                 |                          |    
        +-------------+|+---------------+|+------------------------+|+---+        
        |              |                 v                          |    |        
  input |              v    +-----------------------+               v    | output 

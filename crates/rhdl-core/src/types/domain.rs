@@ -1,3 +1,6 @@
+/// Domain types represent different timing domains in the design.
+/// Each domain type implements the Domain trait, which provides a color
+/// marker for the domain.
 pub trait Domain: Copy + PartialEq + 'static + Default {
     fn color() -> Color;
 }
@@ -25,14 +28,27 @@ macro_rules! decl_domain {
     };
 }
 
+/// Color markers for different time domains.
+///
+/// There is no a priori meaning to the colors; they are simply
+/// distinct markers to differentiate domains.  You can organize
+/// them however you like.  One option is to organize based on speed,
+/// so that "Red" is the fastest domain, "Orange" is slower, and so on.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Color {
+    /// Red domain
     Red,
+    /// Orange domain
     Orange,
+    /// Yellow domain
     Yellow,
+    /// Green domain
     Green,
+    /// Blue domain
     Blue,
+    /// Indigo domain
     Indigo,
+    /// Violet domain
     Violet,
 }
 

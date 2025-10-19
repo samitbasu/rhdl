@@ -2,7 +2,10 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::{
-    KernelFnKind, TypedBits, circuit::yosys::YosysSynthError, compiler::mir::ty::UnifyError,
+    KernelFnKind,
+    TypedBits,
+    //circuit::yosys::YosysSynthError,
+    compiler::mir::ty::UnifyError,
     types::path::PathError,
 };
 
@@ -64,8 +67,6 @@ pub enum RHDLError {
     ExportError(#[from] crate::circuit::fixture::ExportError),
     #[error("This module is not synthesizable")]
     NotSynthesizable,
-    #[error("Yosys synthesis error: {0}")]
-    YosysSynthError(#[from] YosysSynthError),
     #[error("Netlist Error")]
     #[diagnostic(transparent)]
     NetListError(#[from] Box<crate::ntl::error::NetListError>),

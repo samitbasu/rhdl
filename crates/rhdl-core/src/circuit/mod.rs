@@ -12,4 +12,3 @@ pub mod hdl_backend;
 pub mod hdl_descriptor;
 pub mod phantom;
 pub mod synchronous;
-pub mod yosys;

@@ -1,0 +1,10 @@
+  × RHDL Syntax Error
+  ╰─▶ RHDL Syntax Error
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/type_rolling.rs:184:17]
+ 183 │         let h = h.val();
+ 184 │         let h = h.as_unsigned();
+     ·                 ───────┬───────
+     ·                        ╰── RHDL does not support the use of unary operators on this type
+ 185 │         signal(h)
+     ╰────
+  help: You cannot roll your own unsigned  operator in RHDL.  You should write a kernel and call it as a regular function.

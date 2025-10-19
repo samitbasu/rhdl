@@ -12,6 +12,7 @@ mod common;
 use common::*;
 use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 use rhdl::prelude::*;
+use rhdl_bits::W;
 use test_log::test;
 
 #[test]
@@ -208,6 +209,30 @@ fn test_if_let_syntax() -> miette::Result<()> {
 
     let test_input = [(signal(Foo::Bar(bits(3))),), (signal(Foo::Baz),)];
     test_kernel_vm_and_verilog::<foo, _, _, _>(foo, test_input.into_iter())?;
+    Ok(())
+}
+
+#[test]
+fn test_into_syntax() -> miette::Result<()> {
+    #[kernel]
+    fn get_msb<const N: usize>(a: Bits<N>) -> bool
+    where
+        W<N>: BitWidth,
+    {
+        a & (1 << (N - 1)) != 0
+    }
+
+    #[kernel]
+    fn foo(a: Signal<b8, Red>) -> Signal<s8, Red> {
+        let a = a.val();
+        let _a: b8 = a + bits(42);
+        let _q = !a;
+        let _a: s8 = signed(-42);
+        let a = signed::<8>(-42);
+        signal(a)
+    }
+
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_exhaustive_red())?;
     Ok(())
 }
 
@@ -549,15 +574,12 @@ fn test_error_about_for_loop() -> miette::Result<()> {
             a = (a + b4(ndx)).resize();
         }
     }
-    let Err(RHDLError::RHDLSyntaxError(err)) =
-        compile_design::<do_stuff>(CompilationMode::Asynchronous)
-    else {
+    let Err(err) = compile_design::<do_stuff>(CompilationMode::Asynchronous) else {
         panic!("Expected syntax error");
     };
-    assert!(matches!(
-        err.cause,
-        rhdl::core::compiler::mir::error::Syntax::ForLoopNonIntegerEndValue
-    ));
+
+    let report = miette_report(err);
+    expect_test::expect_file!["for_loop_non_integer_end_value.expect"].assert_eq(&report);
     Ok(())
 }
 
