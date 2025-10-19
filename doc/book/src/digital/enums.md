@@ -23,7 +23,7 @@ impl Digital for OpCode {
 Because we are `impl Digital` manually, we need to decide on the layout and variant details for our `enum`.  We will put the discriminant in the MSBs, and otherwise, pad the MSBs of the payloads so that they all require the same number of bits.  Our goal is to make something like this:
 
 ```badascii
-+-+bits+-+-+Arg2++-+Arg1+-+
++-+tag+--+-+Arg2++-+Arg1+-+
 | 17:16  | 15:8  |  7:0   |
 +--------+-------+--------+
 | Nop 00 |       |        |
@@ -203,7 +203,7 @@ use rhdl::prelude::*;
 use digital::*;
 
 #[test]
-fn test_things_svg() {
+fn test_opcode_svg() {
     let svg = opcode::OpCode::static_kind().svg("OpCode");
     std::fs::write("opcode.svg", svg.to_string()).unwrap();
 }
@@ -220,6 +220,6 @@ cp opcode.svg $ROOT_DIR/src/img/.
 
 The result is the following handy SVG map of the layout of our type:
 
-![Things SVG](../img/opcode.svg)
+![OpCode SVG](../img/opcode.svg)
 
 Note that this agrees well with our hand drawn layout above.

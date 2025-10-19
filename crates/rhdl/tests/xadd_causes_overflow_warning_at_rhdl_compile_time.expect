@@ -1,0 +1,9 @@
+  × RHDL Type Error
+  ╰─▶ RHDL Type Error
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/dyn_bits.rs:252:17]
+ 251 │         let a2 = a2.val().dyn_bits();
+ 252 │         let c = a1.xadd(a2);
+     ·                 ─────┬─────
+     ·                      ╰── Expression causes an overflow in bit widths (currently a maximum of 128 bits is supported)
+ 253 │         let c: b128 = c.as_bits();
+     ╰────

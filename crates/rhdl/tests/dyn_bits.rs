@@ -183,12 +183,16 @@ fn test_add_via_dyn_bits_fails_compile_with_mismatched() -> miette::Result<()> {
     fn do_stuff(a1: Signal<b4, Red>, a2: Signal<b4, Red>) -> Signal<b5, Red> {
         let a1 = a1.val().dyn_bits();
         let a2 = a2.val().dyn_bits();
-        let c = a1 + a2;
-        let d = c + 1;
+        let c = a1.xadd(a2);
+        let d = c.xadd(b4(1));
         let e: b5 = d.as_bits();
         signal(e)
     }
-    assert!(test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, [].into_iter()).is_err());
+    let err = compile_design::<do_stuff>(CompilationMode::Asynchronous)
+        .expect_err("Should have failed to compile");
+    let report = miette_report(err);
+    expect_test::expect_file!["add_via_dyn_bits_fails_compile_with_mismatched.expect"]
+        .assert_eq(&report);
     Ok(())
 }
 
@@ -250,11 +254,11 @@ fn test_xadd_causes_overflow_warning_at_rhdl_compile_time() -> miette::Result<()
         signal(c)
     }
     // Should cause a TypeError with bit overflow
-    match compile_design::<do_stuff>(CompilationMode::Asynchronous) {
-        Ok(_) => panic!("Should have failed to compile"),
-        Err(RHDLError::RHDLTypeError(..)) => (),
-        Err(_) => panic!("Should have failed to compile with a type error"),
-    }
+    let err = compile_design::<do_stuff>(CompilationMode::Asynchronous)
+        .expect_err("Should have failed to compile");
+    let report = miette_report(err);
+    expect_test::expect_file!["xadd_causes_overflow_warning_at_rhdl_compile_time.expect"]
+        .assert_eq(&report);
     Ok(())
 }
 
@@ -269,10 +273,9 @@ fn test_xsgn_is_trapped_as_signed() -> miette::Result<()> {
         signal(c)
     }
     // This should cause a type check error because the output xsub is 5 bits, not 4.
-    match compile_design::<do_stuff>(CompilationMode::Asynchronous) {
-        Ok(_) => panic!("Should have failed to compile"),
-        Err(RHDLError::RHDLTypeCheckError(..)) => (),
-        Err(x) => panic!("Should have failed to compile with a type error, instead of {x:?}"),
-    }
+    let err = compile_design::<do_stuff>(CompilationMode::Asynchronous)
+        .expect_err("Should have failed to compile");
+    let report = miette_report(err);
+    expect_test::expect_file!["xsgn_is_trapped_as_signed.expect"].assert_eq(&report);
     Ok(())
 }

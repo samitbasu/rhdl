@@ -428,10 +428,10 @@ fn test_enum_unmatched_variant_not_usable() -> miette::Result<()> {
     else {
         panic!("Expected error")
     };
-    match err {
-        RHDLError::RHDLSyntaxError(_) => Ok(()),
-        _ => panic!("Unexpected err {err:?}"),
-    }
+    let report = miette_report(err);
+    expect_test::expect_file!["enum_unmatched_variant_not_usable.expect"]
+        .assert_eq(&report);
+    Ok(())
 }
 
 #[test]

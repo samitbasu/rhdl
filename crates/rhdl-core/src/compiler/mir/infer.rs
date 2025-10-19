@@ -997,7 +997,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
     debug!("Before inference");
     for (slot, ty) in &infer.slot_map {
         let ty = infer.ctx.apply(*ty);
-        debug!("Slot {:?} -> type {}", slot, ty);
+        debug!("Slot {} -> type {}", slot, ty);
     }
     for op in mir.ops.iter() {
         debug!("{:?}", op.op);
@@ -1007,7 +1007,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
         debug!("Error: {}", e);
         for (slot, ty) in &infer.slot_map {
             let ty = infer.ctx.apply(*ty);
-            debug!("Slot {:?} -> type {}", slot, ty);
+            debug!("Slot {} -> type {}", slot, ty);
         }
         return Err(e);
     }
@@ -1015,7 +1015,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
     let type_ops = infer.type_ops.clone();
     for (slot, ty) in &infer.slot_map {
         let ty = infer.ctx.apply(*ty);
-        debug!("Slot {:?} -> type {}", slot, ty);
+        debug!("Slot {} -> type {}", slot, ty);
     }
     // TODO - remove fixed iteration count
     infer.try_type_ops(5, &type_ops)?;
@@ -1056,7 +1056,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
         debug!("Inference failed");
         for (slot, ty) in &infer.slot_map {
             let ty = infer.ctx.apply(*ty);
-            debug!("Slot {:?} -> type {}", slot, ty);
+            debug!("Slot {} -> type {}", slot, ty);
         }
         for op in mir.ops.iter() {
             debug!("{:?}", op.op);
@@ -1076,7 +1076,7 @@ pub fn infer(mir: Mir) -> Result<Object> {
     }
     for (slot, ty) in &infer.slot_map {
         let ty = infer.ctx.apply(*ty);
-        debug!("Slot {:?} -> type {}", slot, ty);
+        debug!("Slot {} -> type {}", slot, ty);
     }
     let final_type_map: BTreeMap<Slot, TypeId> = infer
         .slot_map

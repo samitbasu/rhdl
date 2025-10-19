@@ -2,19 +2,8 @@ use std::ops::Range;
 
 use super::kind::{DiscriminantAlignment, Kind};
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SvgOrientation {
-    Horizontal,
-    Vertical,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SvgOptions {
-    pub orientation: SvgOrientation,
-}
-
 #[derive(Clone, Debug)]
-pub enum LayoutLabel {
+enum LayoutLabel {
     Name(String),
     Bits(Range<usize>),
 }
@@ -52,16 +41,16 @@ impl std::fmt::Display for LayoutLabel {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct KindLayout {
-    pub row: usize,
-    pub size: usize,
-    pub cols: Range<usize>,
-    pub label: Option<LayoutLabel>,
-    pub fill_color: Option<&'static str>,
-    pub stroke_color: Option<&'static str>,
+struct KindLayout {
+    row: usize,
+    size: usize,
+    cols: Range<usize>,
+    label: Option<LayoutLabel>,
+    fill_color: Option<&'static str>,
+    stroke_color: Option<&'static str>,
 }
 
-pub fn generate_kind_layout(
+fn generate_kind_layout(
     kind: &Kind,
     name: &str,
     mut offset_row: usize,
@@ -212,7 +201,7 @@ fn get_chars_per_bit(layout: &[KindLayout]) -> usize {
         .unwrap_or(0)
 }
 
-pub fn color_layout(iter: impl Iterator<Item = KindLayout>) -> impl Iterator<Item = KindLayout> {
+fn color_layout(iter: impl Iterator<Item = KindLayout>) -> impl Iterator<Item = KindLayout> {
     let soft_palette_colors = [
         "#99FFCC", "#CCCC99", "#CCCCCC", "#CCCCFF", "#CCFF99", "#CCFFCC", "#CCFFFF", "#FFCC99",
         "#FFCCCC", "#FFCCFF", "#FFFF99", "#FFFFCC",
@@ -225,19 +214,7 @@ pub fn color_layout(iter: impl Iterator<Item = KindLayout>) -> impl Iterator<Ite
         })
 }
 
-pub fn fixed_color(
-    iter: impl Iterator<Item = KindLayout>,
-    fill_color: &'static str,
-    stroke_color: &'static str,
-) -> impl Iterator<Item = KindLayout> {
-    iter.map(|x| KindLayout {
-        fill_color: Some(fill_color),
-        stroke_color: Some(stroke_color),
-        ..x
-    })
-}
-
-pub fn make_lsb_kind(layout: &[KindLayout]) -> Vec<KindLayout> {
+fn make_lsb_kind(layout: &[KindLayout]) -> Vec<KindLayout> {
     let max_cols = layout.iter().map(|l| l.cols.end).max().unwrap_or(1);
     layout
         .iter()
@@ -295,7 +272,7 @@ pub mod kind_svg {
             .set("stroke", stroke_color);
         document.add(rect).add(text)
     }
-    pub fn svg_grid_from_layout_precolored(layout: &[KindLayout]) -> svg::Document {
+    fn svg_grid_from_layout_precolored(layout: &[KindLayout]) -> svg::Document {
         let num_rows = layout.iter().map(|x| x.row).max().unwrap_or(0) + 1;
         let num_cols = layout.iter().map(|x| x.cols.end).max().unwrap_or(0);
         let chars_per_bit = get_chars_per_bit(layout);

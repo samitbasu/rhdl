@@ -40,7 +40,7 @@ where
     type Item = Event<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.spool.len() > 0 {
+        if !self.spool.is_empty() {
             return self.spool.remove(0).into();
         }
         loop {
@@ -74,17 +74,17 @@ where
                         .map_or("".to_string(), |p| p.to_string_lossy().to_string());
                     context.consume(&path);
                     context.consume(&self.captured_tag);
-                    context.consume(&self.block_counter.to_le_bytes());
+                    context.consume(self.block_counter.to_le_bytes());
                     context.consume(&self.block_text);
                     let hash = context.finalize();
                     // Check to see if a cache file exists for this block already
                     let cache_key = format!("src/db/{:x}.json", hash);
                     let mut fetched = false;
-                    if let Some(cached) = std::fs::read_to_string(&cache_key).ok() {
-                        if let Ok(cached) = serde_json::from_str::<Vec<Event<'_>>>(&cached) {
-                            self.spool = cached.into_iter().map(|e| e.into_static()).collect();
-                            fetched = true;
-                        }
+                    if let Some(cached) = std::fs::read_to_string(&cache_key).ok()
+                        && let Ok(cached) = serde_json::from_str::<Vec<Event<'_>>>(&cached)
+                    {
+                        self.spool = cached.into_iter().map(|e| e.into_static()).collect();
+                        fetched = true;
                     }
                     if !fetched {
                         self.spool = (self.proc)(&self.captured_tag, &self.block_text);
@@ -92,7 +92,7 @@ where
                             let _ = std::fs::write(&cache_key, serialized);
                         }
                     }
-                    if self.spool.len() == 0 {
+                    if self.spool.is_empty() {
                         continue; // No events to return, continue the loop
                     }
                     return self.spool.remove(0).into();

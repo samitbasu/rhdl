@@ -20,7 +20,9 @@ pub struct Rhdl;
 
 impl Rhdl {
     fn process_chapter(chapter: &mut Chapter) {
-        let parser = pulldown_cmark::Parser::new(&chapter.content);
+        let mut options = pulldown_cmark::Options::empty();
+        options.insert(pulldown_cmark::Options::ENABLE_TABLES);
+        let parser = pulldown_cmark::Parser::new_ext(&chapter.content, options);
         let mut buf = String::with_capacity(chapter.content.len() + 128);
         let source_path = chapter.source_path.clone();
         let events = parser.into_iter();

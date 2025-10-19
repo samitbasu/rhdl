@@ -1,3 +1,11 @@
+//! A Verilog HDL Abstract Syntax Tree (AST) library for parsing, representing, and generating Verilog code.
+//! It provides structures and functions to create, manipulate, and serialize Verilog modules,
+//! including support for synthesis attributes and documentation comments.
+//!
+//! The library is designed to be used in conjunction with the `rhdl` crate to generate
+//! Verilog code from Rust code.  It is not intended to be a full Verilog parser or simulator.
+//!
+
 pub mod atoms;
 pub mod builder;
 pub mod expr;
@@ -319,8 +327,10 @@ pub struct ModuleList {
     pub modules: Vec<ModuleDef>,
 }
 
-impl ModuleList {
-    pub fn into_iter(self) -> impl Iterator<Item = ModuleDef> {
+impl IntoIterator for ModuleList {
+    type Item = ModuleDef;
+    type IntoIter = std::vec::IntoIter<ModuleDef>;
+    fn into_iter(self) -> Self::IntoIter {
         self.modules.into_iter()
     }
 }

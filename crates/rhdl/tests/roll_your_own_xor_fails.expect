@@ -1,0 +1,10 @@
+  × RHDL Syntax Error
+  ╰─▶ RHDL Syntax Error
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/type_rolling.rs:191:17]
+ 190 │         let h = h.val();
+ 191 │         let j = h.xor();
+     ·                 ───┬───
+     ·                    ╰── RHDL does not support the use of unary operators on this type
+ 192 │         signal(j)
+     ╰────
+  help: You cannot roll your own ^ operator in RHDL.  You should write a kernel and call it as a regular function.
