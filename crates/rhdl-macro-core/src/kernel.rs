@@ -130,10 +130,10 @@ fn split_path_into_base_and_variant(path: &Path) -> Result<(Path, Ident)> {
 }
 
 fn get_pattern_option_or_result_discriminant(pat: &syn::Pat) -> Option<bool> {
-    if let syn::Pat::Path(path) = pat {
-        if path.path.is_ident("None") {
-            return Some(false);
-        }
+    if let syn::Pat::Path(path) = pat
+        && path.path.is_ident("None")
+    {
+        return Some(false);
     }
     if let syn::Pat::TupleStruct(path) = pat {
         if path.path.is_ident("Err") {
@@ -204,10 +204,10 @@ fn pat_is_none(pat: &syn::Pat) -> bool {
 }
 
 fn map_expression_value(expr: &syn::Expr) -> Option<String> {
-    if let syn::Expr::Lit(lit) = expr {
-        if let syn::Lit::Str(s) = &lit.lit {
-            return Some(s.value());
-        }
+    if let syn::Expr::Lit(lit) = expr
+        && let syn::Lit::Str(s) = &lit.lit
+    {
+        return Some(s.value());
     }
     None
 }
@@ -901,7 +901,6 @@ impl Context {
             syn::Expr::Block(expr) => self.block(&expr.block),
             syn::Expr::Field(expr) => self.field_expression(expr),
             syn::Expr::If(expr) => self.if_ex(expr),
-            syn::Expr::Let(expr) => self.let_ex(expr),
             syn::Expr::Match(expr) => self.match_ex(expr),
             syn::Expr::Range(expr) => self.range(expr),
             syn::Expr::Try(expr) => self.try_ex(expr),
@@ -1056,21 +1055,21 @@ impl Context {
         }
         // Check for the name being equal to `b{num}` where num is a number from 1 to 128.  If that is the
         // case, then capture the number, and use the expr_bits_with_length function.
-        if let Some(num) = name.ident.to_string().strip_prefix("b") {
-            if let Ok(num) = num.parse::<usize>() {
-                let args = self.expr(&expr.args[0])?;
-                return Ok(Some(quote! {
-                    bob.expr_bits_with_length(#id.into(), #args, #num)
-                }));
-            }
+        if let Some(num) = name.ident.to_string().strip_prefix("b")
+            && let Ok(num) = num.parse::<usize>()
+        {
+            let args = self.expr(&expr.args[0])?;
+            return Ok(Some(quote! {
+                bob.expr_bits_with_length(#id.into(), #args, #num)
+            }));
         }
-        if let Some(num) = name.ident.to_string().strip_prefix("s") {
-            if let Ok(num) = num.parse::<usize>() {
-                let args = self.expr(&expr.args[0])?;
-                return Ok(Some(quote! {
-                    bob.expr_signed_with_length(#id.into(), #args, #num)
-                }));
-            }
+        if let Some(num) = name.ident.to_string().strip_prefix("s")
+            && let Ok(num) = num.parse::<usize>()
+        {
+            let args = self.expr(&expr.args[0])?;
+            return Ok(Some(quote! {
+                bob.expr_signed_with_length(#id.into(), #args, #num)
+            }));
         }
         if let Some((_, special_code)) = special_cases.iter().find(|(n, _)| name.ident == n) {
             let args = self.expr(&expr.args[0])?;
@@ -1350,15 +1349,6 @@ impl Context {
         };
         self.end_scope();
         Ok(arm)
-    }
-
-    fn let_ex(&mut self, expr: &syn::ExprLet) -> Result<TS> {
-        let id = self.id(&expr, &expr.attrs);
-        let pattern = self.pat(&expr.pat)?;
-        let value = self.expr(&expr.expr)?;
-        Ok(quote! {
-            bob.let_expr(#id.into(), #pattern, #value)
-        })
     }
 
     fn if_let_ex(

@@ -182,7 +182,6 @@ pub enum ExprKind {
     Array(ExprArray),
     Range(ExprRange),
     Path(ExprPath),
-    Let(ExprLet),
     Repeat(ExprRepeat),
     Struct(ExprStruct),
     Call(ExprCall),
@@ -308,12 +307,6 @@ pub struct ExprRange {
 #[derive(Debug, Clone, Hash)]
 pub struct ExprPath {
     pub path: Box<Path>,
-}
-
-#[derive(Debug, Clone, Hash)]
-pub struct ExprLet {
-    pub pattern: Box<Pat>,
-    pub value: Box<Expr>,
 }
 
 #[derive(Debug, Clone, Hash)]

@@ -84,31 +84,28 @@ fn parse_discriminant_alignment_attribute(
     attrs: &[Attribute],
 ) -> syn::Result<Option<DiscriminantAlignment>> {
     for attr in attrs {
-        if attr.path().is_ident("rhdl") {
-            if let Ok(Expr::Assign(assign)) = attr.parse_args::<Expr>() {
-                if let Expr::Path(path) = *assign.left {
-                    if path.path.is_ident("discriminant_align") {
-                        if let Expr::Lit(ExprLit {
-                            lit: Lit::Str(value),
-                            ..
-                        }) = *assign.right
-                        {
-                            if value.value() == "lsb" {
-                                return Ok(Some(DiscriminantAlignment::Lsb));
-                            } else if value.value() == "msb" {
-                                return Ok(Some(DiscriminantAlignment::Msb));
-                            } else {
-                                return Err(syn::Error::new(
-                                    value.span(),
-                                    "Unknown discriminant alignment value (expected either lsb or msb)",
-                                ));
-                            }
-                        }
-                    }
-                }
+        if attr.path().is_ident("rhdl")
+            && let Ok(Expr::Assign(assign)) = attr.parse_args::<Expr>()
+            && let Expr::Path(path) = *assign.left
+            && path.path.is_ident("discriminant_align")
+            && let Expr::Lit(ExprLit {
+                lit: Lit::Str(value),
+                ..
+            }) = *assign.right
+        {
+            if value.value() == "lsb" {
+                return Ok(Some(DiscriminantAlignment::Lsb));
+            } else if value.value() == "msb" {
+                return Ok(Some(DiscriminantAlignment::Msb));
+            } else {
+                return Err(syn::Error::new(
+                    value.span(),
+                    "Unknown discriminant alignment value (expected either lsb or msb)",
+                ));
             }
         }
     }
+
     Ok(None)
 }
 
@@ -116,20 +113,16 @@ pub(crate) fn parse_discriminant_width_attribute(
     attrs: &[Attribute],
 ) -> syn::Result<Option<(usize, Span)>> {
     for attr in attrs {
-        if attr.path().is_ident("rhdl") {
-            if let Ok(Expr::Assign(assign)) = attr.parse_args::<Expr>() {
-                if let Expr::Path(path) = *assign.left {
-                    if path.path.is_ident("discriminant_width") {
-                        if let Expr::Lit(ExprLit {
-                            lit: Lit::Int(value),
-                            ..
-                        }) = *assign.right
-                        {
-                            return Ok(Some((value.base10_parse::<usize>()?, value.span())));
-                        }
-                    }
-                }
-            }
+        if attr.path().is_ident("rhdl")
+            && let Ok(Expr::Assign(assign)) = attr.parse_args::<Expr>()
+            && let Expr::Path(path) = *assign.left
+            && path.path.is_ident("discriminant_width")
+            && let Expr::Lit(ExprLit {
+                lit: Lit::Int(value),
+                ..
+            }) = *assign.right
+        {
+            return Ok(Some((value.base10_parse::<usize>()?, value.span())));
         }
     }
     Ok(None)
