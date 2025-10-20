@@ -43,6 +43,62 @@ fn test_basic_cast() -> miette::Result<()> {
 }
 
 #[test]
+fn test_infallible_args() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff(_cr: ClockReset, (a, b): (b8, b8)) -> b8 {
+        a + b
+    }
+
+    compile_design::<do_stuff>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
+fn test_irrefutable_let() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff(_cr: ClockReset, a: (b8, b8)) -> b8 {
+        let (x, y) = a;
+        x + y
+    }
+
+    compile_design::<do_stuff>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
+fn test_irrefutable_let_struct() -> miette::Result<()> {
+    #[derive(PartialEq, Clone, Copy, Digital)]
+    struct Foo {
+        a: b8,
+        b: b8,
+    }
+
+    #[kernel]
+    fn do_stuff(_cr: ClockReset, a: Foo) -> b8 {
+        let Foo { a, b } = a;
+        a + b
+    }
+
+    compile_design::<do_stuff>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
+fn test_irrefutable_let_tuple_struct() -> miette::Result<()> {
+    #[derive(PartialEq, Clone, Copy, Digital)]
+    struct Foo(b8);
+
+    #[kernel]
+    fn do_stuff(_cr: ClockReset, a: Foo) -> b8 {
+        let Foo(a) = a;
+        a
+    }
+
+    compile_design::<do_stuff>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
 #[allow(clippy::assign_op_pattern)]
 fn test_ast_basic_func() -> miette::Result<()> {
     use rhdl::bits::alias::*;

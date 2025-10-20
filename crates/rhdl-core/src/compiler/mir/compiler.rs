@@ -890,9 +890,6 @@ impl<'a> MirContext<'a> {
             ExprKind::Range(_) => Err(self
                 .raise_syntax_error(Syntax::RangesInForLoopsOnly, expr.id)
                 .into()),
-            ExprKind::Let(_) => Err(self
-                .raise_syntax_error(Syntax::FallibleLetExpr, expr.id)
-                .into()),
             ExprKind::Repeat(repeat) => self.repeat(expr.id, repeat),
             ExprKind::Call(call) => self.call(expr.id, call),
             ExprKind::MethodCall(method) => self.method_call(expr.id, method),

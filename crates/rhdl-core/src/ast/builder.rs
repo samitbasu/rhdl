@@ -97,13 +97,6 @@ impl ASTBuilder {
         })
     }
 
-    pub fn let_expr(&self, id: NodeId, pattern: Box<Pat>, value: Box<Expr>) -> Box<Expr> {
-        Box::new(Expr {
-            id,
-            kind: ExprKind::Let(ExprLet { pattern, value }),
-        })
-    }
-
     pub fn path_arguments_none(&self) -> Vec<&'static str> {
         vec![]
     }
