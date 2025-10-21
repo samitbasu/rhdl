@@ -908,7 +908,6 @@ impl Context {
             syn::Expr::Tuple(expr) => self.tuple(expr),
             syn::Expr::Repeat(expr) => self.repeat(expr),
             syn::Expr::ForLoop(expr) => self.for_loop(expr),
-            syn::Expr::While(expr) => self.while_loop(expr),
             syn::Expr::Call(expr) => self.call(expr),
             syn::Expr::Array(expr) => self.array(expr),
             syn::Expr::Index(expr) => self.index(expr),
@@ -1205,14 +1204,6 @@ impl Context {
         Ok(quote! {
             bob.for_expr(#id.into(), #pat, #expr, #body)
         })
-    }
-
-    fn while_loop(&mut self, expr: &syn::ExprWhile) -> Result<TS> {
-        // In version 2.0...
-        Err(syn::Error::new(
-            expr.span(),
-            "Unsupported while loop in rhdl kernel function",
-        ))
     }
 
     fn repeat(&mut self, expr: &syn::ExprRepeat) -> Result<TS> {

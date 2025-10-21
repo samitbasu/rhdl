@@ -74,3 +74,38 @@ pub fn kernel(s: MyStruct) -> MyStruct {
 You cannot use `impl Digital` in return position with `kernel` functions.  The result can be generic, but it must be declared as a generic parameter.
 ```
 
+You can _call_ functions just like you normally would in rust, provided the named function is available at the call site, and that the referenced function is annotated with `#[kernel]`.  So, for example:
+
+```rust
+#[kernel]
+pub fn my_add(a: b8, b: b8) -> b8 {
+    a + b
+}
+
+#[kernel]
+fn kernel(a: b8, b: b8, c: b8) -> b8 {
+    let p1 = my_add(a,b);
+    let p2 = my_add(p1, c);
+    p2
+}
+```
+
+When the function you are calling is generic, you must provide the generic parameters explicitly at the call site.  This is due to a limitation on how the RHDL compiler works.  So if we had instead:
+
+```rust
+#[kernel]
+pub fn my_add<const N: usize>(a: Bits::<N>, b: Bits:<N>) -> Bits::<N> 
+where W<N> : BitWidth {
+    a + b
+}
+
+#[kernel]
+fn kernel(a: b8, b: b8, c: b8) -> b8 {
+    //               👇 Must be explicit here!
+    let p1 = my_add::<8>(a, b);
+    let p2 = my_add::<8>(p1, c);
+    p2
+}
+```
+
+Getting type inference to work at these sites would involve some pretty substantial changes to the way the RHDL compiler works.  It's not impossible, so maybe in a future version.
