@@ -1,11 +1,11 @@
   × RHDL Type Error
   ╰─▶ RHDL Type Error
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/option.rs:356:29]
- 355 │         let d = match resp {
- 356 │             Some(Result::Ok(())) => Some(AXI4Error::SLVERR),
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/option.rs:372:29]
+ 371 │         let d = match resp {
+ 372 │             Some(Result::Ok(())) => Some(AXI4Error::SLVERR),
      ·                             ─┬
      ·                              ╰── Path mismatch in type inference
- 357 │             Some(Err(e)) => Some(e),
+ 373 │             Some(Err(e)) => Some(e),
      ╰────
   help: There is a type mismatch in the type inference step.  This is likely due
                 the use of nested enums in pattern matching, like Some(Ok(x)).  RHDL can

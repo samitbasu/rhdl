@@ -103,7 +103,7 @@ where
     fn xmul(self, rhs: Bits<N>) -> Self::Output {
         assert!(self.bits + N <= 128);
         DynBits {
-            val: self.val.wrapping_mul(rhs.val),
+            val: self.val.wrapping_mul(rhs.raw()),
             bits: self.bits + N,
         }
         .wrapped()
@@ -118,7 +118,7 @@ where
     fn xmul(self, rhs: DynBits) -> Self::Output {
         assert!(N + rhs.bits <= 128);
         DynBits {
-            val: self.val.wrapping_mul(rhs.val),
+            val: self.raw().wrapping_mul(rhs.val),
             bits: N + rhs.bits,
         }
         .wrapped()
@@ -156,7 +156,7 @@ where
     fn xmul(self, rhs: SignedBits<N>) -> Self::Output {
         assert!(self.bits + N <= 128);
         SignedDynBits {
-            val: self.val.wrapping_mul(rhs.val),
+            val: self.val.wrapping_mul(rhs.raw()),
             bits: self.bits + N,
         }
         .wrapped()
@@ -171,7 +171,7 @@ where
     fn xmul(self, rhs: SignedDynBits) -> Self::Output {
         assert!(N + rhs.bits <= 128);
         SignedDynBits {
-            val: self.val.wrapping_mul(rhs.val),
+            val: self.raw().wrapping_mul(rhs.val),
             bits: N + rhs.bits,
         }
         .wrapped()
@@ -226,7 +226,7 @@ mod tests {
         let a = b125::MAX;
         let b = b3::MAX;
         let c = a.xmul(b);
-        assert_eq!(c.as_bits::<128>(), bits(a.val * b.val));
+        assert_eq!(c.as_bits::<128>(), bits(a.raw() * b.raw()));
     }
 
     #[test]
@@ -238,6 +238,6 @@ mod tests {
         let a = s125::MAX;
         let b = s3::MAX;
         let c = a.xmul(b);
-        assert_eq!(c.as_signed_bits::<128>(), signed(a.val * b.val));
+        assert_eq!(c.as_signed_bits::<128>(), signed(a.raw() * b.raw()));
     }
 }

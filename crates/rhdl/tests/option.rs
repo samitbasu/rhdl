@@ -77,6 +77,22 @@ fn test_option_works() -> miette::Result<()> {
 }
 
 #[test]
+fn test_option_iflet() -> miette::Result<()> {
+    #[kernel]
+    pub fn map_add(x: Signal<Option<b8>, Red>) -> Signal<Option<b8>, Red> {
+        let x = x.val();
+        let y = if let Some(v) = x { Some(v + 1) } else { None };
+        signal(y)
+    }
+    let inputs = [signal(Some(b8(0))), signal(Some(b8(1))), signal(None)];
+    test_kernel_vm_and_verilog_synchronous::<map_add, _, _, _>(
+        map_add,
+        inputs.into_iter().map(|x| (x,)),
+    )?;
+    Ok(())
+}
+
+#[test]
 fn test_option_is_kernel_ok() -> miette::Result<()> {
     #[kernel]
     fn validify(i: b8) -> Option<b8> {

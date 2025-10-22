@@ -92,16 +92,16 @@ mod test {
     fn test_sub_bits() {
         let bits: Bits<8> = 0b1101_1010.into();
         let result = bits - bits;
-        assert_eq!(result.val, 0);
+        assert_eq!(result.raw(), 0);
         let bits: SignedBits<8> = 0b0101_1010.into();
         let result = bits - bits - bits;
-        assert_eq!(result.val, -bits.val);
+        assert_eq!(result.raw(), -bits.raw());
         let mut bits: Bits<126> = 0.into();
         bits = crate::test::set_bit(bits, 125, true);
         let result = bits - bits;
-        assert_eq!(result.val, 0);
+        assert_eq!(result.raw(), 0);
         let bits: Bits<54> = 0b1101_1010.into();
-        let x = bits.val;
+        let x = bits.raw();
         let result = bits - 1;
         let bits_m_1: Bits<54> = 0b1101_1001.into();
         assert_eq!(result, bits_m_1);
@@ -119,10 +119,10 @@ mod test {
         let mut bits: Bits<8> = 0b1101_1010.into();
         let bits_m_1: Bits<8> = 0b1101_1001.into();
         bits -= bits_m_1;
-        assert_eq!(bits.val, 1_u128);
+        assert_eq!(bits.raw(), 1_u128);
         let mut bits: Bits<8> = 0b1101_1010.into();
         bits -= 1;
-        assert_eq!(bits.val, 0b1101_1001_u128);
+        assert_eq!(bits.raw(), 0b1101_1001_u128);
     }
 
     #[test]
@@ -133,7 +133,7 @@ mod test {
                 let signed_j: SignedBits<8> = (j as i128).into();
                 let signed_k = signed_i - signed_j;
                 let built_in_k = i.wrapping_sub(j) as i128;
-                assert_eq!(signed_k.val, built_in_k);
+                assert_eq!(signed_k.raw(), built_in_k);
             }
         }
     }
@@ -148,7 +148,7 @@ mod test {
                 let signed_j: SignedBits<128> = j.into();
                 let signed_k = signed_i - signed_j;
                 let built_in_k = i.wrapping_sub(j);
-                assert_eq!(signed_k.val, built_in_k);
+                assert_eq!(signed_k.raw(), built_in_k);
             }
         }
     }
@@ -157,6 +157,6 @@ mod test {
     fn test_subassign() {
         let mut x = SignedBits::<8>::from(1);
         x -= -2;
-        assert_eq!(x.val, 3);
+        assert_eq!(x.raw(), 3);
     }
 }

@@ -94,35 +94,35 @@ mod test {
     #[test]
     fn test_add_bits() {
         let bits: Bits<8> = 0b1101_1010.into();
-        let b_val = bits.val;
+        let b_val = bits.raw();
         let result = bits + bits;
-        assert_eq!(result.val, (b_val as u8).wrapping_mul(2) as u128);
+        assert_eq!(result.raw(), (b_val as u8).wrapping_mul(2) as u128);
         let result = bits + bits + bits;
-        assert_eq!(result.val, (b_val as u8).wrapping_mul(3) as u128);
+        assert_eq!(result.raw(), (b_val as u8).wrapping_mul(3) as u128);
         let mut bits: Bits<124> = 0.into();
         bits = crate::test::set_bit(bits, 123, true);
         bits = (bits + bits).resize();
         let result = bits;
-        assert_eq!(result.val, 0_u128);
+        assert_eq!(result.raw(), 0_u128);
         let bits: Bits<54> = 0b1101_1010.into();
         let result = bits + 1;
-        assert_eq!(result.val, 219_u128);
+        assert_eq!(result.raw(), 219_u128);
         let result = 1 + bits;
-        assert_eq!(result.val, 219_u128);
+        assert_eq!(result.raw(), 219_u128);
         let mut bits: Bits<8> = 0b1101_1010.into();
         bits = (bits + bits).resize();
-        assert_eq!(bits.val, 180);
+        assert_eq!(bits.raw(), 180);
         let mut bits: Bits<8> = 0b1101_1010.into();
         bits = (bits + bits).resize();
         bits = (bits + bits).resize();
-        assert_eq!(bits.val, ((218 * 4) as u128) & 0xff);
+        assert_eq!(bits.raw(), ((218 * 4) as u128) & 0xff);
         let mut bits: Bits<126> = 0.into();
         bits = crate::test::set_bit(bits, 125, true);
         bits = (bits + bits).resize();
-        assert_eq!(bits.val, 0_u128);
+        assert_eq!(bits.raw(), 0_u128);
         let mut bits: Bits<54> = 0b1101_1010.into();
         bits = (bits + 1).resize();
-        assert_eq!(bits.val, 219_u128);
+        assert_eq!(bits.raw(), 219_u128);
     }
 
     #[test]
@@ -133,7 +133,7 @@ mod test {
                 let j_as_signed = SignedBits::<8>::from(j as i128);
                 let k_as_signed: SignedBits<8> = (i_as_signed + j_as_signed).resize();
                 let k = i8::wrapping_add(i, j);
-                assert_eq!(k_as_signed.val, k as i128);
+                assert_eq!(k_as_signed.raw(), k as i128);
             }
         }
     }
@@ -146,7 +146,7 @@ mod test {
                 let j_as_signed = SignedBits::<64>::from(j as i128);
                 let k_as_signed = (i_as_signed + j_as_signed).resize::<64>();
                 let k = i64::wrapping_add(i, j);
-                assert_eq!(k_as_signed.val, k as i128);
+                assert_eq!(k_as_signed.raw(), k as i128);
             }
         }
     }
@@ -161,9 +161,9 @@ mod test {
     fn test_add_assign_signed() {
         let mut x = SignedBits::<8>::from(1);
         x = (x + SignedBits::<8>::from(-2)).resize();
-        assert_eq!(x.val, -1);
+        assert_eq!(x.raw(), -1);
         let z = x + 7;
         x = z.resize();
-        assert_eq!(x.val, 6);
+        assert_eq!(x.raw(), 6);
     }
 }

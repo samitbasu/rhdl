@@ -22,20 +22,16 @@ use seq_macro::seq;
 /// will need the [SignedBits] type.
 ///
 #[derive(Clone, Copy, PartialEq, PartialOrd, Ord, Eq)]
-pub struct Bits<const N: usize>
+pub struct Bits<const N: usize>(pub u128)
 where
-    W<N>: BitWidth,
-{
-    /// The raw value of the bits.  Only the lowest N bits are used.
-    pub(crate) val: u128,
-}
+    W<N>: BitWidth;
 
 impl<const N: usize> std::fmt::Debug for Bits<N>
 where
     W<N>: BitWidth,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}_b{}", self.val, N)
+        write!(f, "{}_b{}", self.0, N)
     }
 }
 
@@ -44,7 +40,7 @@ where
     W<N>: BitWidth,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}'d{}", N, self.val)
+        write!(f, "{}'d{}", N, self.raw())
     }
 }
 
@@ -53,7 +49,7 @@ where
     W<N>: BitWidth,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}'h{:x}", N, self.val)
+        write!(f, "{}'h{:x}", N, self.raw())
     }
 }
 
@@ -62,7 +58,7 @@ where
     W<N>: BitWidth,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}'H{:X}", N, self.val)
+        write!(f, "{}'H{:X}", N, self.raw())
     }
 }
 
@@ -71,7 +67,7 @@ where
     W<N>: BitWidth,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}'b{:b}", N, self.val)
+        write!(f, "{}'b{:b}", N, self.raw())
     }
 }
 
@@ -103,8 +99,8 @@ pub const fn bits<const N: usize>(value: u128) -> Bits<N>
 where
     W<N>: BitWidth,
 {
-    assert!(value <= Bits::<N>::mask().val);
-    Bits { val: value }
+    assert!(value <= Bits::<N>::mask().raw());
+    Bits(value)
 }
 
 /// Helper function for creating a bits value from
@@ -124,9 +120,7 @@ pub const fn bits_masked<const N: usize>(value: u128) -> Bits<N>
 where
     W<N>: BitWidth,
 {
-    Bits {
-        val: value & Bits::<N>::mask().val,
-    }
+    Bits(value & Bits::<N>::mask().raw())
 }
 
 /// This struct is needed so that the `bits` function can be used in synthesizable
@@ -145,7 +139,7 @@ where
     /// Defines a constant Bits value set to the maximum storable value.
     pub const MAX: Self = Self::mask();
     /// Defines a constant Bits value set to zero.
-    pub const ZERO: Self = Self { val: 0 };
+    pub const ZERO: Self = Self(0);
     /// The number of bits in this [Bits] value.
     pub const fn len(&self) -> usize {
         N
@@ -161,9 +155,7 @@ where
     /// assert_eq!(bits, 0xFF);
     /// ```
     pub const fn mask() -> Self {
-        Self {
-            val: u128::MAX >> (128 - { N }),
-        }
+        Self(u128::MAX >> (128 - { N }))
     }
     /// Resize the [Bits] value to a different size.
     /// If the new size is smaller, the value is truncated.
@@ -181,26 +173,26 @@ where
         W<M>: BitWidth,
     {
         let mask = Bits::<M>::mask();
-        bits(self.val & mask.val & Self::mask().val)
+        bits(self.raw() & mask.raw() & Self::mask().raw())
     }
     /// Reinterpret the [Bits] value as a [SignedBits] value.
     pub const fn as_signed(self) -> SignedBits<N> {
         // Need to a sign extension here.
-        if self.val & (1_u128 << ({ N } - 1)) != 0 {
-            signed((self.val | !(Self::mask().val)) as i128)
+        if self.raw() & (1_u128 << ({ N } - 1)) != 0 {
+            signed((self.raw() | !(Self::mask().raw())) as i128)
         } else {
-            signed(self.val as i128)
+            signed(self.raw() as i128)
         }
     }
     /// Extract the raw `u128` behind the [Bits] value.
     pub const fn raw(self) -> u128 {
-        self.val
+        self.0
     }
     /// Convert the compile-time sized [Bits] to a run-time
     /// tracked [DynBits] value.
     pub const fn dyn_bits(self) -> DynBits {
         DynBits {
-            val: self.val,
+            val: self.raw(),
             bits: N,
         }
         .wrapped()
@@ -210,7 +202,7 @@ where
     /// Not available in synthesizable functions.
     pub fn to_bools(self) -> Vec<bool> {
         let mut v = Vec::with_capacity(N);
-        let mut x = self.val;
+        let mut x = self.raw();
         for _i in 0..N {
             v.push(x & 1 == 1);
             x = x.wrapping_shr(1);
@@ -220,17 +212,17 @@ where
     /// Return true if any bit is set.
     /// Available in synthesizable functions.
     pub fn any(self) -> bool {
-        (self.val & Self::mask().val) != 0
+        (self.raw() & Self::mask().raw()) != 0
     }
     /// Return true if all bits are set.
     /// Available in synthesizable functions.
     pub fn all(self) -> bool {
-        (self.val & Self::mask().val) == Self::mask().val
+        (self.raw() & Self::mask().raw()) == Self::mask().raw()
     }
     /// Return true if an odd number of bits are set.
     /// Available in synthesizable functions.
     pub fn xor(self) -> bool {
-        let mut x = self.val & Self::mask().val;
+        let mut x = self.raw() & Self::mask().raw();
         x ^= x >> 1;
         x ^= x >> 2;
         x ^= x >> 4;
@@ -278,8 +270,8 @@ where
     W<N>: BitWidth,
 {
     fn from(value: u128) -> Self {
-        assert!(value <= Self::mask().val);
-        Self { val: value }
+        assert!(value <= Self::mask().raw());
+        Self(value)
     }
 }
 
@@ -288,7 +280,7 @@ where
     W<N>: BitWidth,
 {
     fn eq(&self, other: &Bits<N>) -> bool {
-        other.val == bits::<N>(*self).val
+        other.raw() == bits::<N>(*self).raw()
     }
 }
 
@@ -297,7 +289,7 @@ where
     W<N>: BitWidth,
 {
     fn eq(&self, other: &u128) -> bool {
-        self.val == bits::<N>(*other).val
+        self.raw() == bits::<N>(*other).raw()
     }
 }
 
@@ -307,7 +299,7 @@ where
 {
     fn partial_cmp(&self, other: &Bits<N>) -> Option<std::cmp::Ordering> {
         let self_as_bits = bits::<N>(*self);
-        self_as_bits.val.partial_cmp(&other.val)
+        self_as_bits.raw().partial_cmp(&other.raw())
     }
 }
 
@@ -317,7 +309,7 @@ where
 {
     fn partial_cmp(&self, other: &u128) -> Option<std::cmp::Ordering> {
         let other_as_bits = bits::<N>(*other);
-        self.val.partial_cmp(&other_as_bits.val)
+        self.raw().partial_cmp(&other_as_bits.raw())
     }
 }
 
@@ -327,7 +319,7 @@ where
 {
     type Output = T;
     fn index(&self, index: Bits<N>) -> &Self::Output {
-        &self[index.val as usize]
+        &self[index.raw() as usize]
     }
 }
 
@@ -336,7 +328,7 @@ where
     W<N>: BitWidth,
 {
     fn index_mut(&mut self, index: Bits<N>) -> &mut Self::Output {
-        &mut self[index.val as usize]
+        &mut self[index.raw() as usize]
     }
 }
 
@@ -348,9 +340,9 @@ mod tests {
     #[test]
     fn test_mask() {
         let bits = Bits::<128>::mask();
-        assert_eq!(bits.val, u128::MAX);
+        assert_eq!(bits.raw(), u128::MAX);
         let bits = Bits::<32>::mask();
-        assert_eq!(bits.val, 0xFFFF_FFFF_u128);
+        assert_eq!(bits.raw(), 0xFFFF_FFFF_u128);
     }
 
     #[test]

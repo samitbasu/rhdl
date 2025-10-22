@@ -63,7 +63,7 @@ where
     type Output = SignedDynBits;
     fn xneg(self) -> Self::Output {
         assert!(N < 128);
-        let val = (self.val as i128).wrapping_neg();
+        let val = (self.raw() as i128).wrapping_neg();
         SignedDynBits { val, bits: N + 1 }
     }
 }

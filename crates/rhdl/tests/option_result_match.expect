@@ -1,11 +1,11 @@
   × RHDL Type Error
   ╰─▶ RHDL Type Error
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/option.rs:182:29]
- 181 │         let d = match i.val() {
- 182 │             Some(Result::Ok(())) => Some(ResponseCode::OKAY),
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/option.rs:198:29]
+ 197 │         let d = match i.val() {
+ 198 │             Some(Result::Ok(())) => Some(ResponseCode::OKAY),
      ·                             ─┬
      ·                              ╰── Path mismatch in type inference
- 183 │             Some(Result::Err(e)) => Some(err_map(e)),
+ 199 │             Some(Result::Err(e)) => Some(err_map(e)),
      ╰────
   help: There is a type mismatch in the type inference step.  This is likely due
                 the use of nested enums in pattern matching, like Some(Ok(x)).  RHDL can
