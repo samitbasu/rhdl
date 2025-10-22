@@ -373,9 +373,15 @@ impl Context {
                     "Unsupported literal in rhdl kernel function",
                 )),
             },
-            _ => Ok(
-                quote! { bob.expr_lit_typed_bits(rhdl::core::Digital::typed_bits(#pat), stringify!(#pat)) },
-            ),
+            Pat::Ident(_) | Pat::Path(_) | Pat::Struct(_) | Pat::TupleStruct(_) | Pat::Tuple(_) => {
+                Ok(quote! {
+                    bob.expr_lit_typed_bits(rhdl::core::Digital::typed_bits(#pat), stringify!(#pat))
+                })
+            }
+            _ => Err(syn::Error::new(
+                pat.span(),
+                "Unsupported pattern in rhdl kernel function",
+            )),
         }
     }
 }
@@ -1295,6 +1301,14 @@ impl Context {
 
     fn match_ex(&mut self, expr: &syn::ExprMatch) -> Result<TS> {
         let id = self.id(&expr, &expr.attrs);
+        for arm in &expr.arms {
+            if let Some(guard) = &arm.guard {
+                return Err(syn::Error::new(
+                    guard.1.span(),
+                    "Guards are not supported in rhdl kernel function match expressions",
+                ));
+            }
+        }
         let arms = expr
             .arms
             .iter()
