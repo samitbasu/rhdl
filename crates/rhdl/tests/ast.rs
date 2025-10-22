@@ -196,6 +196,49 @@ fn test_method_call_syntax() -> miette::Result<()> {
 }
 
 #[test]
+fn test_match_pattern_types() -> miette::Result<()> {
+    #[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
+    pub enum Foo {
+        A,
+        B(b4, b4),
+        C {
+            x: b4,
+            y: b4,
+        },
+        D([b4; 3]),
+        #[default]
+        E,
+        F,
+    }
+
+    #[kernel]
+    fn do_stuff(a: Signal<Foo, Red>) -> Signal<b4, Red> {
+        let a = a.val();
+        let b = match a {
+            Foo::A => b4(1),
+            Foo::B(x, _) => x,
+            Foo::C { x, y } => (x + y).resize(),
+            Foo::D(arr) => arr[1],
+            Foo::E => b4(0),
+            _ => b4(14),
+        };
+        signal(b)
+    }
+
+    let test_input = [
+        signal(Foo::A),
+        signal(Foo::B(b4(3), b4(3))),
+        signal(Foo::C { x: b4(2), y: b4(4) }),
+        signal(Foo::D([b4(1), b4(2), b4(3)])),
+    ];
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(
+        do_stuff,
+        test_input.into_iter().map(|x| (x,)),
+    )?;
+    Ok(())
+}
+
+#[test]
 fn test_empty_return_rejected() -> miette::Result<()> {
     #[kernel]
     fn foo(_a: Signal<b8, Red>) {}
@@ -528,6 +571,25 @@ fn test_nested_generics() -> miette::Result<()> {
         inputs.into_iter(),
     )?;
     Ok(())
+}
+
+#[test]
+fn test_match_with_identifiers() {
+    const ONE: u8 = 1;
+    const TWO: u8 = 2;
+
+    let x = 2u8;
+    match x {
+        ONE => {
+            eprintln!("X is one!")
+        }
+        TWO => {
+            eprintln!("X is two!")
+        }
+        _ => {
+            eprintln!("X is something else!")
+        }
+    }
 }
 
 #[test]

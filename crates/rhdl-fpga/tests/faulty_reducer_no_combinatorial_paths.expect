@@ -1,33 +1,33 @@
   × RHDL Combinatorial Path
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl-fpga/tests/faulty_reducer.rs:86:19]
-  85 │     let (in_valid, in_data) = unpack::<Bits<DW>>(i.data, bits(0));
-  86 │     let stop_in = !i.ready;
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl-fpga/tests/faulty_reducer.rs:84:19]
+  83 │     let (in_valid, in_data) = unpack::<Bits<DW>>(i.data, bits(0));
+  84 │     let stop_in = !i.ready;
      ·                   ────────
-  87 │     match q.state {
-  88 │         State::Empty => {
-  89 │             if in_valid {
-  90 │                 d.data_store = in_data;
-  91 │                 d.state = State::Load2;
-  92 │             }
-  93 │         }
-  94 │         State::Load2 => {
-  95 │             if !stop_in {
-  96 │                 d.state = State::Load1;
-  97 │             }
-  98 │         }
-  99 │         State::Load1 => {
- 100 │             if !stop_in && in_valid {
- 101 │                 d.data_store = in_data;
- 102 │                 d.state = State::Load2;
- 103 │             } else if !stop_in && !in_valid {
- 104 │                 d.state = State::Empty;
- 105 │             }
- 106 │         }
- 107 │     }
- 108 │     // This is a combinatorial pathway between the output and input, so
- 109 │     // a buffer is needed on the output to make this LID compliant.
- 110 │     let ready_out = q.state == State::Empty || (q.state == State::Load1 && !stop_in);
+  85 │     match q.state {
+  86 │         State::Empty => {
+  87 │             if in_valid {
+  88 │                 d.data_store = in_data;
+  89 │                 d.state = State::Load2;
+  90 │             }
+  91 │         }
+  92 │         State::Load2 => {
+  93 │             if !stop_in {
+  94 │                 d.state = State::Load1;
+  95 │             }
+  96 │         }
+  97 │         State::Load1 => {
+  98 │             if !stop_in && in_valid {
+  99 │                 d.data_store = in_data;
+ 100 │                 d.state = State::Load2;
+ 101 │             } else if !stop_in && !in_valid {
+ 102 │                 d.state = State::Empty;
+ 103 │             }
+ 104 │         }
+ 105 │     }
+ 106 │     // This is a combinatorial pathway between the output and input, so
+ 107 │     // a buffer is needed on the output to make this LID compliant.
+ 108 │     let ready_out = q.state == State::Empty || (q.state == State::Load1 && !stop_in);
      ·                     ──────────────────────────────────────────────────────────────────
- 111 │     let mux = q.state == State::Load1;
+ 109 │     let mux = q.state == State::Load1;
      ╰────
   help: This is a combinatorial pathway between an input and an output

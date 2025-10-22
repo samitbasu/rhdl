@@ -107,4 +107,23 @@ pub fn kernel(a: (b8, b8)) -> bool {
 }
 ```
 
+Nested destructuring also works, in case you need it.
+
+```rust
+#[derive(PartialEq, Clone, Copy, Digital)]
+pub struct Bar(b8, b8);
+
+#[derive(PartialEq, Clone, Copy, Digital)]
+pub struct Foo {
+    a: b8,
+    b: Bar,
+}
+
+#[kernel]
+fn add(state: Signal<Foo, Red>) -> Signal<b8, Red> {
+    let Foo { a, b: Bar(_x, y) } = state.val();
+    signal((a + y).resize())
+}
+```
+
 
