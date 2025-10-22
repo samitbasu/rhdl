@@ -31,9 +31,7 @@ where
 {
     type Output = Self;
     fn not(self) -> Self::Output {
-        Self {
-            val: !self.val & Self::mask().val,
-        }
+        Self(!self.raw() & Self::mask().raw())
     }
 }
 
@@ -56,14 +54,14 @@ mod test {
     fn test_not_bits() {
         let bits: Bits<8> = 0b1101_1010.into();
         let result = !bits;
-        assert_eq!(result.val, 0b0010_0101_u128);
+        assert_eq!(result.raw(), 0b0010_0101_u128);
         let mut bits: Bits<128> = 0.into();
         bits = crate::test::set_bit(bits, 127, true);
         let result = !bits;
-        assert_eq!(result.val, !0_u128 - (1 << 127));
+        assert_eq!(result.raw(), !0_u128 - (1 << 127));
         let bits: Bits<14> = 0b1101_1010.into();
         let result = !bits;
-        assert_eq!(result.val, 0b0011_1111_0010_0101_u128);
+        assert_eq!(result.raw(), 0b0011_1111_0010_0101_u128);
     }
 
     #[test]
@@ -77,13 +75,13 @@ mod test {
     fn test_not_on_signed_bits() {
         let x = SignedBits::<8>::from(-4);
         let result = !x;
-        assert_eq!(result.val, 3_i128);
+        assert_eq!(result.raw(), 3_i128);
     }
 
     #[test]
     fn test_not_on_signed_does_not_overflow() {
         let x = SignedBits::<128>::from(-1);
         let result = !x;
-        assert_eq!(result.val, 0_i128);
+        assert_eq!(result.raw(), 0_i128);
     }
 }

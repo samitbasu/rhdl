@@ -170,7 +170,7 @@ where
     fn xsub(self, rhs: SignedDynBits) -> Self::Output {
         assert!(N.max(rhs.bits) < 128);
         SignedDynBits {
-            val: self.val.wrapping_sub(rhs.val),
+            val: self.raw().wrapping_sub(rhs.val),
             bits: N.max(rhs.bits) + 1,
         }
         .wrapped()
@@ -185,7 +185,7 @@ where
     fn xsub(self, rhs: SignedBits<N>) -> Self::Output {
         assert!(self.bits.max(N) < 128);
         SignedDynBits {
-            val: self.val.wrapping_sub(rhs.val),
+            val: self.val.wrapping_sub(rhs.raw()),
             bits: self.bits.max(N) + 1,
         }
         .wrapped()

@@ -44,7 +44,7 @@ where
 {
     type Output = SignedBits<N>;
     fn neg(self) -> Self::Output {
-        signed_wrapped(-self.val)
+        signed_wrapped(-self.raw())
     }
 }
 
@@ -77,7 +77,7 @@ mod test {
             let y = x.wrapping_neg() as i16;
             let x_signed = SignedBits::<8>::from(x as i128);
             let y_signed = -x_signed;
-            assert_eq!(y_signed.val, y as i128);
+            assert_eq!(y_signed.raw(), y as i128);
         }
     }
 }

@@ -100,7 +100,7 @@ where
     fn xadd(self, rhs: DynBits) -> Self::Output {
         assert!(rhs.bits.max(N) < 128);
         DynBits {
-            val: self.val.wrapping_add(rhs.val),
+            val: self.raw().wrapping_add(rhs.val),
             bits: N.max(rhs.bits) + 1,
         }
         .wrapped()
@@ -115,7 +115,7 @@ where
     fn xadd(self, rhs: Bits<N>) -> Self::Output {
         assert!(self.bits.max(N) < 128);
         DynBits {
-            val: self.val.wrapping_add(rhs.val),
+            val: self.val.wrapping_add(rhs.raw()),
             bits: self.bits.max(N) + 1,
         }
         .wrapped()
@@ -153,7 +153,7 @@ where
     fn xadd(self, rhs: SignedDynBits) -> Self::Output {
         assert!(rhs.bits.max(N) < 128);
         SignedDynBits {
-            val: self.val.wrapping_add(rhs.val),
+            val: self.raw().wrapping_add(rhs.val),
             bits: N.max(rhs.bits) + 1,
         }
         .wrapped()
@@ -168,7 +168,7 @@ where
     fn xadd(self, rhs: SignedBits<N>) -> Self::Output {
         assert!(self.bits.max(N) < 128);
         SignedDynBits {
-            val: self.val.wrapping_add(rhs.val),
+            val: self.val.wrapping_add(rhs.raw()),
             bits: self.bits.max(N) + 1,
         }
         .wrapped()

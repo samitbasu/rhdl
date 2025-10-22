@@ -112,7 +112,7 @@ where
 {
     type Output = Self;
     fn shr(self, rhs: u128) -> Self::Output {
-        bits_masked(self.val.wrapping_shr(rhs as u32))
+        bits_masked(self.raw().wrapping_shr(rhs as u32))
     }
 }
 
@@ -122,7 +122,7 @@ where
 {
     type Output = Bits<N>;
     fn shr(self, rhs: Bits<N>) -> Self::Output {
-        bits_masked(self.wrapping_shr(rhs.val as u32))
+        bits_masked(self.wrapping_shr(rhs.raw() as u32))
     }
 }
 
@@ -133,7 +133,7 @@ where
 {
     type Output = Self;
     fn shr(self, rhs: Bits<M>) -> Self::Output {
-        bits_masked(u128::wrapping_shr(self.val, rhs.val as u32))
+        bits_masked(u128::wrapping_shr(self.raw(), rhs.raw() as u32))
     }
 }
 
@@ -145,7 +145,7 @@ where
     fn shr(self, rhs: Bits<N>) -> Self::Output {
         assert!(rhs.raw() < self.bits as u128);
         DynBits {
-            val: self.val.wrapping_shr(rhs.val as u32),
+            val: self.raw().wrapping_shr(rhs.raw() as u32),
             bits: self.bits,
         }
         .wrapped()
@@ -159,7 +159,7 @@ where
     type Output = Bits<N>;
     fn shr(self, rhs: DynBits) -> Self::Output {
         assert!(rhs.raw() < N as u128);
-        bits_masked(self.val.wrapping_shr(rhs.val as u32))
+        bits_masked(self.raw().wrapping_shr(rhs.raw() as u32))
     }
 }
 
@@ -168,7 +168,7 @@ impl Shr<DynBits> for DynBits {
     fn shr(self, rhs: DynBits) -> Self::Output {
         assert!(rhs.raw() < self.bits as u128);
         DynBits {
-            val: self.val.wrapping_shr(rhs.val as u32),
+            val: self.raw().wrapping_shr(rhs.raw() as u32),
             bits: self.bits,
         }
         .wrapped()
@@ -180,7 +180,7 @@ impl Shr<u128> for DynBits {
     fn shr(self, rhs: u128) -> Self::Output {
         assert!(rhs <= self.bits as u128);
         DynBits {
-            val: self.val.wrapping_shr(rhs as u32),
+            val: self.raw().wrapping_shr(rhs as u32),
             bits: self.bits,
         }
         .wrapped()
@@ -213,7 +213,7 @@ where
 {
     type Output = Self;
     fn shr(self, rhs: Bits<M>) -> Self::Output {
-        signed(i128::wrapping_shr(self.val, rhs.val as u32))
+        signed(i128::wrapping_shr(self.raw(), rhs.raw() as u32))
     }
 }
 
@@ -223,7 +223,7 @@ where
 {
     type Output = Self;
     fn shr(self, rhs: u128) -> Self::Output {
-        signed(self.val.wrapping_shr(rhs as u32))
+        signed(self.raw().wrapping_shr(rhs as u32))
     }
 }
 
@@ -253,7 +253,7 @@ where
     type Output = Self;
     fn shr(self, rhs: DynBits) -> Self::Output {
         assert!(rhs.raw() < N as u128);
-        signed(i128::wrapping_shr(self.val, rhs.val as u32))
+        signed(i128::wrapping_shr(self.raw(), rhs.raw() as u32))
     }
 }
 
@@ -265,7 +265,7 @@ where
     fn shr(self, rhs: Bits<N>) -> Self::Output {
         assert!(rhs.raw() <= self.bits as u128);
         SignedDynBits {
-            val: self.val.wrapping_shr(rhs.val as u32),
+            val: self.raw().wrapping_shr(rhs.raw() as u32),
             bits: self.bits,
         }
         .wrapped()
@@ -277,7 +277,7 @@ impl Shr<DynBits> for SignedDynBits {
     fn shr(self, rhs: DynBits) -> Self::Output {
         assert!(rhs.raw() <= self.bits as u128);
         SignedDynBits {
-            val: self.val.wrapping_shr(rhs.val as u32),
+            val: self.raw().wrapping_shr(rhs.raw() as u32),
             bits: self.bits,
         }
         .wrapped()
@@ -289,7 +289,7 @@ impl Shr<u128> for SignedDynBits {
     fn shr(self, rhs: u128) -> Self::Output {
         assert!(rhs <= self.bits as u128);
         SignedDynBits {
-            val: self.val.wrapping_shr(rhs as u32),
+            val: self.raw().wrapping_shr(rhs as u32),
             bits: self.bits,
         }
         .wrapped()
@@ -304,19 +304,19 @@ mod test {
     fn test_shr_bits() {
         let bits: Bits<8> = 0b1101_1010.into();
         let result = bits >> 4;
-        assert_eq!(result.val, 0b0000_1101_u128);
+        assert_eq!(result.raw(), 0b0000_1101_u128);
         let bits: Bits<16> = 0b1101_1010_0000_0000.into();
         let result = bits >> 8;
-        assert_eq!(result.val, 0b0000_0000_1101_1010_u128);
+        assert_eq!(result.raw(), 0b0000_0000_1101_1010_u128);
         let shift: Bits<4> = 8.into();
         let result = bits >> shift;
-        assert_eq!(result.val, 0b0000_0000_1101_1010_u128);
+        assert_eq!(result.raw(), 0b0000_0000_1101_1010_u128);
         let bits: Bits<8> = 0b1101_1010.into();
         let result = bits >> 8;
-        assert_eq!(result.val, 0);
+        assert_eq!(result.raw(), 0);
         let shift: Bits<8> = 4.into();
         let result = 0b1101_1010_0000 >> shift;
-        assert_eq!(result.val, 0b1101_1010u128);
+        assert_eq!(result.raw(), 0b1101_1010u128);
     }
 
     #[test]
@@ -335,13 +335,13 @@ mod test {
                 let bits: SignedBits<8> = (i as i128).into();
                 let result = bits >> (shift as u128);
                 assert_eq!(
-                    result.val,
+                    result.raw(),
                     i128::wrapping_shr(i as i128, shift),
                     "i = {i:b}, shift = {shift}"
                 );
                 let shift_as_bits: Bits<3> = (shift as u128).into();
                 let result = bits >> shift_as_bits;
-                assert_eq!(result.val, i128::wrapping_shr(i as i128, shift));
+                assert_eq!(result.raw(), i128::wrapping_shr(i as i128, shift));
             }
         }
     }

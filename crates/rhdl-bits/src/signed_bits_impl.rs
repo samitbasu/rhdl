@@ -25,22 +25,19 @@ use seq_macro::seq;
 /// If you want to right shift a signed value without sign extension,
 /// then you should convert it to a [Bits] type first.
 #[derive(Clone, Debug, Copy, PartialEq, PartialOrd, Ord, Eq)]
-pub struct SignedBits<const N: usize>
+pub struct SignedBits<const N: usize>(pub i128)
 where
-    W<N>: BitWidth,
-{
-    pub(crate) val: i128,
-}
+    W<N>: BitWidth;
 
 impl<const N: usize> std::fmt::Display for SignedBits<N>
 where
     W<N>: BitWidth,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if self.val < 0 {
-            write!(f, "-{}'sd{}", { N }, -self.val)
+        if self.raw() < 0 {
+            write!(f, "-{}'sd{}", { N }, -self.raw())
         } else {
-            write!(f, "{}'sd{}", { N }, self.val)
+            write!(f, "{}'sd{}", { N }, self.raw())
         }
     }
 }
@@ -50,10 +47,10 @@ where
     W<N>: BitWidth,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if self.val < 0 {
-            write!(f, "-{}'sh{:x}", { N }, -self.val)
+        if self.raw() < 0 {
+            write!(f, "-{}'sh{:x}", { N }, -self.raw())
         } else {
-            write!(f, "{}'sh{:x}", { N }, self.val)
+            write!(f, "{}'sh{:x}", { N }, self.raw())
         }
     }
 }
@@ -63,10 +60,10 @@ where
     W<N>: BitWidth,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if self.val < 0 {
-            write!(f, "-{}'sH{:X}", { N }, -self.val)
+        if self.raw() < 0 {
+            write!(f, "-{}'sH{:X}", { N }, -self.raw())
         } else {
-            write!(f, "{}'sH{:X}", { N }, self.val)
+            write!(f, "{}'sH{:X}", { N }, self.raw())
         }
     }
 }
@@ -76,10 +73,10 @@ where
     W<N>: BitWidth,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if self.val < 0 {
-            write!(f, "-{}'sb{:b}", { N }, -self.val)
+        if self.raw() < 0 {
+            write!(f, "-{}'sb{:b}", { N }, -self.raw())
         } else {
-            write!(f, "{}'sb{:b}", { N }, self.val)
+            write!(f, "{}'sb{:b}", { N }, self.raw())
         }
     }
 }
@@ -115,7 +112,7 @@ where
 {
     assert!(val <= SignedBits::<N>::max_value());
     assert!(val >= SignedBits::<N>::min_value());
-    SignedBits { val }
+    SignedBits(val)
 }
 
 /// Like `signed()`, but wraps the value to fit in the specified
@@ -140,16 +137,12 @@ where
 {
     /// The largest positive value that can be represented
     /// by this sized [SignedBits] value.
-    pub const MAX: Self = Self {
-        val: Self::max_value(),
-    };
+    pub const MAX: Self = Self(Self::max_value());
     /// The smallest negative value that can be represented
     /// by this sized [SignedBits] value.
-    pub const MIN: Self = Self {
-        val: Self::min_value(),
-    };
+    pub const MIN: Self = Self(Self::min_value());
     /// The zero value for this sized [SignedBits] value.
-    pub const ZERO: Self = Self { val: 0 };
+    pub const ZERO: Self = Self(0);
     /// Return the largest positive value that can be represented
     /// by this sized [SignedBits] value.
     /// ```
@@ -178,7 +171,7 @@ where
     /// assert!(!signed::<8>(1).is_negative());
     /// ```
     pub const fn is_negative(&self) -> bool {
-        self.val < 0
+        self.raw() < 0
     }
     /// Test if the value is positive or zero.
     /// ```
@@ -188,7 +181,7 @@ where
     /// assert!(signed::<8>(1).is_non_negative());
     /// ```
     pub const fn is_non_negative(&self) -> bool {
-        self.val >= 0
+        self.raw() >= 0
     }
     /// Reinterpret the [SignedBits] value as an unsigned
     /// [Bits] value.  This is useful for performing
@@ -201,18 +194,18 @@ where
     /// assert_eq!(y, 0b1111_0010);
     /// ```
     pub const fn as_unsigned(self) -> Bits<N> {
-        bits(self.val as u128 & Bits::<N>::mask().raw())
+        bits(self.raw() as u128 & Bits::<N>::mask().raw())
     }
     /// Extract the raw signed `i128` backing this SignedBits
     /// value.
     pub const fn raw(self) -> i128 {
-        self.val
+        self.0
     }
     /// Convert the compile time sized [SignedBits] value
     /// to a run-time traced [SignedDynBits] value.
     pub const fn dyn_bits(self) -> SignedDynBits {
         SignedDynBits {
-            val: self.val,
+            val: self.raw(),
             bits: { N },
         }
     }
@@ -226,17 +219,17 @@ where
     /// Returns true if any bit is set.
     /// Can be called in a synthesizable context
     pub const fn any(self) -> bool {
-        self.val != 0
+        self.raw() != 0
     }
     /// Returns true if all bits are set.
     /// Can be called in a synthesizable context
     pub const fn all(self) -> bool {
-        self.val == -1
+        self.raw() == -1
     }
     /// Returns true if the number of set bits is odd.
     /// Can be called in a synthesizable context
     pub const fn xor(self) -> bool {
-        let mut x = self.val;
+        let mut x = self.raw();
         x ^= x >> 1;
         x ^= x >> 2;
         x ^= x >> 4;
@@ -256,7 +249,7 @@ where
         W<M>: BitWidth,
     {
         if { M } > { N } {
-            SignedBits { val: self.val }
+            SignedBits(self.raw())
         } else {
             self.as_unsigned().resize::<M>().as_signed()
         }
@@ -294,7 +287,7 @@ where
     W<N>: BitWidth,
 {
     fn eq(&self, other: &i128) -> bool {
-        self.val == signed::<N>(*other).val
+        self.raw() == signed::<N>(*other).raw()
     }
 }
 
@@ -303,7 +296,7 @@ where
     W<N>: BitWidth,
 {
     fn eq(&self, other: &SignedBits<N>) -> bool {
-        signed::<N>(*self).val == other.val
+        signed::<N>(*self).raw() == other.raw()
     }
 }
 
@@ -313,7 +306,7 @@ where
 {
     fn partial_cmp(&self, other: &i128) -> Option<std::cmp::Ordering> {
         let other_as_bits = signed::<N>(*other);
-        self.val.partial_cmp(&other_as_bits.val)
+        self.raw().partial_cmp(&other_as_bits.raw())
     }
 }
 
@@ -323,7 +316,7 @@ where
 {
     fn partial_cmp(&self, other: &SignedBits<N>) -> Option<std::cmp::Ordering> {
         let self_as_bits = signed::<N>(*self);
-        self_as_bits.val.partial_cmp(&other.val)
+        self_as_bits.raw().partial_cmp(&other.raw())
     }
 }
 

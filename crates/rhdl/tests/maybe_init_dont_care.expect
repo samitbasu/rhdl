@@ -1,17 +1,17 @@
   × RHDL Partial Initialization Error
   ╰─▶ RHDL Partial Initialization Error
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/ast.rs:762:9]
- 758 │         #[kernel]
- 759 │ ╭─▶     fn do_stuff(a: Signal<b4, Red>) -> Signal<Foo, Red> {
- 760 │ │           let mut foo = Foo::dont_care();
- 761 │ │           foo.a = a.val();
- 762 │ │           signal(foo)
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/ast.rs:790:9]
+ 786 │         #[kernel]
+ 787 │ ╭─▶     fn do_stuff(a: Signal<b4, Red>) -> Signal<Foo, Red> {
+ 788 │ │           let mut foo = Foo::dont_care();
+ 789 │ │           foo.a = a.val();
+ 790 │ │           signal(foo)
      · │           ─────┬─────
      · │                ╰─┤ Path .b is not covered
      · │                  │ 
- 763 │ ├─▶     }
+ 791 │ ├─▶     }
      · ╰──── Function definition
- 764 │     
+ 792 │     
      ╰────
   help: You need to initialize all elements of a value before using it in an operation:
         Path .b is not covered

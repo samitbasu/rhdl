@@ -13,8 +13,8 @@ macro_rules! impl_binop {
         {
             type Output = Bits<N>;
             fn $op(self, rhs: u128) -> Self::Output {
-                assert!(rhs <= Self::MASK.val);
-                bits_masked($wrap_op(self.val, rhs))
+                assert!(rhs <= Self::MASK.raw());
+                bits_masked($wrap_op(self.raw(), rhs))
             }
         }
         // Next the case of adding a Bits<N> to a u128
@@ -24,8 +24,8 @@ macro_rules! impl_binop {
         {
             type Output = Bits<N>;
             fn $op(self, rhs: Bits<N>) -> Self::Output {
-                assert!(self <= Bits::<N>::MASK.val);
-                bits_masked($wrap_op(self, rhs.val))
+                assert!(self <= Bits::<N>::MASK.raw());
+                bits_masked($wrap_op(self, rhs.raw()))
             }
         }
         // Adding two Bits<N> together
@@ -35,7 +35,7 @@ macro_rules! impl_binop {
         {
             type Output = Self;
             fn $op(self, rhs: Self) -> Self::Output {
-                bits_masked($wrap_op(self.val, rhs.val))
+                bits_masked($wrap_op(self.raw(), rhs.raw()))
             }
         }
         // Adding a u128 to a DynBits
@@ -44,7 +44,7 @@ macro_rules! impl_binop {
             fn $op(self, rhs: u128) -> Self::Output {
                 assert!(rhs <= self.mask());
                 DynBits {
-                    val: $wrap_op(self.val, rhs),
+                    val: $wrap_op(self.raw(), rhs),
                     bits: self.bits,
                 }
                 .wrapped()
@@ -56,7 +56,7 @@ macro_rules! impl_binop {
             fn $op(self, rhs: DynBits) -> Self::Output {
                 assert!(self <= rhs.mask());
                 DynBits {
-                    val: $wrap_op(self, rhs.val),
+                    val: $wrap_op(self, rhs.raw()),
                     bits: rhs.bits,
                 }
                 .wrapped()
@@ -68,7 +68,7 @@ macro_rules! impl_binop {
             fn $op(self, rhs: Self) -> Self::Output {
                 assert_eq!(self.bits, rhs.bits);
                 DynBits {
-                    val: $wrap_op(self.val, rhs.val),
+                    val: $wrap_op(self.raw(), rhs.raw()),
                     bits: self.bits,
                 }
                 .wrapped()
@@ -82,7 +82,7 @@ macro_rules! impl_binop {
             type Output = Bits<N>;
             fn $op(self, rhs: Bits<N>) -> Self::Output {
                 assert_eq!(self.bits, { N });
-                bits_masked($wrap_op(self.val, rhs.val))
+                bits_masked($wrap_op(self.raw(), rhs.raw()))
             }
         }
         // Adding a Bits<N> to a DynBits
@@ -93,7 +93,7 @@ macro_rules! impl_binop {
             type Output = Bits<N>;
             fn $op(self, rhs: DynBits) -> Self::Output {
                 assert_eq!(rhs.bits, { N });
-                bits_masked($wrap_op(self.val, rhs.val))
+                bits_masked($wrap_op(self.raw(), rhs.raw()))
             }
         }
     };
@@ -107,8 +107,8 @@ macro_rules! impl_assign_op {
             $crate::bitwidth::W<N>: BitWidth,
         {
             fn $op(&mut self, rhs: u128) {
-                assert!(rhs <= Self::MASK.val);
-                *self = bits_masked($wrap_op(self.val, rhs));
+                assert!(rhs <= Self::MASK.raw());
+                *self = bits_masked($wrap_op(self.raw(), rhs));
             }
         }
         // Adding two Bits<N> together
@@ -117,14 +117,14 @@ macro_rules! impl_assign_op {
             $crate::bitwidth::W<N>: BitWidth,
         {
             fn $op(&mut self, rhs: Self) {
-                *self = bits_masked($wrap_op(self.val, rhs.val));
+                *self = bits_masked($wrap_op(self.raw(), rhs.raw()));
             }
         }
         // Adding a u128 to a DynBits
         impl $trait<u128> for DynBits {
             fn $op(&mut self, rhs: u128) {
                 assert!(rhs <= self.mask());
-                self.val = $wrap_op(self.val, rhs);
+                self.val = $wrap_op(self.raw(), rhs);
                 *self = self.wrapped();
             }
         }
@@ -132,7 +132,7 @@ macro_rules! impl_assign_op {
         impl $trait for DynBits {
             fn $op(&mut self, rhs: Self) {
                 assert_eq!(self.bits, rhs.bits);
-                self.val = $wrap_op(self.val, rhs.val);
+                self.val = $wrap_op(self.raw(), rhs.raw());
                 *self = self.wrapped();
             }
         }
@@ -143,7 +143,7 @@ macro_rules! impl_assign_op {
         {
             fn $op(&mut self, rhs: Bits<N>) {
                 assert_eq!(self.bits, { N });
-                self.val = $wrap_op(self.val, rhs.val);
+                self.val = $wrap_op(self.raw(), rhs.raw());
                 *self = self.wrapped();
             }
         }
@@ -154,7 +154,7 @@ macro_rules! impl_assign_op {
         {
             fn $op(&mut self, rhs: DynBits) {
                 assert_eq!(rhs.bits, { N });
-                *self = bits_masked($wrap_op(self.val, rhs.val));
+                *self = bits_masked($wrap_op(self.raw(), rhs.raw()));
             }
         }
     };
@@ -172,7 +172,7 @@ macro_rules! impl_signed_binop {
             fn $op(self, rhs: i128) -> Self::Output {
                 assert!(rhs <= Self::MAX);
                 assert!(rhs >= Self::MIN);
-                signed_wrapped($wrap_op(self.val, rhs))
+                signed_wrapped($wrap_op(self.raw(), rhs))
             }
         }
         // Next the case of adding a SignedBits<N> to an i128
@@ -184,7 +184,7 @@ macro_rules! impl_signed_binop {
             fn $op(self, rhs: SignedBits<N>) -> Self::Output {
                 assert!(self <= SignedBits::<N>::MAX);
                 assert!(self >= SignedBits::<N>::MIN);
-                signed_wrapped($wrap_op(self, rhs.val))
+                signed_wrapped($wrap_op(self, rhs.raw()))
             }
         }
         // Adding two SignedBits<N> together
@@ -194,7 +194,7 @@ macro_rules! impl_signed_binop {
         {
             type Output = Self;
             fn $op(self, rhs: Self) -> Self::Output {
-                signed_wrapped($wrap_op(self.val, rhs.val))
+                signed_wrapped($wrap_op(self.raw(), rhs.raw()))
             }
         }
         // Adding a i128 to a SignedDynBits
@@ -204,7 +204,7 @@ macro_rules! impl_signed_binop {
                 assert!(rhs <= self.max_value());
                 assert!(rhs >= self.min_value());
                 SignedDynBits {
-                    val: $wrap_op(self.val, rhs),
+                    val: $wrap_op(self.raw(), rhs),
                     bits: self.bits,
                 }
                 .wrapped()
@@ -217,7 +217,7 @@ macro_rules! impl_signed_binop {
                 assert!(self <= rhs.max_value());
                 assert!(self >= rhs.min_value());
                 SignedDynBits {
-                    val: $wrap_op(self, rhs.val),
+                    val: $wrap_op(self, rhs.raw()),
                     bits: rhs.bits,
                 }
                 .wrapped()
@@ -229,7 +229,7 @@ macro_rules! impl_signed_binop {
             fn $op(self, rhs: Self) -> Self::Output {
                 assert_eq!(self.bits, rhs.bits);
                 SignedDynBits {
-                    val: $wrap_op(self.val, rhs.val),
+                    val: $wrap_op(self.raw(), rhs.raw()),
                     bits: self.bits,
                 }
                 .wrapped()
@@ -243,7 +243,7 @@ macro_rules! impl_signed_binop {
             type Output = SignedBits<N>;
             fn $op(self, rhs: SignedBits<N>) -> Self::Output {
                 assert_eq!(self.bits, { N });
-                signed_wrapped($wrap_op(self.val, rhs.val))
+                signed_wrapped($wrap_op(self.raw(), rhs.raw()))
             }
         }
         // Adding a SignedBits<N> to a SignedDynBits
@@ -254,7 +254,7 @@ macro_rules! impl_signed_binop {
             type Output = SignedBits<N>;
             fn $op(self, rhs: SignedDynBits) -> Self::Output {
                 assert_eq!(rhs.bits, { N });
-                signed_wrapped($wrap_op(self.val, rhs.val))
+                signed_wrapped($wrap_op(self.raw(), rhs.raw()))
             }
         }
     };
@@ -270,7 +270,7 @@ macro_rules! impl_assigned_signed_op {
             fn $op(&mut self, rhs: i128) {
                 assert!(rhs <= Self::MAX);
                 assert!(rhs >= Self::MIN);
-                *self = signed_wrapped($wrap_op(self.val, rhs));
+                *self = signed_wrapped($wrap_op(self.raw(), rhs));
             }
         }
         // Adding two SignedBits<N> together
@@ -279,7 +279,7 @@ macro_rules! impl_assigned_signed_op {
             $crate::bitwidth::W<N>: BitWidth,
         {
             fn $op(&mut self, rhs: Self) {
-                *self = signed_wrapped($wrap_op(self.val, rhs.val));
+                *self = signed_wrapped($wrap_op(self.raw(), rhs.raw()));
             }
         }
         // Adding a i128 to a SignedDynBits
@@ -287,7 +287,7 @@ macro_rules! impl_assigned_signed_op {
             fn $op(&mut self, rhs: i128) {
                 assert!(rhs <= self.max_value());
                 assert!(rhs >= self.min_value());
-                self.val = $wrap_op(self.val, rhs);
+                self.val = $wrap_op(self.raw(), rhs);
                 *self = self.wrapped();
             }
         }
@@ -295,7 +295,7 @@ macro_rules! impl_assigned_signed_op {
         impl $trait for SignedDynBits {
             fn $op(&mut self, rhs: Self) {
                 assert_eq!(self.bits, rhs.bits);
-                self.val = $wrap_op(self.val, rhs.val);
+                self.val = $wrap_op(self.raw(), rhs.raw());
                 *self = self.wrapped();
             }
         }
@@ -306,7 +306,7 @@ macro_rules! impl_assigned_signed_op {
         {
             fn $op(&mut self, rhs: SignedBits<N>) {
                 assert_eq!(self.bits, { N });
-                self.val = $wrap_op(self.val, rhs.val);
+                self.val = $wrap_op(self.raw(), rhs.raw());
                 *self = self.wrapped();
             }
         }
@@ -317,7 +317,7 @@ macro_rules! impl_assigned_signed_op {
         {
             fn $op(&mut self, rhs: SignedDynBits) {
                 assert_eq!(rhs.bits, { N });
-                *self = signed_wrapped($wrap_op(self.val, rhs.val));
+                *self = signed_wrapped($wrap_op(self.raw(), rhs.raw()));
             }
         }
     };
@@ -336,14 +336,14 @@ macro_rules! test_binop {
             // Check all reasonable combinations.  For each combination,
             // the result should be the same as if we had added the two
             // values together and then masked the result.
-            assert_eq!(x $op y, bits_masked($wrap(x.val, y)));
-            assert_eq!(y $op x, bits_masked($wrap(y, x.val)));
-            assert_eq!(x $op z, bits_masked($wrap(x.val, z.val)));
-            assert_eq!(z $op x, bits_masked($wrap(z.val, x.val)));
-            assert_eq!(z $op y, bits_masked::<8>($wrap(z.val, y)).dyn_bits());
-            assert_eq!(y $op z, bits_masked::<8>($wrap(y, z.val)).dyn_bits());
-            assert_eq!(z $op z, bits_masked::<8>($wrap(z.val, z.val)).dyn_bits());
-            assert_eq!(x $op x, bits_masked($wrap(x.val, x.val)));
+            assert_eq!(x $op y, bits_masked($wrap(x.raw(), y)));
+            assert_eq!(y $op x, bits_masked($wrap(y, x.raw())));
+            assert_eq!(x $op z, bits_masked($wrap(x.raw(), z.raw())));
+            assert_eq!(z $op x, bits_masked($wrap(z.raw(), x.raw())));
+            assert_eq!(z $op y, bits_masked::<8>($wrap(z.raw(), y)).dyn_bits());
+            assert_eq!(y $op z, bits_masked::<8>($wrap(y, z.raw())).dyn_bits());
+            assert_eq!(z $op z, bits_masked::<8>($wrap(z.raw(), z.raw())).dyn_bits());
+            assert_eq!(x $op x, bits_masked($wrap(x.raw(), x.raw())));
             // Assert that all of the outputs are the same size ( 8 bits )
             assert_eq!((z $op y).bits(), 8);
             assert_eq!((y $op z).bits(), 8);

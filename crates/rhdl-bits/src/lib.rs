@@ -473,9 +473,9 @@ mod test {
     {
         let selector = 1_u128 << i;
         let x = if value {
-            x.val | selector
+            x.raw() | selector
         } else {
-            x.val & !selector
+            x.raw() & !selector
         };
         bits(x)
     }

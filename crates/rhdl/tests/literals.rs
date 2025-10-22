@@ -22,23 +22,23 @@ fn test_const_match_finite_bits() -> miette::Result<()> {
     Ok(())
 }
 
-/* #[test]
+#[test]
 fn test_const_literal_match_not_raw() {
-    //#[kernel]
+    #[kernel]
     pub fn kernel(x: Signal<b8, Red>) -> Signal<b3, Red> {
         let x = x.val();
         let y = match x {
-            b8 { val: 0 } => b3(0),
-            b8 { val: 1 } => b3(1),
-            b8 { val: 2 } => b3(1),
-            b8 { val: 3 } => b3(2),
+            Bits::<8>(0) => b3(0),
+            Bits::<8>(1) => b3(1),
+            Bits::<8>(2) => b3(1),
+            Bits::<8>(3) => b3(2),
             _ => b3(4),
         };
         signal(y)
     }
     test_kernel_vm_and_verilog::<kernel, _, _, _>(kernel, tuple_b8()).unwrap();
 }
- */
+
 #[test]
 fn test_const_literal_match() {
     #[kernel]

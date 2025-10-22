@@ -748,6 +748,34 @@ fn test_multiply() -> miette::Result<()> {
 }
 
 #[test]
+fn test_match_with_tuple_struct() -> miette::Result<()> {
+    #[derive(Copy, Clone, PartialEq, Digital)]
+    pub struct Point {
+        x: b8,
+        y: b8,
+    }
+
+    #[derive(Copy, Clone, PartialEq, Digital)]
+    pub struct Reflect(pub Point);
+
+    #[kernel]
+    pub fn kernel(x: Signal<Reflect, Red>) -> Signal<b8, Red> {
+        let Reflect(p) = x.val();
+        let y = match p {
+            Point { x: Bits::<8>(2), y } => y,
+            Point { x, y: Bits::<8>(4) } => x,
+            _ => b8(0),
+        };
+        signal(y)
+    }
+    let err = compile_design::<kernel>(CompilationMode::Asynchronous)
+        .expect_err("Expected this to fail with an supported pattern error");
+    let report = miette_report(err);
+    expect_test::expect_file!["maybe_init_tuple_struct.expect"].assert_eq(&report);
+    Ok(())
+}
+
+#[test]
 fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
     #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     struct Foo {

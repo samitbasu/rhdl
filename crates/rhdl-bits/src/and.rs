@@ -58,50 +58,50 @@ mod test {
     fn test_and_bits() {
         let bits: Bits<8> = 0b1101_1010.into();
         let result = bits & bits;
-        assert_eq!(result.val, 0b1101_1010_u128);
+        assert_eq!(result.raw(), 0b1101_1010_u128);
         let bits: Bits<8> = 0b1101_1010.into();
         let result = bits & 0b1111_0000;
-        assert_eq!(result.val, 0b1101_0000_u128);
+        assert_eq!(result.raw(), 0b1101_0000_u128);
         let bits: Bits<8> = 0b1101_1010.into();
         let result = 0b1111_0000 & bits;
-        assert_eq!(result.val, 0b1101_0000_u128);
+        assert_eq!(result.raw(), 0b1101_0000_u128);
         let mut bits: Bits<128> = 0.into();
         bits = crate::test::set_bit(bits, 127, true);
         let result = bits & bits;
-        assert_eq!(result.val, 1_u128 << 127);
+        assert_eq!(result.raw(), 1_u128 << 127);
         let bits: Bits<54> = 0b1101_1010.into();
         let result = bits & 1;
-        assert_eq!(result.val, 0_u128);
+        assert_eq!(result.raw(), 0_u128);
         let result = 1 & bits;
-        assert_eq!(result.val, 0_u128);
+        assert_eq!(result.raw(), 0_u128);
     }
 
     #[test]
     fn test_andassign_bits() {
         let mut bits: Bits<8> = 0b1101_1010.into();
         bits &= bits;
-        assert_eq!(bits.val, 0b1101_1010_u128);
+        assert_eq!(bits.raw(), 0b1101_1010_u128);
         let mut bits: Bits<8> = 0b1101_1010.into();
         bits &= 0b1111_0000;
-        assert_eq!(bits.val, 0b1101_0000_u128);
+        assert_eq!(bits.raw(), 0b1101_0000_u128);
         let mut bits: Bits<8> = 0b1101_1010.into();
         bits &= 0b1111_0000;
-        assert_eq!(bits.val, 0b1101_0000_u128);
+        assert_eq!(bits.raw(), 0b1101_0000_u128);
         let mut bits: Bits<128> = 0.into();
         bits = crate::test::set_bit(bits, 127, true);
         bits &= bits;
-        assert_eq!(bits.val, 1_u128 << 127);
+        assert_eq!(bits.raw(), 1_u128 << 127);
         let mut bits: Bits<54> = 0b1101_1010.into();
         bits &= 1;
-        assert_eq!(bits.val, 0_u128);
+        assert_eq!(bits.raw(), 0_u128);
         let mut bits: Bits<54> = 0b1101_1010.into();
         bits &= 1;
-        assert_eq!(bits.val, 0_u128);
+        assert_eq!(bits.raw(), 0_u128);
         let a: Bits<12> = 0b1010_1010_1010.into();
         let b: Bits<12> = 0b1111_0101_0111.into();
         let mut c = a;
         c &= b;
-        assert_eq!(c.val, 0b1010_0000_0010);
+        assert_eq!(c.raw(), 0b1010_0000_0010);
     }
 
     #[test]
