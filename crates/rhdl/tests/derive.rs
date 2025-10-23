@@ -189,3 +189,16 @@ fn test_derive_enum_alignment_lsb() {
     assert_eq!(range, 0..2);
     assert_eq!(kind, Kind::make_bits(2));
 }
+
+#[test]
+fn test_derive_generic_struct() {
+    #[derive(Copy, Clone, PartialEq, Digital)]
+    pub struct Request<T, const N: usize>
+    where
+        T: Digital,
+        rhdl_bits::W<N>: BitWidth,
+    {
+        data: T,
+        address: Bits<N>,
+    }
+}
