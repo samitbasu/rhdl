@@ -13,7 +13,7 @@ These are the normal rules for Rust as well.  The remaining literal types (strin
 
 You can also segment your literals using the `_` spacer to make them more readable, and the literals are case insensitive.  Note that a bare constant like `42` is not synthesizable, since it doesn't have a well defined length.  But where the length can be inferred from context, you can use a bare constant.  So in this kernel, all literals are passed into the `b8` constructor function:
 
-```rust
+```rust,kernel:literals
 #[kernel]
 fn kernel(a: b8) -> b8 {
     let c1 = b8(0xbe); // hexadecimal constant
@@ -26,7 +26,7 @@ fn kernel(a: b8) -> b8 {
 
 In this example, we use a bare literal, and RHDL determines that it must be an 8-bit literal, as it is being added to an 8-bit literal:
 
-```rust
+```rust,kernel:literals
 #[kernel]
 fn kernel(a: b8) -> b8 {
     a + 42 // 👈 inferred as a 42 bit constant
@@ -35,7 +35,7 @@ fn kernel(a: b8) -> b8 {
 
 If RHDL infers a size for your literal that won't hold the value you specify, you will get an error during the RHDL compilation of your kernel function, or a run time panic if you try to exercise the `kernel` manually.
 
-```rust
+```rust,kernel:literals
 #[kernel]
 fn kernel(a: b8) -> b8 {
     a + 270 // 👈 panics at runtime or fails at RHDL compile time
@@ -44,7 +44,7 @@ fn kernel(a: b8) -> b8 {
 
 For booleans, the literals of `true` and `false` are used as usual:
 
-```rust
+```rust,kernel:literals
 #[kernel]
 fn kernel(a: bool) -> bool {
     (a ^ true) || false

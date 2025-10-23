@@ -1,1 +1,0 @@
-[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"use rhdl::prelude::*;\n\n#[derive(PartialEq, Clone, Copy, Digital, Default)]\npub enum State {\n    Idle,\n    Processing(b8),\n    Sending(b1),\n    Fault,\n    #[default]\n    Reset\n}"},{"End":"CodeBlock"}]

@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[derive(Copy, Clone, PartialEq, Digital, Default)]\npub struct Color(pub b6, pub b6, pub b6);\n\n#[kernel]\npub fn kernel(c: Color) -> b7 {\n    let Color(red, _green, _blue) = c;\n    red.resize::<7>() << 1\n}\n"},{"End":"CodeBlock"}]

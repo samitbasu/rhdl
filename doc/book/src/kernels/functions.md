@@ -13,7 +13,7 @@ Let's work through some examples so you can get a sense of what kinds of functio
 
 The first is a simple function with a couple of arguments, a couple of returns.  Nothing too exciting.
 
-```rust
+```rust,kernel:functions
 #[kernel]
 pub fn kernel(a: b8, b: b8) -> (b8, bool) {
     (a, b == a)
@@ -31,7 +31,7 @@ pub fn kernel(a: b8, b: b8) -> () {
 
 You can use infallible pattern matching in the arguments for tuples.  Struct and enum patterns are currently unsupported.
 
-```rust
+```rust,kernel:functions
 #[kernel]
 pub fn kernel((a,b): (b8, b8)) -> b8 {
     a + b
@@ -40,11 +40,16 @@ pub fn kernel((a,b): (b8, b8)) -> b8 {
 
 You can make your function generic and add bounds as needed.
 
-```rust
+```rust,kernel:functions
 #[kernel]
-pub fn kernel<const N: usize>(a: Bits<N>, b: Bits<N>) -> Bits<N> 
+pub fn generic_kernel<const N: usize>(a: Bits<N>, b: Bits<N>) -> Bits<N> 
     where W<N> : BitWidth {
     a + b
+}
+
+#[kernel]
+pub fn kernel(a: b7, b: b7) -> b7 {
+    generic_kernel::<7>(a,b)
 }
 ```
 
@@ -54,9 +59,9 @@ When calling a generic function from within a kernel, due to limitations of how 
 
 Of course, you can pass `Digital` values into functions, and return `Digital` values out of the functions:
 
-```rust
+```rust,kernel:functions
 #[derive(Copy, Clone, PartialEq, Digital)]
-pub MyStruct {
+pub struct MyStruct {
     x: b8,
     y: b8
 }
@@ -76,14 +81,14 @@ You cannot use `impl Digital` in return position with `kernel` functions.  The r
 
 You can _call_ functions just like you normally would in rust, provided the named function is available at the call site, and that the referenced function is annotated with `#[kernel]`.  So, for example:
 
-```rust
+```rust,kernel:functions
 #[kernel]
 pub fn my_add(a: b8, b: b8) -> b8 {
     a + b
 }
 
 #[kernel]
-fn kernel(a: b8, b: b8, c: b8) -> b8 {
+pub fn kernel(a: b8, b: b8, c: b8) -> b8 {
     let p1 = my_add(a,b);
     let p2 = my_add(p1, c);
     p2
@@ -92,15 +97,15 @@ fn kernel(a: b8, b: b8, c: b8) -> b8 {
 
 When the function you are calling is generic, you must provide the generic parameters explicitly at the call site.  This is due to a limitation on how the RHDL compiler works.  So if we had instead:
 
-```rust
+```rust,kernel:functions
 #[kernel]
-pub fn my_add<const N: usize>(a: Bits::<N>, b: Bits:<N>) -> Bits::<N> 
+pub fn my_add<const N: usize>(a: Bits::<N>, b: Bits::<N>) -> Bits::<N> 
 where W<N> : BitWidth {
     a + b
 }
 
 #[kernel]
-fn kernel(a: b8, b: b8, c: b8) -> b8 {
+pub fn kernel(a: b8, b: b8, c: b8) -> b8 {
     //               👇 Must be explicit here!
     let p1 = my_add::<8>(a, b);
     let p2 = my_add::<8>(p1, c);

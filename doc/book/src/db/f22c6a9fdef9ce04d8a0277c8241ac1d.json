@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[kernel]\nfn kernel(x: b8, ndx: b3) -> bool { \n           // 👇 - implies a barrel shifter\n    (x & b8(1) << ndx) != 0\n}\n"},{"End":"CodeBlock"}]

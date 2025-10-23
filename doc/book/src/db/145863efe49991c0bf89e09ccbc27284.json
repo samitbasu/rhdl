@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"pub const NO_DATA: b8 = b8(0);\npub const SINGLE: b8 = b8(1);\npub const MULTIPLE: b8 = b8(3);\n\n#[kernel]\npub fn kernel(x: b8) -> b3 {\n    match x {\n        NO_DATA => b3(0),\n        SINGLE => b3(1),\n        MULTIPLE => b3(2),\n        _ => b3(5),\n    }\n}\n"},{"End":"CodeBlock"}]

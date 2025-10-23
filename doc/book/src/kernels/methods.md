@@ -16,7 +16,7 @@ For the handful of method calls that are currently supported in RHDL, here is th
 |`xor`|`x.xor()`|`true` if an odd number of bits in `x` are nonzero|`BSDY`|
 |`as_signed`|`x.as_signed()`|Reinterpret the bits as a signed value of the same bit-length|`BD`|
 |`as_unsigned`|`x.as_unsigned()`|Reinterpret the bits as an unsigned value of the same bit-length|`SY`|
-|`val`|`x.val()`|Extract the underlying value|`Signal`|
+|`val`|`x.val()`|Extract the underlying value `T`|`Signal<T, D>`|
 |`resize`|`x.resize::<N>()`|Resize a bit vector to the given length.  Sign aware for signed types.|`BSDY`|
 |`raw`|`x.raw()`|Extract the raw underlying 128-bit value.|`BSDY`|
 |`xadd`|`x.xadd(y)` |Bit preserving addition|`BSDY`|
@@ -33,7 +33,7 @@ For the handful of method calls that are currently supported in RHDL, here is th
 
 These method calls are all special cased inside the RHDL compiler.  There are checks to ensure that you don't try to `impl` these on your own types, but mostly these make no sense for aggregate data structures.  
 
-```rust
+```rust,kernel:methods
 #[kernel]
 pub fn kernel(a: b8, b: s8) -> bool {
     let x = a.any();  let y = b.any();

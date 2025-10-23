@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[derive(Copy, Clone, PartialEq, Digital)]\npub struct MyStruct {\n    a: b8,\n    b: b4,\n    c: bool\n}\n\n#[kernel]\npub fn kernel(a: b8) -> MyStruct {\n    let mut t = MyStruct {\n        a,\n        b: b4(1),\n        c: a == 0\n    };\n    t.b = b4(2);\n    t\n}\n"},{"End":"CodeBlock"}]

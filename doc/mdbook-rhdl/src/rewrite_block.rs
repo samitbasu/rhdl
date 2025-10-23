@@ -5,7 +5,7 @@ pub struct BlockRewriter<I> {
     in_block: bool,
     block_text: String,
     spool: Vec<Event<'static>>,
-    proc: fn(&str, &str) -> Vec<Event<'static>>,
+    proc: fn(usize, &str, &str) -> Vec<Event<'static>>,
     source_path: Option<std::path::PathBuf>,
     tag: &'static str,
     captured_tag: String,
@@ -16,7 +16,7 @@ impl<I> BlockRewriter<I> {
     fn new(
         source_path: &Option<std::path::PathBuf>,
         events: I,
-        proc: fn(&str, &str) -> Vec<Event<'static>>,
+        proc: fn(usize, &str, &str) -> Vec<Event<'static>>,
         tag: &'static str,
     ) -> Self {
         Self {
@@ -87,7 +87,8 @@ where
                         fetched = true;
                     }
                     if !fetched {
-                        self.spool = (self.proc)(&self.captured_tag, &self.block_text);
+                        self.spool =
+                            (self.proc)(self.block_counter, &self.captured_tag, &self.block_text);
                         if let Ok(serialized) = serde_json::to_string(&self.spool) {
                             let _ = std::fs::write(&cache_key, serialized);
                         }
@@ -108,7 +109,7 @@ pub trait BlockRewriterExt: Iterator {
     fn rewrite_blocks(
         self,
         source_path: &Option<std::path::PathBuf>,
-        proc: fn(&str, &str) -> Vec<Event<'static>>,
+        proc: fn(usize, &str, &str) -> Vec<Event<'static>>,
         tag: &'static str,
     ) -> BlockRewriter<Self>
     where

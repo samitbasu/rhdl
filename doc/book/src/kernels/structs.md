@@ -2,7 +2,7 @@
 
 Structs are generally well supported in RHDL, and most of the things you expect to be able to do with structs in rust can be done in RHDL.  For example, you can create a struct using the usual struct syntax, and then access it's members by name or by number (if it is a tuple struct).
 
-```rust
+```rust,kernel:structs
 #[derive(Copy, Clone, PartialEq, Digital)]
 pub struct MyStruct {
     a: b8,
@@ -22,12 +22,12 @@ pub fn kernel(a: b8) -> MyStruct {
 }
 ```
 
-```rust
+```rust,kernel:structs
 #[derive(Copy, Clone, PartialEq, Digital)]
 pub struct MyOtherStruct(pub b8, pub b8, pub b8);
 
 #[kernel]
-pub fn max_val(t: MyOtherStruct) -> b8 {
+pub fn kernel(t: MyOtherStruct) -> b8 {
     let mut ret = t.0;
     if t.1 > ret {
         ret = t.1;
@@ -41,7 +41,7 @@ pub fn max_val(t: MyOtherStruct) -> b8 {
 
 You can also use destructuring to take `struct`s apart with a `let`:
 
-```rust
+```rust,kernel:structs
 #[derive(Copy, Clone, PartialEq, Digital)]
 pub struct MyStruct {
     a: b8,
@@ -62,7 +62,7 @@ pub fn kernel(t: MyStruct) -> b4 {
 
 If you only need some of the fields of the struct, you can ignore the others with `..`
 
-```rust
+```rust,kernel:structs
 #[derive(Copy, Clone, PartialEq, Digital)]
 pub struct MyStruct {
     a: b8,
@@ -72,14 +72,14 @@ pub struct MyStruct {
 
 #[kernel]
 pub fn kernel(t: MyStruct) -> b4 {
-    let Mystruct {b, ..} = t;
+    let MyStruct {b, ..} = t;
     b
 }
 ```
 
 RHDL also supports "functional update syntax", where you can provide missing fields from one struct definition with another.  For example:
 
-```rust
+```rust,kernel:structs
 #[derive(Copy, Clone, PartialEq, Digital, Default)]
 pub struct MyStruct {
     a: b8,
@@ -98,13 +98,13 @@ pub fn kernel(a: b8) -> MyStruct {
 
 You can destructure tuple structs in a completely analogous way as well:
 
-```rust
+```rust,kernel:structs
 #[derive(Copy, Clone, PartialEq, Digital, Default)]
 pub struct Color(pub b6, pub b6, pub b6);
 
 #[kernel]
-pub fn red2(c: Color) -> b7 {
-    let Color(red, ..) = c;
+pub fn kernel(c: Color) -> b7 {
+    let Color(red, _green, _blue) = c;
     red.resize::<7>() << 1
 }
 ```
