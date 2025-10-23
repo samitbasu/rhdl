@@ -35,7 +35,7 @@ fn do_shell_thing(start_dir: &str, txt: &str) -> String {
 
     for command in commands {
         // Get the relative path from the shell directory
-        let relative_path = current_dir.strip_prefix(&shell_dir).unwrap().display();
+        let relative_path = current_dir.strip_prefix(shell_dir).unwrap().display();
         // Create and display the prompt
         let prompt =
             format!("\x1b[36m{relative_path} {PROMPT_STR}\x1b[0m \x1b[1m{command}\x1b[0m",);
@@ -107,7 +107,7 @@ pwd
     result
 }
 
-pub fn exec_shell(tag: &str, text: &str) -> Vec<Event<'static>> {
+pub fn exec_shell(_block: usize, tag: &str, text: &str) -> Vec<Event<'static>> {
     let start_dir = tag
         .strip_prefix(SHELL_PREFIX)
         .unwrap_or("")
@@ -125,13 +125,12 @@ pub fn exec_shell(tag: &str, text: &str) -> Vec<Event<'static>> {
                 converter.convert(&result).unwrap()
             )
             .into(),
-        )
-        .into(),
+        ),
         Event::End(TagEnd::HtmlBlock),
     ]
 }
 
-pub fn silent_shell(tag: &str, text: &str) -> Vec<Event<'static>> {
+pub fn silent_shell(_block: usize, tag: &str, text: &str) -> Vec<Event<'static>> {
     let tag = tag
         .strip_prefix(SHELL_SILENT_PREFIX)
         .unwrap_or("")

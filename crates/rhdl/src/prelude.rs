@@ -68,6 +68,7 @@ pub use rhdl_macro::Timed;
 pub use rhdl_macro::kernel;
 pub use rhdl_trace_type as rtt;
 // Use the extension traits
+pub use rhdl_bits::W;
 pub use rhdl_bits::xadd::XAdd;
 pub use rhdl_bits::xmul::XMul;
 pub use rhdl_bits::xneg::XNeg;

@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[kernel]\npub fn kernel(a: (b8, b8)) -> b8 {\n    let (x, y) = a;\n    let z = (x, x, y);\n    let a = z.0 + z.1 + z.2;\n    a + 1\n}\n"},{"End":"CodeBlock"}]

@@ -11,7 +11,7 @@ The best way to think of a `for` loop in a hardware design is as a shorthand for
 
 A good example of using a `for` loop is to count the number of bits set in a given value.  The kernel for that might look something like this:
 
-```rust
+```rust,kernel:loops
 #[kernel]
 pub fn kernel(a: b32) -> b9 {
     let mut count = b9(0);
@@ -43,9 +43,12 @@ This simple looking kernel will generate quite a monstrous tree of adders in a l
 
 where `b0..` are the bits of `a`.  You can also make the loop depend on the generic parameter (which makes it more useful).  Suppose, for example, we want a generic ones-counter that will work for any bit vector width.
 
-```rust
+```rust,kernel:loops
 #[kernel]
-pub fn kernel<const N: usize, const M: usize>(a: Bits::<N>) -> Bits::<M> {
+pub fn count_ones<const N: usize, const M: usize>(a: Bits::<N>) -> Bits::<M> 
+where W<N> : BitWidth,
+      W<M> : BitWidth
+{
     let mut count = bits::<M>(0);
     for i in 0..N {
         if a & (1 << i) != 0 {
@@ -54,15 +57,22 @@ pub fn kernel<const N: usize, const M: usize>(a: Bits::<N>) -> Bits::<M> {
     }
     count
 }
+
+#[kernel]
+pub fn kernel(a: b8) -> b4 {
+    count_ones::<8,4>(a)
+}
 ```
 
 This version of the kernel will adapt to the `const` generic parameters `N` and `M`.  
 
 Using a loop does not necessarily imply a long linear chain of circuitry.  The linear chain nature of the ones-counter is due to the need for the count to propagate from one iteration of the loop to another.  You can also do parallel operations using a `for` loop.  Here is an example that builds a XNOR gate.
 
-```rust
+```rust,kernel:loops
 #[kernel]
-pub fn kernel<const N: usize>(a: Bits::<N>, b: Bits::<N>) -> Bits::<N> {
+pub fn xnor<const N: usize>(a: Bits::<N>, b: Bits::<N>) -> Bits::<N> 
+where W<N> : BitWidth
+{
     let mut ret_value = bits::<N>(0);
     for i in 0..N {
         let a_bit = a & (1 << i) != 0;
@@ -73,20 +83,31 @@ pub fn kernel<const N: usize>(a: Bits::<N>, b: Bits::<N>) -> Bits::<N> {
     }
     ret_value
 }
+
+#[kernel]
+pub fn kernel(a: b8, b: b8) -> b8 {
+    xnor::<8>(a,b)
+}
 ```
 
 After optimization, this circuit is completely parallel.  Each bit of the output can be computed from the corresponding bit of `a` and `b`, which means that there is no long chain of logic from the inputs to the output.
 
 You can also use `for` loops to deal with arrays.  For example, the previous kernel could also be written as follows, where `a, b` have been pre-expanded into bool arrays:
 
-```rust
+```rust,kernel:loops
 #[kernel]
-pub fn kernel<const N: usize>(a: [bool; N], b: [bool; N]) -> [bool; N] {
+pub fn generic<const N: usize>(a: [bool; N], b: [bool; N]) -> [bool; N] {
     let mut ret_value = [false; N];
     for i in 0..N {
         ret_value[i] = !(a[i] ^ b[i]);
     }
     ret_value
+}
+
+
+#[kernel]
+pub fn kernel(a: [bool; 4], b: [bool; 4]) -> [bool; 4] {
+    generic::<4>(a,b)
 }
 ```
 

@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[derive(Copy, Clone, PartialEq, Digital)]\npub struct Point {\n    x: b8,\n    y: b8,\n}\n\n#[derive(Copy, Clone, PartialEq, Digital)]\npub struct Reflect(pub Point);\n\n#[kernel]\npub fn kernel(x: Reflect) -> b8 {\n    let Reflect(p) = x;\n    let Point {x, y: _} = p;\n    x\n}\n"},{"End":"CodeBlock"}]

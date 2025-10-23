@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[kernel]\nfn kernel(a: b8, b: b8) -> b8 {\n    let c = {\n        let d = a;\n        let e = a + d;\n        e + 3 // 👈 block value computed from this expression\n    };\n    a + c\n}\n"},{"End":"CodeBlock"}]

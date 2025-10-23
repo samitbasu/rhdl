@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[derive(Copy, Clone, PartialEq, Digital, Default)]\npub struct MyStruct {\n    a: b8,\n    b: b4,\n    c: bool\n}\n\n#[kernel]\npub fn kernel(a: b8) -> MyStruct {\n    MyStruct {\n        a,\n        .. MyStruct::default()\n    }\n}\n"},{"End":"CodeBlock"}]

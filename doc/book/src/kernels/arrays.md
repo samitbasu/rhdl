@@ -2,12 +2,12 @@
 
 RHDL includes support for fixed sized arrays.  In general, an implementation provides `Digital` for `[T; N]` where `T: Digital`.  So for example, you can write kernels that take an array of items as inputs:
 
-```rust
+```rust,kernel:arrays
 #[kernel]
 fn kernel(x: [b4; 4]) -> b6 {
     let mut accum = b6(0);
     for i in 0..4 {
-        accum += x[i].resize::<6>();
+         accum += x[i].resize::<6>();
     }
     accum
 }
@@ -19,7 +19,7 @@ There are two ways of indexing arrays.  The first is based on indexes that are d
 
 However, it is also possible to index an array at "run time" using a dynamic index that comes from some other value.  For example, consider the following:
 
-```rust
+```rust,kernel:arrays
 #[kernel]
 fn kernel(x: [b4; 8], ndx: b3) -> b4 {
     x[ndx]
@@ -30,11 +30,11 @@ This _will_ generate hardware of some kind, since in general, you need to dynami
 
 Note that a barrel shifter is also implied by a shift operator that is controlled by a dynamic index.  For example, if we tried to select a bit out of a `b8` at runtime via:
 
-```rust
+```rust,kernel:arrays
 #[kernel]
-fn kernel(x: b8, ndx: b3) -> bool {
+fn kernel(x: b8, ndx: b3) -> bool { 
            // 👇 - implies a barrel shifter
-    (x & 1 << ndx) != 0
+    (x & b8(1) << ndx) != 0
 }
 ```
 
@@ -42,7 +42,7 @@ In general, use arrays when you can, as manual bit manipulation is error prone a
 
 RHDL also supports the `repeat` syntax, in which an array is built up from a single value and a length.  For example, you can write the following:
 
-```rust
+```rust,kernel:arrays
 #[kernel]
 fn kernel() -> [b4; 4] {
     [b4(3); 4]

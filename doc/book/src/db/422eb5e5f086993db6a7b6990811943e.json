@@ -1,1 +1,0 @@
-[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"use rhdl::prelude::*;\n\n//                                         👇 - New!\n#[derive(Copy, PartialEq, Clone, Digital, Default)]\npub enum OpCode {\n    #[default] // 👈 - New!\n    Nop,\n    Add(b8, b8),\n    Sub(b8, b8),\n    Not(b8),\n}"},{"End":"CodeBlock"}]

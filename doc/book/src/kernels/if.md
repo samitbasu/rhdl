@@ -19,16 +19,16 @@ fn kernel(a: b8, b: b8) -> b8 {
 
 You can simplify this into an expression, and eliminate the binding for `c`, since the function block will take the value of the last expression:
 
-```rust
+```rust,kernel:if
 #[kernel]
 fn kernel(a: b8, b: b8) -> b8 {
-    if a > b {
+    bits(if a > b {
         3
     } else if a == b {
         5
     } else {
         7
-    }
+    })
 }
 ```
 
@@ -38,7 +38,7 @@ Just as rust has no ternary operator `?`, RHDL doesn't have one either.  Use an 
 
 RHDL also supports `if let` (although not chaining).  So you can also use the following:
 
-```rust
+```rust,kernel:if
 #[kernel]
 pub fn kernel(data: Option<b8>) -> Option<b8> {
     if let Some(data) = data {
@@ -51,7 +51,7 @@ pub fn kernel(data: Option<b8>) -> Option<b8> {
 
 Note that RHDL includes some special support for `Option` and `Result`, so there is a bit of extra type inference magic here to make this work.  But it also works with any other `enum` you want to pattern match on:
 
-```rust
+```rust,kernel:if
 #[derive(Copy, Clone, PartialEq, Digital, Default)]
 pub enum MyEnum {
     Red(b8),
@@ -62,7 +62,7 @@ pub enum MyEnum {
 
 #[kernel]
 pub fn kernel(data: MyEnum) -> b8 {
-    if let Red(x) = data {
+    if let MyEnum::Red(x) = data {
         x
     } else {
         b8(42)

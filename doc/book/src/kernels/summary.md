@@ -41,3 +41,10 @@ RHDL makes heavy use of proc macros.  It's necessary given what I am trying to d
 In this section, we will break down all of the syntax elements that you can use to write synthesizable code in RHDL, and highlight what Rust concepts are not supported as well.
 
 
+```shell,rhdl-silent
+rm -rf kernels
+cargo new --lib kernels
+cd kernels
+cargo add --path ~samitbasu/Devel/rhdl/crates/rhdl 
+cargo add --dev miette
+```

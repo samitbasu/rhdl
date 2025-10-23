@@ -26,7 +26,7 @@ fn remove_hash_prefix(text: &str) -> String {
         .join("\n")
 }
 
-pub fn rhdl_write(tag: &str, text: &str) -> Vec<Event<'static>> {
+pub fn rhdl_write(_block: usize, tag: &str, text: &str) -> Vec<Event<'static>> {
     let text = text.to_string();
     let path = tag
         .strip_prefix(WRITE_PREFIX)
@@ -39,8 +39,8 @@ pub fn rhdl_write(tag: &str, text: &str) -> Vec<Event<'static>> {
     )
     .unwrap();
     vec![
-        Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced("rust".into()))).into(),
-        Event::Text(remove_hash_commented_lines(&text).into()).into(),
-        Event::End(TagEnd::CodeBlock).into(),
+        Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced("rust".into()))),
+        Event::Text(remove_hash_commented_lines(&text).into()),
+        Event::End(TagEnd::CodeBlock),
     ]
 }

@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[kernel]\nfn kernel(a: b8) -> b8 {\n    let c1 = b8(0xbe); // hexadecimal constant\n    let c2 = b8(0b1101_0110); // binary constant\n    let c3 = b8(0o03_42); // octal constant\n    let c4 = b8(135); // decimal constant\n    a + c1 - c2 + c3 + c4\n}\n"},{"End":"CodeBlock"}]

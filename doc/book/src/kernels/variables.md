@@ -2,7 +2,7 @@
 
 RHDL supports the definition of local variables within kernels.  The most straightforward is to use a `let` binding:
 
-```rust
+```rust,kernel:variables
 #[kernel]
 pub fn kernel(a: b8, b: b8) -> bool {
     let c = a == b; // type is inferred as bool
@@ -15,7 +15,7 @@ In this case the `let` binding creates a locally scoped binding `c`, which allow
 
 You can make bindings mutable, so that you can reuse them.  For example:
 
-```rust
+```rust,kernel:variables
 #[kernel]
 pub fn kernel(a: b8, b: b8) -> bool {
     let mut c = a + 1;
@@ -42,7 +42,7 @@ where `c(1)` and `c(2)` refer to the two different definitions of `c` in the pro
 
 You can also use `let` to define a variable with no value, as long as you unconditionaly assign it a value before the termination of the function.
 
-```rust
+```rust,kernel:variables
 #[kernel]
 pub fn kernel(a: b8, b: b8) -> bool {
     let c;
@@ -60,19 +60,19 @@ Names must be valid Rust identifiers.
 
 You can also give an explicit type to the binding.
 
-```rust
+```rust,kernel:variables
 #[kernel]
 pub fn kernel(a: b8, b: b8) -> b8 {
     let c: b8 = a;
-    c
+    c + b
 }
 ```
 
 You can also use irrefutable destructuring with `struct`s and `tuples` (but not enums) when assigning bindings.  Here is an example with a normal struct definition:
 
-```rust
+```rust,kernel:variables
 #[derive(PartialEq, Clone, Copy, Digital)]
-struct Foo {
+pub struct Foo {
     a: b8,
     b: b8,
 }
@@ -86,9 +86,9 @@ pub fn kernel(arg: Foo) -> b8 {
 
 And here is one with a tuple struct:
 
-```rust
+```rust,kernel:variables
 #[derive(PartialEq, Clone, Copy, Digital)]
-struct Foo(b8);
+pub struct Foo(b8);
 
 #[kernel]
 pub fn kernel(arg: Foo) -> Foo {
@@ -99,7 +99,7 @@ pub fn kernel(arg: Foo) -> Foo {
 
 You can also destructure normal tuples, provided each element `impl Digital`, of course:
 
-```rust
+```rust,kernel:variables
 #[kernel]
 pub fn kernel(a: (b8, b8)) -> bool {
     let (c, d) = a;
@@ -109,7 +109,7 @@ pub fn kernel(a: (b8, b8)) -> bool {
 
 Nested destructuring also works, in case you need it.
 
-```rust
+```rust,kernel:variables
 #[derive(PartialEq, Clone, Copy, Digital)]
 pub struct Bar(b8, b8);
 
@@ -120,7 +120,7 @@ pub struct Foo {
 }
 
 #[kernel]
-fn add(state: Signal<Foo, Red>) -> Signal<b8, Red> {
+pub fn kernel(state: Signal<Foo, Red>) -> Signal<b8, Red> {
     let Foo { a, b: Bar(_x, y) } = state.val();
     signal((a + y).resize())
 }
