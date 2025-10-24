@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 use std::iter::{once, repeat};
 
 use internment::Intern;
@@ -23,10 +24,12 @@ use super::kind::Tuple;
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
+/// A struct that holds a [Kind](crate::types::kind::Kind) and a bit representation
+/// of a value that conforms to that kind.
 #[derive(Clone, PartialEq, Hash)]
 pub struct TypedBits {
-    pub bits: Vec<BitX>,
-    pub kind: Kind,
+    bits: Vec<BitX>,
+    kind: Kind,
 }
 
 impl From<i64> for TypedBits {
@@ -66,26 +69,60 @@ impl From<BitX> for TypedBits {
     }
 }
 
+impl IntoIterator for TypedBits {
+    type Item = BitX;
+    type IntoIter = std::vec::IntoIter<BitX>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.bits.into_iter()
+    }
+}
+
 impl TypedBits {
+    /// An empty TypedBits value
     pub const EMPTY: TypedBits = TypedBits {
         bits: Vec::new(),
         kind: Kind::Empty,
     };
+    /// Create a new TypedBits value
+    pub fn new(bits: Vec<BitX>, kind: Kind) -> Self {
+        TypedBits { bits, kind }
+    }
+    /// Returns the kind of the TypedBits.
+    pub fn kind(&self) -> Kind {
+        self.kind
+    }
+    /// Returns an iterator over the bits.
+    pub fn iter(&self) -> std::slice::Iter<'_, BitX> {
+        self.bits.iter()
+    }
+    /// Returns the number of bits.
+    pub fn len(&self) -> usize {
+        self.bits.len()
+    }
+    /// Returns a slice of the bits.
+    pub fn bits(&self) -> &[BitX] {
+        &self.bits
+    }
+    /// Returns true if this type has no bits
     pub fn is_empty(&self) -> bool {
         self.bits.is_empty()
     }
+    /// Returns a TypedBits with all bits set to X for the given kind.
     pub fn dont_care_from_kind(kind: Kind) -> Self {
         Self {
             bits: vec![BitX::X; kind.bits()],
             kind,
         }
     }
+    /// Returns a TypedBits with all bits set to X.
     pub fn dont_care(self) -> Self {
         Self {
             bits: vec![BitX::X; self.bits.len()],
             ..self
         }
     }
+    /// Apply a path to extract a sub-value.
     pub fn path(&self, path: &Path) -> Result<TypedBits> {
         let (range, kind) = bit_range(self.kind, path)?;
         Ok(TypedBits {
@@ -93,6 +130,7 @@ impl TypedBits {
             kind,
         })
     }
+    /// Splice a value into this TypedBits at the given path.
     pub fn splice(&self, path: &Path, value: TypedBits) -> Result<TypedBits> {
         let (range, kind) = bit_range(self.kind, path)?;
         if kind != value.kind {
@@ -109,6 +147,7 @@ impl TypedBits {
             kind: self.kind,
         })
     }
+    /// Get the discriminant of an enum TypedBits.
     pub fn discriminant(&self) -> Result<TypedBits> {
         if self.kind.is_enum() {
             self.path(&Path::default().discriminant())
@@ -116,6 +155,7 @@ impl TypedBits {
             Ok(self.clone())
         }
     }
+    /// Resize the TypedBits as an unsigned value.
     fn resize_unsigned(&self, bits: usize) -> TypedBits {
         if bits <= self.bits.len() {
             return TypedBits {
@@ -134,6 +174,7 @@ impl TypedBits {
             kind: Kind::make_bits(bits),
         }
     }
+    /// Resize the TypedBits as a signed value.
     fn resize_signed(&self, bits: usize) -> TypedBits {
         if bits <= self.bits.len() {
             return TypedBits {
@@ -153,6 +194,7 @@ impl TypedBits {
             kind: Kind::make_signed(bits),
         }
     }
+    /// Resize the TypedBits to the given number of bits.
     pub fn resize(&self, bits: usize) -> Result<TypedBits> {
         match &self.kind {
             Kind::Bits(_) => Ok(self.resize_unsigned(bits)),
@@ -163,9 +205,11 @@ impl TypedBits {
             })),
         }
     }
+    /// Extend the TypedBits with zeros.
     pub fn xext(&self, len: usize) -> Result<TypedBits> {
         self.resize(self.kind.bits() + len)
     }
+    /// Shift left by the given number of bits.
     pub fn xshl(&self, len: usize) -> Result<TypedBits> {
         let kind = match &self.kind {
             Kind::Bits(n) => Kind::make_bits(n + len),
@@ -182,6 +226,7 @@ impl TypedBits {
             .collect();
         Ok(TypedBits { bits, kind })
     }
+    /// Shift right by the given number of bits.
     pub fn xshr(&self, len: usize) -> Result<TypedBits> {
         let kind = match &self.kind {
             Kind::Bits(n) => Kind::make_bits(n - len),
@@ -196,6 +241,7 @@ impl TypedBits {
         let bits = self.bits.iter().copied().skip(len).collect();
         Ok(TypedBits { bits, kind })
     }
+    /// Cast this TypedBits to an unsigned TypedBits of the given length.
     pub fn unsigned_cast(&self, bits: usize) -> Result<TypedBits> {
         if bits > self.kind.bits() {
             return Ok(TypedBits {
@@ -221,6 +267,7 @@ impl TypedBits {
             kind: Kind::make_bits(bits),
         })
     }
+    /// Cast this TypedBits to a signed TypedBits of the given length.
     pub fn signed_cast(&self, bits: usize) -> Result<TypedBits> {
         if bits > self.kind.bits() {
             let sign_bit = self.bits.last().cloned().unwrap_or(BitX::Zero);
@@ -248,6 +295,7 @@ impl TypedBits {
             kind: Kind::make_signed(bits),
         })
     }
+    /// Interpret this TypedBits as an i64.
     pub fn as_i64(&self) -> Result<i64> {
         let tb64 = match &self.kind {
             Kind::Bits(_) => self.unsigned_cast(64)?,
@@ -266,12 +314,15 @@ impl TypedBits {
         }
         Ok(ret as i64)
     }
+    /// Return true if any bit is 1.
     pub fn any(&self) -> TypedBits {
         self.bits.iter().fold(BitX::Zero, |a, b| a | *b).into()
     }
+    /// Return true if all bits are 1.
     pub fn all(&self) -> TypedBits {
         self.bits.iter().fold(BitX::One, |a, b| a & *b).into()
     }
+    /// Cast this TypedBits to a signed TypedBits.
     pub fn as_signed(&self) -> Result<TypedBits> {
         if let Kind::Bits(ndx) = self.kind {
             Ok(TypedBits {
@@ -284,6 +335,7 @@ impl TypedBits {
             }))
         }
     }
+    /// Cast this TypedBits to an unsigned TypedBits.
     pub fn as_unsigned(&self) -> Result<TypedBits> {
         if let Kind::Signed(ndx) = self.kind {
             Ok(TypedBits {
@@ -296,6 +348,7 @@ impl TypedBits {
             }))
         }
     }
+    /// Returns the sign bit of this TypedBits.
     pub fn sign_bit(&self) -> Result<TypedBits> {
         if self.kind.is_signed() {
             Ok(self.bits.last().cloned().unwrap_or(BitX::Zero).into())
@@ -305,9 +358,11 @@ impl TypedBits {
             }))
         }
     }
+    /// Compute the XOR of all bits.
     pub fn xor(&self) -> TypedBits {
         self.bits.iter().fold(BitX::Zero, |a, b| a ^ *b).into()
     }
+    /// Interpret this TypedBits as a bool.
     pub fn as_bool(&self) -> Result<bool> {
         if self.kind.is_bool() {
             match self.bits[0] {
@@ -323,6 +378,7 @@ impl TypedBits {
             }))
         }
     }
+    /// Repeat this TypedBits a given number of times to form an array.
     pub fn repeat(&self, count: usize) -> TypedBits {
         let my_len = self.bits.len();
         TypedBits {
@@ -336,6 +392,7 @@ impl TypedBits {
             kind: Kind::make_array(self.kind, count),
         }
     }
+    /// Get the bit at the given index.
     pub fn get_bit(&self, index: usize) -> Result<TypedBits> {
         if index >= self.bits.len() {
             return Err(rhdl_error(DynamicTypeError::CannotGetBit {
@@ -348,6 +405,7 @@ impl TypedBits {
             kind: Kind::make_bits(1),
         })
     }
+    /// Set the bit at the given index.
     pub fn set_bit(&self, index: usize, val: bool) -> Result<TypedBits> {
         if index >= self.bits.len() {
             return Err(rhdl_error(DynamicTypeError::CannotSetBit {
@@ -368,6 +426,7 @@ impl TypedBits {
             kind: self.kind,
         })
     }
+    /// Slice the TypedBits from offset for count bits.
     pub fn slice(&self, offset: usize, count: usize) -> Result<TypedBits> {
         if self.kind.is_composite() {
             return Err(rhdl_error(DynamicTypeError::CannotSliceComposite {
@@ -386,18 +445,21 @@ impl TypedBits {
             kind: Kind::make_bits(count),
         })
     }
+    /// Return a new TypedBits wrapped into a signal with the given color.
     pub fn with_clock(self, color: Color) -> TypedBits {
         TypedBits {
             bits: self.bits,
             kind: Kind::make_signal(self.kind, color),
         }
     }
+    /// Return the value part of this TypedBits, removing any wrapping signal.
     pub fn val(&self) -> TypedBits {
         TypedBits {
             bits: self.bits.clone(),
             kind: self.kind.val(),
         }
     }
+    /// Wrap this TypedBits in a Some variant of the given option kind.
     pub fn wrap_some(self, option_kind: &Kind) -> Result<TypedBits> {
         if !option_kind.is_option() {
             return Err(rhdl_error(DynamicTypeError::CannotWrapOption {
@@ -425,6 +487,7 @@ impl TypedBits {
             kind: *option_kind,
         })
     }
+    /// Wrap this TypedBits in a None variant of the given option kind.
     pub fn wrap_none(self, option_kind: &Kind) -> Result<TypedBits> {
         if !option_kind.is_option() {
             return Err(rhdl_error(DynamicTypeError::CannotWrapOption {
@@ -449,6 +512,7 @@ impl TypedBits {
             kind: *option_kind,
         })
     }
+    /// Wrap this TypedBits in a Err variant of the given result kind.
     pub fn wrap_err(self, result_kind: &Kind) -> Result<TypedBits> {
         if !result_kind.is_result() {
             return Err(rhdl_error(DynamicTypeError::CannotWrapResult {
@@ -473,6 +537,7 @@ impl TypedBits {
             kind: *result_kind,
         })
     }
+    /// Wrap this TypedBits in a Ok variant of the given result kind.
     pub fn wrap_ok(self, result_kind: &Kind) -> Result<TypedBits> {
         if !result_kind.is_result() {
             return Err(rhdl_error(DynamicTypeError::CannotWrapResult {
@@ -497,6 +562,7 @@ impl TypedBits {
             kind: *result_kind,
         })
     }
+    /// Wrap this TypedBits according to the given WrapOp and kind.
     pub fn wrap(self, op: WrapOp, kind: &Kind) -> Result<TypedBits> {
         match op {
             WrapOp::Some => self.wrap_some(kind),
@@ -505,12 +571,15 @@ impl TypedBits {
             WrapOp::Ok => self.wrap_ok(kind),
         }
     }
+    /// Is this TypedBits all zeros?
     pub fn is_zero(&self) -> bool {
         self.bits.iter().all(|b| *b == BitX::Zero)
     }
+    /// Count the number of ones in this TypedBits.
     pub fn num_ones(&self) -> usize {
         self.bits.iter().filter(|b| **b == BitX::One).count()
     }
+    /// Count the number of trailing zeros in this TypedBits.
     pub fn trailing_zeros(&self) -> usize {
         self.bits.iter().take_while(|b| **b == BitX::Zero).count()
     }

@@ -91,10 +91,7 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
     }
     /// Returns the value as a [TypedBits], which includes both the bits and the kind.
     fn typed_bits(self) -> TypedBits {
-        TypedBits {
-            bits: self.bin().into(),
-            kind: self.kind(),
-        }
+        TypedBits::new(self.bin().into(), self.kind())
     }
     /// Returns the discriminant of the value as a [TypedBits].
     fn discriminant(self) -> TypedBits {
@@ -342,13 +339,10 @@ macro_rules! impl_tuple_for_digital {
                     let mut v = Vec::with_capacity(Self::BITS);
                     #(
                         let d = self.N.discriminant();
-                        k.push(d.kind);
-                        v.extend(d.bits);
+                        k.push(d.kind());
+                        v.extend(d.bits());
                     )*
-                    TypedBits {
-                        kind: Kind::make_tuple(k.into()),
-                        bits: v,
-                    }
+                    TypedBits::new(v, Kind::make_tuple(k.into()))
                 }
                 fn dont_care() -> Self {
                     (
@@ -408,12 +402,12 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
         if N == 0 {
             return TypedBits::EMPTY;
         }
-        let kind = Kind::make_array(self[0].discriminant().kind, N);
+        let kind = Kind::make_array(self[0].discriminant().kind(), N);
         let mut v = Vec::with_capacity(Self::BITS);
         for x in self.iter() {
-            v.extend(x.discriminant().bits)
+            v.extend(x.discriminant().bits())
         }
-        TypedBits { kind, bits: v }
+        TypedBits::new(v, kind)
     }
 }
 
@@ -694,16 +688,16 @@ mod test {
     #[test]
     fn test_result_discriminant() {
         let x: Result<b8, b8> = Ok(b8(5));
-        assert_eq!(x.discriminant().bits, vec![BitX::One]);
+        assert_eq!(x.discriminant().bits(), vec![BitX::One]);
         let x: Result<b8, b8> = Err(b8(5));
-        assert_eq!(x.discriminant().bits, vec![BitX::Zero]);
+        assert_eq!(x.discriminant().bits(), vec![BitX::Zero]);
     }
 
     #[test]
     fn test_option_discriminant() {
         let x: Option<b8> = Some(b8(5));
-        assert_eq!(x.discriminant().bits, vec![BitX::One]);
+        assert_eq!(x.discriminant().bits(), vec![BitX::One]);
         let x: Option<b8> = None;
-        assert_eq!(x.discriminant().bits, vec![BitX::Zero]);
+        assert_eq!(x.discriminant().bits(), vec![BitX::Zero]);
     }
 }

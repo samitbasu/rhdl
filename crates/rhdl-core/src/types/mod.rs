@@ -1,10 +1,11 @@
-/// A string of 3-value bits (0, 1, x) that may be signed or unsigned.
+/// A string of 3-value bits `0,1,x` that may be signed or unsigned.
 pub mod bit_string;
 pub mod bitz;
 pub mod clock;
 pub mod clock_reset;
 /// The core Digital trait and implementations for standard types.
 pub mod digital;
+/// The trait used to describe synthesizable functions
 pub mod digital_fn;
 /// Time domain marker trait and color implementations.
 pub mod domain;
@@ -23,4 +24,5 @@ pub mod svg;
 pub mod timed;
 /// Struct that holds a Digital value, along with a timestamp
 pub mod timed_sample;
+/// Struct that holds a [Kind](crate::types::kind::Kind) and a bit representation
 pub mod typed_bits;

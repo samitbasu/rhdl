@@ -10,6 +10,7 @@ pub struct BlockRewriter<I> {
     tag: &'static str,
     captured_tag: String,
     block_counter: usize,
+    cached: bool,
 }
 
 impl<I> BlockRewriter<I> {
@@ -18,6 +19,7 @@ impl<I> BlockRewriter<I> {
         events: I,
         proc: fn(usize, &str, &str) -> Vec<Event<'static>>,
         tag: &'static str,
+        cached: bool,
     ) -> Self {
         Self {
             events,
@@ -29,6 +31,7 @@ impl<I> BlockRewriter<I> {
             tag,
             captured_tag: String::new(),
             block_counter: 0,
+            cached,
         }
     }
 }
@@ -86,7 +89,7 @@ where
                         self.spool = cached.into_iter().map(|e| e.into_static()).collect();
                         fetched = true;
                     }
-                    if !fetched {
+                    if !fetched || !self.cached {
                         self.spool =
                             (self.proc)(self.block_counter, &self.captured_tag, &self.block_text);
                         if let Ok(serialized) = serde_json::to_string(&self.spool) {
@@ -115,7 +118,18 @@ pub trait BlockRewriterExt: Iterator {
     where
         Self: Sized,
     {
-        BlockRewriter::new(source_path, self, proc, tag)
+        BlockRewriter::new(source_path, self, proc, tag, true)
+    }
+    fn rewrite_blocks_uncached(
+        self,
+        source_path: &Option<std::path::PathBuf>,
+        proc: fn(usize, &str, &str) -> Vec<Event<'static>>,
+        tag: &'static str,
+    ) -> BlockRewriter<Self>
+    where
+        Self: Sized,
+    {
+        BlockRewriter::new(source_path, self, proc, tag, false)
     }
 }
 

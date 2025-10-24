@@ -191,7 +191,7 @@ fn test_add_via_dyn_bits_fails_compile_with_mismatched() -> miette::Result<()> {
     let err = compile_design::<do_stuff>(CompilationMode::Asynchronous)
         .expect_err("Should have failed to compile");
     let report = miette_report(err);
-    expect_test::expect_file!["add_via_dyn_bits_fails_compile_with_mismatched.expect"]
+    expect_test::expect_file!["expect/add_via_dyn_bits_fails_compile_with_mismatched.expect"]
         .assert_eq(&report);
     Ok(())
 }
@@ -257,7 +257,7 @@ fn test_xadd_causes_overflow_warning_at_rhdl_compile_time() -> miette::Result<()
     let err = compile_design::<do_stuff>(CompilationMode::Asynchronous)
         .expect_err("Should have failed to compile");
     let report = miette_report(err);
-    expect_test::expect_file!["xadd_causes_overflow_warning_at_rhdl_compile_time.expect"]
+    expect_test::expect_file!["expect/xadd_causes_overflow_warning_at_rhdl_compile_time.expect"]
         .assert_eq(&report);
     Ok(())
 }
@@ -276,6 +276,6 @@ fn test_xsgn_is_trapped_as_signed() -> miette::Result<()> {
     let err = compile_design::<do_stuff>(CompilationMode::Asynchronous)
         .expect_err("Should have failed to compile");
     let report = miette_report(err);
-    expect_test::expect_file!["xsgn_is_trapped_as_signed.expect"].assert_eq(&report);
+    expect_test::expect_file!["expect/xsgn_is_trapped_as_signed.expect"].assert_eq(&report);
     Ok(())
 }

@@ -65,25 +65,28 @@ fn test_color_case() {
         foo_test
             .path(&Path::default().payload("Color").field("g"))
             .unwrap()
-            .bits,
+            .bits(),
         b8::from(0b11010101).bin().to_vec()
     );
     assert_eq!(
         foo_test
             .path(&Path::default().payload("Color").field("g"))
             .unwrap()
-            .kind,
+            .kind(),
         Kind::make_bits(8)
     );
     assert_eq!(
         foo_test
             .path(&Path::default().payload("Color").field("r"))
             .unwrap()
-            .bits,
+            .bits(),
         b8::from(0b10101010).bin().to_vec()
     );
     assert_eq!(
-        foo_test.path(&Path::default().discriminant()).unwrap().bits,
+        foo_test
+            .path(&Path::default().discriminant())
+            .unwrap()
+            .bits(),
         b5::from(0b00001).bin().to_vec()
     );
 }
@@ -99,25 +102,28 @@ fn test_size_case() {
         foo_test
             .path(&Path::default().payload("Size").field("w"))
             .unwrap()
-            .bits,
+            .bits(),
         b16::from(0b1010101010101010).bin().to_vec()
     );
     assert_eq!(
         foo_test
             .path(&Path::default().payload("Size").field("w"))
             .unwrap()
-            .kind,
+            .kind(),
         Kind::make_bits(16)
     );
     assert_eq!(
         foo_test
             .path(&Path::default().payload("Size").field("h"))
             .unwrap()
-            .bits,
+            .bits(),
         b16::from(0b1101010110101010).bin().to_vec()
     );
     assert_eq!(
-        foo_test.path(&Path::default().discriminant()).unwrap().bits,
+        foo_test
+            .path(&Path::default().discriminant())
+            .unwrap()
+            .bits(),
         b5::from(0b00010).bin().to_vec()
     );
 }
@@ -129,25 +135,28 @@ fn test_position_case() {
         foo_test
             .path(&Path::default().payload("Position").tuple_index(0))
             .unwrap()
-            .bits,
+            .bits(),
         b4::from(0b1010).bin().to_vec()
     );
     assert_eq!(
         foo_test
             .path(&Path::default().payload("Position").tuple_index(0))
             .unwrap()
-            .kind,
+            .kind(),
         Kind::make_bits(4)
     );
     assert_eq!(
         foo_test
             .path(&Path::default().payload("Position").tuple_index(1))
             .unwrap()
-            .bits,
+            .bits(),
         b4::from(0b1101).bin().to_vec()
     );
     assert_eq!(
-        foo_test.path(&Path::default().discriminant()).unwrap().bits,
+        foo_test
+            .path(&Path::default().discriminant())
+            .unwrap()
+            .bits(),
         b5::from(0b00100).bin().to_vec()
     );
 }
@@ -164,11 +173,11 @@ fn test_state_case() {
                     .discriminant()
             )
             .unwrap()
-            .bits,
+            .bits(),
         s3::from(2).bin().to_vec()
     );
     assert_eq!(
-        packet.path(&Path::default().discriminant()).unwrap().bits,
+        packet.path(&Path::default().discriminant()).unwrap().bits(),
         b5::from(0b01000).bin().to_vec()
     );
     let packet = Packet::State(State::Init).typed_bits();
@@ -181,7 +190,7 @@ fn test_state_case() {
                     .discriminant()
             )
             .unwrap()
-            .bits,
+            .bits(),
         s3::from(-2).bin().to_vec()
     );
 }
@@ -200,7 +209,7 @@ fn test_nested_struct_case() {
         packet
             .path(&Path::default().payload("Log").field("msg"))
             .unwrap()
-            .bits,
+            .bits(),
         b32::from(0xDEAD_BEEF).bin().to_vec()
     );
     assert_eq!(
@@ -212,14 +221,14 @@ fn test_nested_struct_case() {
                     .field("active")
             )
             .unwrap()
-            .bits,
+            .bits(),
         b1::from(1).bin().to_vec()
     );
     assert_eq!(
         packet
             .path(&Path::default().payload("Log").field("level").field("level"))
             .unwrap()
-            .bits,
+            .bits(),
         b8::from(0xBA).bin().to_vec()
     )
 }

@@ -116,7 +116,7 @@ Structs can be packed into arrays, used in enums, etc.  They can be very handy f
 pub struct Request<T, const N: usize>
 where
     T: Digital,
-    rhdl_bits::W<N>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     data: T,
     address: Bits<N>,

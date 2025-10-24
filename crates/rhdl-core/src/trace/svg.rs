@@ -560,8 +560,8 @@ fn slice_by_path_and_bucketize<T: Digital>(
 }
 
 fn map_bucket_to_region(bucket: &Bucket) -> Region {
-    let kind = match bucket.data.bits.len() {
-        1 => match bucket.data.bits[0] {
+    let kind = match bucket.data.len() {
+        1 => match bucket.data.bits()[0] {
             BitX::Zero => RegionKind::False,
             BitX::One => RegionKind::True,
             _ => RegionKind::Multibit,
@@ -633,7 +633,7 @@ fn bucketize(
 }
 
 pub fn format_as_label(t: &TypedBits) -> Option<String> {
-    (t.bits.len() != 1).then(|| format_as_label_inner(t))?
+    (t.len() != 1).then(|| format_as_label_inner(t))?
 }
 
 // Construct the leaf paths of the current object.  This version is a customized
@@ -716,7 +716,7 @@ pub fn try_path(t: &TypedBits, path: &Path) -> Option<TypedBits> {
             PathElement::EnumPayload(tag) => {
                 let discriminant = t.discriminant().ok()?.as_i64().ok()?;
                 let tag_discriminant = t
-                    .kind
+                    .kind()
                     .get_discriminant_for_variant_by_name(tag)
                     .ok()?
                     .as_i64()
@@ -747,7 +747,7 @@ pub fn try_path(t: &TypedBits, path: &Path) -> Option<TypedBits> {
 }
 
 fn format_as_label_inner(t: &TypedBits) -> Option<String> {
-    match t.kind {
+    match t.kind() {
         Kind::Array(inner) => {
             let vals = (0..inner.size)
                 .flat_map(|i| t.path(&Path::default().index(i)).ok())
@@ -797,7 +797,7 @@ fn format_as_label_inner(t: &TypedBits) -> Option<String> {
         Kind::Bits(inner) => {
             let mut val: u128 = 0;
             for ndx in 0..inner {
-                if t.bits[ndx] == BitX::One {
+                if t.bits()[ndx] == BitX::One {
                     // TODO - handle other BitX values
                     val |= 1 << ndx;
                 }
@@ -810,7 +810,7 @@ fn format_as_label_inner(t: &TypedBits) -> Option<String> {
         Kind::Signed(inner) => {
             let mut val: i128 = 0;
             for ndx in 0..inner {
-                if t.bits[ndx] == BitX::One {
+                if t.bits()[ndx] == BitX::One {
                     // TODO - handle other BitX values
                     val |= 1 << ndx;
                 }

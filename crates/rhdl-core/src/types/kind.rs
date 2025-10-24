@@ -412,10 +412,10 @@ impl Kind {
     ///
     /// Note that this is not necessarily a valid value for the type!
     pub fn place_holder(&self) -> TypedBits {
-        TypedBits {
-            bits: std::iter::repeat_n(BitX::Zero, self.bits()).collect(),
-            kind: *self,
-        }
+        TypedBits::new(
+            std::iter::repeat_n(BitX::Zero, self.bits()).collect(),
+            *self,
+        )
     }
     /// Gets the discriminant value for a variant by its name.
     /// # Errors
@@ -458,11 +458,8 @@ impl Kind {
             DiscriminantType::Signed => discriminant.signed_cast(e.discriminant_layout.width),
             DiscriminantType::Unsigned => discriminant.unsigned_cast(e.discriminant_layout.width),
         }?;
-        let all_bits = self.pad(discriminant_bits.bits);
-        Ok(TypedBits {
-            kind: *self,
-            bits: all_bits.into(),
-        })
+        let all_bits = self.pad(discriminant_bits.bits().to_vec());
+        Ok(TypedBits::new(all_bits.to_vec(), *self))
     }
     /// Checks if the kind is an enum.
     pub fn is_enum(&self) -> bool {

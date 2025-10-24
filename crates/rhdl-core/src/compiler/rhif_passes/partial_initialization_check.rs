@@ -112,7 +112,7 @@ impl CoverageMap<'_> {
 }
 
 fn typed_bit_cover(tb: &TypedBits) -> Vec<bool> {
-    tb.bits.iter().map(|b| *b != BitX::X).collect()
+    tb.iter().map(|b| *b != BitX::X).collect()
 }
 
 fn merge_cover(a: &mut [bool], b: &[bool], weak_mode: bool) {
@@ -132,7 +132,7 @@ fn check_for_partial_initialization(map: &mut CoverageMap) -> Result<(), RHDLErr
     });
     // Check the literals...  For enums, we declare them covered
     for (literal, (tb, _)) in obj.symtab.iter_lit() {
-        if tb.kind.is_enum() {
+        if tb.kind().is_enum() {
             map.declare_covered(Slot::Literal(literal));
             continue;
         }

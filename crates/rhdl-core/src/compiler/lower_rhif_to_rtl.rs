@@ -147,13 +147,13 @@ impl<'a> RTLCompiler<'a> {
     }
     fn operand_bit_width(&self, operand: Operand) -> usize {
         match operand {
-            Operand::Literal(literal_id) => self.symtab[literal_id].kind.bits(),
+            Operand::Literal(literal_id) => self.symtab[literal_id].kind().bits(),
             Operand::Register(register_id) => self.symtab[register_id].bits(),
         }
     }
     fn operand_is_signed(&self, operand: Operand) -> bool {
         match operand {
-            Operand::Literal(literal_id) => self.symtab[literal_id].kind.is_signed(),
+            Operand::Literal(literal_id) => self.symtab[literal_id].kind().is_signed(),
             Operand::Register(register_id) => self.symtab[register_id].is_signed(),
         }
     }
@@ -225,10 +225,7 @@ impl<'a> RTLCompiler<'a> {
                 .flat_map(|bs| bs.bits().to_vec())
                 .collect::<Vec<_>>();
             // Add the type information
-            let dyn_slot_tb = TypedBits {
-                bits: dyn_slot_bit_strings,
-                kind: selector_kind,
-            };
+            let dyn_slot_tb = TypedBits::new(dyn_slot_bit_strings, selector_kind);
             let Operand::Literal(test_value) = self.lit(dyn_slot_tb, loc) else {
                 panic!("Allocate literal returned a register?")
             };
@@ -650,7 +647,7 @@ impl<'a> RTLCompiler<'a> {
         if self.object.kind(*lhs).is_empty() {
             return Ok(());
         }
-        let kind = template.kind;
+        let kind = template.kind();
         let discriminant = template.discriminant()?.as_i64()?;
         let mut rhs = self.lit(template.clone(), id);
         for field in fields {
@@ -884,7 +881,7 @@ impl<'a> RTLCompiler<'a> {
             return Ok(());
         }
         let lhs = self.operand(*lhs);
-        let kind = template.kind;
+        let kind = template.kind();
         let mut rhs = if let Some(rest) = rest {
             self.operand(*rest)
         } else {
@@ -1166,7 +1163,7 @@ fn compile_rtl(object: &rhif::Object) -> Result<rtl::object::Object> {
             }
         })
         .collect();
-    let return_register = compiler.reverse_operand_map[&object.return_slot];
+    let return_register = compiler.operand(object.return_slot);
     Ok(rtl::object::Object {
         symbols: compiler.symbols,
         symtab: compiler.symtab,

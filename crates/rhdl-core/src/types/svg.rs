@@ -436,13 +436,13 @@ mod test {
         let len = kind.bits();
         let template = kind.enum_template("B").unwrap();
         let disc: TypedBits = 1_u64.into();
-        assert_eq!(template.bits, disc.unsigned_cast(len).unwrap().bits);
+        assert_eq!(template.bits(), disc.unsigned_cast(len).unwrap().bits());
         let template = kind.enum_template("C").unwrap();
         let disc: TypedBits = 2_u64.into();
-        assert_eq!(template.bits, disc.unsigned_cast(len).unwrap().bits);
+        assert_eq!(template.bits(), disc.unsigned_cast(len).unwrap().bits());
         let template = kind.enum_template("D").unwrap();
         let disc: TypedBits = 3_u64.into();
-        assert_eq!(template.bits, disc.unsigned_cast(len).unwrap().bits);
+        assert_eq!(template.bits(), disc.unsigned_cast(len).unwrap().bits());
     }
 
     #[test]
@@ -451,13 +451,13 @@ mod test {
         let template = kind.enum_template("A").unwrap();
         let disc: TypedBits = (-1_i64).into();
         let disc = disc.signed_cast(4).unwrap();
-        let pad = kind.pad(disc.bits);
-        assert_eq!(template.bits, pad.to_vec());
+        let pad = kind.pad(disc.bits().to_vec());
+        assert_eq!(template.bits(), pad.to_vec());
         let template = kind.enum_template("B").unwrap();
         let disc: TypedBits = 1_i64.into();
         let disc = disc.signed_cast(4).unwrap();
-        let pad = kind.pad(disc.bits);
-        assert_eq!(template.bits, pad.to_vec());
+        let pad = kind.pad(disc.bits().to_vec());
+        assert_eq!(template.bits(), pad.to_vec());
     }
 
     // Create a complex kind for testing that
@@ -699,8 +699,8 @@ mod test {
         use crate::Digital;
         use rhdl_bits::alias::*;
         let a = std::result::Result::<b8, b8>::Ok(b8(42)).typed_bits();
-        assert!(a.kind.is_result());
+        assert!(a.kind().is_result());
         let b = std::result::Result::<b4, ()>::Err(()).typed_bits();
-        assert!(b.kind.is_result());
+        assert!(b.kind().is_result());
     }
 }

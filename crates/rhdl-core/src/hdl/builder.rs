@@ -27,13 +27,13 @@ impl From<&TypedBits> for vlog::LitVerilog {
     fn from(tb: &TypedBits) -> Self {
         let bits = "b"
             .chars()
-            .chain(tb.bits.iter().rev().map(|b| match b {
+            .chain(tb.iter().rev().map(|b| match b {
                 BitX::Zero => '0',
                 BitX::One => '1',
                 BitX::X => 'X',
             }))
             .collect::<String>();
-        vlog::lit_verilog(tb.bits.len() as u32, &bits)
+        vlog::lit_verilog(tb.len() as u32, &bits)
     }
 }
 

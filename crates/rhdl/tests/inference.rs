@@ -171,7 +171,7 @@ fn test_signal_ops_inference() -> miette::Result<()> {
     let err = compile_design::<add<Red, Green>>(CompilationMode::Asynchronous)
         .expect_err("Expected this to fail with a clock coherence error");
     let report = miette_report(err);
-    expect_test::expect_file!["signal_ops_inference_cross_clock.expect"].assert_eq(&report);
+    expect_test::expect_file!["expect/signal_ops_inference_cross_clock.expect"].assert_eq(&report);
     Ok(())
 }
 

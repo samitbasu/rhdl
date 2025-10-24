@@ -96,7 +96,7 @@ impl Object {
     pub fn kind(&self, slot: Slot) -> Kind {
         match slot {
             Slot::Register(reg) => self.symtab[reg],
-            Slot::Literal(lit) => self.symtab[lit].kind,
+            Slot::Literal(lit) => self.symtab[lit].kind(),
         }
     }
     pub fn hash_value(&self) -> u64 {
@@ -126,7 +126,7 @@ impl std::fmt::Debug for Object {
             writeln!(f, "Reg {reg} : {kind:?} // {slot_name}")?;
         }
         for (lit, (tb, _)) in self.symtab.iter_lit() {
-            let kind = tb.kind;
+            let kind = tb.kind();
             writeln!(f, "Literal {lit:?} : {kind:?} = {tb:?}")?;
         }
         for (ndx, func) in self.externals.iter() {

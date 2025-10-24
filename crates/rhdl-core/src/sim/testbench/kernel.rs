@@ -358,7 +358,7 @@ where
         let args_for_vm = input.vec_tb();
         let expected = uut.apply(input).typed_bits();
         let actual = crate::rhif::vm::execute(&design, args_for_vm)?;
-        if expected.bits != actual.bits {
+        if expected.bits() != actual.bits() {
             return Err(RHDLError::VerilogVerificationErrorTyped { expected, actual });
         }
     }

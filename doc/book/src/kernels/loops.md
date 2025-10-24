@@ -46,8 +46,8 @@ where `b0..` are the bits of `a`.  You can also make the loop depend on the gene
 ```rust,kernel:loops
 #[kernel]
 pub fn count_ones<const N: usize, const M: usize>(a: Bits::<N>) -> Bits::<M> 
-where W<N> : BitWidth,
-      W<M> : BitWidth
+where rhdl::bits::W<N>: BitWidth,
+      rhdl::bits::W<M> : BitWidth
 {
     let mut count = bits::<M>(0);
     for i in 0..N {
@@ -71,7 +71,7 @@ Using a loop does not necessarily imply a long linear chain of circuitry.  The l
 ```rust,kernel:loops
 #[kernel]
 pub fn xnor<const N: usize>(a: Bits::<N>, b: Bits::<N>) -> Bits::<N> 
-where W<N> : BitWidth
+where rhdl::bits::W<N>: BitWidth
 {
     let mut ret_value = bits::<N>(0);
     for i in 0..N {

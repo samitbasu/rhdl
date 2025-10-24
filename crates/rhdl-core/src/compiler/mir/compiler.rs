@@ -1447,7 +1447,7 @@ impl<'a> MirContext<'a> {
             .map(|x| self.field_value(x))
             .collect::<Result<_>>()?;
         let rest = strukt.rest.as_ref().map(|x| self.expr(x)).transpose()?;
-        if let Kind::Enum(_enum) = &strukt.template.kind {
+        if let Kind::Enum(_enum) = strukt.template.kind() {
             debug!("Emitting enum opcode");
             self.op(op_enum(lhs, fields, strukt.template.clone()), id);
         } else {

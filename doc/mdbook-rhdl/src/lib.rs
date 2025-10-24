@@ -30,7 +30,7 @@ impl Rhdl {
         let events = events.rewrite_blocks(&source_path, silent_shell, SHELL_SILENT_PREFIX);
         let events = events.rewrite_blocks(&source_path, rhdl_write::rhdl_write, WRITE_PREFIX);
         let events = events.rewrite_blocks(&source_path, exec_shell, SHELL_PREFIX);
-        let events = events.rewrite_blocks(
+        let events = events.rewrite_blocks_uncached(
             &source_path,
             kernel_block::rhdl_write,
             kernel_block::KERNEL_PREFIX,

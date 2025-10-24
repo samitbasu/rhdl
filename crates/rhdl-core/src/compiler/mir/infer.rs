@@ -3,6 +3,7 @@ use rhdl_bits::alias::{b128, s128};
 use crate::{
     ast::SourceLocation,
     common::symtab::{Symbol, SymbolTable},
+    compiler::mir::lit::{parse_i128, parse_u128},
     rhif::object::SourceDetails,
 };
 use log::{debug, trace};
@@ -126,11 +127,11 @@ impl<'a> MirTypeInference<'a> {
         let kind = self.ctx.into_kind(ty)?;
         Ok(match t {
             ExprLit::TypedBits(tb) => {
-                if tb.value.kind != kind {
+                if tb.value.kind() != kind {
                     return Err(self
                         .raise_type_error(
                             TypeCheck::InferredLiteralTypeMismatch {
-                                typ: tb.value.kind,
+                                typ: tb.value.kind(),
                                 kind,
                             },
                             ty.loc,
@@ -141,26 +142,10 @@ impl<'a> MirTypeInference<'a> {
             }
             ExprLit::Int(x) => {
                 if kind.is_unsigned() {
-                    let x_as_u128 = if let Some(x) = x.strip_prefix("0b") {
-                        u128::from_str_radix(x, 2)?
-                    } else if let Some(x) = x.strip_prefix("0o") {
-                        u128::from_str_radix(x, 8)?
-                    } else if let Some(x) = x.strip_prefix("0x") {
-                        u128::from_str_radix(x, 16)?
-                    } else {
-                        x.parse::<u128>()?
-                    };
+                    let x_as_u128 = parse_u128(&x)?;
                     b128(x_as_u128).typed_bits().unsigned_cast(kind.bits())?
                 } else {
-                    let x_as_i128 = if let Some(x) = x.strip_prefix("0b") {
-                        i128::from_str_radix(x, 2)?
-                    } else if let Some(x) = x.strip_prefix("0o") {
-                        i128::from_str_radix(x, 8)?
-                    } else if let Some(x) = x.strip_prefix("0x") {
-                        i128::from_str_radix(x, 16)?
-                    } else {
-                        x.parse::<i128>()?
-                    };
+                    let x_as_i128 = parse_i128(&x)?;
                     s128(x_as_i128).typed_bits().signed_cast(kind.bits())?
                 }
             }
@@ -207,7 +192,7 @@ impl<'a> MirTypeInference<'a> {
         for (slot, (lit, id)) in self.mir.symtab.iter_lit() {
             let id = *id;
             let ty = match lit {
-                ExprLit::TypedBits(tb) => self.ctx.from_kind(id, tb.value.kind),
+                ExprLit::TypedBits(tb) => self.ctx.from_kind(id, tb.value.kind()),
                 ExprLit::Int(_) => self.ctx.ty_integer(id),
                 ExprLit::Bool(_) => self.ctx.ty_bool(id),
                 ExprLit::Empty => self.ctx.ty_empty(id),
@@ -704,17 +689,17 @@ impl<'a> MirTypeInference<'a> {
                 }
                 OpCode::Enum(enumerate) => {
                     let lhs = self.slot_ty(enumerate.lhs);
-                    let Kind::Enum(enum_k) = &enumerate.template.kind else {
+                    let Kind::Enum(enum_k) = enumerate.template.kind() else {
                         return Err(self
                             .raise_ice(
                                 ICE::ExpectedEnumTemplate {
-                                    kind: enumerate.template.kind,
+                                    kind: enumerate.template.kind(),
                                 },
                                 op.loc,
                             )
                             .into());
                     };
-                    let lhs_ty = self.ctx.ty_enum(loc, enum_k);
+                    let lhs_ty = self.ctx.ty_enum(loc, &enum_k);
                     self.unify(loc, lhs, lhs_ty)?;
                     let discriminant = enumerate.template.discriminant()?.as_i64()?;
                     for field in &enumerate.fields {
@@ -726,7 +711,7 @@ impl<'a> MirTypeInference<'a> {
                                 .payload_by_value(discriminant)
                                 .tuple_index(*ndx as usize),
                         };
-                        let field_kind = sub_kind(enumerate.template.kind, &path)?;
+                        let field_kind = sub_kind(enumerate.template.kind(), &path)?;
                         let field_ty = self.ctx.from_kind(loc, field_kind);
                         let field_slot = self.slot_ty(field.value);
                         self.unify(loc, field_ty, field_slot)?;
@@ -829,17 +814,17 @@ impl<'a> MirTypeInference<'a> {
                 }
                 OpCode::Struct(structure) => {
                     let lhs = self.slot_ty(structure.lhs);
-                    let Kind::Struct(strukt) = &structure.template.kind else {
+                    let Kind::Struct(strukt) = structure.template.kind() else {
                         return Err(self
                             .raise_ice(
                                 ICE::ExpectedStructTemplate {
-                                    kind: structure.template.kind,
+                                    kind: structure.template.kind(),
                                 },
                                 op.loc,
                             )
                             .into());
                     };
-                    let lhs_ty = self.ctx.ty_struct(loc, strukt);
+                    let lhs_ty = self.ctx.ty_struct(loc, &strukt);
                     self.unify(loc, lhs, lhs_ty)?;
                     for field in &structure.fields {
                         let field_kind = strukt.get_field_kind(&field.member)?;

@@ -43,7 +43,7 @@ You can make your function generic and add bounds as needed.
 ```rust,kernel:functions
 #[kernel]
 pub fn generic_kernel<const N: usize>(a: Bits<N>, b: Bits<N>) -> Bits<N> 
-    where W<N> : BitWidth {
+    where rhdl::bits::W<N>: BitWidth {
     a + b
 }
 
@@ -100,7 +100,7 @@ When the function you are calling is generic, you must provide the generic param
 ```rust,kernel:functions
 #[kernel]
 pub fn my_add<const N: usize>(a: Bits::<N>, b: Bits::<N>) -> Bits::<N> 
-where W<N> : BitWidth {
+where rhdl::bits::W<N>: BitWidth {
     a + b
 }
 

@@ -697,7 +697,7 @@ fn test_error_about_for_loop() -> miette::Result<()> {
     };
 
     let report = miette_report(err);
-    expect_test::expect_file!["for_loop_non_integer_end_value.expect"].assert_eq(&report);
+    expect_test::expect_file!["expect/for_loop_non_integer_end_value.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -730,7 +730,7 @@ fn test_maybe_init_does_not_allow_select() -> miette::Result<()> {
     let err = compile_design::<do_stuff>(CompilationMode::Asynchronous)
         .expect_err("Expected this to fail with a maybe-init error");
     let report = miette_report(err);
-    expect_test::expect_file!["maybe_init_select.expect"].assert_eq(&report);
+    expect_test::expect_file!["expect/maybe_init_select.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -771,7 +771,7 @@ fn test_match_with_tuple_struct() -> miette::Result<()> {
     let err = compile_design::<kernel>(CompilationMode::Asynchronous)
         .expect_err("Expected this to fail with an supported pattern error");
     let report = miette_report(err);
-    expect_test::expect_file!["maybe_init_tuple_struct.expect"].assert_eq(&report);
+    expect_test::expect_file!["expect/maybe_init_tuple_struct.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -793,7 +793,7 @@ fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
     let err = compile_design::<do_stuff>(CompilationMode::Asynchronous)
         .expect_err("Expected this to fail with a maybe-init error");
     let report = miette_report(err);
-    expect_test::expect_file!["maybe_init_dont_care.expect"].assert_eq(&report);
+    expect_test::expect_file!["expect/maybe_init_dont_care.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -841,5 +841,20 @@ fn test_maybe_init_with_slice() -> miette::Result<()> {
     }
 
     compile_design::<do_stuff>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
+fn test_kernel_block() -> miette::Result<()> {
+    #[kernel]
+    fn literals_syntax_kernel(a: b8) -> b8 {
+        let c1 = b8(0xbe); // hexadecimal constant
+        let c2 = b8(0b1101_0110); // binary constant
+        let c3 = b8(0o03_42); // octal constant
+        let c4 = b8(135); // decimal constant
+        a + c4 - c1 + c2 + c3 + 1 + 0xa_1 + 0b10_1010 + 0o1_77
+    }
+
+    compile_design::<literals_syntax_kernel>(CompilationMode::Synchronous)?;
     Ok(())
 }

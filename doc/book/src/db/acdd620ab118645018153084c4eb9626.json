@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"use rhdl::prelude::*;\n#[test]\nfn test_count_ones() {\n    assert_eq!(ones::helper::count_ones::<8, 4>(b8(0b10110010)), b4(4));\n}"},{"End":"CodeBlock"}]

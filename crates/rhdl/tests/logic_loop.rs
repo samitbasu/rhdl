@@ -78,7 +78,7 @@ mod tests {
             panic!("Expected this to fail with a logic loop error");
         };
         let report = miette_report(err);
-        expect_test::expect_file!["logic_loop.expect"].assert_eq(&report);
+        expect_test::expect_file!["expect/logic_loop.expect"].assert_eq(&report);
         Ok(())
     }
 }

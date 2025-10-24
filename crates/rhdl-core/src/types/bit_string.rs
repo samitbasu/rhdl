@@ -1,4 +1,3 @@
-//! A string of 3-value bits (0, 1, x) that may be signed or unsigned.
 use crate::{
     Kind, RHDLError, TypedBits,
     bitx::{BitX, bitx_string},
@@ -142,19 +141,9 @@ impl std::fmt::Debug for BitString {
 impl From<&BitString> for TypedBits {
     fn from(bs: &BitString) -> Self {
         if bs.is_signed() {
-            {
-                TypedBits {
-                    bits: bs.bits().to_owned(),
-                    kind: Kind::make_signed(bs.len()),
-                }
-            }
+            TypedBits::new(bs.bits().to_owned(), Kind::make_signed(bs.len()))
         } else {
-            {
-                TypedBits {
-                    bits: bs.bits().to_owned(),
-                    kind: Kind::make_bits(bs.len()),
-                }
-            }
+            TypedBits::new(bs.bits().to_owned(), Kind::make_bits(bs.len()))
         }
     }
 }
@@ -167,10 +156,10 @@ impl From<BitString> for TypedBits {
 
 impl From<&TypedBits> for BitString {
     fn from(tb: &TypedBits) -> Self {
-        if tb.kind.is_signed() {
-            BitString::Signed(tb.bits.clone())
+        if tb.kind().is_signed() {
+            BitString::Signed(tb.bits().to_vec())
         } else {
-            BitString::Unsigned(tb.bits.clone())
+            BitString::Unsigned(tb.bits().to_vec())
         }
     }
 }
