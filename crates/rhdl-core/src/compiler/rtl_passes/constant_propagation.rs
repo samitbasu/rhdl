@@ -185,7 +185,7 @@ fn propagate_select(
     } = &select;
     if let Operand::Literal(cond) = cond {
         let cond = &obj.symtab[cond];
-        let tb = cond.bits[0].to_bool().ok_or_else(|| {
+        let tb = cond.bits()[0].to_bool().ok_or_else(|| {
             rhdl_error(RHDLCompileError {
                 cause: ICE::SelectOnUninitializedValue {
                     value: cond.clone(),
@@ -222,11 +222,11 @@ fn propagate_splice(
     if let (Operand::Literal(orig), Operand::Literal(value)) = (orig, value) {
         let orig = obj.symtab[orig].clone();
         let value = obj.symtab[value].clone();
-        let mut bits = orig.bits.to_vec();
-        bits.splice(bit_range.clone(), value.bits.iter().copied());
+        let mut bits = orig.bits().to_vec();
+        bits.splice(bit_range.clone(), value.iter().copied());
         let details = obj.symtab[lhs].clone();
         let kind = obj.kind(*lhs);
-        let result = TypedBits { kind, bits };
+        let result = TypedBits::new(bits, kind);
         let result = obj.symtab.lit(result, details);
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {
@@ -256,10 +256,10 @@ fn propagate_index(
     } = &index;
     if let Operand::Literal(arg) = arg {
         let arg = obj.symtab[arg].clone();
-        let bits = arg.bits[bit_range.clone()].to_vec();
+        let bits = arg.bits()[bit_range.clone()].to_vec();
         let details = obj.symtab[lhs].clone();
         let kind = obj.kind(*lhs);
-        let result = TypedBits { kind, bits };
+        let result = TypedBits::new(bits, kind);
         let result = obj.symtab.lit(result, details);
         Ok(LocatedOpCode {
             op: OpCode::Assign(Assign {

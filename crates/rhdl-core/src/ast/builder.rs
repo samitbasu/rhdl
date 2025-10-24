@@ -281,10 +281,7 @@ impl ASTBuilder {
     }
 
     pub fn wild_discriminant(&self) -> TypedBits {
-        TypedBits {
-            bits: vec![],
-            kind: Kind::Empty,
-        }
+        TypedBits::EMPTY
     }
 
     pub fn lit_pat(&self, id: NodeId, lit: ExprLit) -> Box<Pat> {

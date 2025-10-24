@@ -15,6 +15,26 @@ use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 use test_log::test;
 
 #[test]
+fn test_array_kernel() -> miette::Result<()> {
+    #[kernel]
+    fn kernel() -> [b4; 4] {
+        [b4(3); 4]
+    }
+    let _ = compile_design::<kernel>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
+fn test_const_kernel() -> miette::Result<()> {
+    #[kernel]
+    fn kernel() -> b8 {
+        b8(42)
+    }
+    let _ = compile_design::<kernel>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
 fn test_tuple_struct_indexing() -> miette::Result<()> {
     #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo(b6, b6);

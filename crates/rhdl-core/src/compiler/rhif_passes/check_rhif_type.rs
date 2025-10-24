@@ -355,7 +355,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 template,
             }) => {
                 let ty = slot_type(lhs);
-                eq_kinds(ty, template.kind, loc)?;
+                eq_kinds(ty, template.kind(), loc)?;
                 if let Some(rest) = rest {
                     let rest_ty = slot_type(rest);
                     eq_kinds(ty, rest_ty, loc)?;

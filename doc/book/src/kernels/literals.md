@@ -35,7 +35,7 @@ fn kernel(a: b8) -> b8 {
 
 If RHDL infers a size for your literal that won't hold the value you specify, you will get an error during the RHDL compilation of your kernel function, or a run time panic if you try to exercise the `kernel` manually.
 
-```rust,kernel:literals
+```rust
 #[kernel]
 fn kernel(a: b8) -> b8 {
     a + 270 // 👈 panics at runtime or fails at RHDL compile time

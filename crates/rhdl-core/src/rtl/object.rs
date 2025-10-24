@@ -71,7 +71,7 @@ impl Object {
 
     pub(crate) fn kind(&self, op: Operand) -> Kind {
         match op {
-            Operand::Literal(lid) => self.symtab[lid].kind,
+            Operand::Literal(lid) => self.symtab[lid].kind(),
             Operand::Register(rid) => self.symtab[rid],
         }
     }
@@ -98,7 +98,7 @@ impl std::fmt::Debug for Object {
         }
         for (lid, (literal, _)) in self.symtab.iter_lit() {
             let bs: BitString = literal.into();
-            let kind = literal.kind;
+            let kind = literal.kind();
             writeln!(f, "Lit {lid:?} : {bs:?} // {kind:?}")?;
         }
         let mut body_str = String::new();

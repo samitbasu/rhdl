@@ -43,7 +43,7 @@ fn test_nested_enum_match_in_if_let_fails() -> miette::Result<()> {
         None,
     ];
 
-    let expect_err = expect_file!["nested_enum_in_if_let.expect"];
+    let expect_err = expect_file!["expect/nested_enum_in_if_let.expect"];
     let res = compile_design::<add>(CompilationMode::Asynchronous);
     let err = res.err().unwrap();
     let report = miette_report(err);

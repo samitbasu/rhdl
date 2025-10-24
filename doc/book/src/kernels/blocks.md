@@ -10,6 +10,6 @@ fn kernel(a: b8, b: b8) -> b8 {
         let e = a + d;
         e + 3 // 👈 block value computed from this expression
     };
-    a + c
+    a + c - b
 }
 ```

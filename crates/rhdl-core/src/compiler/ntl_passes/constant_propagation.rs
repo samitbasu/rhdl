@@ -76,7 +76,7 @@ fn compute_unary(
     };
     if let Some(arg) = arg {
         if let Ok(val) = unary(alu, arg) {
-            for (&lhs, &rhs) in unary_op.lhs.iter().zip(&val.bits) {
+            for (&lhs, rhs) in unary_op.lhs.iter().zip(val) {
                 let res = input.symtab.lit(rhs, input.symtab[lhs].clone());
                 lop.push(LocatedOpCode {
                     op: assign(lhs, res),
@@ -116,7 +116,7 @@ fn compute_vector(
                 VectorOp::Shr => AluBinary::Shr,
             };
             if let Ok(res) = binary(alu, arg1, arg2) {
-                for (&lhs, &rhs) in vector.lhs.iter().zip(&res.bits) {
+                for (&lhs, rhs) in vector.lhs.iter().zip(res) {
                     let details = input.symtab[lhs].clone();
                     let rhs = input.symtab.lit(rhs, details);
                     lop.push(LocatedOpCode {

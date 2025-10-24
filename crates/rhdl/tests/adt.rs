@@ -429,8 +429,7 @@ fn test_enum_unmatched_variant_not_usable() -> miette::Result<()> {
         panic!("Expected error")
     };
     let report = miette_report(err);
-    expect_test::expect_file!["enum_unmatched_variant_not_usable.expect"]
-        .assert_eq(&report);
+    expect_test::expect_file!["expect/enum_unmatched_variant_not_usable.expect"].assert_eq(&report);
     Ok(())
 }
 

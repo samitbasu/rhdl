@@ -1,0 +1,11 @@
+[
+    {
+        "Start": "HtmlBlock"
+    },
+    {
+        "Html": "<pre><code class=\"hljs hide-boring\"><span style='color:var(--cyan,#0aa)'>ones ❯</span> <b>cargo nextest run test_timing_divided --no-capture</b>\n<b><span style='color:var(--green,#0a0)'>   Compiling</span></b> ones v0.1.0 (/private/tmp/rhdl/ones)\n<b><span style='color:#f55'>error</span></b><b>: expected one of `,`, `:`, `=`, or `>`, found `::`</b>\n <b><span style='color:#55f'>--> </span></b>src/helper.rs:4:28\n  <b><span style='color:#55f'>|</span></b>\n<b><span style='color:#55f'>4</span></b> <b><span style='color:#55f'>|</span></b> pub fn count_ones<rhdl::bits::W<N>: BitWidth, M: BitWidth>(x: Bits<N>) -> Bits<M> {\n  <b><span style='color:#55f'>|</span></b>                            <b><span style='color:#f55'>^^</span></b> <b><span style='color:#f55'>expected one of `,`, `:`, `=`, or `>`</span></b>\n\n<b><span style='color:var(--red,#a00)'>error</span></b><b>:</b> could not compile `ones` (lib test) due to 1 previous error\n<b><span style='color:var(--yellow,#a60)'>warning</span></b><b>:</b> build failed, waiting for other jobs to finish...\n<b><span style='color:var(--red,#a00)'>error</span></b><b>:</b> could not compile `ones` (lib) due to 1 previous error\n<span style='color:var(--red,#a00)'><b>error</b></span>: command `<b>/Users/samitbasu/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo test --no-run --message-format json-render-diagnostics</b>` exited with code <b>101</b>\n</code></pre>"
+    },
+    {
+        "End": "HtmlBlock"
+    }
+]

@@ -1,0 +1,12 @@
+  × RHDL Clock Domain Violation
+  ╰─▶ RHDL Clock Domain Violation
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/clock.rs:506:38]
+ 505 │     fn do_stuff<C: Domain, D: Domain>(a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<b8, C> {
+ 506 │         signal(a.val() + double::<C>(signal(b.val())).val())
+     ·                                      ───────┬───────┬┬
+     ·                                             │       │╰── Clock domain mismatch in retime operation
+     ·                                             │       ╰── Expression belongs to Red clock domain
+     ·                                             ╰── Expression belongs to Green clock domain
+ 507 │     }
+     ╰────
+  help: You cannot retime signals from different clock domains.  You may need a clock domain crosser in your design.

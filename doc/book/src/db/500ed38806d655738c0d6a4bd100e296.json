@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"use rhdl::prelude::*;\n\n#[kernel]\npub fn count_ones<rhdl::bits::W<N>: BitWidth, M: BitWidth>(x: Bits<N>) -> Bits<M> {\n    let mut count = bits(0);\n    for i in 0..N::BITS {\n        if x & (1 << i) != 0 {\n            count += 1;\n        }\n    }\n    count\n}"},{"End":"CodeBlock"}]

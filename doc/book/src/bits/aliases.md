@@ -26,7 +26,7 @@ let c: SignedBits::<12>;
 The shorter version tends to make code more readable, as the heavier notation for types doesn't convey much unique information in code that uses a lot of bitvectors.   But the choice is up to you.  If you end up needing to write generic code, like a function that does something like:
 
 ```rust
-fn my_func<const N: usize>(a: Bits::<N>) -> Bits::<N>  where W<N> : BitWidth {
+fn my_func<const N: usize>(a: Bits::<N>) -> Bits::<N>  where rhdl::bits::W<N>: BitWidth {
    let c: SignedBits::<N>;
    // Compute fancy stuff!
    a

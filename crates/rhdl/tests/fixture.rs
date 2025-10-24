@@ -9,7 +9,7 @@ use rhdl_vlog::formatter::Pretty;
 
 #[test]
 fn test_simple_fixture_example() -> miette::Result<()> {
-    let expect = expect_test::expect_file!["fixture_adder.expect"];
+    let expect = expect_test::expect_file!["expect/fixture_adder.expect"];
     #[kernel]
     fn adder(a: Signal<(b4, b4), Red>) -> Signal<b4, Red> {
         let (a, b) = a.val();

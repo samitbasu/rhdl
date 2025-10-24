@@ -27,7 +27,7 @@ This may look somewhat inefficient, but it will reduce down to a simple adder wi
 #[kernel]
 fn get_msb<const N: usize>(a: Bits<N>) -> bool
 where
-    W<N>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     (a & (1 << (N - 1))).any()
 }

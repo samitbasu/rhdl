@@ -289,7 +289,7 @@ fn test_time_slice_for_enum() {
     ];
 
     let label = trace::svg::build_time_trace(&val_array, &Default::default(), 0..=20);
-    let expect = expect_file!["time_slice_for_enum.expect"];
+    let expect = expect_file!["expect/time_slice_for_enum.expect"];
     expect.assert_debug_eq(&label);
 }
 
@@ -317,13 +317,13 @@ fn test_time_slice_for_struct() {
 
     let path = Path::default().field("b").tuple_index(2);
     let time_trace = trace::svg::build_time_trace(&data, &path, 0..=25);
-    let expect = expect_file!["time_slice_for_struct.expect"];
+    let expect = expect_file!["expect/time_slice_for_struct.expect"];
     expect.assert_debug_eq(&time_trace);
     let path = Path::default().field("b");
     let time_trace = trace::svg::build_time_trace(&data, &path, 0..=25);
-    let expect = expect_file!["time_trace_for_struct_b.expect"];
+    let expect = expect_file!["expect/time_trace_for_struct_b.expect"];
     expect.assert_debug_eq(&time_trace);
     let time_trace = trace::svg::build_time_trace(&data, &Default::default(), 0..=25);
-    let expect = expect_file!["time_trace_for_struct_root.expect"];
+    let expect = expect_file!["expect/time_trace_for_struct_root.expect"];
     expect.assert_debug_eq(&time_trace);
 }

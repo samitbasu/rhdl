@@ -1,0 +1,12 @@
+  × RHDL Clock Domain Violation
+  ╰─▶ RHDL Clock Domain Violation
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/clock.rs:299:9]
+ 298 │         let y = x.b + 1;
+ 299 │         signal(y)
+     ·         ────┬────┬┬
+     ·             │    │╰── Clock domain mismatch in retime operation
+     ·             │    ╰── Expression belongs to Green clock domain
+     ·             ╰── Expression belongs to Red clock domain
+ 300 │     }
+     ╰────
+  help: You cannot retime signals from different clock domains.  You may need a clock domain crosser in your design.

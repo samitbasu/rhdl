@@ -202,7 +202,7 @@ fn test_option_result_match_func() -> miette::Result<()> {
         signal(d)
     }
 
-    let expect = expect_file!["option_result_match.expect"];
+    let expect = expect_file!["expect/option_result_match.expect"];
     let res = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     let res = res.err().unwrap();
     let report = miette_report(res);
@@ -346,7 +346,7 @@ fn test_option_result_nested_option_result_destructure() -> miette::Result<()> {
         signal(d)
     }
 
-    let expect = expect_file!["option_result_nested_option_result_destructure.expect"];
+    let expect = expect_file!["expect/option_result_nested_option_result_destructure.expect"];
     let res = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     let res = res.err().unwrap();
     let report = miette_report(res);
@@ -376,7 +376,7 @@ fn test_option_result_nested_option_result_destructure_simple() -> miette::Resul
         signal(d)
     }
 
-    let expect_err = expect_file!["option_result_more.expect"];
+    let expect_err = expect_file!["expect/option_result_more.expect"];
     let res = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     let err = res.err().unwrap();
     let report = miette_report(err);

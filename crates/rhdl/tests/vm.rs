@@ -34,7 +34,7 @@ fn test_vm_simple_function_with_invalid_args_causes_ice() -> miette::Result<()> 
     let res = rhdl::core::rhif::vm::execute(&design, vec![b16(42).typed_bits()]);
     let err = res.unwrap_err();
     let report = miette_report(err);
-    expect_test::expect_file!["vm_invalid_args.expect"].assert_eq(&report);
+    expect_test::expect_file!["expect/vm_invalid_args.expect"].assert_eq(&report);
     Ok(())
 }
 

@@ -1,0 +1,13 @@
+  × RHDL Clock Domain Violation
+  ╰─▶ RHDL Clock Domain Violation
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/clock.rs:232:17]
+ 231 │         let y = y.val();
+ 232 │         let z = x + y;
+     ·                 ──┬──┬┬┬
+     ·                   │  ││╰── Clock domain mismatch in binary operation +
+     ·                   │  │╰── Expression belongs to Unknown clock domain
+     ·                   │  ╰── Expression belongs to Green clock domain
+     ·                   ╰── Expression belongs to Red clock domain
+ 233 │         signal(z.resize())
+     ╰────
+  help: You cannot perform binary operations on signals from different clock domains
