@@ -601,7 +601,8 @@ mod test {
     fn test_layout_of_complex_kind() {
         let kind = make_complex_kind();
         let svg = kind_svg::svg_grid(&kind, "value");
-        svg::save("test.svg", &svg).unwrap();
+        expect_test::expect_file!("expect/test_complex_kind_svg.expect")
+            .assert_eq(&svg.to_string());
     }
     #[test]
     fn test_layout_of_struct() {
@@ -624,7 +625,7 @@ mod test {
             .into(),
         );
         let svg = kind_svg::svg_grid(&kind, "value");
-        svg::save("test.svg", &svg).unwrap();
+        expect_test::expect_file!("expect/test_struct_svg.expect").assert_eq(&svg.to_string());
     }
     #[test]
     fn test_layout_of_struct_with_nesting() {
@@ -660,7 +661,8 @@ mod test {
             .into(),
         );
         let svg = kind_svg::svg_grid(&kind, "value");
-        svg::save("test.svg", &svg).unwrap();
+        expect_test::expect_file!("expect/test_struct_with_nesting_svg.expect")
+            .assert_eq(&svg.to_string());
     }
 
     #[test]
@@ -691,7 +693,7 @@ mod test {
             ),
         );
         let svg = kind_svg::svg_grid(&kind, "value");
-        svg::save("test.svg", &svg).unwrap();
+        expect_test::expect_file!("expect/test_simple_enum_svg.expect").assert_eq(&svg.to_string());
     }
 
     #[test]

@@ -1,0 +1,99 @@
+<svg viewBox="0 0 225 180" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<clipPath id="clip">
+<rect height="180" width="225" x="0" y="0"/>
+</clipPath>
+</defs>
+<rect fill="#0B151D" height="180" stroke="darkblue" width="225" x="0" y="0"/>
+<line stroke="#333333" stroke-width="1" x1="200" x2="200" y1="0" y2="180"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="200" y="10">
+0
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" y="10">
+Time:
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="30">
+val
+<title>val</title>
+</text>
+<path d="M 200 30 L 202 22 L 203 22 L 205 30 L 203 38 L 202 38 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="202" xml:space="preserve" y="30">
+
+<title>Empty</title>
+</text>
+<path d="M 205 30 L 207 22 L 208 22 L 210 30 L 208 38 L 207 38 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="207" xml:space="preserve" y="30">
+
+<title>A(2a, 0400)</title>
+</text>
+<path d="M 210 30 L 212 22 L 213 22 L 215 30 L 213 38 L 212 38 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="212" xml:space="preserve" y="30">
+
+<title>B{name: 43}</title>
+</text>
+<path d="M 215 30 L 218 23 L 222 23 L 225 30 L 222 37 L 218 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="220" xml:space="preserve" y="30">
+
+<title>C(1)</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="50">
+val#Empty
+<title>val#Empty</title>
+</text>
+<path d="M 200 50 L 202 42 L 203 42 L 205 50 L 203 58 L 202 58 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="202" xml:space="preserve" y="50">
+
+<title></title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
+val#A
+<title>val#A</title>
+</text>
+<path d="M 205 70 L 207 62 L 208 62 L 210 70 L 208 78 L 207 78 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="207" xml:space="preserve" y="70">
+
+<title>(2a, 0400)</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="90">
+   .0
+<title>val#A.0</title>
+</text>
+<path d="M 205 90 L 207 82 L 208 82 L 210 90 L 208 98 L 207 98 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="207" xml:space="preserve" y="90">
+
+<title>2a</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="110">
+   .1
+<title>val#A.1</title>
+</text>
+<path d="M 205 110 L 207 102 L 208 102 L 210 110 L 208 118 L 207 118 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="207" xml:space="preserve" y="110">
+
+<title>0400</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="130">
+val#B
+<title>val#B</title>
+</text>
+<path d="M 210 130 L 212 122 L 213 122 L 215 130 L 213 138 L 212 138 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="212" xml:space="preserve" y="130">
+
+<title>{name: 43}</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="150">
+   .name
+<title>val#B.name</title>
+</text>
+<path d="M 210 150 L 212 142 L 213 142 L 215 150 L 213 158 L 212 158 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="212" xml:space="preserve" y="150">
+
+<title>43</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="170">
+val#C.0
+<title>val#C.0</title>
+</text>
+<rect fill="#1C400C" height="14" stroke="none" width="8" x="216" y="163"/>
+<path d="M 215 170 L 215 163 L 225 163 L 225 170" fill="none" stroke="#56C126" stroke-width="1"/>
+</svg>

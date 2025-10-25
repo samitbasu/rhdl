@@ -62,8 +62,6 @@ pub use circuit::circuit_descriptor::build_synchronous_descriptor;
 pub use circuit::hdl_backend::build_hdl;
 pub use circuit::hdl_backend::build_synchronous_hdl;
 pub use compiler::CompilationMode;
-//pub use flow_graph::build_rtl_flow_graph;
-//pub use flow_graph::flow_graph_impl::FlowGraph;
 pub use types::clock_reset::ClockReset;
 pub use types::clock_reset::clock_reset;
 
@@ -73,7 +71,6 @@ pub use types::timed_sample::timed_sample;
 pub mod hdl;
 pub mod trace;
 pub use bitx::dyn_bit_manip::move_nbits_to_msb;
-//pub use flow_graph::flow_cost::trivial_cost;
 pub use rhdl_trace_type::TraceType;
 pub use trace::bit::TraceBit;
 pub use trace::rtt;

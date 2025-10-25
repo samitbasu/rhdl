@@ -1,0 +1,29 @@
+[
+    Region {
+        start: 0,
+        end: 10,
+        tag: None,
+        kind: False,
+        color: Single(
+            g,
+        ),
+    },
+    Region {
+        start: 10,
+        end: 20,
+        tag: None,
+        kind: True,
+        color: Single(
+            g,
+        ),
+    },
+    Region {
+        start: 20,
+        end: 25,
+        tag: None,
+        kind: False,
+        color: Single(
+            g,
+        ),
+    },
+]
