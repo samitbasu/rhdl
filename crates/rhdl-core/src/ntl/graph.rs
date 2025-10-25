@@ -40,10 +40,10 @@ fn make_reg_map(input: &Object, mode: GraphMode) -> HashMap<RegisterId<WireKind>
     // Pass 1
     for (ndx, lop) in input.ops.iter().enumerate() {
         visit_wires(&lop.op, |sense, operand| {
-            if let Some(reg) = operand.reg() {
-                if sense.is_write() {
-                    reg_map.insert(reg, WriteSource::OpCode(ndx));
-                }
+            if let Some(reg) = operand.reg()
+                && sense.is_write()
+            {
+                reg_map.insert(reg, WriteSource::OpCode(ndx));
             }
         });
     }
@@ -97,19 +97,18 @@ pub fn make_net_graph(input: &Object, mode: GraphMode) -> NetGraph {
         }
         let target = op_nodes[ndx];
         visit_wires(&lop.op, |sense, operand| {
-            if let Some(reg) = operand.reg() {
-                if sense.is_read() {
-                    if let Some(source) = match reg_map[&reg] {
-                        WriteSource::Input => Some(input_node),
-                        WriteSource::OpCode(ndx) => Some(op_nodes[ndx]),
-                        WriteSource::ClockReset => {
-                            // For the clock and reset, we don't bother adding edges.
-                            None
-                        }
-                    } {
-                        graph.add_edge(source, target, ());
+            if let Some(reg) = operand.reg()
+                && sense.is_read()
+                && let Some(source) = match reg_map[&reg] {
+                    WriteSource::Input => Some(input_node),
+                    WriteSource::OpCode(ndx) => Some(op_nodes[ndx]),
+                    WriteSource::ClockReset => {
+                        // For the clock and reset, we don't bother adding edges.
+                        None
                     }
                 }
+            {
+                graph.add_edge(source, target, ());
             }
         });
     }

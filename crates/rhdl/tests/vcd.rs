@@ -39,8 +39,10 @@ fn test_vcd_enum() {
     trace("enum", &Enum::None);
     trace_time(8_000);
     trace("enum", &Enum::None);
-    let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
-    guard.take().dump_vcd(&mut vcd_file, None).unwrap();
+    let mut vcd = vec![];
+    guard.take().dump_vcd(&mut vcd, None).unwrap();
+    expect_test::expect_file!["expect/vcd_enum_vcd.expect"]
+        .assert_eq(&String::from_utf8(vcd).unwrap());
 }
 
 #[test]
@@ -63,11 +65,15 @@ fn test_vcd_basic() {
         a: false,
         b: Bits::from(0b01010101),
     };
-    let mut snapshot = std::fs::File::create("snapshot.vcd").unwrap();
+    let mut snapshot = vec![];
     with_trace_db(|db| db.dump_vcd(&mut snapshot, None).unwrap());
+    expect_test::expect_file!["expect/vcd_basic_snapshot.expect"]
+        .assert_eq(&String::from_utf8(snapshot).unwrap());
     trace("simple", &simple);
     trace_time(2_000);
     trace("simple", &simple);
-    let mut vcd_file = std::fs::File::create("test.vcd").unwrap();
-    guard.take().dump_vcd(&mut vcd_file, None).unwrap();
+    let mut vcd = vec![];
+    guard.take().dump_vcd(&mut vcd, None).unwrap();
+    expect_test::expect_file!["expect/vcd_basic.expect"]
+        .assert_eq(&String::from_utf8(vcd).unwrap());
 }

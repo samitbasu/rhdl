@@ -1,0 +1,10 @@
+$timescale 1 ps $end
+$comment
+    TraceInfo({"top.simple":Struct((name:"vcd::Simple",fields:[(name:"a",ty:Bits(1)),(name:"b",ty:Bits(8))]))})
+$end
+$scope module top $end
+$var wire 9 ! simple $end
+$upscope $end
+$enddefinitions $end
+#0
+b101010101 !

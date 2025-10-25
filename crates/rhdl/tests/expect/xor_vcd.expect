@@ -1,0 +1,22 @@
+$timescale 1 ps $end
+$comment
+    TraceInfo({"top.input":Signal(Tuple((elements:[Bits(1),Bits(1)])),Red),"top.outputs":Signal(Bits(1),Red)})
+$end
+$scope module top $end
+$var wire 2 ! input $end
+$var wire 1 " outputs $end
+$upscope $end
+$enddefinitions $end
+#0
+b00 !
+b0 "
+#100
+b10 !
+b1 "
+#200
+b01 !
+#300
+b11 !
+b0 "
+#400
+b00 !

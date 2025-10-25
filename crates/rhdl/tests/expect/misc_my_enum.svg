@@ -1,0 +1,107 @@
+<svg viewBox="0 -16 576 176" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#EEEEEE" height="144" stroke="darkblue" width="576" x="0" y="0"/>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="96" x="480" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="528" y="8">
+3:0
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="96" x="384" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="432" y="8">
+9:4
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="96" x="288" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="336" y="8">
+12:10
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="96" x="192" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="240" y="8">
+15:13
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="96" x="96" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="144" y="8">
+18:16
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="96" x="0" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="48" y="8">
+20:19
+</text>
+<rect fill="#99FFCC" height="16" stroke="gray" width="576" x="0" y="16"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="288" y="24">
+MyEnum|21|
+</text>
+<rect fill="#CCCC99" height="16" stroke="gray" width="96" x="0" y="32"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="48" y="40">
+A(00)
+</text>
+<rect fill="#CCCCCC" height="32" stroke="gray" width="96" x="0" y="48"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="48" y="64">
+B(01)
+</text>
+<rect fill="#CCCCFF" height="16" stroke="gray" width="192" x="384" y="48"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="480" y="56">
+(B)
+</text>
+<rect fill="#CCFF99" height="16" stroke="gray" width="96" x="480" y="64"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="528" y="72">
+.0 b4
+</text>
+<rect fill="#CCFFCC" height="16" stroke="gray" width="96" x="384" y="64"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="432" y="72">
+.1 b6
+</text>
+<rect fill="#CCFFFF" height="48" stroke="gray" width="96" x="0" y="80"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="48" y="104">
+C(10)
+</text>
+<rect fill="#FFCC99" height="16" stroke="gray" width="480" x="96" y="80"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="336" y="88">
+{C}
+</text>
+<rect fill="#FFCCCC" height="16" stroke="gray" width="96" x="480" y="96"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="528" y="104">
+.x b4
+</text>
+<rect fill="#FFCCFF" height="16" stroke="gray" width="96" x="384" y="96"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="432" y="104">
+.y b6
+</text>
+<rect fill="#FFFF99" height="16" stroke="gray" width="288" x="96" y="96"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="240" y="104">
+.z[3]
+</text>
+<rect fill="#FFFFCC" height="16" stroke="gray" width="96" x="288" y="112"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="336" y="120">
+[0] b3
+</text>
+<rect fill="#99FFCC" height="16" stroke="gray" width="96" x="192" y="112"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="240" y="120">
+[1] b3
+</text>
+<rect fill="#CCCC99" height="16" stroke="gray" width="96" x="96" y="112"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="144" y="120">
+[2] b3
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="96" x="480" y="128"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="528" y="136">
+3:0
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="96" x="384" y="128"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="432" y="136">
+9:4
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="96" x="288" y="128"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="336" y="136">
+12:10
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="96" x="192" y="128"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="240" y="136">
+15:13
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="96" x="96" y="128"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="144" y="136">
+18:16
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="96" x="0" y="128"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="48" y="136">
+20:19
+</text>
+</svg>

@@ -357,10 +357,11 @@ impl<'a> NetListHDLBuilder<'a> {
         let inputs_used = self.ntl.ops.iter().any(|lop| {
             let mut uses_input = false;
             visit_wires(&lop.op, |sense, op| {
-                if let Some(reg_id) = op.reg() {
-                    if sense.is_read() && input_set.contains(&reg_id) {
-                        uses_input = true;
-                    }
+                if let Some(reg_id) = op.reg()
+                    && sense.is_read()
+                    && input_set.contains(&reg_id)
+                {
+                    uses_input = true;
                 }
             });
             uses_input

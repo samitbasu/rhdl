@@ -228,7 +228,7 @@ fn test_svg_diagram() {
 
     // Generate an SVG for this
     let doc = MyEnum::static_kind().svg("MyEnum");
-    svg::save("my_enum.svg", &doc).unwrap();
+    expect_test::expect_file!["expect/misc_my_enum.svg"].assert_eq(&doc.to_string());
 }
 
 #[test]
@@ -246,7 +246,7 @@ fn test_layout_compressed() {
         D(bool),
     }
     let doc = MyEnum::static_kind().svg("MyEnum");
-    svg::save("my_enum.svg", &doc).unwrap();
+    expect_test::expect_file!["expect/misc_my_enum_compressed.svg"].assert_eq(&doc.to_string());
 }
 
 #[test]
@@ -325,6 +325,6 @@ fn test_layout_example_latte25() -> miette::Result<()> {
     //    compile_design::<clock_cross_fails>(CompilationMode::Asynchronous)?;
 
     let doc = OpCode::static_kind().svg("OpCode");
-    svg::save("op_code.svg", &doc).unwrap();
+    expect_test::expect_file!["expect/misc_latte25_opcode.svg"].assert_eq(&doc.to_string());
     Ok(())
 }
