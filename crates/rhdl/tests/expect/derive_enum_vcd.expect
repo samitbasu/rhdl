@@ -1,0 +1,16 @@
+$timescale 1 ps $end
+$comment
+    TraceInfo({"top.test":Enum((name:"derive::Test",variants:[(name:"A",discriminant:0,ty:Empty),(name:"B",discriminant:1,ty:Tuple((elements:[Bits(2),Bits(3)]))),(name:"C",discriminant:2,ty:Struct((name:"_Test__C",fields:[(name:"a",ty:Bits(8)),(name:"b",ty:Bits(8))]))),(name:"D",discriminant:3,ty:Empty)],discriminant_layout:(width:2,alignment:Msb,ty:Unsigned)))})
+$end
+$scope module top $end
+$var wire 18 ! test $end
+$upscope $end
+$enddefinitions $end
+#0
+b101101011110101010 !
+#1000
+b010000000000010110 !
+#2000
+b000000000000000000 !
+#3000
+b101101011110101010 !

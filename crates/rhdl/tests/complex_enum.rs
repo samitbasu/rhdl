@@ -236,7 +236,7 @@ fn test_nested_struct_case() {
 #[test]
 fn test_documentation_svgs() {
     let svg = rhdl::core::svg_grid(&Packet::static_kind(), "Packet");
-    svg::save("packets.svg", &svg).unwrap();
+    expect_test::expect_file!["expect/complex_enum_packet.svg"].assert_eq(&svg.to_string());
 }
 
 #[test]
@@ -278,6 +278,8 @@ fn test_vcd_generation() {
     );
     trace_time(6_000);
     trace("packet", &Packet::State(State::Running));
-    let mut vcd_file = std::fs::File::create("packet.vcd").unwrap();
-    guard.take().dump_vcd(vcd_file, None).unwrap();
+    let mut vcd_file = vec![];
+    guard.take().dump_vcd(&mut vcd_file, None).unwrap();
+    expect_test::expect_file!["expect/complex_enum_packet_vcd.expect"]
+        .assert_eq(&String::from_utf8(vcd_file).unwrap());
 }

@@ -84,7 +84,7 @@ fn test_svg() {
         let _output = gate.sim(signal(*inp), &mut state);
     }
     let svg = guard.take().dump_svg(0..=500, &Default::default());
-    std::fs::write("xor.svg", svg.to_string()).unwrap();
+    expect_test::expect_file!["expect/xor.svg"].assert_eq(&svg.to_string());
 }
 
 #[test]
@@ -103,6 +103,7 @@ fn test_vcd() {
         trace_time((time * 100) as u64);
         let _output = gate.sim(signal(*inp), &mut state);
     }
-    let vcd = std::fs::File::create("xor.vcd").unwrap();
-    guard.take().dump_vcd(vcd, None).unwrap();
+    let mut vcd = vec![];
+    guard.take().dump_vcd(&mut vcd, None).unwrap();
+    expect_test::expect_file!["expect/xor_vcd.expect"].assert_eq(&String::from_utf8(vcd).unwrap());
 }

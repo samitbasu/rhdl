@@ -132,7 +132,7 @@ fn test_roll_your_own_val_fails() -> miette::Result<()> {
         panic!("Expected syntax error");
     };
     let report = miette_report(err);
-    expect_test::expect_file!["expect/roll_your_own_val_fails.expect"].assert_eq(&report);
+    expect_test::expect_file!["expect/roll_your_own_val_fails_original.expect"].assert_eq(&report);
     Ok(())
 }
 

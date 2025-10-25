@@ -143,8 +143,10 @@ fn test_derive_digital_complex_enum() {
     trace("test", &foo_3);
     trace_time(3_000);
     trace("test", &foo_1);
-    let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
-    guard.take().dump_vcd(&mut vcd_file, None).unwrap();
+    let mut vcd = vec![];
+    guard.take().dump_vcd(&mut vcd, None).unwrap();
+    expect_test::expect_file!["expect/derive_enum_vcd.expect"]
+        .assert_eq(&String::from_utf8(vcd).unwrap());
 }
 
 #[test]
