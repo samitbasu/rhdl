@@ -1,0 +1,18 @@
+$timescale 1 ps $end
+$comment
+    TraceInfo({"top.a":Enum((name:"Mixed",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Bool",discriminant:1,ty:Bits(1)),(name:"Tuple",discriminant:2,ty:Tuple((elements:[Bits(1),Bits(3)]))),(name:"Array",discriminant:3,ty:Array((base:Bits(1),size:3))),(name:"Strct",discriminant:4,ty:Struct((name:"Mixed::Strct",fields:[(name:"a",ty:Bits(1)),(name:"b",ty:Bits(3))])))],discriminant_layout:(width:3,alignment:Lsb,ty:Unsigned)))})
+$end
+$scope module top $end
+$var wire 7 ! a $end
+$upscope $end
+$enddefinitions $end
+#0
+b0000000 !
+#100
+b0101011 !
+#200
+b1011100 !
+#300
+b0000001 !
+#400
+b0111010 !

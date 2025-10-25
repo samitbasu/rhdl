@@ -1,23 +1,38 @@
+//! Basic SVG rendering of traces
+//!
+//! This module provides functionality to render RHDL traces as SVG documents.
+//! It defines structures and functions to convert trace data into SVG regions,
+//! handle layout options, and generate the final SVG output.  It can be handy for
+//! visualizing simulation results without reaching for a separate tool, and can
+//! also be handy for generating docs that will embed with `rustdoc`, like this:
+//!
+#![doc = include_str!("demo.md")]
+//!
+//! To use the SVG renderer, you typically collect a simulation run into a [Vcd](crate::sim::vcd::Vcd)
+//! container, and then call `vcd.dump_svg` with appropriate [SvgOptions](SvgOptions).
+//! You can fine tune the rendering to select only certain time windows, and only certain
+//! traces to be displayed.
+//!
+//! # Notes
+//! We want to take a series of time/bool values and turn it into an SVG thing.
+//! The underlying time series is a set of time/impl Digital values.  So the
+//! translation needs to go from a type T to something representable.
+//! Because we can only represent scalars in the SVG, we need to slice the
+//! data type into it's composite low level parts.
+//!
+//! A trace consists of two parts.
+//!   <label> : - a string that identifies the trace to the reader
+//!   [data]  : - a set of data points
+//!  A data point can either be a bool, or a vector (string is included as a vector).
+//!  A bool region is defined by a start and end time and a value (either true or false).
+//!  A data region is defined by a start and end time and a string describing the value.
 use crate::{
     BitX, Color, Digital, Kind, TypedBits,
     types::path::{Path, PathElement, sub_kind},
 };
 
-// We want to take a series of time/bool values and turn it into an SVG thing.
-// The underlying time series is a set of time/impl Digital values.  So the
-// translation needs to go from a type T to something representable.
-// Because we can only represent scalars in the SVG, we need to slice the
-// data type into it's composite low level parts.
-//
-// A trace consists of two parts.
-//   <label> : - a string that identifies the trace to the reader
-//   [data]  : - a set of data points
-//  A data point can either be a bool, or a vector (string is included as a vector).
-//  A bool region is defined by a start and end time and a value (either true or false).
-//  A data region is defined by a start and end time and a string describing the value.
-
 #[derive(Clone, Debug)]
-pub struct SvgRegion {
+pub(crate) struct SvgRegion {
     start_x: i32,
     start_y: i32,
     width: i32,
@@ -27,32 +42,44 @@ pub struct SvgRegion {
     color: TraceColor,
 }
 
+/// Options to control the SVG rendering
 pub struct SvgOptions {
+    /// Number of pixels per simulation time unit
     pub pixels_per_time_unit: f32,
+    /// Font size in pixels
     pub font_size_in_pixels: f32,
+    /// Vertical shim between traces
     pub shim: i32,
+    /// Height of each trace region
     pub height: i32,
+    /// Width of the label area
     pub label_width: i32,
+    /// Minimum glitch filter duration
     pub glitch_filter: Option<u32>,
+    /// Optional regex filter for trace names
     pub name_filters: Option<regex::Regex>,
 }
 
 impl SvgOptions {
-    pub fn spacing(&self) -> i32 {
+    /// Calculate the vertical spacing between traces   
+    fn spacing(&self) -> i32 {
         self.height + self.shim * 2
     }
+    /// Set the label width
     pub fn with_label_width(self, width: i32) -> Self {
         Self {
             label_width: width,
             ..self
         }
     }
+    /// Set a regex filter for trace names. Only names matching the regex will be included.
     pub fn with_filter(self, regex: &str) -> Self {
         Self {
             name_filters: Some(regex::Regex::new(regex).unwrap()),
             ..self
         }
     }
+    /// Set a filter to include only top-level inputs and outputs, clock and reset
     pub fn with_io_filter(self) -> Self {
         Self {
             name_filters: Some(
@@ -104,10 +131,10 @@ fn regions_to_svg_regions(regions: &[Region], options: &SvgOptions) -> Box<[SvgR
                 return None;
             }
             let len = r.end - r.start;
-            if let Some(min_time) = options.glitch_filter {
-                if len < min_time as u64 {
-                    return None;
-                }
+            if let Some(min_time) = options.glitch_filter
+                && len < min_time as u64
+            {
+                return None;
             }
             let width = ((r.end - r.start) as f32 * options.pixels_per_time_unit) as i32;
             let start_x = (r.start as f32 * options.pixels_per_time_unit) as i32;
@@ -137,7 +164,7 @@ fn regions_to_svg_regions(regions: &[Region], options: &SvgOptions) -> Box<[SvgR
 }
 
 #[derive(Clone, Debug)]
-pub struct Region {
+struct Region {
     start: u64,
     end: u64,
     tag: Option<String>,
@@ -154,10 +181,10 @@ enum RegionKind {
 }
 
 #[derive(Debug)]
-pub struct Trace {
-    pub label: String,
-    pub hint: String,
-    pub data: Box<[Region]>,
+pub(crate) struct Trace {
+    label: String,
+    hint: String,
+    data: Box<[Region]>,
 }
 
 fn render_trace_to_svg(trace: &Trace, options: &SvgOptions) -> Box<[SvgRegion]> {
@@ -180,7 +207,7 @@ fn render_trace_to_svg(trace: &Trace, options: &SvgOptions) -> Box<[SvgRegion]> 
         .collect()
 }
 
-pub fn render_traces_to_svg(traces: &[Trace], options: &SvgOptions) -> Box<[SvgRegion]> {
+fn render_traces_to_svg(traces: &[Trace], options: &SvgOptions) -> Box<[SvgRegion]> {
     stack_svg_regions(
         &traces
             .iter()
@@ -260,7 +287,7 @@ fn select_time_delta(options: &SvgOptions) -> u64 {
 }
 
 // TODO - remove the duplication
-pub fn render_traces_as_svg_document(
+pub(crate) fn render_traces_as_svg_document(
     start_time: u64,
     traces: Box<[Trace]>,
     options: &SvgOptions,
@@ -307,7 +334,12 @@ pub fn render_traces_as_svg_document(
     // Add a set of time labels
     // The start time may not lie on the grid.  E.g., we may start at time 77, but the grid is 50
     // We will start at the first grid point after the start time (or equal if it lies on a grid point)
-    let grid_start = (start_time / time_delta) + if start_time % time_delta != 0 { 1 } else { 0 };
+    let grid_start = (start_time / time_delta)
+        + if !start_time.is_multiple_of(time_delta) {
+            1
+        } else {
+            0
+        };
     let mut ndx = grid_start;
     let label_end = options.label_width as f32 * options.font_size_in_pixels;
     while (ndx * time_delta - start_time) as f32 * options.pixels_per_time_unit
@@ -465,7 +497,7 @@ pub fn render_traces_as_svg_document(
 }
 
 #[derive(Clone, Debug, Copy, PartialEq)]
-pub enum TraceColor {
+enum TraceColor {
     Single(Color),
     MultiColor,
 }
@@ -513,7 +545,7 @@ fn compute_trace_color(kind: Kind) -> Option<TraceColor> {
     }
 }
 
-pub fn trace_out<T: Digital>(
+pub(crate) fn trace_out<T: Digital>(
     label: &str,
     db: &[(u64, T)],
     time_set: std::ops::RangeInclusive<u64>,
@@ -535,7 +567,7 @@ pub fn trace_out<T: Digital>(
         .collect()
 }
 
-pub fn build_time_trace<T: Digital>(
+fn build_time_trace<T: Digital>(
     data: &[(u64, T)],
     path: &Path,
     time_set: std::ops::RangeInclusive<u64>,
@@ -603,15 +635,16 @@ fn bucketize(
             last_data = data.clone();
         } else {
             if !last_data.eq(&data) {
-                if let Some(data) = last_data {
-                    if time_set.contains(&start_time) && start_time != time {
-                        buckets.push(Bucket {
-                            start: start_time - min_time,
-                            end: time - min_time,
-                            data: data.clone(),
-                            color,
-                        });
-                    }
+                if let Some(data) = last_data
+                    && time_set.contains(&start_time)
+                    && start_time != time
+                {
+                    buckets.push(Bucket {
+                        start: start_time - min_time,
+                        end: time - min_time,
+                        data: data.clone(),
+                        color,
+                    });
                 }
                 start_time = time;
                 last_data = data.clone();
@@ -619,20 +652,20 @@ fn bucketize(
             last_time = time;
         }
     }
-    if start_time != end_time {
-        if let Some(data) = last_data {
-            buckets.push(Bucket {
-                start: start_time - min_time,
-                end: end_time - min_time,
-                color,
-                data,
-            });
-        }
+    if start_time != end_time
+        && let Some(data) = last_data
+    {
+        buckets.push(Bucket {
+            start: start_time - min_time,
+            end: end_time - min_time,
+            color,
+            data,
+        });
     }
     buckets.into()
 }
 
-pub fn format_as_label(t: &TypedBits) -> Option<String> {
+fn format_as_label(t: &TypedBits) -> Option<String> {
     (t.len() != 1).then(|| format_as_label_inner(t))?
 }
 
@@ -681,7 +714,7 @@ fn pretty_leaf_paths_inner(kind: &Kind, base: Path) -> Vec<Path> {
     root
 }
 
-pub fn pretty_leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
+fn pretty_leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
     // Remove all instances of #variant followed by #variant.0 - the
     // first does not add any value when pretty printing
     pretty_leaf_paths_inner(kind, base)
@@ -690,7 +723,7 @@ pub fn pretty_leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
 // Compute the color of a path applied to a TypedBits.  It may be None if
 // no colors are encountered.  Otherwise, it is the color "closest" to the
 // path in question (closest ancestor).
-pub fn compute_trace_color_from_path(t: Kind, path: &Path) -> Option<TraceColor> {
+fn compute_trace_color_from_path(t: Kind, path: &Path) -> Option<TraceColor> {
     let mut my_color = None;
     let mut path = path.clone();
     while my_color.is_none() {
@@ -709,7 +742,7 @@ pub fn compute_trace_color_from_path(t: Kind, path: &Path) -> Option<TraceColor>
 // a None, and that is when the path requests the EnumPayload but the payload does
 // not match the discriminant of the enum.  All other cases, can be forwarded to
 // the regular path method.
-pub fn try_path(t: &TypedBits, path: &Path) -> Option<TypedBits> {
+fn try_path(t: &TypedBits, path: &Path) -> Option<TypedBits> {
     let mut t = t.clone();
     for element in path.iter() {
         match element {
@@ -856,13 +889,12 @@ fn build_parent_map(labels: &[&str]) -> Box<[usize]> {
     for (ndx, label) in labels.iter().enumerate() {
         for i in 0..ndx {
             let break_char = labels[ndx - 1 - i].len();
-            if label.starts_with(labels[ndx - 1 - i]) {
-                if let Some(char) = label.chars().nth(break_char) {
-                    if ['.', '#', '['].contains(&char) {
-                        parents[ndx] = ndx - 1 - i;
-                        break;
-                    }
-                }
+            if label.starts_with(labels[ndx - 1 - i])
+                && let Some(char) = label.chars().nth(break_char)
+                && ['.', '#', '['].contains(&char)
+            {
+                parents[ndx] = ndx - 1 - i;
+                break;
             }
         }
     }
@@ -917,9 +949,9 @@ fn tree_view(root: &str, labels: &[&str]) -> Box<[IndentedLabel]> {
 
 #[cfg(test)]
 mod tests {
-    use expect_test::expect_file;
+    use expect_test::{expect, expect_file};
 
-    use rhdl_bits::alias::*;
+    use rhdl_bits::{alias::*, bits, signed};
 
     use super::*;
 
@@ -1118,5 +1150,734 @@ mod tests {
             compute_trace_color(k),
             Some(TraceColor::Single(Color::Blue))
         );
+    }
+    #[test]
+    fn test_label_for_tuple_struct() {
+        #[derive(PartialEq, Clone, Copy)]
+        pub struct TupleStruct(b6, b3);
+
+        impl crate::Digital for TupleStruct {
+            const BITS: usize = <b6 as crate::Digital>::BITS + <b3 as crate::Digital>::BITS;
+            fn static_kind() -> crate::Kind {
+                crate::Kind::make_struct(
+                    concat!(module_path!(), "::", stringify!(TupleStruct)),
+                    [
+                        crate::Kind::make_field(
+                            stringify!(0),
+                            <b6 as crate::Digital>::static_kind(),
+                        ),
+                        crate::Kind::make_field(
+                            stringify!(1),
+                            <b3 as crate::Digital>::static_kind(),
+                        ),
+                    ]
+                    .into(),
+                )
+            }
+            fn bin(self) -> Box<[crate::BitX]> {
+                [self.0.bin(), self.1.bin()].concat().into()
+            }
+            fn dont_care() -> Self {
+                Self(
+                    <b6 as crate::Digital>::dont_care(),
+                    <b3 as crate::Digital>::dont_care(),
+                )
+            }
+        }
+
+        let tuple = TupleStruct(bits(13), bits(4));
+        let label = format_as_label(&tuple.typed_bits()).unwrap();
+        let expect = expect!["{0: 0d, 1: 4}"];
+        expect.assert_eq(&label);
+    }
+
+    #[test]
+    fn test_label_for_struct() {
+        #[derive(PartialEq, Clone, Copy)]
+        pub struct Simple {
+            a: b4,
+            b: (b4, b4),
+            c: [b5; 3],
+            d: bool,
+        }
+
+        impl crate::Digital for Simple {
+            const BITS: usize = <b4 as crate::Digital>::BITS
+                + <(b4, b4) as crate::Digital>::BITS
+                + <[b5; 3] as crate::Digital>::BITS
+                + <bool as crate::Digital>::BITS;
+            fn static_kind() -> crate::Kind {
+                crate::Kind::make_struct(
+                    concat!(module_path!(), "::", stringify!(Simple)),
+                    [
+                        crate::Kind::make_field(
+                            stringify!(a),
+                            <b4 as crate::Digital>::static_kind(),
+                        ),
+                        crate::Kind::make_field(
+                            stringify!(b),
+                            <(b4, b4) as crate::Digital>::static_kind(),
+                        ),
+                        crate::Kind::make_field(
+                            stringify!(c),
+                            <[b5; 3] as crate::Digital>::static_kind(),
+                        ),
+                        crate::Kind::make_field(
+                            stringify!(d),
+                            <bool as crate::Digital>::static_kind(),
+                        ),
+                    ]
+                    .into(),
+                )
+            }
+            fn bin(self) -> Box<[crate::BitX]> {
+                [self.a.bin(), self.b.bin(), self.c.bin(), self.d.bin()]
+                    .concat()
+                    .into()
+            }
+            fn dont_care() -> Self {
+                Self {
+                    a: <b4 as crate::Digital>::dont_care(),
+                    b: <(b4, b4) as crate::Digital>::dont_care(),
+                    c: <[b5; 3] as crate::Digital>::dont_care(),
+                    d: <bool as crate::Digital>::dont_care(),
+                }
+            }
+        }
+
+        let simple = Simple {
+            a: bits(6),
+            b: (bits(8), bits(9)),
+            c: [bits(10), bits(11), bits(12)],
+            d: false,
+        };
+
+        let label = format_as_label(&simple.typed_bits()).unwrap();
+        let expect = expect!["{a: 6, b: (8, 9), c: [0a, 0b, 0c], d: 0}"];
+        expect.assert_eq(&label);
+    }
+
+    #[test]
+    fn test_label_for_signed() {
+        #[derive(PartialEq, Clone, Copy)]
+        pub struct Signed {
+            a: s8,
+            b: b8,
+        }
+
+        impl crate::Digital for Signed {
+            const BITS: usize = <s8 as crate::Digital>::BITS + <b8 as crate::Digital>::BITS;
+            fn static_kind() -> crate::Kind {
+                crate::Kind::make_struct(
+                    concat!(module_path!(), "::", stringify!(Signed)),
+                    [
+                        crate::Kind::make_field(
+                            stringify!(a),
+                            <s8 as crate::Digital>::static_kind(),
+                        ),
+                        crate::Kind::make_field(
+                            stringify!(b),
+                            <b8 as crate::Digital>::static_kind(),
+                        ),
+                    ]
+                    .into(),
+                )
+            }
+            fn bin(self) -> Box<[crate::BitX]> {
+                [self.a.bin(), self.b.bin()].concat().into()
+            }
+            fn dont_care() -> Self {
+                Self {
+                    a: <s8 as crate::Digital>::dont_care(),
+                    b: <b8 as crate::Digital>::dont_care(),
+                }
+            }
+        }
+
+        let signed = Signed {
+            a: signed(-42),
+            b: bits(42),
+        };
+        let label = format_as_label(&signed.typed_bits()).unwrap();
+        let expect = expect!["{a: -42, b: 2a}"];
+        expect.assert_eq(&label);
+    }
+
+    #[test]
+    fn test_label_for_enum() {
+        #[derive(PartialEq, Default, Clone, Copy)]
+        enum Value {
+            #[default]
+            Empty,
+            A(b8, b16),
+            B {
+                name: b8,
+            },
+            C(bool),
+        }
+
+        impl crate::Digital for Value {
+            const BITS: usize = 2usize + 24usize;
+            fn static_kind() -> crate::Kind {
+                crate::Kind::make_enum(
+                    concat!(module_path!(), "::", stringify!(Value)),
+                    [
+                        crate::Kind::make_variant(stringify!(Empty), crate::Kind::Empty, 0i64),
+                        crate::Kind::make_variant(
+                            stringify!(A),
+                            crate::Kind::make_tuple(
+                                [
+                                    <b8 as crate::Digital>::static_kind(),
+                                    <b16 as crate::Digital>::static_kind(),
+                                ]
+                                .into(),
+                            ),
+                            1i64,
+                        ),
+                        crate::Kind::make_variant(
+                            stringify!(B),
+                            crate::Kind::make_struct(
+                                stringify!(_Value__B),
+                                [crate::Kind::make_field(
+                                    stringify!(name),
+                                    <b8 as crate::Digital>::static_kind(),
+                                )]
+                                .into(),
+                            ),
+                            2i64,
+                        ),
+                        crate::Kind::make_variant(
+                            stringify!(C),
+                            crate::Kind::make_tuple(
+                                [<bool as crate::Digital>::static_kind()].into(),
+                            ),
+                            3i64,
+                        ),
+                    ]
+                    .into(),
+                    crate::Kind::make_discriminant_layout(
+                        2usize,
+                        crate::DiscriminantAlignment::Msb,
+                        crate::DiscriminantType::Unsigned,
+                    ),
+                )
+            }
+            fn bin(self) -> Box<[crate::BitX]> {
+                let mut raw = match self {
+                    Self::Empty => {
+                        crate::bitx_vec(&rhdl_bits::bits::<2>(0i64 as u128).to_bools()).to_vec()
+                    }
+                    Self::A(field0, field1) => {
+                        let mut v = crate::bitx_vec(&rhdl_bits::bits::<2>(1i64 as u128).to_bools())
+                            .to_vec();
+                        v.extend(field0.bin());
+                        v.extend(field1.bin());
+                        v
+                    }
+                    Self::B { name } => {
+                        let mut v = crate::bitx_vec(&rhdl_bits::bits::<2>(2i64 as u128).to_bools())
+                            .to_vec();
+                        v.extend(name.bin());
+                        v
+                    }
+                    Self::C(field) => {
+                        let mut v = crate::bitx_vec(&rhdl_bits::bits::<2>(3i64 as u128).to_bools())
+                            .to_vec();
+                        v.extend(field.bin());
+                        v
+                    }
+                }
+                .to_vec();
+                raw.resize(Self::BITS, crate::BitX::Zero);
+                (crate::move_nbits_to_msb(&raw, 2usize)).into()
+            }
+            fn discriminant(self) -> crate::TypedBits {
+                match self {
+                    Self::Empty => rhdl_bits::bits::<2>(0i64 as u128).typed_bits(),
+                    Self::A(_, _) => rhdl_bits::bits::<2>(1i64 as u128).typed_bits(),
+                    Self::B { name: _ } => rhdl_bits::bits::<2>(2i64 as u128).typed_bits(),
+                    Self::C(_) => rhdl_bits::bits::<2>(3i64 as u128).typed_bits(),
+                }
+            }
+            fn variant_kind(self) -> crate::Kind {
+                match self {
+                    Self::Empty => crate::Kind::Empty,
+                    Self::A(_, _) => crate::Kind::make_tuple(
+                        [
+                            <b8 as crate::Digital>::static_kind(),
+                            <b16 as crate::Digital>::static_kind(),
+                        ]
+                        .into(),
+                    ),
+                    Self::B { name: _ } => crate::Kind::make_struct(
+                        stringify!(_Value__B),
+                        [crate::Kind::make_field(
+                            stringify!(name),
+                            <b8 as crate::Digital>::static_kind(),
+                        )]
+                        .into(),
+                    ),
+                    Self::C(_) => {
+                        crate::Kind::make_tuple([<bool as crate::Digital>::static_kind()].into())
+                    }
+                }
+            }
+            fn dont_care() -> Self {
+                <Self as Default>::default()
+            }
+        }
+        let val_array = [
+            Value::Empty,
+            Value::A(bits(42), bits(1024)),
+            Value::B { name: bits(67) },
+            Value::C(true),
+        ];
+
+        let label = format_as_label(&val_array.typed_bits()).unwrap();
+        let expect = expect!["[Empty, A(2a, 0400), B{name: 43}, C(1)]"];
+        expect.assert_eq(&label);
+    }
+
+    mod value_enum {
+        use super::*;
+        #[derive(PartialEq, Default, Clone, Copy)]
+        enum Value {
+            #[default]
+            Empty,
+            A(Option<bool>),
+            B,
+        }
+
+        impl crate::Digital for Value {
+            const BITS: usize = 2usize + 2usize;
+            fn static_kind() -> crate::Kind {
+                crate::Kind::make_enum(
+                    concat!(module_path!(), "::", stringify!(Value)),
+                    [
+                        crate::Kind::make_variant(stringify!(Empty), crate::Kind::Empty, 0i64),
+                        crate::Kind::make_variant(
+                            stringify!(A),
+                            crate::Kind::make_tuple(
+                                [<Option<bool> as crate::Digital>::static_kind()].into(),
+                            ),
+                            1i64,
+                        ),
+                        crate::Kind::make_variant(stringify!(B), crate::Kind::Empty, 2i64),
+                    ]
+                    .into(),
+                    crate::Kind::make_discriminant_layout(
+                        2usize,
+                        crate::DiscriminantAlignment::Msb,
+                        crate::DiscriminantType::Unsigned,
+                    ),
+                )
+            }
+            fn bin(self) -> Box<[crate::BitX]> {
+                let mut raw = match self {
+                    Self::Empty => {
+                        crate::bitx_vec(&rhdl_bits::bits::<2>(0i64 as u128).to_bools()).to_vec()
+                    }
+                    Self::A(field) => {
+                        let mut v = crate::bitx_vec(&rhdl_bits::bits::<2>(1i64 as u128).to_bools())
+                            .to_vec();
+                        v.extend(field.bin());
+                        v
+                    }
+                    Self::B => {
+                        crate::bitx_vec(&rhdl_bits::bits::<2>(2i64 as u128).to_bools()).to_vec()
+                    }
+                }
+                .to_vec();
+                raw.resize(Self::BITS, crate::BitX::Zero);
+                (crate::move_nbits_to_msb(&raw, 2usize)).into()
+            }
+            fn discriminant(self) -> crate::TypedBits {
+                match self {
+                    Self::Empty => rhdl_bits::bits::<2>(0i64 as u128).typed_bits(),
+                    Self::A(_) => rhdl_bits::bits::<2>(1i64 as u128).typed_bits(),
+                    Self::B => rhdl_bits::bits::<2>(2i64 as u128).typed_bits(),
+                }
+            }
+            fn variant_kind(self) -> crate::Kind {
+                match self {
+                    Self::Empty => crate::Kind::Empty,
+                    Self::A(_) => crate::Kind::make_tuple(
+                        [<Option<bool> as crate::Digital>::static_kind()].into(),
+                    ),
+                    Self::B => crate::Kind::Empty,
+                }
+            }
+            fn dont_care() -> Self {
+                <Self as Default>::default()
+            }
+        }
+
+        #[test]
+        fn test_leaf_paths_for_slicing() {
+            let expect = expect![[r#"
+        [
+            ,
+            #Empty,
+            #A.0,
+            #A.0#None,
+            #A.0#Some.0,
+            #B,
+        ]
+    "#]];
+            let actual = pretty_leaf_paths(&Value::static_kind(), Path::default());
+            expect.assert_debug_eq(&actual);
+        }
+
+        #[test]
+        fn test_time_slice_with_nested_enums() {
+            let val_array = [
+                Value::Empty.typed_bits(),
+                Value::A(Some(true)).typed_bits(),
+                Value::B.typed_bits(),
+            ];
+
+            let path = Path::default().payload("A").tuple_index(0).payload("Some");
+            let mapped = val_array
+                .iter()
+                .map(|v| try_path(v, &path))
+                .collect::<Vec<_>>();
+            let expect = expect![[r#"
+        [
+            None,
+            Some(
+                (true),
+            ),
+            None,
+        ]
+    "#]];
+            expect.assert_debug_eq(&mapped);
+        }
+    }
+
+    #[test]
+    fn test_time_slice_for_enum_with_discriminant() {
+        #[derive(PartialEq, Default, Clone, Copy)]
+        enum Value {
+            #[default]
+            Empty,
+            A(bool),
+            B,
+        }
+
+        impl crate::Digital for Value {
+            const BITS: usize = 2usize + 1_usize;
+            fn static_kind() -> crate::Kind {
+                crate::Kind::make_enum(
+                    concat!(module_path!(), "::", stringify!(Value)),
+                    [
+                        crate::Kind::make_variant(stringify!(Empty), crate::Kind::Empty, 0i64),
+                        crate::Kind::make_variant(
+                            stringify!(A),
+                            crate::Kind::make_tuple(
+                                [<bool as crate::Digital>::static_kind()].into(),
+                            ),
+                            1i64,
+                        ),
+                        crate::Kind::make_variant(stringify!(B), crate::Kind::Empty, 2i64),
+                    ]
+                    .into(),
+                    crate::Kind::make_discriminant_layout(
+                        2usize,
+                        crate::DiscriminantAlignment::Msb,
+                        crate::DiscriminantType::Unsigned,
+                    ),
+                )
+            }
+            fn bin(self) -> Box<[crate::BitX]> {
+                let mut raw = match self {
+                    Self::Empty => {
+                        crate::bitx_vec(&rhdl_bits::bits::<2>(0i64 as u128).to_bools()).to_vec()
+                    }
+                    Self::A(field) => {
+                        let mut v = crate::bitx_vec(&rhdl_bits::bits::<2>(1i64 as u128).to_bools())
+                            .to_vec();
+                        v.extend(field.bin());
+                        v
+                    }
+                    Self::B => {
+                        crate::bitx_vec(&rhdl_bits::bits::<2>(2i64 as u128).to_bools()).to_vec()
+                    }
+                }
+                .to_vec();
+                raw.resize(Self::BITS, crate::BitX::Zero);
+                (crate::move_nbits_to_msb(&raw, 2usize)).into()
+            }
+            fn discriminant(self) -> crate::TypedBits {
+                match self {
+                    Self::Empty => rhdl_bits::bits::<2>(0i64 as u128).typed_bits(),
+                    Self::A(_) => rhdl_bits::bits::<2>(1i64 as u128).typed_bits(),
+                    Self::B => rhdl_bits::bits::<2>(2i64 as u128).typed_bits(),
+                }
+            }
+            fn variant_kind(self) -> crate::Kind {
+                match self {
+                    Self::Empty => crate::Kind::Empty,
+                    Self::A(_) => {
+                        crate::Kind::make_tuple([<bool as crate::Digital>::static_kind()].into())
+                    }
+                    Self::B => crate::Kind::Empty,
+                }
+            }
+            fn dont_care() -> Self {
+                <Self as Default>::default()
+            }
+        }
+
+        let val_array = [
+            Value::Empty.typed_bits(),
+            Value::A(true).typed_bits(),
+            Value::B.typed_bits(),
+        ];
+
+        let path = Path::default().payload("A");
+        let mapped = val_array
+            .iter()
+            .map(|v| try_path(v, &path))
+            .collect::<Vec<_>>();
+        let expect = expect![[r#"
+        [
+            None,
+            Some(
+                (true),
+            ),
+            None,
+        ]
+    "#]];
+        expect.assert_debug_eq(&mapped);
+    }
+
+    mod second_value {
+        use super::*;
+
+        #[derive(PartialEq, Default, Clone, Copy)]
+        enum Value {
+            #[default]
+            Empty,
+            A(b8, b16),
+            B {
+                name: b8,
+            },
+            C(bool),
+        }
+
+        impl crate::Digital for Value {
+            const BITS: usize = 2usize + 24_usize;
+            fn static_kind() -> crate::Kind {
+                crate::Kind::make_enum(
+                    concat!(module_path!(), "::", stringify!(Value)),
+                    [
+                        crate::Kind::make_variant(stringify!(Empty), crate::Kind::Empty, 0i64),
+                        crate::Kind::make_variant(
+                            stringify!(A),
+                            crate::Kind::make_tuple(
+                                [
+                                    <b8 as crate::Digital>::static_kind(),
+                                    <b16 as crate::Digital>::static_kind(),
+                                ]
+                                .into(),
+                            ),
+                            1i64,
+                        ),
+                        crate::Kind::make_variant(
+                            stringify!(B),
+                            crate::Kind::make_struct(
+                                stringify!(_Value__B),
+                                [crate::Kind::make_field(
+                                    stringify!(name),
+                                    <b8 as crate::Digital>::static_kind(),
+                                )]
+                                .into(),
+                            ),
+                            2i64,
+                        ),
+                        crate::Kind::make_variant(
+                            stringify!(C),
+                            crate::Kind::make_tuple(
+                                [<bool as crate::Digital>::static_kind()].into(),
+                            ),
+                            3i64,
+                        ),
+                    ]
+                    .into(),
+                    crate::Kind::make_discriminant_layout(
+                        2usize,
+                        crate::DiscriminantAlignment::Msb,
+                        crate::DiscriminantType::Unsigned,
+                    ),
+                )
+            }
+            fn bin(self) -> Box<[crate::BitX]> {
+                let mut raw = match self {
+                    Self::Empty => {
+                        crate::bitx_vec(&rhdl_bits::bits::<2>(0i64 as u128).to_bools()).to_vec()
+                    }
+                    Self::A(field0, field1) => {
+                        let mut v = crate::bitx_vec(&rhdl_bits::bits::<2>(1i64 as u128).to_bools())
+                            .to_vec();
+                        v.extend(field0.bin());
+                        v.extend(field1.bin());
+                        v
+                    }
+                    Self::B { name } => {
+                        let mut v = crate::bitx_vec(&rhdl_bits::bits::<2>(2i64 as u128).to_bools())
+                            .to_vec();
+                        v.extend(name.bin());
+                        v
+                    }
+                    Self::C(field) => {
+                        let mut v = crate::bitx_vec(&rhdl_bits::bits::<2>(3i64 as u128).to_bools())
+                            .to_vec();
+                        v.extend(field.bin());
+                        v
+                    }
+                }
+                .to_vec();
+                raw.resize(Self::BITS, crate::BitX::Zero);
+                (crate::move_nbits_to_msb(&raw, 2usize)).into()
+            }
+            fn discriminant(self) -> crate::TypedBits {
+                match self {
+                    Self::Empty => rhdl_bits::bits::<2>(0i64 as u128).typed_bits(),
+                    Self::A(_, _) => rhdl_bits::bits::<2>(1i64 as u128).typed_bits(),
+                    Self::B { name: _ } => rhdl_bits::bits::<2>(2i64 as u128).typed_bits(),
+                    Self::C(_) => rhdl_bits::bits::<2>(3i64 as u128).typed_bits(),
+                }
+            }
+            fn variant_kind(self) -> crate::Kind {
+                match self {
+                    Self::Empty => crate::Kind::Empty,
+                    Self::A(_, _) => crate::Kind::make_tuple(
+                        [
+                            <b8 as crate::Digital>::static_kind(),
+                            <b16 as crate::Digital>::static_kind(),
+                        ]
+                        .into(),
+                    ),
+                    Self::B { name: _ } => crate::Kind::make_struct(
+                        stringify!(_Value__B),
+                        [crate::Kind::make_field(
+                            stringify!(name),
+                            <b8 as crate::Digital>::static_kind(),
+                        )]
+                        .into(),
+                    ),
+                    Self::C(_) => {
+                        crate::Kind::make_tuple([<bool as crate::Digital>::static_kind()].into())
+                    }
+                }
+            }
+            fn dont_care() -> Self {
+                <Self as Default>::default()
+            }
+        }
+
+        #[test]
+        fn test_trace_out_for_enum() {
+            let val_array = [
+                (0, Value::Empty),
+                (5, Value::A(bits(42), bits(1024))),
+                (10, Value::B { name: bits(67) }),
+                (15, Value::C(true)),
+                (20, Value::C(true)),
+            ];
+
+            let traces = trace_out("val", &val_array, 0..=25);
+            let options = SvgOptions::default();
+            let _svg = render_traces_to_svg(&traces, &options);
+            let svg = render_traces_as_svg_document(0, traces, &options);
+            expect_test::expect_file!("expect/test_enum_svg.expect").assert_eq(&svg.to_string());
+        }
+        #[test]
+        fn test_time_slice_for_enum() {
+            let val_array = [
+                (0, Value::Empty),
+                (5, Value::A(bits(42), bits(1024))),
+                (10, Value::B { name: bits(67) }),
+                (15, Value::C(true)),
+            ];
+
+            let label = build_time_trace(&val_array, &Default::default(), 0..=20);
+            let expect = expect_file!["expect/time_slice_for_enum.expect"];
+            expect.assert_debug_eq(&label);
+        }
+    }
+
+    #[test]
+    fn test_time_slice_for_struct() {
+        #[derive(PartialEq, Clone, Copy)]
+        pub struct Simple {
+            a: b4,
+            b: (b4, b4, bool),
+            c: [b5; 3],
+        }
+
+        // Recursive expansion of Digital macro
+        // =====================================
+
+        impl crate::Digital for Simple {
+            const BITS: usize = <b4 as crate::Digital>::BITS
+                + <(b4, b4, bool) as crate::Digital>::BITS
+                + <[b5; 3] as crate::Digital>::BITS;
+            fn static_kind() -> crate::Kind {
+                crate::Kind::make_struct(
+                    concat!(module_path!(), "::", stringify!(Simple)),
+                    [
+                        crate::Kind::make_field(
+                            stringify!(a),
+                            <b4 as crate::Digital>::static_kind(),
+                        ),
+                        crate::Kind::make_field(
+                            stringify!(b),
+                            <(b4, b4, bool) as crate::Digital>::static_kind(),
+                        ),
+                        crate::Kind::make_field(
+                            stringify!(c),
+                            <[b5; 3] as crate::Digital>::static_kind(),
+                        ),
+                    ]
+                    .into(),
+                )
+            }
+            fn bin(self) -> Box<[crate::BitX]> {
+                [self.a.bin(), self.b.bin(), self.c.bin()].concat().into()
+            }
+            fn dont_care() -> Self {
+                Self {
+                    a: <b4 as crate::Digital>::dont_care(),
+                    b: <(b4, b4, bool) as crate::Digital>::dont_care(),
+                    c: <[b5; 3] as crate::Digital>::dont_care(),
+                }
+            }
+        }
+
+        let bld = |a, b, c, d| Simple {
+            a: bits(a),
+            b: (bits(b), bits(b + 1), d),
+            c: [bits(c), bits(c + 1), bits(c + 2)],
+        };
+
+        let data = [
+            (0, bld(2, 4, 1, false)),
+            (10, bld(2, 5, 3, true)),
+            (15, bld(4, 5, 1, true)),
+            (20, bld(3, 0, 2, false)),
+        ];
+
+        let path = Path::default().field("b").tuple_index(2);
+        let time_trace = build_time_trace(&data, &path, 0..=25);
+        let expect = expect_file!["expect/time_slice_for_struct.expect"];
+        expect.assert_debug_eq(&time_trace);
+        let path = Path::default().field("b");
+        let time_trace = build_time_trace(&data, &path, 0..=25);
+        let expect = expect_file!["expect/time_trace_for_struct_b.expect"];
+        expect.assert_debug_eq(&time_trace);
+        let time_trace = build_time_trace(&data, &Default::default(), 0..=25);
+        let expect = expect_file!["expect/time_trace_for_struct_root.expect"];
+        expect.assert_debug_eq(&time_trace);
     }
 }
