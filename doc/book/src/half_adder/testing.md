@@ -128,4 +128,4 @@ The resulting SVG shows the input and output signals as one would expect for a t
 cp half.svg $ROOT_DIR/src/img/.
 ```
 
-![HalfAdder Simulation](../../img/half.svg)
+![HalfAdder Simulation](../img/half.svg)

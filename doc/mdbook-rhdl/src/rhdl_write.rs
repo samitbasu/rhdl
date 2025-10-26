@@ -33,6 +33,7 @@ pub fn rhdl_write(_block: usize, tag: &str, text: &str) -> Vec<Event<'static>> {
         .unwrap()
         .strip_prefix(":")
         .unwrap_or("");
+    log::info!("Writing to file: {}", path);
     std::fs::write(
         PathBuf::from(SHELL_DIR).join(path),
         remove_hash_prefix(&text),

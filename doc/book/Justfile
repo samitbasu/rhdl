@@ -8,7 +8,7 @@ build:
 
 serve:
 	just plugin
-	mdbook serve
+	RUST_LOG=info mdbook serve
 
 plugin:
 	cd ../mdbook-rhdl && cargo build --release
