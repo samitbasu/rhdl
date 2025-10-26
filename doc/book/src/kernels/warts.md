@@ -33,6 +33,21 @@ constitutes a call to a built in constructor for the `Color::Red` variant, or if
  If the name of the function is `Capitalized::Likethis`, then it is an enum constructor function, and we will assume that it must correspond to the `Likethis` variant of enum `Capitalized`.  That means, by the way, that you cannot call the constructor function as `x = Red(a)`, since we won't detect the constructor call without the `::` path separator.
  ```
 
+## Result and Option
+
+There is partial support for `Result` and `Option` baked into RHDL, but the support is based on name matching and is not very robust.  So you can use constructs like
+
+```rust
+return if flag {
+    Ok(x)
+} else {
+    Err(y)
+}
+```
+
+and RHDL will generally figure out the type of `Ok(x)` and `Err(y)`.  But it is not robust.  You can easily confuse the compiler which will either then require an explicit type signature at the call site (like `Result::<T, E>::Ok(x)`) or simply break when it goes to compile your function.  Type inference is very tricky given that RHDL makes most "decisions" about your source file at the time the macro is processed for the `#[kernel]` attribute, and has no context like type information, as that is all developed later.  There is a solution, which is to break the dependency on `rustc` and have RHDL be a completely stand-alone compiler.  But that seems like quite an effort.
+
+
 ## Partial Const Generic Support
 
 It's quite frustrating that you can't do much with `const generic` type parameters, but that is the way it is.  For example, you would like to write something like:

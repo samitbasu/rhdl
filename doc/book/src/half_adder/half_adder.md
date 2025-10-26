@@ -45,7 +45,7 @@ b +------+--->|         |
 The inputs `a` and `b` can be interchanged, but the outputs cannot.  So in this case, we will create a struct to hold the output of the circuit, and name the outputs.  All synthesizable data structures in RHDL must `impl Digital`, the trait that allows them to be transformed into bitpatterns, and that provides a run time type system for describing the shape of the data.  In this case, we will define a struct to carry the outputs of the circuit, and use the `#[derive(Digital)]` trait to add the needed methods.  We also need to indicate that the output struct carries timed data (meaning that each element belongs to some timing domain).  So we also need to `#[derive(Timed)]`.  Finally, for technical reasons, you must also derive `PartialEq` for your custom data types.  Here is what our half-adder output looks like:
 
 ```rust
-#[derive(Digital, Timed, PartialEq)]
+#[derive(Digital, Copy, Clone, Timed, PartialEq)]
 pub struct Outputs {
     pub sum: Signal<bool, Red>,
     pub carry: Signal<bool, Red>,
@@ -82,7 +82,7 @@ Constructors can do arbitrary complicated runtime Rust things, including table c
 Now, referring back to the foundational diagram, we see that two additional types `D` and `Q` are required.  The `D` type must be defined exactly as follows:
 
 ```rust
-#[derive(Digital, Timed, PartialEq)]
+#[derive(Digital, Copy, Clone, Timed, PartialEq)]
 pub struct D {
     xor: <xor::XorGate as CircuitIO>::I,
     and: <and::AndGate as CircuitIO>::I,
@@ -92,7 +92,7 @@ pub struct D {
 and the `Q` type must be defined as
 
 ```rust
-#[derive(Digital, Timed, PartialEq)]
+#[derive(Digital, Copy, Clone, Timed, PartialEq)]
 pub struct Q {
     xor: <xor::XorGate as CircuitIO>::O,
     and: <and::AndGate as CircuitIO>::O,
@@ -131,7 +131,7 @@ mod xor;
 pub use xor::XorGate;
 pub use xor::xor_gate;
 
-#[derive(Digital, Timed, PartialEq)]
+#[derive(Digital, Copy, Clone, Timed, PartialEq)]
 pub struct Outputs {
     pub sum: Signal<bool, Red>,
     pub carry: Signal<bool, Red>,
@@ -158,13 +158,13 @@ impl CircuitIO for HalfAdder {
     type Kernel = half_adder;
 }
 
-#[derive(Digital, Timed, PartialEq)]
+#[derive(Digital, Copy, Clone, Timed, PartialEq)]
 pub struct D {
     xor: <xor::XorGate as CircuitIO>::I,
     and: <and::AndGate as CircuitIO>::I,
 }
 
-#[derive(Digital, Timed, PartialEq)]
+#[derive(Digital, Copy, Clone, Timed, PartialEq)]
 pub struct Q {
     xor: <xor::XorGate as CircuitIO>::O,
     and: <and::AndGate as CircuitIO>::O,
@@ -220,7 +220,7 @@ mod xor;
 pub use xor::XorGate;
 pub use xor::xor_gate;
 
-#[derive(Digital, Timed, PartialEq)]
+#[derive(Digital, Copy, Clone, Timed, PartialEq)]
 pub struct Outputs {
     pub sum: Signal<bool, Red>,
     pub carry: Signal<bool, Red>,
@@ -247,13 +247,13 @@ impl CircuitIO for HalfAdder {
     type Kernel = half_adder;
 }
 
-#[derive(Digital, Timed, PartialEq)]
+#[derive(Digital, Copy, Clone, Timed, PartialEq)]
 pub struct D {
     xor: <xor::XorGate as CircuitIO>::I,
     and: <and::AndGate as CircuitIO>::I,
 }
 
-#[derive(Digital, Timed, PartialEq)]
+#[derive(Digital, Copy, Clone, Timed, PartialEq)]
 pub struct Q {
     xor: <xor::XorGate as CircuitIO>::O,
     and: <and::AndGate as CircuitIO>::O,
