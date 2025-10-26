@@ -81,7 +81,7 @@ where
                     context.consume(&self.block_text);
                     let hash = context.finalize();
                     // Check to see if a cache file exists for this block already
-                    let cache_key = format!("src/db/{:x}.json", hash);
+                    let cache_key = format!("db/{:x}.json", hash);
                     let mut fetched = false;
                     if let Some(cached) = std::fs::read_to_string(&cache_key).ok()
                         && let Ok(cached) = serde_json::from_str::<Vec<Event<'_>>>(&cached)

@@ -96,9 +96,6 @@ fn path_is_enum_tuple_struct_by_convention(path: &Path) -> bool {
         return false;
     }
     let last = &path.segments[1];
-    if last.ident == "UPDATE" {
-        return false;
-    }
     let second_to_last = &path.segments[0];
     ident_starts_with_capital_letter(&last.ident)
         && ident_starts_with_capital_letter(&second_to_last.ident)

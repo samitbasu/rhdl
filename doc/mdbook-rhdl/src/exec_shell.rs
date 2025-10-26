@@ -10,7 +10,7 @@ pub const SHELL_PREFIX: &str = "shell,rhdl";
 pub const SHELL_SILENT_PREFIX: &str = "shell,rhdl-silent";
 
 fn do_shell_thing(start_dir: &str, txt: &str) -> String {
-    log::debug!("Executing shell command: {}", txt);
+    log::info!("Executing shell command: {}", txt);
     // Constant directory for now - you can modify this path as needed
 
     // Split input into individual commands
@@ -62,6 +62,7 @@ pwd
             current_dir.display()
         );
 
+        log::info!("Running script:\n{}", script);
         // Execute the command
         let output = Command::new("zsh").arg("-c").arg(&script).output();
 

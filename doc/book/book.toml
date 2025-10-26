@@ -18,3 +18,5 @@ command = "/Users/samitbasu/Devel/rhdl/target/release/mdbook-rhdl"
 
 [output.html]
 additional-css = ["./mdbook-admonish.css"]
+
+[output.linkcheck]

@@ -122,6 +122,6 @@ The resulting SVG shows the input and output signals as one would expect for a t
 cp ones.svg $ROOT_DIR/src/img/.
 ```
 
-![OnesCounter Simulation](../../img/ones.svg)
+![OnesCounter Simulation](../img/ones.svg)
 
 
