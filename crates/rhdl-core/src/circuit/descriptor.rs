@@ -1,7 +1,12 @@
-use crate::{CircuitDescriptor, HDLDescriptor, RHDLError};
+use crate::{HDLDescriptor, Kind, RHDLError, circuit::circuit_descriptor::CircuitType};
 
-pub trait Descriptor {
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError>;
-    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
-    fn netlist(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
+pub struct Descriptor {
+    pub name: String,
+    pub input_kind: Kind,
+    pub output_kind: Kind,
+    pub d_kind: Kind,
+    pub q_kind: Kind,
+    pub circuit_type: CircuitType,
+    pub hdl: Option<HDLDescriptor>,
+    pub netlist: Option<HDLDescriptor>,
 }

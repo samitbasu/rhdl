@@ -41,7 +41,9 @@
 //! synchronous circuits in RHDL.
 
 use crate::{
-    CircuitDescriptor, ClockReset, Digital, DigitalFn, HDLDescriptor, digital_fn::DigitalFn3,
+    CircuitDescriptor, ClockReset, Digital, DigitalFn, HDLDescriptor, Kind,
+    circuit::{circuit_descriptor::CircuitType, descriptor::Interface},
+    digital_fn::DigitalFn3,
     error::RHDLError,
 };
 use rhdl_vlog as vlog;
@@ -288,5 +290,15 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO {
     fn netlist(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let descriptor = self.descriptor(name)?;
         crate::ntl::hdl::build_hdl(name, &descriptor.ntl)
+    }
+
+    fn interface(&self) -> Interface {
+        Interface {
+            input_kind: <Self as SynchronousIO>::I::static_kind(),
+            output_kind: <Self as SynchronousIO>::O::static_kind(),
+            d_kind: <Self as SynchronousDQ>::D::static_kind(),
+            q_kind: <Self as SynchronousDQ>::Q::static_kind(),
+            circuit_type: CircuitType::Synchronous,
+        }
     }
 }

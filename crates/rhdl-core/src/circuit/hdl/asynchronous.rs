@@ -1,20 +1,22 @@
 use crate::{
-    CircuitDescriptor, HDLDescriptor, RHDLError,
+    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, HDLDescriptor, RHDLError,
+    circuit::descriptor::Descriptor,
+    types::digital::Digital,
     types::path::{Path, bit_range},
 };
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use rhdl_vlog as vlog;
 
-/// Build an HDL description of a circuit
-///
-/// This function is not typically called directly.  It is used by the `Circuit` proc-macro
-/// to build the HDL description of a circuit.
-pub fn build_asynchronous_hdl(descriptor: &CircuitDescriptor) -> Result<HDLDescriptor, RHDLError> {
-    let circuit_output = descriptor.output_kind;
-    let circuit_input = descriptor.input_kind;
-    let d_kind = descriptor.d_kind;
-    let q_kind = descriptor.q_kind;
+/// Build run time description of a circuit
+pub fn build_asynchronous_descriptor<C: Circuit>(
+    circuit: &C,
+    name: &str,
+) -> Result<Descriptor, RHDLError> {
+    let circuit_output = <C as CircuitIO>::O::static_kind();
+    let circuit_input = <C as CircuitIO>::I::static_kind();
+    let d_kind = <C as CircuitDQ>::D::static_kind();
+    let q_kind = <C as CircuitDQ>::Q::static_kind();
     let outputs = circuit_output.bits();
     let ports = [
         vlog::maybe_port_wire(vlog::Direction::Input, circuit_input.bits(), "i"),
@@ -25,12 +27,18 @@ pub fn build_asynchronous_hdl(descriptor: &CircuitDescriptor) -> Result<HDLDescr
         vlog::maybe_decl_wire(d_kind.bits(), "d"),
         vlog::maybe_decl_wire(q_kind.bits(), "q"),
     ];
-    let child_decls = descriptor
-        .children
-        .iter()
-        .filter(|(_, desc)| !desc.output_kind.is_empty())
+    for (ndx, child_desc) in circuit.children().enumerate() {
+        let child_desc = child_desc?;
+        if child.output_kind.is_empty() {
+            continue;
+        }
+    }
+
+    let child_decls = circuit
+        .children()
+        .filter(|desc| !desc.map(|d| d.output_kind.is_empty()).unwrap_or(false))
         .enumerate()
-        .map(|(ndx, (local_name, descriptor))| {
+        .map(|(ndx, desc)| {
             let child_path = Path::default().field(local_name);
             let (d_range, _) = bit_range(d_kind, &child_path)?;
             let (q_range, _) = bit_range(q_kind, &child_path)?;
