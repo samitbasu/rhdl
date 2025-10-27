@@ -37,7 +37,13 @@
 ")]
 //! See the [book]() for a detailed explanation of this diagram.
 use crate::{
-    DigitalFn, Timed, circuit::descriptor::Descriptor, digital_fn::DigitalFn2, error::RHDLError,
+    Digital, DigitalFn, Kind, Timed,
+    circuit::{
+        circuit_descriptor::CircuitType,
+        descriptor::{Descriptor, Interface},
+    },
+    digital_fn::DigitalFn2,
+    error::RHDLError,
 };
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
@@ -247,13 +253,8 @@ pub trait Circuit: 'static + CircuitIO {
     /// Simulate the circuit given it's current state and input.
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O;
 
-    /// A human readable description of the circuit, unique for each type.
-    fn description(&self) -> String {
-        format!("circuit {}", std::any::type_name::<Self>())
-    }
-
-    /// Provides run time reflection of the circuit.
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError>;
+    /// Provides run time description of the circuit.
+    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError>;
 
     /// Hardware Description Language (HDL) representation of the circuit.
     ///
@@ -272,5 +273,7 @@ pub trait Circuit: 'static + CircuitIO {
         crate::ntl::hdl::build_hdl(name, &descriptor.ntl)
     }
 
-    fn children(&self) -> impl Iterator<Item = (&str, &dyn Descriptor)>;
+    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+        std::iter::empty()
+    }
 }
