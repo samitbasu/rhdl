@@ -36,7 +36,9 @@
        +----------------------------------------------------------------+        
 ")]
 //! See the [book]() for a detailed explanation of this diagram.
-use crate::{DigitalFn, Timed, digital_fn::DigitalFn2, error::RHDLError, ntl::hdl::generate_hdl};
+use crate::{
+    DigitalFn, Timed, circuit::descriptor::Descriptor, digital_fn::DigitalFn2, error::RHDLError,
+};
 
 use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
 
@@ -79,7 +81,7 @@ use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor
 ///        (<Self as CircuitIO>::O, <Self as CircuitDQ>::D);
 /// ```
 ///
-pub trait CircuitIO: 'static + Sized + Clone + CircuitDQ {
+pub trait CircuitIO: 'static + CircuitDQ {
     /// The input type of the circuit
     type I: Timed;
     /// The output type of the circuit
@@ -177,7 +179,7 @@ pub trait CircuitIO: 'static + Sized + Clone + CircuitDQ {
 /// Also, because the types are exposed through a trait, you can always
 /// define them yourself, and do not need to use the `CircuitDQ` derive
 /// macro.
-pub trait CircuitDQ: 'static + Sized + Clone {
+pub trait CircuitDQ: 'static {
     /// A type which contains the feedback data from the circuit to its subcircuits.
     type D: Timed;
     /// A type which contains the feedback data from the subcircuits to the circuit.
@@ -227,7 +229,7 @@ pub trait CircuitDQ: 'static + Sized + Clone {
 ///
 /// There are implementations of `Circuit` provided for arrays of circuits, so you can
 /// create arrays of circuits and use them as a single circuit.
-pub trait Circuit: 'static + Sized + Clone + CircuitIO {
+pub trait Circuit: 'static + CircuitIO {
     /// The simulation state type
     /// This type is used to represent the state of the circuit during simulation.
     /// It must be `Clone` and `PartialEq`.  It holds whatever state is needed to
@@ -257,13 +259,18 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO {
     ///
     /// This method returns the HDL representation of the circuit.  This is typically
     /// auto-derived by the `Circuit` macro, and is typically a Verilog representation.
-    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
+    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
+        let descriptor = self.descriptor(name)?;
+        super::hdl::build_hdl(&descriptor)
+    }
 
     /// Generate a netlist HDL representation of the circuit.
     ///
     /// This method generates a netlist representation of the circuit in HDL (typically Verilog).
-    fn netlist_hdl(&self, name: &str) -> Result<rhdl_vlog::ModuleList, RHDLError> {
+    fn netlist(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let descriptor = self.descriptor(name)?;
-        generate_hdl(name, &descriptor.ntl)
+        crate::ntl::hdl::build_hdl(name, &descriptor.ntl)
     }
+
+    fn children(&self) -> impl Iterator<Item = (&str, &dyn Descriptor)>;
 }

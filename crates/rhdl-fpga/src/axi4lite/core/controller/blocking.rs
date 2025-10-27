@@ -254,7 +254,7 @@ mod tests {
     fn no_combinatorial_paths() -> miette::Result<()> {
         let uut = BlockReadWriteController::default();
         let descriptor = uut.hdl("top")?;
-        let module = descriptor.as_module().pretty();
+        let module = descriptor.modules.pretty();
         expect_test::expect_file!["blocking_controller.vlog"].assert_eq(&module);
         drc::no_combinatorial_paths(&uut)?;
         Ok(())

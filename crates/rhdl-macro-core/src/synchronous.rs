@@ -105,7 +105,7 @@ fn derive_synchronous_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 
             #descriptor_fn
 
-            #hdl_fn
+            //#hdl_fn
 
             #sim_fn
         }

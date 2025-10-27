@@ -106,7 +106,7 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 
             #descriptor_fn
 
-            #hdl_fn
+            //#hdl_fn
 
             #sim_fn
         }

@@ -53,3 +53,4 @@ pub trait Circuit: 'static + Sized + Clone + CircuitIO {
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
     fn netlist_hdl(&self, name: &str) -> Result<rhdl_vlog::ModuleList, RHDLError>; 
 }
+

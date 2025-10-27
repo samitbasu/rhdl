@@ -59,8 +59,6 @@ pub use error::RHDLError;
 pub mod rtl;
 pub use circuit::circuit_descriptor::build_descriptor;
 pub use circuit::circuit_descriptor::build_synchronous_descriptor;
-pub use circuit::hdl_backend::build_hdl;
-pub use circuit::hdl_backend::build_synchronous_hdl;
 pub use compiler::CompilationMode;
 pub use types::clock_reset::ClockReset;
 pub use types::clock_reset::clock_reset;

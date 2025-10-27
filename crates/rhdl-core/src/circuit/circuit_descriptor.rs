@@ -47,6 +47,17 @@ pub struct CircuitDescriptor {
     pub ntl: crate::ntl::object::Object,
     /// The child circuits of this circuit, if any.
     pub children: BTreeMap<String, CircuitDescriptor>,
+    /// The type of the circuit (asynchronous or synchronous).
+    pub circuit_type: CircuitType,
+}
+
+/// The type of circuit: asynchronous or synchronous.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum CircuitType {
+    /// Asynchronous circuit type.
+    Asynchronous,
+    /// Synchronous circuit type.
+    Synchronous,
 }
 
 /// Build a circuit descriptor for an asynchronous circuit.
@@ -126,6 +137,7 @@ pub fn build_descriptor<C: Circuit>(
         ntl: builder.build(ntl::builder::BuilderMode::Asynchronous)?,
         rtl: Some(module),
         children,
+        circuit_type: CircuitType::Asynchronous,
     })
 }
 
@@ -223,5 +235,6 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         children,
         rtl: Some(module),
         ntl: builder.build(ntl::builder::BuilderMode::Synchronous)?,
+        circuit_type: CircuitType::Synchronous,
     })
 }

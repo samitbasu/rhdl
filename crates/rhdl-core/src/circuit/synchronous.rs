@@ -42,7 +42,7 @@
 
 use crate::{
     CircuitDescriptor, ClockReset, Digital, DigitalFn, HDLDescriptor, digital_fn::DigitalFn3,
-    error::RHDLError, ntl::hdl::generate_hdl,
+    error::RHDLError,
 };
 use rhdl_vlog as vlog;
 
@@ -279,11 +279,14 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO {
     /// This method returns the HDL representation of the circuit.
     /// This is typically auto-derived by the `Synchronous` derive macro,
     /// and is essentially a Verilog-like representation of the circuit.
-    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
+    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
+        let descriptor = self.descriptor(name)?;
+        super::hdl::build_hdl(&descriptor)
+    }
 
     /// Generate the netlist HDL for the circuit.
-    fn netlist_hdl(&self, name: &str) -> Result<vlog::ModuleList, RHDLError> {
+    fn netlist(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let descriptor = self.descriptor(name)?;
-        generate_hdl(name, &descriptor.ntl)
+        crate::ntl::hdl::build_hdl(name, &descriptor.ntl)
     }
 }

@@ -57,7 +57,7 @@ fn test_verilog_output() -> miette::Result<()> {
     "#]];
     let gate = XorGate;
     let hdl = gate.hdl("xor_gate")?;
-    expect.assert_eq(&hdl.as_module().to_string());
+    expect.assert_eq(&hdl.modules.to_string());
     Ok(())
 }
 

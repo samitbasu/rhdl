@@ -276,6 +276,7 @@ where
             children: Default::default(),
             rtl: None,
             ntl: circuit_black_box(self, name)?,
+            circuit_type: CircuitType::Asynchronous,
         })
     }
 
@@ -381,8 +382,7 @@ where
         };
         Ok(HDLDescriptor {
             name: module_name,
-            body: module,
-            children: Default::default(),
+            modules: module.into(),
         })
     }
 }
@@ -438,9 +438,9 @@ mod tests {
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
         );
-        let hdl = uut.netlist_hdl("uut")?;
+        let hdl = uut.netlist("uut")?;
         let expect = expect_file!["ram_fg.v.expect"];
-        expect.assert_eq(&hdl.to_string());
+        expect.assert_eq(&hdl.modules.to_string());
         Ok(())
     }
 
@@ -494,7 +494,7 @@ mod tests {
                end
             endmodule
         "#]];
-        let module = uut.hdl("uut")?.as_module().pretty();
+        let module = uut.hdl("uut")?.modules.pretty();
         expect.assert_eq(&module.to_string());
         let stream_read = get_scan_out_stream(100, 34);
         // The write interface will be dormant
