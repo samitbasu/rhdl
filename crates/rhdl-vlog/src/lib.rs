@@ -327,6 +327,14 @@ pub struct ModuleList {
     pub modules: Vec<ModuleDef>,
 }
 
+impl From<ModuleDef> for ModuleList {
+    fn from(module: ModuleDef) -> Self {
+        Self {
+            modules: vec![module],
+        }
+    }
+}
+
 impl IntoIterator for ModuleList {
     type Item = ModuleDef;
     type IntoIter = std::vec::IntoIter<ModuleDef>;

@@ -2,6 +2,7 @@ use quote::{format_ident, quote};
 use rhdl_vlog::declaration;
 use syn::parse_quote;
 
+use crate::circuit::circuit_descriptor::CircuitType;
 use crate::ntl;
 use crate::{
     CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, Synchronous, SynchronousDQ,
@@ -111,6 +112,7 @@ where
             ntl: builder.build(ntl::builder::BuilderMode::Synchronous)?,
             rtl: None,
             children: BTreeMap::from_iter(vec![(a_name, desc_a), (b_name, desc_b)]),
+            circuit_type: CircuitType::Synchronous,
         };
         Ok(desc)
     }
@@ -150,10 +152,12 @@ where
         };
         let a_hdl = self.a.hdl(&a_name)?;
         let b_hdl = self.b.hdl(&b_name)?;
+        let mut module_list: vlog::ModuleList = module.into();
+        module_list.modules.extend(a_hdl.modules);
+        module_list.modules.extend(b_hdl.modules);
         Ok(HDLDescriptor {
             name: name.into(),
-            body: module,
-            children: BTreeMap::from_iter(vec![(a_name, a_hdl), (b_name, b_hdl)]),
+            modules: module_list,
         })
     }
 }

@@ -2,7 +2,7 @@ use rhdl::prelude::*;
 
 #[cfg(test)]
 mod common;
-use rhdl_core::circuit::{async_func::AsyncFunc, fixture::Fixture};
+use rhdl_core::circuit::{fixture::Fixture, function::asynchronous::AsyncFunc};
 use rhdl_vlog::formatter::Pretty;
 
 // Unified macro for binding inputs and outputs to a fixture

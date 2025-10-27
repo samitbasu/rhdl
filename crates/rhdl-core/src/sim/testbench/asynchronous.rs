@@ -157,7 +157,7 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         T: Circuit,
         T: CircuitIO<I = I, O = O>,
     {
-        let hdl = uut.hdl("uut")?.as_module();
+        let hdl = uut.hdl("uut")?.modules;
         self.build_test_module(&hdl, options)
     }
 
@@ -167,6 +167,6 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         T: CircuitIO<I = I, O = O>,
     {
         let module = uut.descriptor("uut")?.ntl.as_vlog("dut")?;
-        self.build_test_module(&module, options)
+        self.build_test_module(&module.modules, options)
     }
 }

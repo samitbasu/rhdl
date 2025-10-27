@@ -1,9 +1,11 @@
 use crate::{
     CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous,
-    SynchronousDQ, SynchronousIO, digital_fn::NoKernel3, ntl,
+    SynchronousDQ, SynchronousIO, circuit::circuit_descriptor::CircuitType, digital_fn::NoKernel3,
+    ntl,
 };
 
 use quote::format_ident;
+use rhdl_vlog as vlog;
 use syn::parse_quote;
 
 impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
@@ -39,20 +41,20 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
             children: Default::default(),
             rtl: None,
             ntl: ntl.build(ntl::builder::BuilderMode::Synchronous)?,
+            circuit_type: CircuitType::Asynchronous,
         })
     }
 
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = self.descriptor(name)?.unique_name;
         let module_ident = format_ident!("{}", module_name);
-        let module = parse_quote! {
+        let module: vlog::ModuleDef = parse_quote! {
             module #module_ident;
             endmodule
         };
         Ok(HDLDescriptor {
             name: module_name,
-            body: module,
-            children: Default::default(),
+            modules: module.into(),
         })
     }
 }

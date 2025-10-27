@@ -181,7 +181,7 @@ mod tests {
             endmodule
         "#]];
         let uut = NegatingConditioner::<Red, Blue>::default();
-        let hdl = uut.hdl("top")?.as_module().pretty();
+        let hdl = uut.hdl("top")?.modules.pretty();
         expect.assert_eq(&hdl);
         let stream = istream();
         let tb = uut.run(stream).collect::<TestBench<_, _>>();

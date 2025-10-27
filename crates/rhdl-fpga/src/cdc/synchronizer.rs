@@ -257,6 +257,7 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
             children: Default::default(),
             rtl: None,
             ntl: rhdl::core::ntl::builder::circuit_black_box(self, name)?,
+            circuit_type: CircuitType::Asynchronous,
         })
     }
 
@@ -297,8 +298,7 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
         };
         Ok(HDLDescriptor {
             name: name.into(),
-            body: module,
-            children: Default::default(),
+            modules: module.into(),
         })
     }
 }
@@ -354,7 +354,7 @@ mod tests {
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
         let uut = Sync1Bit::<Red, Blue>::default();
-        let hdl = uut.hdl("top")?.as_module().pretty();
+        let hdl = uut.hdl("top")?.modules.pretty();
         let expect = expect_test::expect![[r#"
             module top(input wire [2:0] i, output wire [0:0] o);
                wire [0:0] data;

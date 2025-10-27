@@ -1,7 +1,8 @@
 use crate::{
-    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain, Kind,
-    RHDLError, Signal, Synchronous, Timed,
+    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain,
+    HDLDescriptor, Kind, RHDLError, Signal, Synchronous, Timed,
     bitx::BitX,
+    circuit::circuit_descriptor::CircuitType,
     digital_fn::NoKernel2,
     ntl,
     types::{kind::Field, signal::signal},
@@ -125,6 +126,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
             ntl: builder.build(ntl::builder::BuilderMode::Asynchronous)?,
             rtl: None,
             children: Default::default(),
+            circuit_type: CircuitType::Asynchronous,
         })
     }
 
@@ -154,10 +156,11 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
                 #child_unique_name_ident c(.clock_reset(i[1:0]) #input_connection, .o(o))
             endmodule
         };
-        Ok(crate::HDLDescriptor {
-            name: child_name.into(),
-            body: module,
-            children: [("c".into(), child_hdl)].into(),
+        let mut module_list: vlog::ModuleList = module.into();
+        module_list.modules.extend(child_hdl.modules);
+        Ok(HDLDescriptor {
+            name: name.to_string(),
+            modules: module_list,
         })
     }
 }

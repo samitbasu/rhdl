@@ -228,6 +228,7 @@ where
             children: Default::default(),
             rtl: None,
             ntl: synchronous_black_box(self, name)?,
+            circuit_type: CircuitType::Synchronous,
         })
     }
 
@@ -284,8 +285,7 @@ where
         };
         Ok(HDLDescriptor {
             name: module_name,
-            body: module,
-            children: Default::default(),
+            modules: module.into(),
         })
     }
 }
@@ -424,7 +424,7 @@ mod tests {
                end
             endmodule
         "#]];
-        let hdl = uut.hdl("top")?.as_module().pretty();
+        let hdl = uut.hdl("top")?.modules.pretty();
         expect.assert_eq(&hdl);
         let stream = random_command_stream(1000);
         let test_bench = uut.run(stream).collect::<SynchronousTestBench<_, _>>();

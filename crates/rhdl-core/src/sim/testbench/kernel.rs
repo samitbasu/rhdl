@@ -390,7 +390,7 @@ where
     debug!("{rtl:?}");
     debug!("{ntl:?}");
     let desc = ntl.as_vlog("dut")?;
-    let tm = test_module_for_netlist(uut, desc, vals);
+    let tm = test_module_for_netlist(uut, desc.modules, vals);
     debug!("Running netlist test");
     debug!("{}", tm);
     tm.run_iverilog()?;

@@ -96,6 +96,7 @@ impl<C: Domain> Circuit for ResetNegation<C> {
             children: Default::default(),
             rtl: None,
             ntl: rhdl::core::ntl::builder::circuit_black_box(self, name)?,
+            circuit_type: CircuitType::Asynchronous,
         })
     }
 
@@ -108,8 +109,7 @@ impl<C: Domain> Circuit for ResetNegation<C> {
         };
         Ok(HDLDescriptor {
             name: name.into(),
-            body: module,
-            children: Default::default(),
+            modules: module.into(),
         })
     }
 }

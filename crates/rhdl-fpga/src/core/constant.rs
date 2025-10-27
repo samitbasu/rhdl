@@ -85,6 +85,7 @@ impl<T: Digital> Synchronous for Constant<T> {
             children: Default::default(),
             rtl: None,
             ntl: constant(&self.value, name)?,
+            circuit_type: CircuitType::Synchronous,
         })
     }
 }
@@ -104,8 +105,7 @@ impl<T: Digital> Constant<T> {
         };
         Ok(HDLDescriptor {
             name: module_name,
-            body: module,
-            children: Default::default(),
+            modules: module.into(),
         })
     }
 }

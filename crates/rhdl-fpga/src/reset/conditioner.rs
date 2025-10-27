@@ -189,6 +189,7 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
             children: Default::default(),
             rtl: None,
             ntl: circuit_black_box(self, name)?,
+            circuit_type: CircuitType::Asynchronous,
         })
     }
 
@@ -222,8 +223,7 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
         };
         Ok(HDLDescriptor {
             name: name.into(),
-            body: module,
-            children: Default::default(),
+            modules: module.into(),
         })
     }
 }
@@ -272,7 +272,7 @@ mod tests {
             endmodule
         "#]];
         let uut = ResetConditioner::<Red, Blue>::default();
-        let hdl = uut.hdl("top")?.as_module().pretty();
+        let hdl = uut.hdl("top")?.modules.pretty();
         expect.assert_eq(&hdl);
         let input = sync_stream();
         let tb = uut.run(input).collect::<TestBench<_, _>>();

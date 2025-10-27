@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn test_vlog_generation() -> miette::Result<()> {
         let uut = Delay::<Option<Bits<4>>, 2>::default();
-        let hdl = uut.hdl("top")?.as_module().pretty();
+        let hdl = uut.hdl("top")?.modules.pretty();
         let expect = expect![[r#"
             module top(input wire [1:0] clock_reset, input wire [4:0] i, output wire [4:0] o);
                wire [14:0] od;

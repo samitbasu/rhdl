@@ -161,6 +161,7 @@ impl<T: Digital> Synchronous for DFF<T> {
             children: Default::default(),
             ntl,
             rtl: None,
+            circuit_type: CircuitType::Synchronous,
         })
     }
 }
@@ -198,8 +199,7 @@ impl<T: Digital> DFF<T> {
         };
         Ok(HDLDescriptor {
             name: name.into(),
-            body: module,
-            children: Default::default(),
+            modules: module.into(),
         })
     }
 }
@@ -228,7 +228,7 @@ mod tests {
             endmodule
         "#]];
         let uut: DFF<b4> = DFF::new(bits(0b1010));
-        let hdl = uut.hdl("top")?.as_module().pretty();
+        let hdl = uut.hdl("top")?.modules.pretty();
         expect.assert_eq(&hdl);
         Ok(())
     }
