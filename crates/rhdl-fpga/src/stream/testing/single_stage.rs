@@ -133,13 +133,7 @@ where
             self.sink.init(),
         )
     }
-    fn descriptor(
-        &self,
-        _name: &str,
-    ) -> Result<rhdl::core::CircuitDescriptor, rhdl::core::RHDLError> {
-        Err(RHDLError::NotSynthesizable)
-    }
-    fn hdl(&self, _name: &str) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
+    fn descriptor(&self, _name: &str) -> Result<rhdl::core::Descriptor, rhdl::core::RHDLError> {
         Err(RHDLError::NotSynthesizable)
     }
     fn sim(
@@ -186,5 +180,8 @@ where
             }
         }
         panic!("Simulation did not converge");
+    }
+    fn children(&self) -> impl Iterator<Item = Result<rhdl::core::Descriptor, RHDLError>> {
+        std::iter::empty()
     }
 }

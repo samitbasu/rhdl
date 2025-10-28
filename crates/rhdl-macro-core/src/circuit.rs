@@ -9,34 +9,13 @@ pub fn derive_circuit(input: TokenStream) -> syn::Result<TokenStream> {
     derive_circuit_struct(decl)
 }
 
-fn define_descriptor_fn(field_set: &FieldSet) -> TokenStream {
+fn define_children_fn(field_set: &FieldSet) -> TokenStream {
     let component_name = &field_set.component_name;
     quote! {
-        fn descriptor(&self, name: &str) -> Result<rhdl::core::CircuitDescriptor, rhdl::core::RHDLError> {
-            use std::collections::BTreeMap;
-            let mut children : BTreeMap<String, rhdl::core::CircuitDescriptor> = BTreeMap::new();
-            #(children.insert(stringify!(#component_name).to_string(),
-                self.#component_name.descriptor(
-                    &format!("{name}_{}", stringify!(#component_name))
-                )?
-            );)*
-            rhdl::core::build_descriptor::<Self>(name, children)
-        }
-    }
-}
-
-fn define_hdl_fn(field_set: &FieldSet) -> TokenStream {
-    let component_name = &field_set.component_name;
-    quote! {
-        fn hdl(&self, name: &str) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
-            use std::collections::BTreeMap;
-            let mut children : BTreeMap<String, rhdl::core::HDLDescriptor> = BTreeMap::new();
-            #(children.insert(stringify!(#component_name).to_string(),
-                self.#component_name.hdl(
-                    &format!("{name}_{}", stringify!(#component_name))
-                )?
-            );)*
-            rhdl::core::build_hdl(self, name, children)
+        fn children(&self) -> impl Iterator<Item = Result<rhdl::core::Descriptor, rhdl::core::RHDLError>> {
+            [
+                #(self.#component_name.descriptor(stringify!(#component_name))),*
+            ].into_iter()
         }
     }
 }
@@ -94,8 +73,7 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let component_ty = &field_set.component_ty;
     // Add a tuple of the states of the components
     let state_tuple = quote!((Self::Q, #(<#component_ty as rhdl::core::Circuit>::S),*));
-    let descriptor_fn = define_descriptor_fn(&field_set);
-    let hdl_fn = define_hdl_fn(&field_set);
+    let children_fn = define_children_fn(&field_set);
     let sim_fn = define_sim_fn(&field_set);
     let init_fn = define_init_fn(&field_set);
     let circuit_impl = quote! {
@@ -104,9 +82,7 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 
             #init_fn
 
-            #descriptor_fn
-
-            //#hdl_fn
+            #children_fn
 
             #sim_fn
         }

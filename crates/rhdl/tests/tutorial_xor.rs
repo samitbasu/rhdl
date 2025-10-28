@@ -1,5 +1,6 @@
 use rhdl::prelude::*;
 
+use rhdl_core::circuit::descriptor;
 use test_log::test;
 
 #[derive(Circuit, Clone)]
@@ -56,7 +57,8 @@ fn test_verilog_output() -> miette::Result<()> {
         endmodule
     "#]];
     let gate = XorGate;
-    let hdl = gate.hdl("xor_gate")?;
+    let descriptor = gate.descriptor("xor_gate")?;
+    let hdl = descriptor.hdl()?;
     expect.assert_eq(&hdl.modules.to_string());
     Ok(())
 }

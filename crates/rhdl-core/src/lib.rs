@@ -6,6 +6,7 @@ pub use circuit::circuit_descriptor::CircuitDescriptor;
 pub use circuit::circuit_impl::Circuit;
 pub use circuit::circuit_impl::CircuitDQ;
 pub use circuit::circuit_impl::CircuitIO;
+pub use circuit::descriptor::Descriptor;
 pub use circuit::hdl_descriptor::HDLDescriptor;
 pub use circuit::synchronous::Synchronous;
 pub use circuit::synchronous::SynchronousDQ;

@@ -37,16 +37,11 @@
 ")]
 //! See the [book]() for a detailed explanation of this diagram.
 use crate::{
-    Digital, DigitalFn, Kind, Timed,
-    circuit::{
-        circuit_descriptor::CircuitType,
-        descriptor::{Descriptor, Interface},
-    },
+    DigitalFn, Timed,
+    circuit::{descriptor::Descriptor, hdl::asynchronous::build_asynchronous_descriptor},
     digital_fn::DigitalFn2,
     error::RHDLError,
 };
-
-use super::{circuit_descriptor::CircuitDescriptor, hdl_descriptor::HDLDescriptor};
 
 /// Circuit Input and Output trait
 ///
@@ -235,7 +230,7 @@ pub trait CircuitDQ: 'static {
 ///
 /// There are implementations of `Circuit` provided for arrays of circuits, so you can
 /// create arrays of circuits and use them as a single circuit.
-pub trait Circuit: 'static + CircuitIO {
+pub trait Circuit: 'static + CircuitIO + Sized {
     /// The simulation state type
     /// This type is used to represent the state of the circuit during simulation.
     /// It must be `Clone` and `PartialEq`.  It holds whatever state is needed to
@@ -254,26 +249,9 @@ pub trait Circuit: 'static + CircuitIO {
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O;
 
     /// Provides run time description of the circuit.
-    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError>;
-
-    /// Hardware Description Language (HDL) representation of the circuit.
-    ///
-    /// This method returns the HDL representation of the circuit.  This is typically
-    /// auto-derived by the `Circuit` macro, and is typically a Verilog representation.
-    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
-        let descriptor = self.descriptor(name)?;
-        super::hdl::build_hdl(&descriptor)
+    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError> {
+        build_asynchronous_descriptor(self, name)
     }
 
-    /// Generate a netlist HDL representation of the circuit.
-    ///
-    /// This method generates a netlist representation of the circuit in HDL (typically Verilog).
-    fn netlist(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
-        let descriptor = self.descriptor(name)?;
-        crate::ntl::hdl::build_hdl(name, &descriptor.ntl)
-    }
-
-    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
-        std::iter::empty()
-    }
+    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>>;
 }

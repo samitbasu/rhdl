@@ -74,6 +74,7 @@ pub use rhdl_bits::xneg::XNeg;
 pub use rhdl_bits::xsgn::XSgn;
 pub use rhdl_bits::xsub::XSub;
 pub use rhdl_core::BitX;
+pub use rhdl_core::Descriptor;
 pub use rhdl_core::bitx::bitx_parse;
 pub use rhdl_core::bitx::bitx_string;
 pub use rhdl_core::bitx_vec;

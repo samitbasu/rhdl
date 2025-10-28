@@ -157,8 +157,9 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         T: Circuit,
         T: CircuitIO<I = I, O = O>,
     {
-        let hdl = uut.hdl("uut")?.modules;
-        self.build_test_module(&hdl, options)
+        let desc = uut.descriptor("uut")?;
+        let hdl = desc.hdl()?;
+        self.build_test_module(&hdl.modules, options)
     }
 
     pub fn ntl<T>(&self, uut: &T, options: &TestBenchOptions) -> Result<TestModule, RHDLError>
@@ -166,7 +167,7 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         T: Circuit,
         T: CircuitIO<I = I, O = O>,
     {
-        let module = uut.descriptor("uut")?.ntl.as_vlog("dut")?;
+        let module = uut.descriptor("uut")?.netlist()?.as_vlog("dut")?;
         self.build_test_module(&module.modules, options)
     }
 }

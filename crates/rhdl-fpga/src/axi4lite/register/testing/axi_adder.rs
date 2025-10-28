@@ -91,7 +91,8 @@ mod tests {
     #[test]
     fn test_synthesizable() -> miette::Result<()> {
         let uut = Adder::default();
-        let _ = uut.hdl("top")?;
+        let descriptor = uut.descriptor("top")?;
+        let _ = descriptor.hdl()?;
         Ok(())
     }
 

@@ -41,12 +41,9 @@
 //! synchronous circuits in RHDL.
 
 use crate::{
-    CircuitDescriptor, ClockReset, Digital, DigitalFn, HDLDescriptor, Kind,
-    circuit::{circuit_descriptor::CircuitType, descriptor::Interface},
-    digital_fn::DigitalFn3,
+    ClockReset, Digital, DigitalFn, circuit::descriptor::Descriptor, digital_fn::DigitalFn3,
     error::RHDLError,
 };
-use rhdl_vlog as vlog;
 
 /// The [Synchronous] circuit's internal feedback types D and Q.
 ///
@@ -262,43 +259,21 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO {
     /// and it's typically a struct containing the states of all the subcircuits,
     /// along with their last know outputs.
     type S: PartialEq + Clone;
+
     /// Initialize the simulation state.
     /// This method returns the initial state of the circuit for simulation.
     /// This is typically auto-derived by the `Synchronous` derive macro,
     /// and it typically initializes the states of all the subcircuits to their
     /// initial states.
     fn init(&self) -> Self::S;
+
     /// Simulate the circuit given it's input, clock reset, and current state.
     fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O;
-    /// A human readable description fo the circuit, unique for each type.
-    fn description(&self) -> String {
-        format!("synchronous circuit {}", std::any::type_name::<Self>())
-    }
+
     /// Provides run time reflection of the circuit.
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError>;
-    /// Hardware Description Language (HDL) representation for the circuit.
-    ///
-    /// This method returns the HDL representation of the circuit.
-    /// This is typically auto-derived by the `Synchronous` derive macro,
-    /// and is essentially a Verilog-like representation of the circuit.
-    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
-        let descriptor = self.descriptor(name)?;
-        super::hdl::build_hdl(&descriptor)
+    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError> {
+        super::hdl::synchronous::build_synchronous_descriptor(self, name)
     }
 
-    /// Generate the netlist HDL for the circuit.
-    fn netlist(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
-        let descriptor = self.descriptor(name)?;
-        crate::ntl::hdl::build_hdl(name, &descriptor.ntl)
-    }
-
-    fn interface(&self) -> Interface {
-        Interface {
-            input_kind: <Self as SynchronousIO>::I::static_kind(),
-            output_kind: <Self as SynchronousIO>::O::static_kind(),
-            d_kind: <Self as SynchronousDQ>::D::static_kind(),
-            q_kind: <Self as SynchronousDQ>::Q::static_kind(),
-            circuit_type: CircuitType::Synchronous,
-        }
-    }
+    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>>;
 }

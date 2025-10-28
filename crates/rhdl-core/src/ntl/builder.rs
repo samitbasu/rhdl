@@ -95,7 +95,12 @@ impl Builder {
 
 pub fn circuit_black_box<C: Circuit>(circuit: &C, name: &str) -> Result<Object, RHDLError> {
     let mut builder = Builder::new(name);
-    let hdl = circuit.hdl(name)?;
+    let hdl = circuit
+        .descriptor(name)?
+        .hdl
+        .ok_or(RHDLError::HDLNotAvailable {
+            name: name.to_string(),
+        })?;
     let arg0 = builder.add_input(C::I::static_kind());
     let out = builder.allocate_outputs(C::O::static_kind());
     builder.object.black_boxes.push(BlackBox {
@@ -117,7 +122,12 @@ pub fn circuit_black_box<C: Circuit>(circuit: &C, name: &str) -> Result<Object, 
 
 pub fn synchronous_black_box<S: Synchronous>(circuit: &S, name: &str) -> Result<Object, RHDLError> {
     let mut builder = Builder::new(name);
-    let hdl = circuit.hdl(name)?;
+    let hdl = circuit
+        .descriptor(name)?
+        .hdl
+        .ok_or(RHDLError::HDLNotAvailable {
+            name: name.to_string(),
+        })?;
     // This is the Clock/Reset input
     let arg0 = builder.add_input(ClockReset::static_kind());
     let arg1 = builder.add_input(S::I::static_kind());

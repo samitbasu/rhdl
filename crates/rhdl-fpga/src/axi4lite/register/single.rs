@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn hdl_is_ok() -> miette::Result<()> {
         let uut = AxiRegister::new(bits(0), bits(0));
-        let _ = uut.hdl("top")?;
+        let _ = uut.descriptor("top")?.hdl()?;
         Ok(())
     }
 }
