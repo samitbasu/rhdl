@@ -145,10 +145,6 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
         }
     }
 
-    fn description(&self) -> String {
-        format!("Reset synchronizer from {:?}->{:?}", W::color(), R::color())
-    }
-
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
         const NO_RESET: bool = false;
         const RESET: bool = true;
@@ -179,26 +175,38 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
         signal(reset(state.reg2_current))
     }
 
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        Ok(CircuitDescriptor {
-            unique_name: name.to_string(),
+    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError> {
+        Ok(Descriptor {
+            name: name.into(),
             input_kind: <Self::I as Digital>::static_kind(),
             output_kind: <Self::O as Digital>::static_kind(),
-            d_kind: Kind::Empty,
-            q_kind: Kind::Empty,
-            children: Default::default(),
-            rtl: None,
-            ntl: circuit_black_box(self, name)?,
+            d_kind: <Self::D as Digital>::static_kind(),
+            q_kind: <Self::Q as Digital>::static_kind(),
+            kernel: None,
+            hdl: Some(self.hdl(name)?),
             circuit_type: CircuitType::Asynchronous,
+            netlist: Some(circuit_black_box(self, name)?),
         })
     }
 
+    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+        std::iter::empty()
+    }
+}
+
+impl<W: Domain, R: Domain> ResetConditioner<W, R> {
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = name.to_owned();
         let module_name = format_ident!("{}", module_name);
-        let reset_index = bit_range(<Self::I as Digital>::static_kind(), &path!(.reset.val()))?;
+        let reset_index = bit_range(
+            <<Self as CircuitIO>::I as Digital>::static_kind(),
+            &path!(.reset.val()),
+        )?;
         let reset_index = syn::Index::from(reset_index.0.start);
-        let clock_index = bit_range(<Self::I as Digital>::static_kind(), &path!(.clock.val()))?;
+        let clock_index = bit_range(
+            <<Self as CircuitIO>::I as Digital>::static_kind(),
+            &path!(.clock.val()),
+        )?;
         let clock_index = syn::Index::from(clock_index.0.start);
         let module: vlog::ModuleDef = parse_quote! {
             module #module_name(input wire [1:0] i, output wire [0:0] o);

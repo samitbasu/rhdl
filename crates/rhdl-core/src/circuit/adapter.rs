@@ -1,8 +1,8 @@
 use crate::{
-    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, ClockReset, Digital, DigitalFn, Domain,
-    HDLDescriptor, Kind, RHDLError, Signal, Synchronous, Timed,
+    Circuit, CircuitDQ, CircuitIO, ClockReset, Digital, DigitalFn, Domain, HDLDescriptor, Kind,
+    RHDLError, Signal, Synchronous, Timed,
     bitx::BitX,
-    circuit::circuit_descriptor::CircuitType,
+    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor},
     digital_fn::NoKernel2,
     ntl,
     types::{kind::Field, signal::signal},
@@ -99,70 +99,71 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         signal(result)
     }
 
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        // We build a custom flow graph to connect the input to the circuit and the circuit to the output.
-        let mut builder = ntl::Builder::new(name);
-        let child_descriptor = self.circuit.descriptor(&format!("{name}_inner"))?;
-        // This includes the clock and reset signals
-        // It should be [clock, reset, inputs...]
-        let input_reg: Kind = <Self::I as Digital>::static_kind();
-        let output_reg: Kind = <Self::O as Digital>::static_kind();
-        let ti = builder.add_input(input_reg);
-        let to = builder.allocate_outputs(output_reg);
-        let child_offset = builder.import(&child_descriptor.ntl);
-        let child_inputs = child_descriptor.ntl.inputs.iter().flatten();
-        for (&t, c) in ti.iter().zip(child_inputs) {
-            builder.copy_from_to(t, child_offset(c.into()));
-        }
-        for (&t, c) in to.iter().zip(&child_descriptor.ntl.outputs) {
-            builder.copy_from_to(child_offset(*c), t);
-        }
-        Ok(CircuitDescriptor {
-            unique_name: name.into(),
+    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError> {
+        let child_descriptor = self.circuit.descriptor("inner")?;
+        Ok(Descriptor {
+            name: name.into(),
             input_kind: <<Self as CircuitIO>::I as Digital>::static_kind(),
             output_kind: <<Self as CircuitIO>::O as Digital>::static_kind(),
             d_kind: <<Self as CircuitDQ>::D as Digital>::static_kind(),
             q_kind: <<Self as CircuitDQ>::Q as Digital>::static_kind(),
-            ntl: builder.build(ntl::builder::BuilderMode::Asynchronous)?,
-            rtl: None,
-            children: Default::default(),
+            kernel: None,
+            hdl: Some(self.hdl(name, &child_descriptor)?),
             circuit_type: CircuitType::Asynchronous,
+            netlist: Some(self.netlist(name, &child_descriptor)?),
         })
     }
 
-    fn description(&self) -> String {
-        format!("Asynchronous adaptor for {}", self.circuit.description())
+    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+        std::iter::once(self.circuit.descriptor("inner"))
     }
+}
 
-    fn hdl(&self, name: &str) -> Result<crate::HDLDescriptor, RHDLError> {
+impl<C: Synchronous, D: Domain> DigitalFn for Adapter<C, D> {}
+
+impl<C: Synchronous, D: Domain> Adapter<C, D> {
+    fn hdl(&self, name: &str, child_descriptor: &Descriptor) -> Result<HDLDescriptor, RHDLError> {
         let ports = [
             maybe_port_wire(vlog::Direction::Input, <Self as CircuitIO>::I::bits(), "i"),
             maybe_port_wire(vlog::Direction::Output, <Self as CircuitIO>::O::bits(), "o"),
         ];
-        let child_name = &format!("{name}_inner");
-        let child = self.circuit.descriptor(child_name)?;
-        let child_hdl = self.circuit.hdl(child_name)?;
+        let child_hdl = child_descriptor.hdl()?;
         let name_ident = format_ident!("{name}");
-        let input_connection = if !child.input_kind.is_empty() {
+        let input_connection = if !child_descriptor.input_kind.is_empty() {
             let lsb = syn::Index::from(2);
-            let msb = syn::Index::from((2 + child.input_kind.bits()).saturating_sub(1));
+            let msb = syn::Index::from((2 + child_descriptor.input_kind.bits()).saturating_sub(1));
             quote! {, .i(i[#msb:#lsb])}
         } else {
             quote! {}
         };
-        let child_unique_name_ident = format_ident!("{}", child.unique_name);
-        let module: vlog::ModuleDef = parse_quote! {
+        let child_unique_name_ident = format_ident!("{}", child_descriptor.name);
+        let child_modules = &child_hdl.modules;
+        let module_list: vlog::ModuleList = parse_quote! {
             module #name_ident(#(#ports),*);
                 #child_unique_name_ident c(.clock_reset(i[1:0]) #input_connection, .o(o))
             endmodule
+            #child_modules
         };
-        let mut module_list: vlog::ModuleList = module.into();
-        module_list.modules.extend(child_hdl.modules);
         Ok(HDLDescriptor {
             name: name.to_string(),
             modules: module_list,
         })
     }
+    fn netlist(&self, name: &str, child_descriptor: &Descriptor) -> Result<ntl::Object, RHDLError> {
+        let mut builder = ntl::Builder::new(name);
+        let input_reg: Kind = <<Self as CircuitIO>::I as Digital>::static_kind();
+        let output_reg: Kind = <<Self as CircuitIO>::O as Digital>::static_kind();
+        let ti = builder.add_input(input_reg);
+        let to = builder.allocate_outputs(output_reg);
+        let child_netlist = child_descriptor.netlist()?;
+        let child_offset = builder.import(child_netlist);
+        let child_inputs = child_netlist.inputs.iter().flatten();
+        for (&t, c) in ti.iter().zip(child_inputs) {
+            builder.copy_from_to(t, child_offset(c.into()));
+        }
+        for (&t, c) in to.iter().zip(&child_netlist.outputs) {
+            builder.copy_from_to(child_offset(*c), t);
+        }
+        builder.build(ntl::builder::BuilderMode::Asynchronous)
+    }
 }
-
-impl<C: Synchronous, D: Domain> DigitalFn for Adapter<C, D> {}

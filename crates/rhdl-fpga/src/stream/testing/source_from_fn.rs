@@ -143,11 +143,11 @@ impl<T: Digital> Synchronous for SourceFromFn<T> {
         me.value
     }
 
-    fn descriptor(&self, _name: &str) -> Result<CircuitDescriptor, RHDLError> {
+    fn descriptor(&self, _name: &str) -> Result<Descriptor, RHDLError> {
         Err(RHDLError::NotSynthesizable)
     }
 
-    fn hdl(&self, _name: &str) -> Result<HDLDescriptor, RHDLError> {
-        Err(RHDLError::NotSynthesizable)
+    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+        std::iter::empty()
     }
 }

@@ -185,9 +185,9 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
     let inputs = inputs.with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let desc = uut.descriptor("uut")?;
+    let netlist = desc.netlist()?;
     assert!(
-        !desc
-            .ntl
+        !netlist
             .ops
             .iter()
             .any(|w| matches!(w.op, OpCode::Select(_)))
@@ -258,13 +258,8 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
     let inputs = std::iter::once(()).with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let desc = uut.descriptor("uut")?;
-    assert!(
-        !desc
-            .ntl
-            .ops
-            .iter()
-            .any(|w| matches!(w.op, OpCode::Unary(_)))
-    );
+    let netlist = desc.netlist()?;
+    assert!(!netlist.ops.iter().any(|w| matches!(w.op, OpCode::Unary(_))));
     Ok(())
 }
 
@@ -334,9 +329,9 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
     let inputs = std::iter::once(()).with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let desc = uut.descriptor("uut")?;
+    let netlist = desc.netlist()?;
     assert!(
-        !desc
-            .ntl
+        !netlist
             .ops
             .iter()
             .any(|w| matches!(w.op, OpCode::Vector(_)))

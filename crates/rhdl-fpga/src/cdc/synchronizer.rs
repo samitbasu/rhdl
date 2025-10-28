@@ -220,10 +220,6 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
         }
     }
 
-    fn description(&self) -> String {
-        format!("Synchronizer from {:?}->{:?}", W::color(), R::color())
-    }
-
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
         let clock = input.cr.val().clock;
         let reset = input.cr.val().reset;

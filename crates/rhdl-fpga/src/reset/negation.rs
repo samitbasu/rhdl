@@ -66,13 +66,6 @@ impl<C: Domain> Circuit for ResetNegation<C> {
 
     fn init(&self) -> Self::S {}
 
-    fn description(&self) -> String {
-        format!(
-            "Reset inversion (active low to active high) in domain {:?}",
-            C::color()
-        )
-    }
-
     fn sim(&self, input: Self::I, _state: &mut Self::S) -> Self::O {
         trace_push_path("reset_negation");
         let out = if input.val().raw() {
@@ -86,7 +79,7 @@ impl<C: Domain> Circuit for ResetNegation<C> {
         signal(out)
     }
 
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
+    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError> {
         Ok(CircuitDescriptor {
             unique_name: name.into(),
             input_kind: <Self::I as Digital>::static_kind(),

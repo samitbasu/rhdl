@@ -246,15 +246,16 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
 
 #[cfg(test)]
 mod tests {
-    use rhdl::prelude::vlog::Pretty;
+    use rhdl::{core::circuit::descriptor, prelude::vlog::Pretty};
 
     use super::*;
 
     #[test]
     fn no_combinatorial_paths() -> miette::Result<()> {
         let uut = BlockReadWriteController::default();
-        let descriptor = uut.hdl("top")?;
-        let module = descriptor.modules.pretty();
+        let descriptor = uut.descriptor("top")?;
+        let hdl = descriptor.hdl()?;
+        let module = hdl.modules.pretty();
         expect_test::expect_file!["blocking_controller.vlog"].assert_eq(&module);
         drc::no_combinatorial_paths(&uut)?;
         Ok(())

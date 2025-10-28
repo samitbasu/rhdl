@@ -78,6 +78,10 @@ pub enum RHDLError {
     TypeInferenceError(#[from] Box<UnifyError>),
     #[error("Function {name} is not synthesizable")]
     FunctionNotSynthesizable { name: String },
+    #[error("HDL not available for circuit {name}")]
+    HDLNotAvailable { name: String },
+    #[error("Netlist not available for circuit {name}")]
+    NetlistNotAvailable { name: String },
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

@@ -1,18 +1,22 @@
 use crate::{
-    Circuit, CircuitDQ, CircuitDescriptor, CircuitIO, HDLDescriptor, RHDLError,
-    circuit::descriptor::Descriptor,
-    types::digital::Digital,
-    types::path::{Path, bit_range},
+    Circuit, CircuitDQ, CircuitIO, CompilationMode, HDLDescriptor, Kind, RHDLError,
+    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor},
+    compile_design,
+    ntl::{self, from_rtl::build_ntl_from_rtl},
+    rtl,
+    types::{
+        digital::Digital,
+        path::{Path, bit_range},
+    },
 };
-use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use rhdl_vlog as vlog;
 
-/// Build run time description of a circuit
-pub fn build_asynchronous_descriptor<C: Circuit>(
-    circuit: &C,
+fn build_circuit_hdl<C: Circuit>(
     name: &str,
-) -> Result<Descriptor, RHDLError> {
+    kernel: &rtl::Object,
+    children: &[Descriptor],
+) -> Result<HDLDescriptor, RHDLError> {
     let circuit_output = <C as CircuitIO>::O::static_kind();
     let circuit_input = <C as CircuitIO>::I::static_kind();
     let d_kind = <C as CircuitDQ>::D::static_kind();
@@ -27,52 +31,41 @@ pub fn build_asynchronous_descriptor<C: Circuit>(
         vlog::maybe_decl_wire(d_kind.bits(), "d"),
         vlog::maybe_decl_wire(q_kind.bits(), "q"),
     ];
-    for (ndx, child_desc) in circuit.children().enumerate() {
-        let child_desc = child_desc?;
-        if child.output_kind.is_empty() {
+    let mut child_decls = Vec::new();
+    let mut child_hdls = Vec::new();
+    for (ndx, child_desc) in children.iter().enumerate() {
+        if child_desc.output_kind.is_empty() {
             continue;
         }
+        child_hdls.push(child_desc.hdl()?.modules.clone());
+        let local_name = &child_desc.name;
+        let child_path = Path::default().field(local_name);
+        let (d_range, _) = bit_range(d_kind, &child_path)?;
+        let (q_range, _) = bit_range(q_kind, &child_path)?;
+        let input_binding = vlog::maybe_connect("i", "d", d_range);
+        let output_binding = vlog::maybe_connect("o", "q", q_range);
+        let bindings = [input_binding, output_binding];
+        let bindings = bindings.iter().flatten();
+        let component_name = format_ident!("{}", local_name);
+        let component_instance = format_ident!("c{ndx}");
+        child_decls.push(quote! {
+            #component_name #component_instance(
+                #(#bindings),*
+            );
+        });
     }
-
-    let child_decls = circuit
-        .children()
-        .filter(|desc| !desc.map(|d| d.output_kind.is_empty()).unwrap_or(false))
-        .enumerate()
-        .map(|(ndx, desc)| {
-            let child_path = Path::default().field(local_name);
-            let (d_range, _) = bit_range(d_kind, &child_path)?;
-            let (q_range, _) = bit_range(q_kind, &child_path)?;
-            let input_binding = vlog::maybe_connect("i", "d", d_range);
-            let output_binding = vlog::maybe_connect("o", "q", q_range);
-            let bindings = [input_binding, output_binding];
-            let bindings = bindings.iter().flatten();
-            let component_name = format_ident!("{}", descriptor.unique_name);
-            let component_instance = format_ident!("c{ndx}");
-            Ok(quote! {
-                #component_name #component_instance(
-                    #(#bindings),*
-                );
-            })
-        })
-        .collect::<Result<Vec<TokenStream>, RHDLError>>()?;
-    let kernel = descriptor
-        .rtl
-        .as_ref()
-        .ok_or(RHDLError::FunctionNotSynthesizable {
-            name: descriptor.unique_name.clone(),
-        })?
-        .as_vlog()?;
+    let kernel = kernel.as_vlog()?;
     // Call the verilog function with (i, q), if they exist.
     let i_bind = (circuit_input.bits() != 0).then(|| format_ident!("i"));
     let q_bind = (q_kind.bits() != 0).then(|| format_ident!("q"));
     let kernel_name = format_ident!("{}", kernel.name);
-    let module_ident = format_ident!("{}", descriptor.unique_name);
+    let module_ident = format_ident!("{}", name);
     let output_range: vlog::BitRange = (0..outputs).into();
     let d_bind = (d_kind.bits() != 0).then(|| {
         let d_range: vlog::BitRange = (outputs..(d_kind.bits() + outputs)).into();
         quote! {assign d = od[#d_range];}
     });
-    let module: vlog::ModuleDef = vlog::parse_quote_miette! {
+    let modules: vlog::ModuleList = vlog::parse_quote_miette! {
         module #module_ident(#(#ports),*);
             #(#declarations;)*
             assign o = od[#output_range];
@@ -81,14 +74,108 @@ pub fn build_asynchronous_descriptor<C: Circuit>(
             assign od = #kernel_name(#i_bind, #q_bind);
             #kernel
         endmodule
+        #(#child_hdls)*
     }?;
-    let mut module_list: vlog::ModuleList = module.into();
-    for child in descriptor.children.values() {
-        let child_hdl = build_asynchronous_hdl(child)?;
-        module_list.modules.extend(child_hdl.modules);
-    }
     Ok(HDLDescriptor {
-        name: descriptor.unique_name.clone(),
-        modules: module_list,
+        name: name.to_string(),
+        modules,
+    })
+}
+
+fn build_circuit_netlist<C: Circuit>(
+    name: &str,
+    kernel: &rtl::Object,
+    children: &[Descriptor],
+) -> Result<ntl::Object, RHDLError> {
+    // Build the netlist
+    // First construct the netlist for the update function
+    let update_netlist = build_ntl_from_rtl(kernel);
+    // Create a manual builder for the top level netlist
+    let mut builder = ntl::builder::Builder::new(name);
+    let output_kind: Kind = C::O::static_kind();
+    if output_kind.is_empty() {
+        return Err(RHDLError::NoOutputsError);
+    }
+    let input_kind: Kind = C::I::static_kind();
+    let top_i = builder.add_input(input_kind);
+    let top_o = builder.allocate_outputs(output_kind);
+    let update_register_offset = builder.import(&update_netlist);
+    // Link the module input to the input of the update function
+    for (&top_i_bit, &update_i_bit) in top_i.iter().zip(&update_netlist.inputs[0]) {
+        builder.copy_from_to(top_i_bit, update_register_offset(update_i_bit.into()));
+    }
+    // Link up the output bits from the update_netlist
+    for (&top_o_bit, &update_o_bit) in top_o.iter().zip(&update_netlist.outputs) {
+        builder.copy_from_to(update_register_offset(update_o_bit), top_o_bit);
+    }
+    // Get the "D" vector by skipping the first |O| bits, and pre-map them into their new addresses
+    let d_vec = update_netlist
+        .outputs
+        .iter()
+        .skip(output_kind.bits())
+        .map(|op| update_register_offset(*op))
+        .collect::<Vec<_>>();
+    // Get the "Q" vector by remapping the 2nd input to the update function.
+    // Note that the update function signature for a synchronous function is (ClockReset, I, Q) -> (O, D)
+    let q_vec = update_netlist.inputs[1]
+        .iter()
+        .map(|op| update_register_offset(op.into()))
+        .collect::<Vec<_>>();
+    // Create the inputs for the children by splitting bits off of the d_index
+    for child_descriptor in children {
+        let child_name = &child_descriptor.name;
+        // Compute the bit range for this child's input based on its name
+        let child_path = Path::default().field(child_name);
+        let (output_bit_range, _) = bit_range(C::D::static_kind(), &child_path)?;
+        let (input_bit_range, _) = bit_range(C::Q::static_kind(), &child_path)?;
+        let netlist =
+            child_descriptor
+                .netlist
+                .as_ref()
+                .ok_or(RHDLError::FunctionNotSynthesizable {
+                    name: child_descriptor.name.clone(),
+                })?;
+        // Merge the child's netlist into ours
+        let child_offset = builder.import(netlist);
+        // Connect the child's input registers to the given bits of the D register
+        for (&d_bit, child_i) in d_vec[output_bit_range.clone()]
+            .iter()
+            .zip(&netlist.inputs[0])
+        {
+            builder.copy_from_to(d_bit, child_offset(child_i.into()));
+        }
+        // Connect the childs output registers to the given bits of the Q register
+        for (&q_bit, &child_o) in q_vec[input_bit_range.clone()].iter().zip(&netlist.outputs) {
+            builder.copy_from_to(child_offset(child_o), q_bit);
+        }
+    }
+    builder.build(ntl::builder::BuilderMode::Asynchronous)
+}
+
+/// Build run time description of a circuit
+pub fn build_asynchronous_descriptor<C: Circuit>(
+    circuit: &C,
+    name: &str,
+) -> Result<Descriptor, RHDLError> {
+    let kernel = compile_design::<C::Kernel>(CompilationMode::Asynchronous)?;
+    let children = circuit
+        .children()
+        .collect::<Result<Vec<Descriptor>, RHDLError>>()?;
+    let hdl = build_circuit_hdl::<C>(name, &kernel, &children)?;
+    let netlist = build_circuit_netlist::<C>(name, &kernel, &children)?;
+    let circuit_output = <C as CircuitIO>::O::static_kind();
+    let circuit_input = <C as CircuitIO>::I::static_kind();
+    let d_kind = <C as CircuitDQ>::D::static_kind();
+    let q_kind = <C as CircuitDQ>::Q::static_kind();
+    Ok(Descriptor {
+        name: name.to_string(),
+        input_kind: circuit_input,
+        output_kind: circuit_output,
+        d_kind,
+        q_kind,
+        kernel: Some(kernel),
+        circuit_type: CircuitType::Asynchronous,
+        hdl: Some(hdl),
+        netlist: Some(netlist),
     })
 }

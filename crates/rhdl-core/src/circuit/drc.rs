@@ -41,13 +41,13 @@ impl Diagnostic for CombinatorialPath {
 
 pub fn no_combinatorial_paths<T: Synchronous>(uut: &T) -> miette::Result<()> {
     let descriptor = uut.descriptor("uut")?;
-    let ntl = &descriptor.ntl;
+    let ntl = descriptor.netlist()?;
     let dep = make_net_graph(ntl, GraphMode::Synchronous);
     // Get the graph node that represents the inputs for the device
     let input_node = dep.input_node;
     let mut space = DfsSpace::new(&dep.graph);
-    let code = &descriptor.ntl.code;
-    for output in descriptor.ntl.outputs.iter().copied().flat_map(Wire::reg) {
+    let code = &ntl.code;
+    for output in ntl.outputs.iter().copied().flat_map(Wire::reg) {
         let source = dep.reg_map[&output];
         match source {
             WriteSource::ClockReset => {}

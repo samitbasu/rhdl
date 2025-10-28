@@ -1,14 +1,10 @@
-use std::collections::BTreeMap;
-
 use crate::{
-    CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous,
-    SynchronousDQ, SynchronousIO,
-    circuit::circuit_descriptor::CircuitType,
+    ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
+    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor},
     digital_fn::NoKernel3,
     ntl, trace_pop_path, trace_push_path,
     types::path::{Path, bit_range},
 };
-use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use rhdl_vlog as vlog;
 use syn::parse_quote;
@@ -49,106 +45,104 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
         output
     }
 
-    fn description(&self) -> String {
-        format!("array of {} x {}", N, self[0].description())
-    }
-
     // This requires a custom implementation because the default implementation
     // assumes that the children of the current circuit are named with field names
     // as part of a struct.
-    fn descriptor(&self, name: &str) -> Result<crate::CircuitDescriptor, crate::RHDLError> {
-        let mut builder = ntl::Builder::new(name);
-        let cr_kind: Kind = ClockReset::static_kind();
-        let input_kind: Kind = Self::I::static_kind();
-        let output_kind: Kind = Self::O::static_kind();
-        let tcr = builder.add_input(cr_kind);
-        let ti = builder.add_input(input_kind);
-        let to = builder.allocate_outputs(output_kind);
-        let mut children = std::collections::BTreeMap::default();
-        for i in 0..N {
-            let child_path = Path::default().index(i);
-            let (output_bit_range, _) = bit_range(Self::O::static_kind(), &child_path)?;
-            let (input_bit_range, _) = bit_range(Self::I::static_kind(), &child_path)?;
-            let child_name = format!("{name}_{i}");
-            let child_desc = self[i].descriptor(&child_name)?;
-            let offset = builder.import(&child_desc.ntl);
-            for (&t, c) in tcr.iter().zip(&child_desc.ntl.inputs[0]) {
-                builder.copy_from_to(t, offset(c.into()));
-            }
-            for (&t, c) in ti[input_bit_range].iter().zip(&child_desc.ntl.inputs[1]) {
-                builder.copy_from_to(t, offset(c.into()));
-            }
-            for (&t, c) in to[output_bit_range].iter().zip(&child_desc.ntl.outputs) {
-                builder.copy_from_to(offset(*c), t);
-            }
-            children.insert(child_name, child_desc);
-        }
-        Ok(CircuitDescriptor {
-            unique_name: name.into(),
+    fn descriptor(&self, name: &str) -> Result<Descriptor, crate::RHDLError> {
+        let children = self.children().collect::<Result<Vec<_>, RHDLError>>()?;
+        Ok(Descriptor {
+            name: name.into(),
             input_kind: Self::I::static_kind(),
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            ntl: builder.build(ntl::builder::BuilderMode::Synchronous)?,
-            rtl: None,
-            children,
+            kernel: None,
+            hdl: Some(hdl::<T, N>(name, &children)?),
             circuit_type: CircuitType::Synchronous,
+            netlist: Some(netlist::<T, N>(name, &children)?),
         })
     }
 
-    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
-        let descriptor = self.descriptor(name)?;
-        let module_name = &descriptor.unique_name;
-        let children = (0..N)
-            .map(|ndx| {
-                let name = format!("{name}_{ndx}");
-                let hdl = self[ndx].hdl(&name)?;
-                Ok((name, hdl))
-            })
-            .collect::<Result<BTreeMap<String, HDLDescriptor>, RHDLError>>()?;
-        let ports = [
-            vlog::maybe_port_wire(vlog::Direction::Input, 2, "clock_reset"),
-            vlog::maybe_port_wire(vlog::Direction::Input, Self::I::bits(), "i"),
-            vlog::maybe_port_wire(vlog::Direction::Output, Self::O::bits(), "o"),
-        ];
-        let i_kind = Self::I::static_kind();
-        let o_kind = Self::O::static_kind();
-        let child_decls = descriptor
-            .children
-            .iter()
-            .enumerate()
-            .map(|(ndx, (_, descriptor))| {
-                let child_path = Path::default().index(ndx);
-                let (i_range, _) = bit_range(i_kind, &child_path)?;
-                let (o_range, _) = bit_range(o_kind, &child_path)?;
-                let input_binding = vlog::maybe_connect("i", "i", i_range);
-                let output_binding = vlog::maybe_connect("o", "o", o_range);
-                let bindings = [
-                    Some(parse_quote! {.clock_reset(clock_reset)}),
-                    input_binding,
-                    output_binding,
-                ];
-                let bindings = bindings.iter().flatten();
-                let component_ident = format_ident!("{}", descriptor.unique_name);
-                let component_instance = format_ident!("c{ndx}");
-                Ok(quote! { #component_ident #component_instance(
-                    #(#bindings),*
-                ); })
-            })
-            .collect::<Result<Vec<TokenStream>, RHDLError>>()?;
-        let module_ident = format_ident!("{}", module_name);
-        let module: vlog::ModuleDef = parse_quote! {
-            module #module_ident(#(#ports),*);
-                #(#child_decls)*
-            endmodule
-        };
-        let mut module_list: vlog::ModuleList = module.into();
-        for child in children.into_values() {
-            module_list.modules.extend(child.modules);
-        }
-        Ok(HDLDescriptor {
-            name: module_name.into(),
-            modules: module_list,
-        })
+    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+        (0..N).map(move |i| self[i].descriptor(&format!("c{i}")))
     }
+}
+
+fn hdl<T: Synchronous, const N: usize>(
+    name: &str,
+    children: &[Descriptor],
+) -> Result<HDLDescriptor, RHDLError> {
+    let module_name = &name;
+    let module_ident = format_ident!("{module_name}");
+    let i_kind = <[T; N] as SynchronousIO>::I::static_kind();
+    let o_kind = <[T; N] as SynchronousIO>::O::static_kind();
+    let ports = [
+        vlog::maybe_port_wire(vlog::Direction::Input, 2, "clock_reset"),
+        vlog::maybe_port_wire(vlog::Direction::Input, i_kind.bits(), "i"),
+        vlog::maybe_port_wire(vlog::Direction::Output, o_kind.bits(), "o"),
+    ];
+    let mut child_hdls = vec![];
+    let mut child_decls = vec![];
+    for (ndx, child) in children.iter().enumerate() {
+        let child_path = Path::default().index(ndx);
+        let (i_range, _) = bit_range(i_kind, &child_path)?;
+        let (o_range, _) = bit_range(o_kind, &child_path)?;
+        let i_range_empty = i_range.is_empty();
+        let o_range_empty = o_range.is_empty();
+        let i_range_vlog: vlog::BitRange = i_range.into();
+        let o_range_vlog: vlog::BitRange = o_range.into();
+        let input_binding = (!i_range_empty).then(|| quote! {.i(i[#i_range_vlog])});
+        let output_binding = (!o_range_empty).then(|| quote! {.o(o[#o_range_vlog])});
+        let bindings = [
+            Some(parse_quote! {.clock_reset(clock_reset)}),
+            input_binding,
+            output_binding,
+        ];
+        let component_name = format_ident!("{}", child.name);
+        let instance_name = format_ident!("c{ndx}");
+        let bindings = bindings.iter().flatten();
+        child_decls.push(quote! { #component_name #instance_name(#(#bindings),*) });
+        child_hdls.push(child.hdl()?.modules.clone());
+    }
+    let modules: vlog::ModuleList = parse_quote! {
+        module #module_ident(#(#ports),*);
+            #(#child_decls);*
+        endmodule
+        #(#child_hdls)*
+    };
+    Ok(HDLDescriptor {
+        name: name.into(),
+        modules,
+    })
+}
+
+fn netlist<T: Synchronous, const N: usize>(
+    name: &str,
+    children: &[Descriptor],
+) -> Result<ntl::Object, RHDLError> {
+    let mut builder = ntl::Builder::new(name);
+    let cr_kind: Kind = ClockReset::static_kind();
+    let input_kind: Kind = <[T; N] as SynchronousIO>::I::static_kind();
+    let output_kind: Kind = <[T; N] as SynchronousIO>::O::static_kind();
+    let tcr = builder.add_input(cr_kind);
+    let ti = builder.add_input(input_kind);
+    let to = builder.allocate_outputs(output_kind);
+    for (i, child_descriptor) in children.iter().enumerate() {
+        let child_path = Path::default().index(i);
+        let (output_bit_range, _) = bit_range(output_kind, &child_path)?;
+        let (input_bit_range, _) = bit_range(input_kind, &child_path)?;
+        let child_netlist = child_descriptor.netlist()?;
+        let offset = builder.import(child_netlist);
+        let child_inputs = &child_netlist.inputs;
+        for (&t, c) in tcr.iter().zip(&child_inputs[0]) {
+            builder.copy_from_to(t, offset(c.into()));
+        }
+        for (&t, c) in ti[input_bit_range].iter().zip(&child_inputs[1]) {
+            builder.copy_from_to(t, offset(c.into()));
+        }
+        for (&t, c) in to[output_bit_range].iter().zip(&child_netlist.outputs) {
+            builder.copy_from_to(offset(*c), t);
+        }
+    }
+    builder.build(ntl::builder::BuilderMode::Synchronous)
 }

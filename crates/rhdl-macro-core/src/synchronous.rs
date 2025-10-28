@@ -9,33 +9,13 @@ pub fn derive_synchronous(input: TokenStream) -> syn::Result<TokenStream> {
     derive_synchronous_struct(decl)
 }
 
-fn define_descriptor_fn(field_set: &FieldSet) -> TokenStream {
+fn define_children_fn(field_set: &FieldSet) -> TokenStream {
     let component_name = &field_set.component_name;
     quote! {
-        fn descriptor(&self, name: &str) -> Result<rhdl::core::CircuitDescriptor, rhdl::core::RHDLError> {
-            use std::collections::BTreeMap;
-            let mut children: BTreeMap<String, CircuitDescriptor> = BTreeMap::new();
-            #(children.insert(stringify!(#component_name).to_string(),
-                self.#component_name.descriptor(
-                    &format!("{name}_{}", stringify!(#component_name))
-                )?
-            );)*
-            rhdl::core::build_synchronous_descriptor::<Self>(name, children)
-        }
-    }
-}
-
-fn define_hdl_fn(field_set: &FieldSet) -> TokenStream {
-    let component_name = &field_set.component_name;
-    quote! {
-        fn hdl(&self, name: &str) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
-            use std::collections::BTreeMap;
-            let mut children: BTreeMap<String, HDLDescriptor> = BTreeMap::new();
-            #(children.insert(stringify!(#component_name).to_string(),
-                self.#component_name.hdl(
-                    &format!("{name}_{}", stringify!(#component_name))
-                )?);)*
-            rhdl::core::build_synchronous_hdl(self, name, children)
+        fn children(&self) -> impl Iterator<Item = Result<rhdl::core::Descriptor, rhdl::core::RHDLError>> {
+            [
+                #(self.#component_name.descriptor(stringify!(#component_name))),*
+            ].into_iter()
         }
     }
 }
@@ -94,8 +74,7 @@ fn derive_synchronous_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     // Add a tuple of the states of the components
     let state_tuple = quote!((Self::Q, #(<#component_ty as rhdl::core::Synchronous>::S),*));
     let init_fn = define_init_fn(&field_set);
-    let descriptor_fn = define_descriptor_fn(&field_set);
-    let hdl_fn = define_hdl_fn(&field_set);
+    let children_fn = define_children_fn(&field_set);
     let sim_fn = define_sim_fn(&field_set);
     let synchronous_impl = quote! {
         impl #impl_generics rhdl::core::Synchronous for #struct_name #ty_generics #where_clause {
@@ -103,9 +82,7 @@ fn derive_synchronous_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 
             #init_fn
 
-            #descriptor_fn
-
-            //#hdl_fn
+            #children_fn
 
             #sim_fn
         }
