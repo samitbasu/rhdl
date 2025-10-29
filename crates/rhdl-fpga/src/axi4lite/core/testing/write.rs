@@ -37,7 +37,7 @@ use crate::{
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
-struct TestFixture {
+pub struct TestFixture {
     req_source: SourceFromFn<WriteCommand>,
     controller: WriteController,
     endpoint: WriteEndpoint,
