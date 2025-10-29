@@ -38,7 +38,10 @@
 //! See the [book]() for a detailed explanation of this diagram.
 use crate::{
     DigitalFn, Timed,
-    circuit::{descriptor::Descriptor, hdl::asynchronous::build_asynchronous_descriptor},
+    circuit::{
+        descriptor::Descriptor, hdl::asynchronous::build_asynchronous_descriptor,
+        scoped_name::ScopedName,
+    },
     digital_fn::DigitalFn2,
     error::RHDLError,
 };
@@ -249,9 +252,14 @@ pub trait Circuit: 'static + CircuitIO + Sized {
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O;
 
     /// Provides run time description of the circuit.
-    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError> {
-        build_asynchronous_descriptor(self, name)
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+        build_asynchronous_descriptor(self, scoped_name)
     }
 
-    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>>;
+    fn children(
+        &self,
+        _parent_scope: &ScopedName,
+    ) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+        std::iter::empty()
+    }
 }

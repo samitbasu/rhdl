@@ -185,7 +185,7 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
         T: Synchronous,
         T: SynchronousIO<I = I, O = O>,
     {
-        let desc = uut.descriptor("uut")?;
+        let desc = uut.descriptor("uut".into())?;
         let module = &desc.hdl()?.modules;
         self.build_test_module(&module, options)
     }
@@ -194,7 +194,7 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
         T: Synchronous,
         T: SynchronousIO<I = I, O = O>,
     {
-        let desc = uut.descriptor("uut")?;
+        let desc = uut.descriptor("uut".into())?;
         let ntl = desc.netlist()?;
         let hdl = crate::ntl::hdl::build_hdl("dut", &ntl)?;
         self.build_test_module(&hdl.modules, options)

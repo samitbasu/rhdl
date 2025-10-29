@@ -12,4 +12,5 @@ pub mod function;
 pub mod hdl;
 pub mod hdl_descriptor;
 pub mod phantom;
+pub mod scoped_name;
 pub mod synchronous;

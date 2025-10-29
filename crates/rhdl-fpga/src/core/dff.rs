@@ -60,7 +60,7 @@ output+-------+-------+-------+-------+
 //! The trace shows the FSM working.
 #![doc = include_str!("../../doc/dff.md")]
 use quote::format_ident;
-use rhdl::prelude::*;
+use rhdl::{core::ScopedName, prelude::*};
 use syn::parse_quote;
 
 #[derive(PartialEq, Debug, Clone)]
@@ -138,36 +138,25 @@ impl<T: Digital> Synchronous for DFF<T> {
         state.current
     }
 
-    fn description(&self) -> String {
-        format!(
-            "Positive edge triggered DFF holding value of type {:?}, with reset value of {:?}",
-            T::static_kind(),
-            self.reset.typed_bits()
-        )
-    }
-
-    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
-        self.as_verilog(name)
-    }
-
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        let ntl = rhdl::core::ntl::builder::synchronous_black_box(self, name)?;
-        Ok(CircuitDescriptor {
-            unique_name: name.to_string(),
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+        let name = scoped_name.to_string();
+        Descriptor {
+            name: scoped_name,
             input_kind: Self::I::static_kind(),
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            children: Default::default(),
-            ntl,
-            rtl: None,
+            kernel: None,
+            hdl: Some(self.hdl(&name)?),
+            netlist: None,
             circuit_type: CircuitType::Synchronous,
-        })
+        }
+        .with_netlist_black_box()
     }
 }
 
 impl<T: Digital> DFF<T> {
-    fn as_verilog(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
+    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = format_ident!("{}", name);
         let init: vlog::LitVerilog = self.reset.typed_bits().into();
         let data_width: vlog::BitRange = (0..T::static_kind().bits()).into();

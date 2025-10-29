@@ -6,7 +6,7 @@
 //! sink for a stream that can be generated from a closure without
 //! worrying that something that is synthesizable.  
 //!
-use rhdl::prelude::*;
+use rhdl::{core::ScopedName, prelude::*};
 
 use crate::stream::{ready, Ready};
 
@@ -134,11 +134,7 @@ impl<T: Digital> Synchronous for SinkFromFn<T> {
         ready(me.ready)
     }
 
-    fn descriptor(&self, _name: &str) -> Result<Descriptor, RHDLError> {
+    fn descriptor(&self, _name: ScopedName) -> Result<Descriptor, RHDLError> {
         Err(RHDLError::NotSynthesizable)
-    }
-
-    fn children(&self) -> impl Iterator<Item = Result<rhdl::core::Descriptor, RHDLError>> {
-        std::iter::empty()
     }
 }

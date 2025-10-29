@@ -4,7 +4,7 @@ use syn::parse_quote;
 use crate::{
     ClockReset, CompilationMode, Digital, DigitalFn, HDLDescriptor, Kind, RHDLError, Synchronous,
     SynchronousDQ, SynchronousIO,
-    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor},
+    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor, scoped_name::ScopedName},
     compile_design,
     digital_fn::{DigitalFn2, NoKernel3},
     ntl::from_rtl::build_ntl_from_rtl,
@@ -57,8 +57,8 @@ impl<I: Digital, O: Digital> Synchronous for Func<I, O> {
         output
     }
 
-    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError> {
-        let module_name = name;
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+        let module_name = scoped_name.to_string();
         let module_ident = format_ident!("{}", module_name);
         let ports = [
             maybe_port_wire(vlog::Direction::Input, 2, "clock_reset"),
@@ -78,7 +78,7 @@ impl<I: Digital, O: Digital> Synchronous for Func<I, O> {
             endmodule
         };
         Ok(Descriptor {
-            name: name.to_string(),
+            name: scoped_name,
             input_kind: Self::I::static_kind(),
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
@@ -87,13 +87,9 @@ impl<I: Digital, O: Digital> Synchronous for Func<I, O> {
             netlist: Some(build_ntl_from_rtl(&self.kernel)),
             circuit_type: CircuitType::Synchronous,
             hdl: Some(HDLDescriptor {
-                name: name.to_string(),
+                name: module_name,
                 modules: module.into(),
             }),
         })
-    }
-
-    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
-        std::iter::empty()
     }
 }

@@ -41,7 +41,9 @@
 //! synchronous circuits in RHDL.
 
 use crate::{
-    ClockReset, Digital, DigitalFn, circuit::descriptor::Descriptor, digital_fn::DigitalFn3,
+    ClockReset, Digital, DigitalFn,
+    circuit::{descriptor::Descriptor, scoped_name::ScopedName},
+    digital_fn::DigitalFn3,
     error::RHDLError,
 };
 
@@ -271,9 +273,14 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO {
     fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O;
 
     /// Provides run time reflection of the circuit.
-    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError> {
-        super::hdl::synchronous::build_synchronous_descriptor(self, name)
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+        super::hdl::synchronous::build_synchronous_descriptor(self, scoped_name)
     }
 
-    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>>;
+    fn children(
+        &self,
+        _parent_scope: &ScopedName,
+    ) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+        std::iter::empty()
+    }
 }

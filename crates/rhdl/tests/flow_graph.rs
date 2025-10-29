@@ -184,7 +184,7 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
         .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
     let inputs = inputs.with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let desc = uut.descriptor("uut")?;
+    let desc = uut.descriptor("uut".into())?;
     let netlist = desc.netlist()?;
     assert!(
         !netlist
@@ -257,7 +257,7 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = std::iter::once(()).with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let desc = uut.descriptor("uut")?;
+    let desc = uut.descriptor("uut".into())?;
     let netlist = desc.netlist()?;
     assert!(!netlist.ops.iter().any(|w| matches!(w.op, OpCode::Unary(_))));
     Ok(())
@@ -328,7 +328,7 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = std::iter::once(()).with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let desc = uut.descriptor("uut")?;
+    let desc = uut.descriptor("uut".into())?;
     let netlist = desc.netlist()?;
     assert!(
         !netlist
@@ -367,7 +367,7 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = [false, true].with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let _desc = uut.descriptor("uut")?;
+    let _desc = uut.descriptor("uut".into())?;
     Ok(())
 }
 
@@ -401,6 +401,6 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = [false, true].with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let _desc = uut.descriptor("uut")?;
+    let _desc = uut.descriptor("uut".into())?;
     Ok(())
 }

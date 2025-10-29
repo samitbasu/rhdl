@@ -4,6 +4,7 @@ use syn::parse_quote;
 
 use crate::circuit::circuit_descriptor::CircuitType;
 use crate::circuit::descriptor::Descriptor;
+use crate::circuit::scoped_name::ScopedName;
 use crate::{
     ClockReset, Digital, HDLDescriptor, Kind, Synchronous, SynchronousDQ, SynchronousIO,
     digital_fn::NoKernel3, trace_pop_path, trace_push_path,
@@ -58,24 +59,29 @@ where
         o
     }
 
-    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError> {
-        let a_descriptor = self.a.descriptor(&format!("{name}_a"))?;
-        let b_descriptor = self.b.descriptor(&format!("{name}_b"))?;
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+        let a_descriptor = self.a.descriptor(scoped_name.with("a"))?;
+        let b_descriptor = self.b.descriptor(scoped_name.with("b"))?;
+        let name = scoped_name.to_string();
         Ok(Descriptor {
-            name: name.into(),
+            name: scoped_name,
             input_kind: a_descriptor.input_kind,
             output_kind: b_descriptor.output_kind,
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             circuit_type: CircuitType::Synchronous,
             kernel: None,
-            netlist: Some(self.netlist(name, &a_descriptor, &b_descriptor)?),
-            hdl: Some(self.hdl(name, &a_descriptor, &b_descriptor)?),
+            netlist: Some(self.netlist(&name, &a_descriptor, &b_descriptor)?),
+            hdl: Some(self.hdl(&name, &a_descriptor, &b_descriptor)?),
         })
     }
 
-    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
-        std::iter::once(self.a.descriptor("a")).chain(std::iter::once(self.b.descriptor("b")))
+    fn children(
+        &self,
+        parent_scope: &ScopedName,
+    ) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+        std::iter::once(self.a.descriptor(parent_scope.with("a")))
+            .chain(std::iter::once(self.b.descriptor(parent_scope.with("b"))))
     }
 }
 
@@ -105,8 +111,8 @@ where
             Some(unsigned_width(pipe_kind.bits())),
             "pipe",
         );
-        let a_ident = format_ident!("{}_a", a_descriptor.name);
-        let b_ident = format_ident!("{}_b", b_descriptor.name);
+        let a_ident = format_ident!("{}", a_descriptor.name.to_string());
+        let b_ident = format_ident!("{}", b_descriptor.name.to_string());
         let a_input_binding = if input_kind.is_empty() {
             quote! {}
         } else {

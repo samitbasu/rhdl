@@ -1,6 +1,6 @@
 use crate::{
     Circuit, CircuitDQ, CircuitIO, Digital, HDLDescriptor, Kind, RHDLError,
-    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor},
+    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor, scoped_name::ScopedName},
     digital_fn::NoKernel2,
     ntl, trace_pop_path, trace_push_path,
     types::path::{Path, bit_range},
@@ -42,23 +42,29 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
     // This requires a custom implementation because the default implementation
     // assumes that the children of the current circuit are named with field names
     // as part of a struct.
-    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError> {
-        let children = self.children().collect::<Result<Vec<_>, RHDLError>>()?;
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+        let children = self
+            .children(&scoped_name)
+            .collect::<Result<Vec<_>, RHDLError>>()?;
+        let name = scoped_name.to_string();
         Ok(Descriptor {
-            name: name.into(),
+            name: scoped_name,
             input_kind: Self::I::static_kind(),
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             kernel: None,
-            hdl: Some(hdl::<T, N>(name, &children)?),
+            hdl: Some(hdl::<T, N>(&name, &children)?),
             circuit_type: CircuitType::Asynchronous,
-            netlist: Some(netlist::<T, N>(name, &children)?),
+            netlist: Some(netlist::<T, N>(&name, &children)?),
         })
     }
 
-    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
-        (0..N).map(move |i| self[i].descriptor(&format!("c{i}")))
+    fn children(
+        &self,
+        scoped_name: &ScopedName,
+    ) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+        (0..N).map(move |i| self[i].descriptor(scoped_name.with(format!("c{i}"))))
     }
 }
 
@@ -86,7 +92,7 @@ fn hdl<T: Circuit, const N: usize>(
         let o_range_vlog: vlog::BitRange = o_range.into();
         let input_binding = (!i_range_empty).then(|| quote! {.i(i[#i_range_vlog])});
         let output_binding = (!o_range_empty).then(|| quote! {.o(o[#o_range_vlog])});
-        let component_name = format_ident!("{}", child.name);
+        let component_name = format_ident!("{}", child.name.to_string());
         let instance_name = format_ident!("c{ndx}");
         let bindings = [input_binding, output_binding];
         let bindings = bindings.iter().flatten();

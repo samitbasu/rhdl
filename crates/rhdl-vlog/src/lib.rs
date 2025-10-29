@@ -327,6 +327,28 @@ pub struct ModuleList {
     pub modules: Vec<ModuleDef>,
 }
 
+impl ModuleList {
+    pub fn checked(&self) -> anyhow::Result<()> {
+        let d = tempfile::tempdir()?;
+        // Write the test bench to a file
+        let d_path = d.path();
+        std::fs::write(d_path.join("top.v"), self.to_string())?;
+        // Compile the test bench
+        let mut cmd = std::process::Command::new("iverilog");
+        cmd.arg("-t").arg("null").arg(d_path.join("top.v"));
+        let status = cmd
+            .status()
+            .expect("Icarus Verilog should be installed and in your PATH.");
+        if !status.success() {
+            return Err(anyhow::anyhow!(
+                "Failed to compile testbench with {}",
+                status
+            ));
+        }
+        Ok(())
+    }
+}
+
 impl From<ModuleDef> for ModuleList {
     fn from(module: ModuleDef) -> Self {
         Self {

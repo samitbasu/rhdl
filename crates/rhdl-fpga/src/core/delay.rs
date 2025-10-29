@@ -158,7 +158,8 @@ mod tests {
     #[test]
     fn test_vlog_generation() -> miette::Result<()> {
         let uut = Delay::<Option<Bits<4>>, 2>::default();
-        let hdl = uut.hdl("top")?.modules.pretty();
+        let desc = uut.descriptor("top".into())?;
+        let hdl = desc.hdl()?.modules.pretty();
         let expect = expect![[r#"
             module top(input wire [1:0] clock_reset, input wire [4:0] i, output wire [4:0] o);
                wire [14:0] od;
@@ -196,10 +197,10 @@ mod tests {
                endfunction
             endmodule
             module top_dffs(input wire [1:0] clock_reset, input wire [9:0] i, output wire [9:0] o);
-               top_dffs_0 c0(.clock_reset(clock_reset), .i(i[4:0]), .o(o[4:0]));
-               top_dffs_1 c1(.clock_reset(clock_reset), .i(i[9:5]), .o(o[9:5]));
+               top_dffs_c0 c0(.clock_reset(clock_reset), .i(i[4:0]), .o(o[4:0]));
+               top_dffs_c1 c1(.clock_reset(clock_reset), .i(i[9:5]), .o(o[9:5]));
             endmodule
-            module top_dffs_0(input wire [1:0] clock_reset, input wire [4:0] i, output reg [4:0] o);
+            module top_dffs_c0(input wire [1:0] clock_reset, input wire [4:0] i, output reg [4:0] o);
                wire  clock;
                wire  reset;
                assign clock = clock_reset[0];
@@ -215,7 +216,7 @@ mod tests {
                   end
                end
             endmodule
-            module top_dffs_1(input wire [1:0] clock_reset, input wire [4:0] i, output reg [4:0] o);
+            module top_dffs_c1(input wire [1:0] clock_reset, input wire [4:0] i, output reg [4:0] o);
                wire  clock;
                wire  reset;
                assign clock = clock_reset[0];

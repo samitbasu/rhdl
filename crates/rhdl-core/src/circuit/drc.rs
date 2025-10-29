@@ -1,6 +1,7 @@
 use crate::{
     Synchronous,
     ast::SourcePool,
+    circuit::scoped_name::ScopedName,
     ntl::{
         graph::{GraphMode, WriteSource, make_net_graph},
         spec::Wire,
@@ -40,7 +41,7 @@ impl Diagnostic for CombinatorialPath {
 }
 
 pub fn no_combinatorial_paths<T: Synchronous>(uut: &T) -> miette::Result<()> {
-    let descriptor = uut.descriptor("uut")?;
+    let descriptor = uut.descriptor(ScopedName::top())?;
     let ntl = descriptor.netlist()?;
     let dep = make_net_graph(ntl, GraphMode::Synchronous);
     // Get the graph node that represents the inputs for the device

@@ -95,7 +95,7 @@ write.enable   +-------+       +-----------------------+
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 use quote::{format_ident, quote};
-use rhdl::prelude::*;
+use rhdl::{core::ScopedName, prelude::*};
 use syn::parse_quote;
 
 #[derive(PartialEq, Debug, Clone, Default)]
@@ -220,14 +220,6 @@ where
         }))
     }
 
-    fn description(&self) -> String {
-        format!(
-            "Block RAM with {} entries of type {}",
-            1 << N,
-            std::any::type_name::<T>()
-        )
-    }
-
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
         trace("input", &input);
         // Borrow the state mutably.
@@ -266,20 +258,27 @@ where
         signal(state.output_current)
     }
 
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        Ok(CircuitDescriptor {
-            unique_name: name.to_string(),
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+        let name = scoped_name.to_string();
+        Descriptor {
+            name: scoped_name,
             input_kind: <Self::I as Digital>::static_kind(),
             output_kind: <Self::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            children: Default::default(),
-            rtl: None,
-            ntl: circuit_black_box(self, name)?,
+            kernel: None,
+            hdl: Some(self.hdl(&name)?),
+            netlist: None,
             circuit_type: CircuitType::Asynchronous,
-        })
+        }
+        .with_netlist_black_box()
     }
+}
 
+impl<T: Digital, W: Domain, R: Domain, const N: usize> AsyncBRAM<T, W, R, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /*
 
     module uut(input wire [18:0] i, output reg [7:0] o);
@@ -438,7 +437,9 @@ mod tests {
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
         );
-        let hdl = uut.netlist("uut")?;
+        let desc = uut.descriptor("top".into())?;
+        let net_list = desc.netlist()?;
+        let hdl = net_list.as_vlog("dut")?;
         let expect = expect_file!["ram_fg.v.expect"];
         expect.assert_eq(&hdl.modules.to_string());
         Ok(())

@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn test_synthesizable() -> miette::Result<()> {
         let uut = TestFixture::default();
-        let _ = uut.descriptor("top")?.hdl()?;
+        let _ = uut.descriptor("top".into())?.hdl()?;
         Ok(())
     }
 

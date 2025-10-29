@@ -74,7 +74,7 @@ mod tests {
     #[test]
     fn test_logic_loop() -> miette::Result<()> {
         let uut = U::default();
-        let Err(err) = uut.descriptor("uut") else {
+        let Err(err) = uut.descriptor("uut".into()) else {
             panic!("Expected this to fail with a logic loop error");
         };
         let report = miette_report(err);

@@ -2,7 +2,7 @@ use crate::{
     Circuit, CircuitDQ, CircuitIO, ClockReset, Digital, DigitalFn, Domain, HDLDescriptor, Kind,
     RHDLError, Signal, Synchronous, Timed,
     bitx::BitX,
-    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor},
+    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor, scoped_name::ScopedName},
     digital_fn::NoKernel2,
     ntl,
     types::{kind::Field, signal::signal},
@@ -99,23 +99,27 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
         signal(result)
     }
 
-    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError> {
-        let child_descriptor = self.circuit.descriptor("inner")?;
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+        let child_descriptor = self.circuit.descriptor(scoped_name.with("inner"))?;
+        let name = scoped_name.to_string();
         Ok(Descriptor {
-            name: name.into(),
+            name: scoped_name,
             input_kind: <<Self as CircuitIO>::I as Digital>::static_kind(),
             output_kind: <<Self as CircuitIO>::O as Digital>::static_kind(),
             d_kind: <<Self as CircuitDQ>::D as Digital>::static_kind(),
             q_kind: <<Self as CircuitDQ>::Q as Digital>::static_kind(),
             kernel: None,
-            hdl: Some(self.hdl(name, &child_descriptor)?),
+            hdl: Some(self.hdl(&name, &child_descriptor)?),
             circuit_type: CircuitType::Asynchronous,
-            netlist: Some(self.netlist(name, &child_descriptor)?),
+            netlist: Some(self.netlist(&name, &child_descriptor)?),
         })
     }
 
-    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
-        std::iter::once(self.circuit.descriptor("inner"))
+    fn children(
+        &self,
+        scoped_name: &ScopedName,
+    ) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+        std::iter::once(self.circuit.descriptor(scoped_name.with("inner")))
     }
 }
 
@@ -136,7 +140,7 @@ impl<C: Synchronous, D: Domain> Adapter<C, D> {
         } else {
             quote! {}
         };
-        let child_unique_name_ident = format_ident!("{}", child_descriptor.name);
+        let child_unique_name_ident = format_ident!("{}", child_descriptor.name.to_string());
         let child_modules = &child_hdl.modules;
         let module_list: vlog::ModuleList = parse_quote! {
             module #name_ident(#(#ports),*);
