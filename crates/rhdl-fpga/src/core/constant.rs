@@ -28,7 +28,7 @@
 //! The simulation trace is pretty boring.  
 #![doc = include_str!("../../doc/constant.md")]
 use quote::format_ident;
-use rhdl::prelude::*;
+use rhdl::{core::ScopedName, prelude::*};
 use syn::parse_quote;
 
 #[derive(Clone, Debug)]
@@ -67,24 +67,17 @@ impl<T: Digital> Synchronous for Constant<T> {
         self.value
     }
 
-    fn description(&self) -> String {
-        format!("Constant: {:?}", self.value.typed_bits())
-    }
-
-    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
-        self.as_verilog(name)
-    }
-
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        Ok(CircuitDescriptor {
-            unique_name: format!("{name}_const_{:?}", self.value.typed_bits()),
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+        let name = scoped_name.to_string();
+        Ok(Descriptor {
+            name: scoped_name,
             input_kind: Kind::Empty,
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            children: Default::default(),
-            rtl: None,
-            ntl: constant(&self.value, name)?,
+            kernel: None,
+            netlist: Some(constant(&self.value, &name)?),
+            hdl: Some(self.hdl(&name)?),
             circuit_type: CircuitType::Synchronous,
         })
     }
@@ -93,8 +86,8 @@ impl<T: Digital> Synchronous for Constant<T> {
 impl<T: Digital> DigitalFn for Constant<T> {}
 
 impl<T: Digital> Constant<T> {
-    fn as_verilog(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
-        let module_name = self.descriptor(name)?.unique_name;
+    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
+        let module_name = name.into();
         let module_ident = format_ident!("{}", module_name);
         let lit: vlog::LitVerilog = self.value.typed_bits().into();
         let bits: vlog::BitRange = (0..T::bits()).into();

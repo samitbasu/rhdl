@@ -39,7 +39,10 @@ resetN++--->| +○+--+>reset
 //!
 
 use quote::format_ident;
-use rhdl::prelude::*;
+use rhdl::{
+    core::{circuit::descriptor, ScopedName},
+    prelude::*,
+};
 use syn::parse_quote;
 
 #[derive(PartialEq, Debug, Clone, Default)]
@@ -79,20 +82,24 @@ impl<C: Domain> Circuit for ResetNegation<C> {
         signal(out)
     }
 
-    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError> {
-        Ok(CircuitDescriptor {
-            unique_name: name.into(),
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+        let name = scoped_name.to_string();
+        Descriptor {
+            name: scoped_name,
             input_kind: <Self::I as Digital>::static_kind(),
             output_kind: <Self::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            children: Default::default(),
-            rtl: None,
-            ntl: rhdl::core::ntl::builder::circuit_black_box(self, name)?,
+            kernel: None,
+            netlist: None,
+            hdl: Some(self.hdl(&name)?),
             circuit_type: CircuitType::Asynchronous,
-        })
+        }
+        .with_netlist_black_box()
     }
+}
 
+impl<C: Domain> ResetNegation<C> {
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = format_ident!("{}", name);
         let module: vlog::ModuleDef = parse_quote! {

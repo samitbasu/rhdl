@@ -78,3 +78,4 @@ pub use bitx::BitX;
 pub use bitx::bitx_vec;
 pub mod common;
 pub mod ntl;
+pub use circuit::scoped_name::ScopedName;

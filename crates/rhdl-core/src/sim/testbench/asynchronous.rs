@@ -3,7 +3,10 @@ use rhdl_trace_type::RTT;
 use rhdl_vlog::{self as vlog, LitVerilog, maybe_decl_reg, maybe_decl_wire};
 use syn::parse_quote;
 
-use crate::{Circuit, CircuitIO, Digital, RHDLError, TimedSample, sim::test_module::TestModule};
+use crate::{
+    Circuit, CircuitIO, Digital, RHDLError, TimedSample, circuit::scoped_name::ScopedName,
+    sim::test_module::TestModule,
+};
 
 use super::TestBenchOptions;
 
@@ -157,7 +160,7 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         T: Circuit,
         T: CircuitIO<I = I, O = O>,
     {
-        let desc = uut.descriptor("uut")?;
+        let desc = uut.descriptor("uut".into())?;
         let hdl = desc.hdl()?;
         self.build_test_module(&hdl.modules, options)
     }
@@ -167,7 +170,7 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         T: Circuit,
         T: CircuitIO<I = I, O = O>,
     {
-        let module = uut.descriptor("uut")?.netlist()?.as_vlog("dut")?;
+        let module = uut.descriptor("uut".into())?.netlist()?.as_vlog("dut")?;
         self.build_test_module(&module.modules, options)
     }
 }

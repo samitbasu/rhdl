@@ -24,7 +24,7 @@ use crate::stream::{Ready, StreamIO};
 
 use super::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn};
 use badascii_doc::badascii;
-use rhdl::prelude::*;
+use rhdl::{core::ScopedName, prelude::*};
 
 #[derive(Clone)]
 /// The [SingleStage] test fixture
@@ -133,7 +133,10 @@ where
             self.sink.init(),
         )
     }
-    fn descriptor(&self, _name: &str) -> Result<rhdl::core::Descriptor, rhdl::core::RHDLError> {
+    fn descriptor(
+        &self,
+        _name: ScopedName,
+    ) -> Result<rhdl::core::Descriptor, rhdl::core::RHDLError> {
         Err(RHDLError::NotSynthesizable)
     }
     fn sim(
@@ -180,8 +183,5 @@ where
             }
         }
         panic!("Simulation did not converge");
-    }
-    fn children(&self) -> impl Iterator<Item = Result<rhdl::core::Descriptor, RHDLError>> {
-        std::iter::empty()
     }
 }

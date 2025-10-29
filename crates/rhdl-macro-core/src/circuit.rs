@@ -12,9 +12,9 @@ pub fn derive_circuit(input: TokenStream) -> syn::Result<TokenStream> {
 fn define_children_fn(field_set: &FieldSet) -> TokenStream {
     let component_name = &field_set.component_name;
     quote! {
-        fn children(&self) -> impl Iterator<Item = Result<rhdl::core::Descriptor, rhdl::core::RHDLError>> {
+        fn children(&self, parent_scope: &rhdl::core::ScopedName) -> impl Iterator<Item = Result<rhdl::core::Descriptor, rhdl::core::RHDLError>> {
             [
-                #(self.#component_name.descriptor(stringify!(#component_name))),*
+                #(self.#component_name.descriptor(parent_scope.with(stringify!(#component_name)))),*
             ].into_iter()
         }
     }

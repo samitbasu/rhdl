@@ -69,7 +69,7 @@ bool  |                     |
 #![doc = include_str!("../../../doc/sync_bram.md")]
 
 use quote::{format_ident, quote};
-use rhdl::prelude::*;
+use rhdl::{core::ScopedName, prelude::*};
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 use syn::parse_quote;
 
@@ -183,14 +183,6 @@ where
         }))
     }
 
-    fn description(&self) -> String {
-        format!(
-            "Synchronous RAM with {} entries of type {}",
-            1 << N,
-            std::any::type_name::<T>()
-        )
-    }
-
     fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
         trace_push_path("synchronous_ram");
         trace("input", &input);
@@ -218,24 +210,32 @@ where
         state.output_current
     }
 
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        Ok(CircuitDescriptor {
-            unique_name: name.to_string(),
-            input_kind: <Self::I as Digital>::static_kind(),
-            output_kind: <Self::O as Digital>::static_kind(),
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+        let name = scoped_name.to_string();
+        Descriptor {
+            name: scoped_name,
+            input_kind: <<Self as SynchronousIO>::I as Digital>::static_kind(),
+            output_kind: <<Self as SynchronousIO>::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            children: Default::default(),
-            rtl: None,
-            ntl: synchronous_black_box(self, name)?,
+            kernel: None,
+            netlist: None,
+            hdl: Some(self.hdl(&name)?),
             circuit_type: CircuitType::Synchronous,
-        })
+        }
+        .with_netlist_black_box()
     }
+}
 
+impl<T: Digital, const N: usize> SyncBRAM<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = name.to_owned();
         let module = format_ident!("{}", module_name);
-        let input_bits: vlog::BitRange = (0..(<Self::I as Digital>::BITS)).into();
+        let input_bits: vlog::BitRange =
+            (0..(<<Self as SynchronousIO>::I as Digital>::BITS)).into();
         let address_bits: vlog::BitRange = (0..N).into();
         let data_bits: vlog::BitRange = (0..(T::BITS)).into();
         let memory_size: vlog::BitRange = (0..(1 << N)).into();
@@ -244,7 +244,7 @@ where
             let addr = syn::Index::from(addr.raw() as usize);
             quote! {mem[#addr] = #val;}
         });
-        let i_kind = <Self::I as Digital>::static_kind();
+        let i_kind = <<Self as SynchronousIO>::I as Digital>::static_kind();
         let read_addr_index: vlog::BitRange = bit_range(i_kind, &path!(.read_addr))?.0.into();
         let write_addr_index: vlog::BitRange = bit_range(i_kind, &path!(.write.addr))?.0.into();
         let write_value_index: vlog::BitRange = bit_range(i_kind, &path!(.write.value))?.0.into();

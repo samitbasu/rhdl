@@ -543,7 +543,7 @@ impl<T: Circuit> Fixture<T> {
         }
         let driver_items = self.drivers.iter().flat_map(|x| &x.hdl.items);
         // Instantiate the thing
-        let desc = self.circuit.descriptor("inner")?;
+        let desc = self.circuit.descriptor("inner".into())?;
         let hdl = desc.hdl()?;
         let verilog = &hdl.modules;
         let name_ident = format_ident!("{}", self.name);

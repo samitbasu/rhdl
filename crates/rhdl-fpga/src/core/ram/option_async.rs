@@ -201,7 +201,9 @@ mod tests {
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
         );
-        let hdl = uut.netlist("uut")?;
+        let desc = uut.descriptor("uut".into())?;
+        let netlist = desc.netlist()?;
+        let hdl = netlist.as_vlog("uut")?;
         let expect = expect_file!["ram_fg.expect"];
         expect.assert_eq(&hdl.modules.to_string());
         Ok(())

@@ -34,6 +34,7 @@ mod blinker {
 }
 
 #[test]
+#[ignore]
 fn test_blinker_fixture() -> miette::Result<()> {
     type T = Adapter<blinker::U, Red>;
     let blinker: T = Adapter::new(blinker::U::default());

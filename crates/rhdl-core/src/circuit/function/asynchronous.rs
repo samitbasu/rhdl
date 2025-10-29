@@ -1,7 +1,7 @@
 use crate::{
     Circuit, CircuitDQ, CircuitIO, CompilationMode, Digital, DigitalFn, HDLDescriptor, Kind,
     RHDLError, Timed,
-    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor},
+    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor, scoped_name::ScopedName},
     compile_design,
     digital_fn::{DigitalFn1, NoKernel2},
     ntl::from_rtl::build_ntl_from_rtl,
@@ -50,8 +50,8 @@ impl<I: Timed, O: Timed> Circuit for AsyncFunc<I, O> {
         (self.update)(input)
     }
 
-    fn descriptor(&self, name: &str) -> Result<Descriptor, RHDLError> {
-        let module_name = name;
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+        let module_name = scoped_name.to_string();
         let ports = [
             maybe_port_wire(vlog::Direction::Input, Self::I::bits(), "i"),
             maybe_port_wire(vlog::Direction::Output, Self::O::bits(), "o"),
@@ -67,7 +67,7 @@ impl<I: Timed, O: Timed> Circuit for AsyncFunc<I, O> {
             endmodule
         };
         Ok(Descriptor {
-            name: name.to_string(),
+            name: scoped_name,
             input_kind: <Self::I as Digital>::static_kind(),
             output_kind: <Self::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
@@ -76,13 +76,9 @@ impl<I: Timed, O: Timed> Circuit for AsyncFunc<I, O> {
             kernel: Some(self.kernel.clone()),
             circuit_type: CircuitType::Asynchronous,
             hdl: Some(HDLDescriptor {
-                name: name.to_string(),
+                name: module_name,
                 modules: module.into(),
             }),
         })
-    }
-
-    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
-        std::iter::empty()
     }
 }

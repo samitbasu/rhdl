@@ -1,6 +1,6 @@
 use crate::{
     Circuit, CircuitDQ, CircuitIO, CompilationMode, HDLDescriptor, Kind, RHDLError,
-    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor},
+    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor, scoped_name::ScopedName},
     compile_design,
     ntl::{self, from_rtl::build_ntl_from_rtl},
     rtl,
@@ -13,10 +13,11 @@ use quote::{format_ident, quote};
 use rhdl_vlog as vlog;
 
 fn build_circuit_hdl<C: Circuit>(
-    name: &str,
+    scoped_name: &ScopedName,
     kernel: &rtl::Object,
     children: &[Descriptor],
 ) -> Result<HDLDescriptor, RHDLError> {
+    let local_name = scoped_name.to_string();
     let circuit_output = <C as CircuitIO>::O::static_kind();
     let circuit_input = <C as CircuitIO>::I::static_kind();
     let d_kind = <C as CircuitDQ>::D::static_kind();
@@ -38,7 +39,7 @@ fn build_circuit_hdl<C: Circuit>(
             continue;
         }
         child_hdls.push(child_desc.hdl()?.modules.clone());
-        let local_name = &child_desc.name;
+        let local_name = child_desc.name.last().unwrap();
         let child_path = Path::default().field(local_name);
         let (d_range, _) = bit_range(d_kind, &child_path)?;
         let (q_range, _) = bit_range(q_kind, &child_path)?;
@@ -46,7 +47,7 @@ fn build_circuit_hdl<C: Circuit>(
         let output_binding = vlog::maybe_connect("o", "q", q_range);
         let bindings = [input_binding, output_binding];
         let bindings = bindings.iter().flatten();
-        let component_name = format_ident!("{}", local_name);
+        let component_name = format_ident!("{}", child_desc.name.to_string());
         let component_instance = format_ident!("c{ndx}");
         child_decls.push(quote! {
             #component_name #component_instance(
@@ -59,7 +60,7 @@ fn build_circuit_hdl<C: Circuit>(
     let i_bind = (circuit_input.bits() != 0).then(|| format_ident!("i"));
     let q_bind = (q_kind.bits() != 0).then(|| format_ident!("q"));
     let kernel_name = format_ident!("{}", kernel.name);
-    let module_ident = format_ident!("{}", name);
+    let module_ident = format_ident!("{local_name}");
     let output_range: vlog::BitRange = (0..outputs).into();
     let d_bind = (d_kind.bits() != 0).then(|| {
         let d_range: vlog::BitRange = (outputs..(d_kind.bits() + outputs)).into();
@@ -77,21 +78,22 @@ fn build_circuit_hdl<C: Circuit>(
         #(#child_hdls)*
     }?;
     Ok(HDLDescriptor {
-        name: name.to_string(),
+        name: local_name,
         modules,
     })
 }
 
 fn build_circuit_netlist<C: Circuit>(
-    name: &str,
+    scoped_name: &ScopedName,
     kernel: &rtl::Object,
     children: &[Descriptor],
 ) -> Result<ntl::Object, RHDLError> {
+    let name = scoped_name.to_string();
     // Build the netlist
     // First construct the netlist for the update function
     let update_netlist = build_ntl_from_rtl(kernel);
     // Create a manual builder for the top level netlist
-    let mut builder = ntl::builder::Builder::new(name);
+    let mut builder = ntl::builder::Builder::new(&name);
     let output_kind: Kind = C::O::static_kind();
     if output_kind.is_empty() {
         return Err(RHDLError::NoOutputsError);
@@ -123,7 +125,7 @@ fn build_circuit_netlist<C: Circuit>(
         .collect::<Vec<_>>();
     // Create the inputs for the children by splitting bits off of the d_index
     for child_descriptor in children {
-        let child_name = &child_descriptor.name;
+        let child_name = child_descriptor.name.last().unwrap();
         // Compute the bit range for this child's input based on its name
         let child_path = Path::default().field(child_name);
         let (output_bit_range, _) = bit_range(C::D::static_kind(), &child_path)?;
@@ -133,7 +135,7 @@ fn build_circuit_netlist<C: Circuit>(
                 .netlist
                 .as_ref()
                 .ok_or(RHDLError::FunctionNotSynthesizable {
-                    name: child_descriptor.name.clone(),
+                    name: child_descriptor.name.to_string(),
                 })?;
         // Merge the child's netlist into ours
         let child_offset = builder.import(netlist);
@@ -155,20 +157,20 @@ fn build_circuit_netlist<C: Circuit>(
 /// Build run time description of a circuit
 pub fn build_asynchronous_descriptor<C: Circuit>(
     circuit: &C,
-    name: &str,
+    scoped_name: ScopedName,
 ) -> Result<Descriptor, RHDLError> {
     let kernel = compile_design::<C::Kernel>(CompilationMode::Asynchronous)?;
     let children = circuit
-        .children()
+        .children(&scoped_name)
         .collect::<Result<Vec<Descriptor>, RHDLError>>()?;
-    let hdl = build_circuit_hdl::<C>(name, &kernel, &children)?;
-    let netlist = build_circuit_netlist::<C>(name, &kernel, &children)?;
+    let hdl = build_circuit_hdl::<C>(&scoped_name, &kernel, &children)?;
+    let netlist = build_circuit_netlist::<C>(&scoped_name, &kernel, &children)?;
     let circuit_output = <C as CircuitIO>::O::static_kind();
     let circuit_input = <C as CircuitIO>::I::static_kind();
     let d_kind = <C as CircuitDQ>::D::static_kind();
     let q_kind = <C as CircuitDQ>::Q::static_kind();
     Ok(Descriptor {
-        name: name.to_string(),
+        name: scoped_name,
         input_kind: circuit_input,
         output_kind: circuit_output,
         d_kind,

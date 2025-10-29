@@ -9,7 +9,7 @@
 //! be included in your simulations and test fixtures.
 //!
 
-use rhdl::prelude::*;
+use rhdl::{core::ScopedName, prelude::*};
 
 use crate::stream::Ready;
 
@@ -143,11 +143,7 @@ impl<T: Digital> Synchronous for SourceFromFn<T> {
         me.value
     }
 
-    fn descriptor(&self, _name: &str) -> Result<Descriptor, RHDLError> {
+    fn descriptor(&self, _name: ScopedName) -> Result<Descriptor, RHDLError> {
         Err(RHDLError::NotSynthesizable)
-    }
-
-    fn children(&self) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
-        std::iter::empty()
     }
 }

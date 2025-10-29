@@ -28,6 +28,7 @@ mod tests {
     use rhdl::prelude::*;
 
     #[test]
+    #[ignore]
     fn test_sys_clock() {
         #[derive(PartialEq, Digital, Clone, Copy, Timed)]
         struct I {

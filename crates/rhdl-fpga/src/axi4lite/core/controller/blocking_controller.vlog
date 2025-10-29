@@ -4,10 +4,10 @@ module top(input wire [1:0] clock_reset, input wire [111:0] i, output wire [140:
    wire [252:0] q;
    assign o = od[140:0];
    top_inbuf c0(.clock_reset(clock_reset), .i(d[70:0]), .o(q[70:0]));
-   top_outbuf c1(.clock_reset(clock_reset), .i(d[251:216]), .o(q[250:215]));
+   top_write_controller c1(.clock_reset(clock_reset), .i(d[145:71]), .o(q[145:71]));
    top_read_controller c2(.clock_reset(clock_reset), .i(d[215:146]), .o(q[214:146]));
-   top_state c3(.clock_reset(clock_reset), .i(d[253:252]), .o(q[252:251]));
-   top_write_controller c4(.clock_reset(clock_reset), .i(d[145:71]), .o(q[145:71]));
+   top_outbuf c3(.clock_reset(clock_reset), .i(d[251:216]), .o(q[250:215]));
+   top_state c4(.clock_reset(clock_reset), .i(d[253:252]), .o(q[252:251]));
    assign d = od[394:141];
    assign od = kernel_kernel(clock_reset, i, q);
    function [394:0] kernel_kernel(input reg [1:0] arg_0, input reg [111:0] arg_1, input reg [252:0] arg_2);
@@ -427,10 +427,10 @@ module top_inbuf_inner(input wire [1:0] clock_reset, input wire [70:0] i, output
    wire [139:0] d;
    wire [139:0] q;
    assign o = od[70:0];
-   top_inbuf_inner_aux_ff c0(.clock_reset(clock_reset), .i(d[137:69]), .o(q[137:69]));
-   top_inbuf_inner_main_ff c1(.clock_reset(clock_reset), .i(d[68:0]), .o(q[68:0]));
-   top_inbuf_inner_state_ff c2(.clock_reset(clock_reset), .i(d[139:139]), .o(q[139:139]));
-   top_inbuf_inner_void_ff c3(.clock_reset(clock_reset), .i(d[138:138]), .o(q[138:138]));
+   top_inbuf_inner_main_ff c0(.clock_reset(clock_reset), .i(d[68:0]), .o(q[68:0]));
+   top_inbuf_inner_aux_ff c1(.clock_reset(clock_reset), .i(d[137:69]), .o(q[137:69]));
+   top_inbuf_inner_void_ff c2(.clock_reset(clock_reset), .i(d[138:138]), .o(q[138:138]));
+   top_inbuf_inner_state_ff c3(.clock_reset(clock_reset), .i(d[139:139]), .o(q[139:139]));
    assign d = od[210:71];
    assign od = kernel_carloni_kernel(clock_reset, i, q);
    function [210:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [70:0] arg_1, input reg [139:0] arg_2);
@@ -634,22 +634,6 @@ module top_inbuf_inner(input wire [1:0] clock_reset, input wire [70:0] i, output
          end
    endfunction
 endmodule
-module top_inbuf_inner_aux_ff(input wire [1:0] clock_reset, input wire [68:0] i, output reg [68:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 69'b000000000000000000000000000000000000000000000000000000000000000000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 69'b000000000000000000000000000000000000000000000000000000000000000000000;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
 module top_inbuf_inner_main_ff(input wire [1:0] clock_reset, input wire [68:0] i, output reg [68:0] o);
    wire  clock;
    wire  reset;
@@ -666,17 +650,17 @@ module top_inbuf_inner_main_ff(input wire [1:0] clock_reset, input wire [68:0] i
       end
    end
 endmodule
-module top_inbuf_inner_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+module top_inbuf_inner_aux_ff(input wire [1:0] clock_reset, input wire [68:0] i, output reg [68:0] o);
    wire  clock;
    wire  reset;
    assign clock = clock_reset[0];
    assign reset = clock_reset[1];
    initial begin
-      o = 1'b0;
+      o = 69'b000000000000000000000000000000000000000000000000000000000000000000000;
    end
    always @(posedge clock) begin
       if (reset) begin
-         o <= 1'b0;
+         o <= 69'b000000000000000000000000000000000000000000000000000000000000000000000;
       end else begin
          o <= i;
       end
@@ -698,117 +682,1374 @@ module top_inbuf_inner_void_ff(input wire [1:0] clock_reset, input wire [0:0] i,
       end
    end
 endmodule
-module top_outbuf(input wire [1:0] clock_reset, input wire [35:0] i, output wire [35:0] o);
-   wire [71:0] od;
-   wire [35:0] d;
-   wire [35:0] q;
-   assign o = od[35:0];
-   top_outbuf_inner c0(.clock_reset(clock_reset), .i(d[35:0]), .o(q[35:0]));
-   assign d = od[71:36];
-   assign od = kernel_option_carloni_kernel(clock_reset, i, q);
-   function [71:0] kernel_option_carloni_kernel(input reg [1:0] arg_0, input reg [35:0] arg_1, input reg [35:0] arg_2);
-         reg [34:0] r0;
-         reg [35:0] r1;
+module top_inbuf_inner_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b0;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b0;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller(input wire [1:0] clock_reset, input wire [74:0] i, output wire [74:0] o);
+   wire [225:0] od;
+   wire [150:0] d;
+   wire [150:0] q;
+   assign o = od[74:0];
+   top_write_controller_tee c0(.clock_reset(clock_reset), .i(d[70:0]), .o(q[70:0]));
+   top_write_controller_addr_buf c1(.clock_reset(clock_reset), .i(d[104:71]), .o(q[104:71]));
+   top_write_controller_data_buf c2(.clock_reset(clock_reset), .i(d[142:105]), .o(q[142:105]));
+   top_write_controller_map c3(.clock_reset(clock_reset), .i(d[146:143]), .o(q[146:143]));
+   top_write_controller_outbuf c4(.clock_reset(clock_reset), .i(d[150:147]), .o(q[150:147]));
+   assign d = od[225:75];
+   assign od = kernel_kernel(clock_reset, i, q);
+   function [225:0] kernel_kernel(input reg [1:0] arg_0, input reg [74:0] arg_1, input reg [150:0] arg_2);
+         reg [68:0] r0;
+         reg [74:0] r1;
          reg [0:0] r2;
-         reg [33:0] r3;
-         reg [34:0] r4;
-         reg [34:0] r5;
-         reg [0:0] r6;
-         reg [33:0] r7;
+         reg [67:0] r3;
+         reg [31:0] r4;
+         reg [35:0] r5;
+         reg [67:0] r6;
+         reg [68:0] r7;
+         reg [67:0] r8;
          // d
-         reg [35:0] r8;
-         reg [0:0] r9;
+         reg [150:0] r9;
          // d
-         reg [35:0] r10;
-         reg [0:0] r11;
-         reg [0:0] r12;
+         reg [150:0] r10;
+         reg [70:0] r11;
+         reg [150:0] r12;
+         reg [32:0] r13;
          // d
-         reg [35:0] r13;
-         reg [35:0] r14;
-         reg [0:0] r15;
+         reg [150:0] r14;
+         reg [33:0] r15;
          reg [0:0] r16;
-         reg [0:0] r17;
-         reg [0:0] r18;
+         // d
+         reg [150:0] r17;
+         reg [70:0] r18;
+         reg [36:0] r19;
+         // d
+         reg [150:0] r20;
+         reg [37:0] r21;
+         reg [0:0] r22;
+         // d
+         reg [150:0] r23;
+         reg [70:0] r24;
+         reg [0:0] r25;
+         reg [0:0] r26;
+         reg [0:0] r27;
          // o
-         reg [35:0] r19;
-         reg [0:0] r20;
-         reg [0:0] r21;
-         reg [33:0] r22;
-         reg [34:0] r23;
-         reg [33:0] r24;
-         reg [34:0] r25;
+         reg [74:0] r28;
+         reg [33:0] r29;
+         reg [31:0] r30;
          // o
-         reg [35:0] r26;
-         reg [71:0] r27;
-         reg [1:0] r28;
+         reg [74:0] r31;
+         reg [33:0] r32;
+         reg [0:0] r33;
+         // o
+         reg [74:0] r34;
+         reg [4:0] r35;
+         reg [0:0] r36;
+         // d
+         reg [150:0] r37;
+         reg [37:0] r38;
+         reg [35:0] r39;
+         reg [31:0] r40;
+         // o
+         reg [74:0] r41;
+         reg [37:0] r42;
+         reg [35:0] r43;
+         reg [3:0] r44;
+         // o
+         reg [74:0] r45;
+         reg [37:0] r46;
+         reg [0:0] r47;
+         // o
+         reg [74:0] r48;
+         reg [4:0] r49;
+         reg [0:0] r50;
+         // d
+         reg [150:0] r51;
+         reg [4:0] r52;
+         reg [1:0] r53;
+         // d
+         reg [150:0] r54;
+         reg [4:0] r55;
+         reg [0:0] r56;
+         // d
+         reg [150:0] r57;
+         reg [3:0] r58;
+         reg [0:0] r59;
+         // o
+         reg [74:0] r60;
+         reg [3:0] r61;
+         reg [2:0] r62;
+         // d
+         reg [150:0] r63;
+         reg [3:0] r64;
+         reg [0:0] r65;
+         // d
+         reg [150:0] r66;
+         reg [3:0] r67;
+         reg [2:0] r68;
+         // o
+         reg [74:0] r69;
+         reg [0:0] r70;
+         // d
+         reg [150:0] r71;
+         reg [225:0] r72;
+         reg [1:0] r73;
          localparam l0 = 1'b1;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b0;
-         localparam l3 = 35'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX0;
-         localparam l4 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l5 = 1'b0;
-         localparam l6 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l7 = 1'b1;
-         localparam l8 = 35'b00000000000000000000000000000000000;
+         localparam l1 = 151'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX000000000000000000000000000000000000000000000000000000000000000000000;
+         localparam l2 = 1'b1;
+         localparam l3 = 1'b0;
+         localparam l4 = 75'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          begin
-            r28 = arg_0;
+            r73 = arg_0;
             r1 = arg_1;
-            r14 = arg_2;
-            r0 = r1[34:0];
-            r2 = r0[34:34];
-            r3 = r0[33:0];
-            r4 = {r3, l0};
+            r12 = arg_2;
+            r0 = r1[73:5];
+            r2 = r0[68:68];
+            r3 = r0[67:0];
+            r4 = r3[31:0];
+            r5 = r3[67:32];
+            r6 = {r5, r4};
+            r8 = r6[67:0];
+            r7 = {l0, r8};
+            r9 = l1;
+            r9[68:0] = r7;
             case (r2)
-               1'b1 : r5 = r4;
-               1'b0 : r5 = l3;
+               1'b1 : r10 = r9;
+               default : r10 = l1;
             endcase
-            r6 = r5[0:0];
-            r7 = r5[34:1];
-            r8 = l4;
-            r8[33:0] = r7;
-            r9 = ~r6;
-            r10 = r8;
-            r10[34:34] = r9;
-            r11 = r1[35:35];
-            r12 = ~r11;
-            r13 = r10;
-            r13[35:35] = r12;
-            r15 = r14[35:35];
-            r16 = ~r15;
-            r17 = l5;
-            r18 = r17;
-            r18[0:0] = r16;
-            r19 = l6;
-            r19[35:35] = r18;
-            r20 = r14[34:34];
-            r21 = ~r20;
-            r22 = r14[33:0];
-            r24 = r22[33:0];
-            r23 = {l7, r24};
-            r25 = r21 ? r23 : l8;
-            r26 = r19;
-            r26[34:0] = r25;
-            r27 = {r13, r26};
-            kernel_option_carloni_kernel = r27;
+            r11 = r12[70:0];
+            r13 = r11[32:0];
+            r14 = r10;
+            r14[103:71] = r13;
+            r15 = r12[104:71];
+            r16 = r15[33:33];
+            r17 = r14;
+            r17[69:69] = r16;
+            r18 = r12[70:0];
+            r19 = r18[69:33];
+            r20 = r17;
+            r20[141:105] = r19;
+            r21 = r12[142:105];
+            r22 = r21[37:37];
+            r23 = r20;
+            r23[70:70] = r22;
+            r24 = r12[70:0];
+            r25 = r24[70:70];
+            r26 = l3;
+            r27 = r26;
+            r27[0:0] = r25;
+            r28 = l4;
+            r28[71:71] = r27;
+            r29 = r12[104:71];
+            r30 = r29[31:0];
+            r31 = r28;
+            r31[31:0] = r30;
+            r32 = r12[104:71];
+            r33 = r32[32:32];
+            r34 = r31;
+            r34[32:32] = r33;
+            r35 = r1[4:0];
+            r36 = r35[0:0];
+            r37 = r23;
+            r37[104:104] = r36;
+            r38 = r12[142:105];
+            r39 = r38[35:0];
+            r40 = r39[31:0];
+            r41 = r34;
+            r41[64:33] = r40;
+            r42 = r12[142:105];
+            r43 = r42[35:0];
+            r44 = r43[35:32];
+            r45 = r41;
+            r45[68:65] = r44;
+            r46 = r12[142:105];
+            r47 = r46[36:36];
+            r48 = r45;
+            r48[69:69] = r47;
+            r49 = r1[4:0];
+            r50 = r49[1:1];
+            r51 = r37;
+            r51[142:142] = r50;
+            r52 = r1[4:0];
+            r53 = r52[3:2];
+            r54 = r51;
+            r54[148:147] = r53;
+            r55 = r1[4:0];
+            r56 = r55[4:4];
+            r57 = r54;
+            r57[149:149] = r56;
+            r58 = r12[150:147];
+            r59 = r58[3:3];
+            r60 = r48;
+            r60[70:70] = r59;
+            r61 = r12[150:147];
+            r62 = r61[2:0];
+            r63 = r57;
+            r63[145:143] = r62;
+            r64 = r12[146:143];
+            r65 = r64[3:3];
+            r66 = r63;
+            r66[150:150] = r65;
+            r67 = r12[146:143];
+            r68 = r67[2:0];
+            r69 = r60;
+            r69[74:72] = r68;
+            r70 = r1[74:74];
+            r71 = r66;
+            r71[146:146] = r70;
+            r72 = {r71, r69};
+            kernel_kernel = r72;
          end
    endfunction
 endmodule
-module top_outbuf_inner(input wire [1:0] clock_reset, input wire [35:0] i, output wire [35:0] o);
-   wire [105:0] od;
-   wire [69:0] d;
-   wire [69:0] q;
-   assign o = od[35:0];
-   top_outbuf_inner_aux_ff c0(.clock_reset(clock_reset), .i(d[67:34]), .o(q[67:34]));
-   top_outbuf_inner_main_ff c1(.clock_reset(clock_reset), .i(d[33:0]), .o(q[33:0]));
-   top_outbuf_inner_state_ff c2(.clock_reset(clock_reset), .i(d[69:69]), .o(q[69:69]));
-   top_outbuf_inner_void_ff c3(.clock_reset(clock_reset), .i(d[68:68]), .o(q[68:68]));
-   assign d = od[105:36];
-   assign od = kernel_carloni_kernel(clock_reset, i, q);
-   function [105:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [35:0] arg_1, input reg [69:0] arg_2);
+module top_write_controller_tee(input wire [1:0] clock_reset, input wire [70:0] i, output wire [70:0] o);
+   wire [212:0] od;
+   wire [141:0] d;
+   wire [144:0] q;
+   assign o = od[70:0];
+   top_write_controller_tee_in_buffer c0(.clock_reset(clock_reset), .i(d[69:0]), .o(q[70:0]));
+   top_write_controller_tee_s_buffer c1(.clock_reset(clock_reset), .i(d[103:70]), .o(q[105:71]));
+   top_write_controller_tee_t_buffer c2(.clock_reset(clock_reset), .i(d[141:104]), .o(q[144:106]));
+   assign d = od[212:71];
+   assign od = kernel_kernel(clock_reset, i, q);
+   function [212:0] kernel_kernel(input reg [1:0] arg_0, input reg [70:0] arg_1, input reg [144:0] arg_2);
+         reg [34:0] r0;
+         reg [144:0] r1;
+         reg [0:0] r2;
+         reg [38:0] r3;
+         reg [0:0] r4;
+         reg [0:0] r5;
+         reg [0:0] r6;
+         reg [70:0] r7;
+         reg [68:0] r8;
+         reg [0:0] r9;
+         reg [67:0] r10;
+         reg [31:0] r11;
+         reg [32:0] r12;
+         reg [31:0] r13;
+         reg [35:0] r14;
+         reg [36:0] r15;
+         reg [35:0] r16;
+         // next
+         reg [0:0] r17;
+         // s_val
+         reg [32:0] r18;
+         // t_val
+         reg [36:0] r19;
+         // next
+         reg [0:0] r20;
+         // s_val
+         reg [32:0] r21;
+         // t_val
+         reg [36:0] r22;
+         // d
+         reg [141:0] r23;
+         // d
+         reg [141:0] r24;
+         // d
+         reg [141:0] r25;
+         reg [68:0] r26;
+         reg [70:0] r27;
+         // d
+         reg [141:0] r28;
+         reg [0:0] r29;
+         // d
+         reg [141:0] r30;
+         reg [0:0] r31;
+         // d
+         reg [141:0] r32;
+         reg [34:0] r33;
+         reg [32:0] r34;
+         reg [38:0] r35;
+         reg [36:0] r36;
+         reg [70:0] r37;
+         reg [0:0] r38;
+         reg [70:0] r39;
+         reg [70:0] r40;
+         reg [70:0] r41;
+         reg [212:0] r42;
+         reg [1:0] r43;
+         localparam l0 = 1'b1;
+         localparam l1 = 1'b1;
+         localparam l2 = 1'b1;
+         localparam l3 = 1'b1;
+         localparam l4 = 1'b0;
+         localparam l5 = 33'b000000000000000000000000000000000;
+         localparam l6 = 37'b0000000000000000000000000000000000000;
+         localparam l7 = 142'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l8 = 71'b00000000000000000000000000000000000000000000000000000000000000000000000;
+         begin
+            r43 = arg_0;
+            r27 = arg_1;
+            r1 = arg_2;
+            r0 = r1[105:71];
+            r2 = r0[33:33];
+            r3 = r1[144:106];
+            r4 = r3[37:37];
+            r5 = r2 | r4;
+            r6 = ~r5;
+            r7 = r1[70:0];
+            r8 = r7[68:0];
+            r9 = r8[68:68];
+            r10 = r8[67:0];
+            r11 = r10[31:0];
+            r13 = r11[31:0];
+            r12 = {l0, r13};
+            r14 = r10[67:32];
+            r16 = r14[35:0];
+            r15 = {l1, r16};
+            case (r9)
+               1'b1 : r17 = l3;
+               default : r17 = l4;
+            endcase
+            case (r9)
+               1'b1 : r18 = r12;
+               default : r18 = l5;
+            endcase
+            case (r9)
+               1'b1 : r19 = r15;
+               default : r19 = l6;
+            endcase
+            r20 = r6 ? r17 : l4;
+            r21 = r6 ? r18 : l5;
+            r22 = r6 ? r19 : l6;
+            r23 = l7;
+            r23[102:70] = r21;
+            r24 = r23;
+            r24[140:104] = r22;
+            r25 = r24;
+            r25[69:69] = r20;
+            r26 = r27[68:0];
+            r28 = r25;
+            r28[68:0] = r26;
+            r29 = r27[69:69];
+            r30 = r28;
+            r30[103:103] = r29;
+            r31 = r27[70:70];
+            r32 = r30;
+            r32[141:141] = r31;
+            r33 = r1[105:71];
+            r34 = r33[32:0];
+            r35 = r1[144:106];
+            r36 = r35[36:0];
+            r37 = r1[70:0];
+            r38 = r37[69:69];
+            r39 = l8;
+            r39[32:0] = r34;
+            r40 = r39;
+            r40[69:33] = r36;
+            r41 = r40;
+            r41[70:70] = r38;
+            r42 = {r32, r41};
+            kernel_kernel = r42;
+         end
+   endfunction
+endmodule
+module top_write_controller_tee_in_buffer(input wire [1:0] clock_reset, input wire [69:0] i, output wire [70:0] o);
+   wire [210:0] od;
+   wire [139:0] d;
+   wire [139:0] q;
+   assign o = od[70:0];
+   top_write_controller_tee_in_buffer_state c0(.clock_reset(clock_reset), .i(d[1:0]), .o(q[1:0]));
+   top_write_controller_tee_in_buffer_zero_slot c1(.clock_reset(clock_reset), .i(d[69:2]), .o(q[69:2]));
+   top_write_controller_tee_in_buffer_one_slot c2(.clock_reset(clock_reset), .i(d[137:70]), .o(q[137:70]));
+   top_write_controller_tee_in_buffer_write_slot c3(.clock_reset(clock_reset), .i(d[138:138]), .o(q[138:138]));
+   top_write_controller_tee_in_buffer_read_slot c4(.clock_reset(clock_reset), .i(d[139:139]), .o(q[139:139]));
+   assign d = od[210:71];
+   assign od = kernel_kernel(clock_reset, i, q);
+   function [210:0] kernel_kernel(input reg [1:0] arg_0, input reg [69:0] arg_1, input reg [139:0] arg_2);
          reg [0:0] r0;
          reg [69:0] r1;
+         reg [68:0] r2;
+         reg [0:0] r3;
+         reg [0:0] r4;
+         reg [1:0] r5;
+         reg [139:0] r6;
+         reg [1:0] r7;
+         reg [1:0] r8;
+         reg [1:0] r9;
+         reg [1:0] r10;
+         reg [1:0] r11;
+         reg [1:0] r12;
+         // d
+         reg [139:0] r13;
+         reg [1:0] r14;
+         reg [0:0] r15;
+         reg [1:0] r16;
+         reg [0:0] r17;
+         reg [0:0] r18;
+         reg [0:0] r19;
+         reg [67:0] r20;
+         // d
+         reg [139:0] r21;
+         reg [67:0] r22;
+         // d
+         reg [139:0] r23;
+         reg [68:0] r24;
+         reg [0:0] r25;
+         reg [67:0] r26;
+         reg [0:0] r27;
+         // d
+         reg [139:0] r28;
+         // d
+         reg [139:0] r29;
+         // d
+         reg [139:0] r30;
+         // d
+         reg [139:0] r31;
+         // d
+         reg [139:0] r32;
+         reg [0:0] r33;
+         reg [0:0] r34;
+         // d
+         reg [139:0] r35;
+         reg [0:0] r36;
+         reg [0:0] r37;
+         // d
+         reg [139:0] r38;
+         reg [1:0] r39;
+         reg [0:0] r40;
+         reg [0:0] r41;
+         reg [0:0] r42;
+         reg [67:0] r43;
+         reg [68:0] r44;
+         reg [67:0] r45;
+         // o
+         reg [70:0] r46;
+         reg [67:0] r47;
+         reg [68:0] r48;
+         reg [67:0] r49;
+         // o
+         reg [70:0] r50;
+         // o
+         reg [70:0] r51;
+         // o
+         reg [70:0] r52;
+         reg [0:0] r53;
+         reg [0:0] r54;
+         // o
+         reg [70:0] r55;
+         reg [1:0] r56;
+         reg [0:0] r57;
+         // o
+         reg [70:0] r58;
+         reg [210:0] r59;
+         reg [1:0] r60;
+         localparam l0 = 1'b1;
+         localparam l1 = 1'b1;
+         localparam l2 = 1'b0;
+         localparam l3 = 1'b0;
+         localparam l4 = 2'b11;
+         localparam l5 = 2'b00;
+         localparam l6 = 2'b01;
+         localparam l7 = 2'b00;
+         localparam l8 = 2'b01;
+         localparam l9 = 2'b01;
+         localparam l10 = 2'b10;
+         localparam l11 = 2'b10;
+         localparam l12 = 2'b00;
+         localparam l13 = 2'b11;
+         localparam l14 = 2'b01;
+         localparam l15 = 2'b01;
+         localparam l16 = 2'b10;
+         localparam l17 = 2'b00;
+         localparam l18 = 2'b01;
+         localparam l19 = 2'b10;
+         localparam l20 = 2'b11;
+         localparam l21 = 2'b11;
+         localparam l22 = 140'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l23 = 2'b10;
+         localparam l24 = 2'b11;
+         localparam l25 = 1'b1;
+         localparam l26 = 2'b00;
+         localparam l27 = 1'b1;
+         localparam l28 = 71'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l29 = 1'b1;
+         localparam l30 = 71'bXX000000000000000000000000000000000000000000000000000000000000000000000;
+         localparam l31 = 1'b0;
+         localparam l32 = 2'b11;
+         begin
+            r60 = arg_0;
+            r1 = arg_1;
+            r6 = arg_2;
+            r0 = r1[69:69];
+            r2 = r1[68:0];
+            r3 = r2[68:68];
+            case (r3)
+               1'b1 : r4 = l1;
+               1'b0 : r4 = l3;
+            endcase
+            r5 = r6[1:0];
+            r7 = r0 ? l4 : l5;
+            r8 = r4 ? l6 : r7;
+            r9 = {r0, r4};
+            case (r9)
+               2'b00 : r10 = l8;
+               2'b01 : r10 = l10;
+               2'b10 : r10 = l12;
+               2'b11 : r10 = l14;
+            endcase
+            r11 = r0 ? l15 : l16;
+            case (r5)
+               2'b00 : r12 = r8;
+               2'b01 : r12 = r10;
+               2'b10 : r12 = r11;
+               2'b11 : r12 = l21;
+            endcase
+            r13 = l22;
+            r13[1:0] = r12;
+            r14 = r6[1:0];
+            r15 = r14 != l23;
+            r16 = r6[1:0];
+            r17 = r16 != l24;
+            r18 = r15 & r17;
+            r19 = r4 & r18;
+            r20 = r6[69:2];
+            r21 = r13;
+            r21[69:2] = r20;
+            r22 = r6[137:70];
+            r23 = r21;
+            r23[137:70] = r22;
+            r24 = r1[68:0];
+            r25 = r24[68:68];
+            r26 = r24[67:0];
+            r27 = r6[138:138];
+            r28 = r23;
+            r28[137:70] = r26;
+            r29 = r23;
+            r29[69:2] = r26;
+            r30 = r27 ? r28 : r29;
+            r31 = r19 ? r30 : r23;
+            case (r25)
+               1'b1 : r32 = r31;
+               default : r32 = r23;
+            endcase
+            r33 = r6[138:138];
+            r34 = r19 ^ r33;
+            r35 = r32;
+            r35[138:138] = r34;
+            r36 = r6[139:139];
+            r37 = r0 ^ r36;
+            r38 = r35;
+            r38[139:139] = r37;
+            r39 = r6[1:0];
+            r40 = r39 == l26;
+            r41 = r6[139:139];
+            r42 = ~r41;
+            r43 = r6[69:2];
+            r45 = r43[67:0];
+            r44 = {l27, r45};
+            r46 = l28;
+            r46[68:0] = r44;
+            r47 = r6[137:70];
+            r49 = r47[67:0];
+            r48 = {l29, r49};
+            r50 = l28;
+            r50[68:0] = r48;
+            r51 = r42 ? r46 : r50;
+            r52 = r40 ? l30 : r51;
+            r53 = l31;
+            r54 = r53;
+            r54[0:0] = r18;
+            r55 = r52;
+            r55[69:69] = r54;
+            r56 = r6[1:0];
+            r57 = r56 == l32;
+            r58 = r55;
+            r58[70:70] = r57;
+            r59 = {r38, r58};
+            kernel_kernel = r59;
+         end
+   endfunction
+endmodule
+module top_write_controller_tee_in_buffer_state(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 2'b00;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 2'b00;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_in_buffer_zero_slot(input wire [1:0] clock_reset, input wire [67:0] i, output reg [67:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 68'b00000000000000000000000000000000000000000000000000000000000000000000;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 68'b00000000000000000000000000000000000000000000000000000000000000000000;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_in_buffer_one_slot(input wire [1:0] clock_reset, input wire [67:0] i, output reg [67:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 68'b00000000000000000000000000000000000000000000000000000000000000000000;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 68'b00000000000000000000000000000000000000000000000000000000000000000000;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_in_buffer_write_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b0;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b0;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_in_buffer_read_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b0;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b0;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_s_buffer(input wire [1:0] clock_reset, input wire [33:0] i, output wire [34:0] o);
+   wire [102:0] od;
+   wire [67:0] d;
+   wire [67:0] q;
+   assign o = od[34:0];
+   top_write_controller_tee_s_buffer_state c0(.clock_reset(clock_reset), .i(d[1:0]), .o(q[1:0]));
+   top_write_controller_tee_s_buffer_zero_slot c1(.clock_reset(clock_reset), .i(d[33:2]), .o(q[33:2]));
+   top_write_controller_tee_s_buffer_one_slot c2(.clock_reset(clock_reset), .i(d[65:34]), .o(q[65:34]));
+   top_write_controller_tee_s_buffer_write_slot c3(.clock_reset(clock_reset), .i(d[66:66]), .o(q[66:66]));
+   top_write_controller_tee_s_buffer_read_slot c4(.clock_reset(clock_reset), .i(d[67:67]), .o(q[67:67]));
+   assign d = od[102:35];
+   assign od = kernel_kernel(clock_reset, i, q);
+   function [102:0] kernel_kernel(input reg [1:0] arg_0, input reg [33:0] arg_1, input reg [67:0] arg_2);
+         reg [32:0] r0;
+         reg [33:0] r1;
          reg [0:0] r2;
-         reg [35:0] r3;
+         reg [0:0] r3;
+         reg [0:0] r4;
+         reg [1:0] r5;
+         reg [67:0] r6;
+         reg [1:0] r7;
+         reg [1:0] r8;
+         reg [1:0] r9;
+         reg [1:0] r10;
+         reg [1:0] r11;
+         reg [1:0] r12;
+         // d
+         reg [67:0] r13;
+         reg [31:0] r14;
+         // d
+         reg [67:0] r15;
+         reg [31:0] r16;
+         // d
+         reg [67:0] r17;
+         reg [32:0] r18;
+         reg [0:0] r19;
+         reg [31:0] r20;
+         reg [0:0] r21;
+         reg [0:0] r22;
+         // d
+         reg [67:0] r23;
+         // d
+         reg [67:0] r24;
+         // d
+         reg [67:0] r25;
+         // d
+         reg [67:0] r26;
+         reg [1:0] r27;
+         reg [0:0] r28;
+         reg [0:0] r29;
+         reg [1:0] r30;
+         reg [0:0] r31;
+         reg [0:0] r32;
+         reg [0:0] r33;
+         reg [0:0] r34;
+         // d
+         reg [67:0] r35;
+         reg [0:0] r36;
+         reg [0:0] r37;
+         // d
+         reg [67:0] r38;
+         reg [1:0] r39;
+         reg [0:0] r40;
+         reg [0:0] r41;
+         reg [0:0] r42;
+         reg [31:0] r43;
+         reg [32:0] r44;
+         reg [31:0] r45;
+         // o
+         reg [34:0] r46;
+         reg [31:0] r47;
+         reg [32:0] r48;
+         reg [31:0] r49;
+         // o
+         reg [34:0] r50;
+         // o
+         reg [34:0] r51;
+         // o
+         reg [34:0] r52;
+         reg [1:0] r53;
+         reg [0:0] r54;
+         // o
+         reg [34:0] r55;
+         reg [1:0] r56;
+         reg [0:0] r57;
+         // o
+         reg [34:0] r58;
+         reg [102:0] r59;
+         reg [1:0] r60;
+         localparam l0 = 1'b1;
+         localparam l1 = 1'b1;
+         localparam l2 = 1'b0;
+         localparam l3 = 1'b0;
+         localparam l4 = 2'b01;
+         localparam l5 = 2'b00;
+         localparam l6 = 2'b00;
+         localparam l7 = 2'b01;
+         localparam l8 = 2'b01;
+         localparam l9 = 2'b10;
+         localparam l10 = 2'b10;
+         localparam l11 = 2'b00;
+         localparam l12 = 2'b11;
+         localparam l13 = 2'b01;
+         localparam l14 = 2'b01;
+         localparam l15 = 2'b10;
+         localparam l16 = 2'b11;
+         localparam l17 = 2'b00;
+         localparam l18 = 2'b01;
+         localparam l19 = 2'b10;
+         localparam l20 = 2'b11;
+         localparam l21 = 2'b11;
+         localparam l22 = 68'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l23 = 1'b1;
+         localparam l24 = 2'b11;
+         localparam l25 = 2'b00;
+         localparam l26 = 1'b1;
+         localparam l27 = 35'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l28 = 1'b1;
+         localparam l29 = 35'bXX000000000000000000000000000000000;
+         localparam l30 = 2'b10;
+         localparam l31 = 2'b11;
+         begin
+            r60 = arg_0;
+            r1 = arg_1;
+            r6 = arg_2;
+            r0 = r1[32:0];
+            r2 = r0[32:32];
+            case (r2)
+               1'b1 : r3 = l1;
+               1'b0 : r3 = l3;
+            endcase
+            r4 = r1[33:33];
+            r5 = r6[1:0];
+            r7 = r3 ? l4 : l5;
+            r8 = {r4, r3};
+            case (r8)
+               2'b00 : r9 = l7;
+               2'b01 : r9 = l9;
+               2'b10 : r9 = l11;
+               2'b11 : r9 = l13;
+            endcase
+            r10 = r4 ? l14 : l15;
+            r11 = r3 ? l16 : r10;
+            case (r5)
+               2'b00 : r12 = r7;
+               2'b01 : r12 = r9;
+               2'b10 : r12 = r11;
+               2'b11 : r12 = l21;
+            endcase
+            r13 = l22;
+            r13[1:0] = r12;
+            r14 = r6[33:2];
+            r15 = r13;
+            r15[33:2] = r14;
+            r16 = r6[65:34];
+            r17 = r15;
+            r17[65:34] = r16;
+            r18 = r1[32:0];
+            r19 = r18[32:32];
+            r20 = r18[31:0];
+            r21 = r6[66:66];
+            r22 = ~r21;
+            r23 = r17;
+            r23[33:2] = r20;
+            r24 = r17;
+            r24[65:34] = r20;
+            r25 = r22 ? r23 : r24;
+            case (r19)
+               1'b1 : r26 = r25;
+               default : r26 = r17;
+            endcase
+            r27 = r6[1:0];
+            r28 = |r27;
+            r29 = r4 & r28;
+            r30 = r6[1:0];
+            r31 = r30 != l24;
+            r32 = r29 & r31;
+            r33 = r6[66:66];
+            r34 = r3 ^ r33;
+            r35 = r26;
+            r35[66:66] = r34;
+            r36 = r6[67:67];
+            r37 = r32 ^ r36;
+            r38 = r35;
+            r38[67:67] = r37;
+            r39 = r6[1:0];
+            r40 = r39 == l25;
+            r41 = r6[67:67];
+            r42 = ~r41;
+            r43 = r6[33:2];
+            r45 = r43[31:0];
+            r44 = {l26, r45};
+            r46 = l27;
+            r46[32:0] = r44;
+            r47 = r6[65:34];
+            r49 = r47[31:0];
+            r48 = {l28, r49};
+            r50 = l27;
+            r50[32:0] = r48;
+            r51 = r42 ? r46 : r50;
+            r52 = r40 ? l29 : r51;
+            r53 = r6[1:0];
+            r54 = r53 == l30;
+            r55 = r52;
+            r55[33:33] = r54;
+            r56 = r6[1:0];
+            r57 = r56 == l31;
+            r58 = r55;
+            r58[34:34] = r57;
+            r59 = {r38, r58};
+            kernel_kernel = r59;
+         end
+   endfunction
+endmodule
+module top_write_controller_tee_s_buffer_state(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 2'b00;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 2'b00;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_s_buffer_zero_slot(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 32'b00000000000000000000000000000000;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 32'b00000000000000000000000000000000;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_s_buffer_one_slot(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 32'b00000000000000000000000000000000;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 32'b00000000000000000000000000000000;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_s_buffer_write_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b0;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b0;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_s_buffer_read_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b0;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b0;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_t_buffer(input wire [1:0] clock_reset, input wire [37:0] i, output wire [38:0] o);
+   wire [114:0] od;
+   wire [75:0] d;
+   wire [75:0] q;
+   assign o = od[38:0];
+   top_write_controller_tee_t_buffer_state c0(.clock_reset(clock_reset), .i(d[1:0]), .o(q[1:0]));
+   top_write_controller_tee_t_buffer_zero_slot c1(.clock_reset(clock_reset), .i(d[37:2]), .o(q[37:2]));
+   top_write_controller_tee_t_buffer_one_slot c2(.clock_reset(clock_reset), .i(d[73:38]), .o(q[73:38]));
+   top_write_controller_tee_t_buffer_write_slot c3(.clock_reset(clock_reset), .i(d[74:74]), .o(q[74:74]));
+   top_write_controller_tee_t_buffer_read_slot c4(.clock_reset(clock_reset), .i(d[75:75]), .o(q[75:75]));
+   assign d = od[114:39];
+   assign od = kernel_kernel(clock_reset, i, q);
+   function [114:0] kernel_kernel(input reg [1:0] arg_0, input reg [37:0] arg_1, input reg [75:0] arg_2);
+         reg [36:0] r0;
+         reg [37:0] r1;
+         reg [0:0] r2;
+         reg [0:0] r3;
+         reg [0:0] r4;
+         reg [1:0] r5;
+         reg [75:0] r6;
+         reg [1:0] r7;
+         reg [1:0] r8;
+         reg [1:0] r9;
+         reg [1:0] r10;
+         reg [1:0] r11;
+         reg [1:0] r12;
+         // d
+         reg [75:0] r13;
+         reg [35:0] r14;
+         // d
+         reg [75:0] r15;
+         reg [35:0] r16;
+         // d
+         reg [75:0] r17;
+         reg [36:0] r18;
+         reg [0:0] r19;
+         reg [35:0] r20;
+         reg [0:0] r21;
+         reg [0:0] r22;
+         // d
+         reg [75:0] r23;
+         // d
+         reg [75:0] r24;
+         // d
+         reg [75:0] r25;
+         // d
+         reg [75:0] r26;
+         reg [1:0] r27;
+         reg [0:0] r28;
+         reg [0:0] r29;
+         reg [1:0] r30;
+         reg [0:0] r31;
+         reg [0:0] r32;
+         reg [0:0] r33;
+         reg [0:0] r34;
+         // d
+         reg [75:0] r35;
+         reg [0:0] r36;
+         reg [0:0] r37;
+         // d
+         reg [75:0] r38;
+         reg [1:0] r39;
+         reg [0:0] r40;
+         reg [0:0] r41;
+         reg [0:0] r42;
+         reg [35:0] r43;
+         reg [36:0] r44;
+         reg [35:0] r45;
+         // o
+         reg [38:0] r46;
+         reg [35:0] r47;
+         reg [36:0] r48;
+         reg [35:0] r49;
+         // o
+         reg [38:0] r50;
+         // o
+         reg [38:0] r51;
+         // o
+         reg [38:0] r52;
+         reg [1:0] r53;
+         reg [0:0] r54;
+         // o
+         reg [38:0] r55;
+         reg [1:0] r56;
+         reg [0:0] r57;
+         // o
+         reg [38:0] r58;
+         reg [114:0] r59;
+         reg [1:0] r60;
+         localparam l0 = 1'b1;
+         localparam l1 = 1'b1;
+         localparam l2 = 1'b0;
+         localparam l3 = 1'b0;
+         localparam l4 = 2'b01;
+         localparam l5 = 2'b00;
+         localparam l6 = 2'b00;
+         localparam l7 = 2'b01;
+         localparam l8 = 2'b01;
+         localparam l9 = 2'b10;
+         localparam l10 = 2'b10;
+         localparam l11 = 2'b00;
+         localparam l12 = 2'b11;
+         localparam l13 = 2'b01;
+         localparam l14 = 2'b01;
+         localparam l15 = 2'b10;
+         localparam l16 = 2'b11;
+         localparam l17 = 2'b00;
+         localparam l18 = 2'b01;
+         localparam l19 = 2'b10;
+         localparam l20 = 2'b11;
+         localparam l21 = 2'b11;
+         localparam l22 = 76'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l23 = 1'b1;
+         localparam l24 = 2'b11;
+         localparam l25 = 2'b00;
+         localparam l26 = 1'b1;
+         localparam l27 = 39'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l28 = 1'b1;
+         localparam l29 = 39'bXX0000000000000000000000000000000000000;
+         localparam l30 = 2'b10;
+         localparam l31 = 2'b11;
+         begin
+            r60 = arg_0;
+            r1 = arg_1;
+            r6 = arg_2;
+            r0 = r1[36:0];
+            r2 = r0[36:36];
+            case (r2)
+               1'b1 : r3 = l1;
+               1'b0 : r3 = l3;
+            endcase
+            r4 = r1[37:37];
+            r5 = r6[1:0];
+            r7 = r3 ? l4 : l5;
+            r8 = {r4, r3};
+            case (r8)
+               2'b00 : r9 = l7;
+               2'b01 : r9 = l9;
+               2'b10 : r9 = l11;
+               2'b11 : r9 = l13;
+            endcase
+            r10 = r4 ? l14 : l15;
+            r11 = r3 ? l16 : r10;
+            case (r5)
+               2'b00 : r12 = r7;
+               2'b01 : r12 = r9;
+               2'b10 : r12 = r11;
+               2'b11 : r12 = l21;
+            endcase
+            r13 = l22;
+            r13[1:0] = r12;
+            r14 = r6[37:2];
+            r15 = r13;
+            r15[37:2] = r14;
+            r16 = r6[73:38];
+            r17 = r15;
+            r17[73:38] = r16;
+            r18 = r1[36:0];
+            r19 = r18[36:36];
+            r20 = r18[35:0];
+            r21 = r6[74:74];
+            r22 = ~r21;
+            r23 = r17;
+            r23[37:2] = r20;
+            r24 = r17;
+            r24[73:38] = r20;
+            r25 = r22 ? r23 : r24;
+            case (r19)
+               1'b1 : r26 = r25;
+               default : r26 = r17;
+            endcase
+            r27 = r6[1:0];
+            r28 = |r27;
+            r29 = r4 & r28;
+            r30 = r6[1:0];
+            r31 = r30 != l24;
+            r32 = r29 & r31;
+            r33 = r6[74:74];
+            r34 = r3 ^ r33;
+            r35 = r26;
+            r35[74:74] = r34;
+            r36 = r6[75:75];
+            r37 = r32 ^ r36;
+            r38 = r35;
+            r38[75:75] = r37;
+            r39 = r6[1:0];
+            r40 = r39 == l25;
+            r41 = r6[75:75];
+            r42 = ~r41;
+            r43 = r6[37:2];
+            r45 = r43[35:0];
+            r44 = {l26, r45};
+            r46 = l27;
+            r46[36:0] = r44;
+            r47 = r6[73:38];
+            r49 = r47[35:0];
+            r48 = {l28, r49};
+            r50 = l27;
+            r50[36:0] = r48;
+            r51 = r42 ? r46 : r50;
+            r52 = r40 ? l29 : r51;
+            r53 = r6[1:0];
+            r54 = r53 == l30;
+            r55 = r52;
+            r55[37:37] = r54;
+            r56 = r6[1:0];
+            r57 = r56 == l31;
+            r58 = r55;
+            r58[38:38] = r57;
+            r59 = {r38, r58};
+            kernel_kernel = r59;
+         end
+   endfunction
+endmodule
+module top_write_controller_tee_t_buffer_state(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 2'b00;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 2'b00;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_t_buffer_zero_slot(input wire [1:0] clock_reset, input wire [35:0] i, output reg [35:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 36'b000000000000000000000000000000000000;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 36'b000000000000000000000000000000000000;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_t_buffer_one_slot(input wire [1:0] clock_reset, input wire [35:0] i, output reg [35:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 36'b000000000000000000000000000000000000;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 36'b000000000000000000000000000000000000;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_t_buffer_write_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b0;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b0;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_tee_t_buffer_read_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b0;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b0;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_addr_buf(input wire [1:0] clock_reset, input wire [33:0] i, output wire [33:0] o);
+   wire [67:0] od;
+   wire [33:0] d;
+   wire [33:0] q;
+   assign o = od[33:0];
+   top_write_controller_addr_buf_outbuf c0(.clock_reset(clock_reset), .i(d[33:0]), .o(q[33:0]));
+   assign d = od[67:34];
+   assign od = kernel_kernel(clock_reset, i, q);
+   function [67:0] kernel_kernel(input reg [1:0] arg_0, input reg [33:0] arg_1, input reg [33:0] arg_2);
+         reg [32:0] r0;
+         reg [33:0] r1;
+         reg [0:0] r2;
+         reg [31:0] r3;
+         // tdata
+         reg [31:0] r4;
+         // tvalid
+         reg [0:0] r5;
+         // d
+         reg [33:0] r6;
+         reg [0:0] r7;
+         // d
+         reg [33:0] r8;
+         reg [0:0] r9;
+         reg [0:0] r10;
+         // d
+         reg [33:0] r11;
+         reg [33:0] r12;
+         reg [31:0] r13;
+         // o
+         reg [33:0] r14;
+         reg [0:0] r15;
+         reg [0:0] r16;
+         // o
+         reg [33:0] r17;
+         reg [0:0] r18;
+         reg [0:0] r19;
+         reg [0:0] r20;
+         reg [0:0] r21;
+         // o
+         reg [33:0] r22;
+         reg [67:0] r23;
+         reg [1:0] r24;
+         localparam l0 = 1'b1;
+         localparam l1 = 32'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l2 = 1'b1;
+         localparam l3 = 1'b0;
+         localparam l4 = 34'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l5 = 34'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l6 = 1'b0;
+         begin
+            r24 = arg_0;
+            r1 = arg_1;
+            r12 = arg_2;
+            r0 = r1[32:0];
+            r2 = r0[32:32];
+            r3 = r0[31:0];
+            case (r2)
+               1'b1 : r4 = r3;
+               default : r4 = l1;
+            endcase
+            case (r2)
+               1'b1 : r5 = l2;
+               default : r5 = l3;
+            endcase
+            r6 = l4;
+            r6[31:0] = r4;
+            r7 = ~r5;
+            r8 = r6;
+            r8[32:32] = r7;
+            r9 = r1[33:33];
+            r10 = ~r9;
+            r11 = r8;
+            r11[33:33] = r10;
+            r13 = r12[31:0];
+            r14 = l5;
+            r14[31:0] = r13;
+            r15 = r12[32:32];
+            r16 = ~r15;
+            r17 = r14;
+            r17[32:32] = r16;
+            r18 = r12[33:33];
+            r19 = ~r18;
+            r20 = l6;
+            r21 = r20;
+            r21[0:0] = r19;
+            r22 = r17;
+            r22[33:33] = r21;
+            r23 = {r11, r22};
+            kernel_kernel = r23;
+         end
+   endfunction
+endmodule
+module top_write_controller_addr_buf_outbuf(input wire [1:0] clock_reset, input wire [33:0] i, output wire [33:0] o);
+   wire [99:0] od;
+   wire [65:0] d;
+   wire [65:0] q;
+   assign o = od[33:0];
+   top_write_controller_addr_buf_outbuf_main_ff c0(.clock_reset(clock_reset), .i(d[31:0]), .o(q[31:0]));
+   top_write_controller_addr_buf_outbuf_aux_ff c1(.clock_reset(clock_reset), .i(d[63:32]), .o(q[63:32]));
+   top_write_controller_addr_buf_outbuf_void_ff c2(.clock_reset(clock_reset), .i(d[64:64]), .o(q[64:64]));
+   top_write_controller_addr_buf_outbuf_state_ff c3(.clock_reset(clock_reset), .i(d[65:65]), .o(q[65:65]));
+   assign d = od[99:34];
+   assign od = kernel_carloni_kernel(clock_reset, i, q);
+   function [99:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [33:0] arg_1, input reg [65:0] arg_2);
+         reg [0:0] r0;
+         reg [65:0] r1;
+         reg [0:0] r2;
+         reg [33:0] r3;
          reg [0:0] r4;
          reg [0:0] r5;
          reg [0:0] r6;
@@ -816,7 +2057,7 @@ module top_outbuf_inner(input wire [1:0] clock_reset, input wire [35:0] i, outpu
          reg [0:0] r8;
          reg [0:0] r9;
          // d
-         reg [69:0] r10;
+         reg [65:0] r10;
          reg [0:0] r11;
          reg [0:0] r12;
          reg [0:0] r13;
@@ -825,22 +2066,22 @@ module top_outbuf_inner(input wire [1:0] clock_reset, input wire [35:0] i, outpu
          reg [0:0] r16;
          reg [0:0] r17;
          // d
-         reg [69:0] r18;
+         reg [65:0] r18;
          // aux_en
          reg [0:0] r19;
          // d
-         reg [69:0] r20;
+         reg [65:0] r20;
          // aux_en
          reg [0:0] r21;
          // d
-         reg [69:0] r22;
+         reg [65:0] r22;
          // main_en
          reg [0:0] r23;
          reg [0:0] r24;
          // d
-         reg [69:0] r25;
+         reg [65:0] r25;
          // d
-         reg [69:0] r26;
+         reg [65:0] r26;
          // main_en
          reg [0:0] r27;
          // sel
@@ -850,50 +2091,50 @@ module top_outbuf_inner(input wire [1:0] clock_reset, input wire [35:0] i, outpu
          // aux_en
          reg [0:0] r30;
          // d
-         reg [69:0] r31;
+         reg [65:0] r31;
          // main_en
          reg [0:0] r32;
          // sel
          reg [0:0] r33;
          // stop_out
          reg [0:0] r34;
-         reg [33:0] r35;
-         reg [33:0] r36;
-         reg [33:0] r37;
+         reg [31:0] r35;
+         reg [31:0] r36;
+         reg [31:0] r37;
          // d
-         reg [69:0] r38;
-         reg [33:0] r39;
-         reg [33:0] r40;
-         reg [33:0] r41;
-         reg [33:0] r42;
-         reg [33:0] r43;
+         reg [65:0] r38;
+         reg [31:0] r39;
+         reg [31:0] r40;
+         reg [31:0] r41;
+         reg [31:0] r42;
+         reg [31:0] r43;
          // d
-         reg [69:0] r44;
+         reg [65:0] r44;
          reg [0:0] r45;
          reg [0:0] r46;
          reg [0:0] r47;
          reg [0:0] r48;
          // d
-         reg [69:0] r49;
-         reg [33:0] r50;
+         reg [65:0] r49;
+         reg [31:0] r50;
          // o
-         reg [35:0] r51;
+         reg [33:0] r51;
          reg [0:0] r52;
          // o
-         reg [35:0] r53;
+         reg [33:0] r53;
          // o
-         reg [35:0] r54;
+         reg [33:0] r54;
          reg [0:0] r55;
          reg [1:0] r56;
          reg [0:0] r57;
          // o
-         reg [35:0] r58;
+         reg [33:0] r58;
          // o
-         reg [35:0] r59;
+         reg [33:0] r59;
          // o
-         reg [35:0] r60;
-         reg [105:0] r61;
-         localparam l0 = 70'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         reg [33:0] r60;
+         reg [99:0] r61;
+         localparam l0 = 66'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          localparam l1 = 1'b1;
          localparam l2 = 1'b1;
          localparam l3 = 1'b0;
@@ -909,40 +2150,40 @@ module top_outbuf_inner(input wire [1:0] clock_reset, input wire [35:0] i, outpu
          localparam l13 = 1'b1;
          localparam l14 = 1'b0;
          localparam l15 = 1'b0;
-         localparam l16 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l16 = 34'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          localparam l17 = 1'b1;
          localparam l18 = 1'b1;
          begin
             r56 = arg_0;
             r3 = arg_1;
             r1 = arg_2;
-            r0 = r1[68:68];
-            r2 = r3[35:35];
-            r4 = r3[34:34];
+            r0 = r1[64:64];
+            r2 = r3[33:33];
+            r4 = r3[32:32];
             r5 = ~r4;
             r6 = ~r0;
             r7 = r5 & r6;
             r8 = r2 & r7;
-            r9 = r1[69:69];
+            r9 = r1[65:65];
             r10 = l0;
-            r10[69:69] = r9;
-            r11 = r1[69:69];
-            r12 = r3[35:35];
+            r10[65:65] = r9;
+            r11 = r1[65:65];
+            r12 = r3[33:33];
             r13 = ~r12;
-            r14 = r3[34:34];
+            r14 = r3[32:32];
             r15 = ~r14;
             r16 = r15 & r0;
             r17 = r13 | r16;
             r18 = r10;
-            r18[69:69] = l1;
+            r18[65:65] = l1;
             r19 = r8 ? l2 : l3;
             r20 = r8 ? r18 : r10;
             r21 = r17 ? l3 : r19;
             r22 = r17 ? r10 : r20;
             r23 = r17 ? l4 : l5;
-            r24 = r3[35:35];
+            r24 = r3[33:33];
             r25 = r10;
-            r25[69:69] = l6;
+            r25[65:65] = l6;
             r26 = r24 ? r10 : r25;
             r27 = r24 ? l5 : l7;
             r28 = r24 ? l8 : l9;
@@ -967,77 +2208,93 @@ module top_outbuf_inner(input wire [1:0] clock_reset, input wire [35:0] i, outpu
                1'b0 : r34 = l14;
                1'b1 : r34 = r29;
             endcase
-            r35 = r3[33:0];
-            r36 = r1[67:34];
+            r35 = r3[31:0];
+            r36 = r1[63:32];
             r37 = r30 ? r35 : r36;
             r38 = r31;
-            r38[67:34] = r37;
-            r39 = r1[67:34];
-            r40 = r3[33:0];
+            r38[63:32] = r37;
+            r39 = r1[63:32];
+            r40 = r3[31:0];
             r41 = r33 ? r39 : r40;
-            r42 = r1[33:0];
+            r42 = r1[31:0];
             r43 = r32 ? r41 : r42;
             r44 = r38;
-            r44[33:0] = r43;
-            r45 = r3[34:34];
+            r44[31:0] = r43;
+            r45 = r3[32:32];
             r46 = r33 ? l15 : r45;
-            r47 = r1[68:68];
+            r47 = r1[64:64];
             r48 = r32 ? r46 : r47;
             r49 = r44;
-            r49[68:68] = r48;
-            r50 = r1[33:0];
+            r49[64:64] = r48;
+            r50 = r1[31:0];
             r51 = l16;
-            r51[33:0] = r50;
-            r52 = r1[68:68];
+            r51[31:0] = r50;
+            r52 = r1[64:64];
             r53 = r51;
-            r53[34:34] = r52;
+            r53[32:32] = r52;
             r54 = r53;
-            r54[35:35] = r34;
+            r54[33:33] = r34;
             r55 = r56[1:1];
             r57 = |r55;
             r58 = r54;
-            r58[34:34] = l17;
+            r58[32:32] = l17;
             r59 = r58;
-            r59[35:35] = l18;
+            r59[33:33] = l18;
             r60 = r57 ? r59 : r54;
             r61 = {r49, r60};
             kernel_carloni_kernel = r61;
          end
    endfunction
 endmodule
-module top_outbuf_inner_aux_ff(input wire [1:0] clock_reset, input wire [33:0] i, output reg [33:0] o);
+module top_write_controller_addr_buf_outbuf_main_ff(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
    wire  clock;
    wire  reset;
    assign clock = clock_reset[0];
    assign reset = clock_reset[1];
    initial begin
-      o = 34'b0000000000000000000000000000000001;
+      o = 32'b00000000000000000000000000000000;
    end
    always @(posedge clock) begin
       if (reset) begin
-         o <= 34'b0000000000000000000000000000000001;
+         o <= 32'b00000000000000000000000000000000;
       end else begin
          o <= i;
       end
    end
 endmodule
-module top_outbuf_inner_main_ff(input wire [1:0] clock_reset, input wire [33:0] i, output reg [33:0] o);
+module top_write_controller_addr_buf_outbuf_aux_ff(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
    wire  clock;
    wire  reset;
    assign clock = clock_reset[0];
    assign reset = clock_reset[1];
    initial begin
-      o = 34'b0000000000000000000000000000000001;
+      o = 32'b00000000000000000000000000000000;
    end
    always @(posedge clock) begin
       if (reset) begin
-         o <= 34'b0000000000000000000000000000000001;
+         o <= 32'b00000000000000000000000000000000;
       end else begin
          o <= i;
       end
    end
 endmodule
-module top_outbuf_inner_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+module top_write_controller_addr_buf_outbuf_void_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b1;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b1;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_addr_buf_outbuf_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
    wire  clock;
    wire  reset;
    assign clock = clock_reset[0];
@@ -1053,7 +2310,343 @@ module top_outbuf_inner_state_ff(input wire [1:0] clock_reset, input wire [0:0] 
       end
    end
 endmodule
-module top_outbuf_inner_void_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+module top_write_controller_data_buf(input wire [1:0] clock_reset, input wire [37:0] i, output wire [37:0] o);
+   wire [75:0] od;
+   wire [37:0] d;
+   wire [37:0] q;
+   assign o = od[37:0];
+   top_write_controller_data_buf_outbuf c0(.clock_reset(clock_reset), .i(d[37:0]), .o(q[37:0]));
+   assign d = od[75:38];
+   assign od = kernel_kernel(clock_reset, i, q);
+   function [75:0] kernel_kernel(input reg [1:0] arg_0, input reg [37:0] arg_1, input reg [37:0] arg_2);
+         reg [36:0] r0;
+         reg [37:0] r1;
+         reg [0:0] r2;
+         reg [35:0] r3;
+         // tdata
+         reg [35:0] r4;
+         // tvalid
+         reg [0:0] r5;
+         // d
+         reg [37:0] r6;
+         reg [0:0] r7;
+         // d
+         reg [37:0] r8;
+         reg [0:0] r9;
+         reg [0:0] r10;
+         // d
+         reg [37:0] r11;
+         reg [37:0] r12;
+         reg [35:0] r13;
+         // o
+         reg [37:0] r14;
+         reg [0:0] r15;
+         reg [0:0] r16;
+         // o
+         reg [37:0] r17;
+         reg [0:0] r18;
+         reg [0:0] r19;
+         reg [0:0] r20;
+         reg [0:0] r21;
+         // o
+         reg [37:0] r22;
+         reg [75:0] r23;
+         reg [1:0] r24;
+         localparam l0 = 1'b1;
+         localparam l1 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l2 = 1'b1;
+         localparam l3 = 1'b0;
+         localparam l4 = 38'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l5 = 38'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l6 = 1'b0;
+         begin
+            r24 = arg_0;
+            r1 = arg_1;
+            r12 = arg_2;
+            r0 = r1[36:0];
+            r2 = r0[36:36];
+            r3 = r0[35:0];
+            case (r2)
+               1'b1 : r4 = r3;
+               default : r4 = l1;
+            endcase
+            case (r2)
+               1'b1 : r5 = l2;
+               default : r5 = l3;
+            endcase
+            r6 = l4;
+            r6[35:0] = r4;
+            r7 = ~r5;
+            r8 = r6;
+            r8[36:36] = r7;
+            r9 = r1[37:37];
+            r10 = ~r9;
+            r11 = r8;
+            r11[37:37] = r10;
+            r13 = r12[35:0];
+            r14 = l5;
+            r14[35:0] = r13;
+            r15 = r12[36:36];
+            r16 = ~r15;
+            r17 = r14;
+            r17[36:36] = r16;
+            r18 = r12[37:37];
+            r19 = ~r18;
+            r20 = l6;
+            r21 = r20;
+            r21[0:0] = r19;
+            r22 = r17;
+            r22[37:37] = r21;
+            r23 = {r11, r22};
+            kernel_kernel = r23;
+         end
+   endfunction
+endmodule
+module top_write_controller_data_buf_outbuf(input wire [1:0] clock_reset, input wire [37:0] i, output wire [37:0] o);
+   wire [111:0] od;
+   wire [73:0] d;
+   wire [73:0] q;
+   assign o = od[37:0];
+   top_write_controller_data_buf_outbuf_main_ff c0(.clock_reset(clock_reset), .i(d[35:0]), .o(q[35:0]));
+   top_write_controller_data_buf_outbuf_aux_ff c1(.clock_reset(clock_reset), .i(d[71:36]), .o(q[71:36]));
+   top_write_controller_data_buf_outbuf_void_ff c2(.clock_reset(clock_reset), .i(d[72:72]), .o(q[72:72]));
+   top_write_controller_data_buf_outbuf_state_ff c3(.clock_reset(clock_reset), .i(d[73:73]), .o(q[73:73]));
+   assign d = od[111:38];
+   assign od = kernel_carloni_kernel(clock_reset, i, q);
+   function [111:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [37:0] arg_1, input reg [73:0] arg_2);
+         reg [0:0] r0;
+         reg [73:0] r1;
+         reg [0:0] r2;
+         reg [37:0] r3;
+         reg [0:0] r4;
+         reg [0:0] r5;
+         reg [0:0] r6;
+         reg [0:0] r7;
+         reg [0:0] r8;
+         reg [0:0] r9;
+         // d
+         reg [73:0] r10;
+         reg [0:0] r11;
+         reg [0:0] r12;
+         reg [0:0] r13;
+         reg [0:0] r14;
+         reg [0:0] r15;
+         reg [0:0] r16;
+         reg [0:0] r17;
+         // d
+         reg [73:0] r18;
+         // aux_en
+         reg [0:0] r19;
+         // d
+         reg [73:0] r20;
+         // aux_en
+         reg [0:0] r21;
+         // d
+         reg [73:0] r22;
+         // main_en
+         reg [0:0] r23;
+         reg [0:0] r24;
+         // d
+         reg [73:0] r25;
+         // d
+         reg [73:0] r26;
+         // main_en
+         reg [0:0] r27;
+         // sel
+         reg [0:0] r28;
+         // stop_out
+         reg [0:0] r29;
+         // aux_en
+         reg [0:0] r30;
+         // d
+         reg [73:0] r31;
+         // main_en
+         reg [0:0] r32;
+         // sel
+         reg [0:0] r33;
+         // stop_out
+         reg [0:0] r34;
+         reg [35:0] r35;
+         reg [35:0] r36;
+         reg [35:0] r37;
+         // d
+         reg [73:0] r38;
+         reg [35:0] r39;
+         reg [35:0] r40;
+         reg [35:0] r41;
+         reg [35:0] r42;
+         reg [35:0] r43;
+         // d
+         reg [73:0] r44;
+         reg [0:0] r45;
+         reg [0:0] r46;
+         reg [0:0] r47;
+         reg [0:0] r48;
+         // d
+         reg [73:0] r49;
+         reg [35:0] r50;
+         // o
+         reg [37:0] r51;
+         reg [0:0] r52;
+         // o
+         reg [37:0] r53;
+         // o
+         reg [37:0] r54;
+         reg [0:0] r55;
+         reg [1:0] r56;
+         reg [0:0] r57;
+         // o
+         reg [37:0] r58;
+         // o
+         reg [37:0] r59;
+         // o
+         reg [37:0] r60;
+         reg [111:0] r61;
+         localparam l0 = 74'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l1 = 1'b1;
+         localparam l2 = 1'b1;
+         localparam l3 = 1'b0;
+         localparam l4 = 1'b1;
+         localparam l5 = 1'b0;
+         localparam l6 = 1'b0;
+         localparam l7 = 1'b1;
+         localparam l8 = 1'b0;
+         localparam l9 = 1'b1;
+         localparam l10 = 1'b1;
+         localparam l11 = 1'b1;
+         localparam l12 = 1'b0;
+         localparam l13 = 1'b1;
+         localparam l14 = 1'b0;
+         localparam l15 = 1'b0;
+         localparam l16 = 38'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l17 = 1'b1;
+         localparam l18 = 1'b1;
+         begin
+            r56 = arg_0;
+            r3 = arg_1;
+            r1 = arg_2;
+            r0 = r1[72:72];
+            r2 = r3[37:37];
+            r4 = r3[36:36];
+            r5 = ~r4;
+            r6 = ~r0;
+            r7 = r5 & r6;
+            r8 = r2 & r7;
+            r9 = r1[73:73];
+            r10 = l0;
+            r10[73:73] = r9;
+            r11 = r1[73:73];
+            r12 = r3[37:37];
+            r13 = ~r12;
+            r14 = r3[36:36];
+            r15 = ~r14;
+            r16 = r15 & r0;
+            r17 = r13 | r16;
+            r18 = r10;
+            r18[73:73] = l1;
+            r19 = r8 ? l2 : l3;
+            r20 = r8 ? r18 : r10;
+            r21 = r17 ? l3 : r19;
+            r22 = r17 ? r10 : r20;
+            r23 = r17 ? l4 : l5;
+            r24 = r3[37:37];
+            r25 = r10;
+            r25[73:73] = l6;
+            r26 = r24 ? r10 : r25;
+            r27 = r24 ? l5 : l7;
+            r28 = r24 ? l8 : l9;
+            r29 = r24 ? l10 : l11;
+            case (r11)
+               1'b0 : r30 = r21;
+               1'b1 : r30 = l3;
+            endcase
+            case (r11)
+               1'b0 : r31 = r22;
+               1'b1 : r31 = r26;
+            endcase
+            case (r11)
+               1'b0 : r32 = r23;
+               1'b1 : r32 = r27;
+            endcase
+            case (r11)
+               1'b0 : r33 = l8;
+               1'b1 : r33 = r28;
+            endcase
+            case (r11)
+               1'b0 : r34 = l14;
+               1'b1 : r34 = r29;
+            endcase
+            r35 = r3[35:0];
+            r36 = r1[71:36];
+            r37 = r30 ? r35 : r36;
+            r38 = r31;
+            r38[71:36] = r37;
+            r39 = r1[71:36];
+            r40 = r3[35:0];
+            r41 = r33 ? r39 : r40;
+            r42 = r1[35:0];
+            r43 = r32 ? r41 : r42;
+            r44 = r38;
+            r44[35:0] = r43;
+            r45 = r3[36:36];
+            r46 = r33 ? l15 : r45;
+            r47 = r1[72:72];
+            r48 = r32 ? r46 : r47;
+            r49 = r44;
+            r49[72:72] = r48;
+            r50 = r1[35:0];
+            r51 = l16;
+            r51[35:0] = r50;
+            r52 = r1[72:72];
+            r53 = r51;
+            r53[36:36] = r52;
+            r54 = r53;
+            r54[37:37] = r34;
+            r55 = r56[1:1];
+            r57 = |r55;
+            r58 = r54;
+            r58[36:36] = l17;
+            r59 = r58;
+            r59[37:37] = l18;
+            r60 = r57 ? r59 : r54;
+            r61 = {r49, r60};
+            kernel_carloni_kernel = r61;
+         end
+   endfunction
+endmodule
+module top_write_controller_data_buf_outbuf_main_ff(input wire [1:0] clock_reset, input wire [35:0] i, output reg [35:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 36'b000000000000000000000000000000000000;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 36'b000000000000000000000000000000000000;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_data_buf_outbuf_aux_ff(input wire [1:0] clock_reset, input wire [35:0] i, output reg [35:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 36'b000000000000000000000000000000000000;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 36'b000000000000000000000000000000000000;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_data_buf_outbuf_void_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
    wire  clock;
    wire  reset;
    assign clock = clock_reset[0];
@@ -1064,6 +2657,857 @@ module top_outbuf_inner_void_ff(input wire [1:0] clock_reset, input wire [0:0] i
    always @(posedge clock) begin
       if (reset) begin
          o <= 1'b1;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_data_buf_outbuf_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b0;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b0;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_map(input wire [1:0] clock_reset, input wire [3:0] i, output wire [3:0] o);
+   wire [9:0] od;
+   wire [5:0] d;
+   wire [5:0] q;
+   assign o = od[3:0];
+   top_write_controller_map_input_buffer c0(.clock_reset(clock_reset), .i(d[3:0]), .o(q[3:0]));
+   top_write_controller_map_func c1(.clock_reset(clock_reset), .i(d[5:4]), .o(q[5:4]));
+   assign d = od[9:4];
+   assign od = kernel_kernel(clock_reset, i, q);
+   function [9:0] kernel_kernel(input reg [1:0] arg_0, input reg [3:0] arg_1, input reg [5:0] arg_2);
+         reg [2:0] r0;
+         reg [3:0] r1;
+         // d
+         reg [5:0] r2;
+         reg [0:0] r3;
+         reg [0:0] r4;
+         reg [0:0] r5;
+         // d
+         reg [5:0] r6;
+         reg [3:0] r7;
+         reg [5:0] r8;
+         reg [2:0] r9;
+         reg [0:0] r10;
+         reg [1:0] r11;
+         // d
+         reg [5:0] r12;
+         reg [1:0] r13;
+         reg [2:0] r14;
+         reg [1:0] r15;
+         // d
+         reg [5:0] r16;
+         // d
+         reg [5:0] r17;
+         reg [2:0] r18;
+         reg [3:0] r19;
+         reg [0:0] r20;
+         reg [3:0] r21;
+         reg [3:0] r22;
+         reg [9:0] r23;
+         reg [1:0] r24;
+         localparam l0 = 6'bXXXXXX;
+         localparam l1 = 1'b0;
+         localparam l2 = 1'b1;
+         localparam l3 = 2'bXX;
+         localparam l4 = 1'b1;
+         localparam l5 = 3'b000;
+         localparam l6 = 4'b0000;
+         begin
+            r24 = arg_0;
+            r1 = arg_1;
+            r8 = arg_2;
+            r0 = r1[2:0];
+            r2 = l0;
+            r2[2:0] = r0;
+            r3 = r1[3:3];
+            r4 = l1;
+            r5 = r4;
+            r5[0:0] = r3;
+            r6 = r2;
+            r6[3:3] = r5;
+            r7 = r8[3:0];
+            r9 = r7[2:0];
+            r10 = r9[2:2];
+            r11 = r9[1:0];
+            r12 = r6;
+            r12[5:4] = r11;
+            r13 = r8[5:4];
+            r15 = r13[1:0];
+            r14 = {l2, r15};
+            r16 = r6;
+            r16[5:4] = l3;
+            case (r10)
+               1'b1 : r17 = r12;
+               default : r17 = r16;
+            endcase
+            case (r10)
+               1'b1 : r18 = r14;
+               default : r18 = l5;
+            endcase
+            r19 = r8[3:0];
+            r20 = r19[3:3];
+            r21 = l6;
+            r21[2:0] = r18;
+            r22 = r21;
+            r22[3:3] = r20;
+            r23 = {r17, r22};
+            kernel_kernel = r23;
+         end
+   endfunction
+endmodule
+module top_write_controller_map_input_buffer(input wire [1:0] clock_reset, input wire [3:0] i, output wire [3:0] o);
+   wire [7:0] od;
+   wire [3:0] d;
+   wire [3:0] q;
+   assign o = od[3:0];
+   top_write_controller_map_input_buffer_inner c0(.clock_reset(clock_reset), .i(d[3:0]), .o(q[3:0]));
+   assign d = od[7:4];
+   assign od = kernel_option_carloni_kernel(clock_reset, i, q);
+   function [7:0] kernel_option_carloni_kernel(input reg [1:0] arg_0, input reg [3:0] arg_1, input reg [3:0] arg_2);
+         reg [2:0] r0;
+         reg [3:0] r1;
+         reg [0:0] r2;
+         reg [1:0] r3;
+         reg [2:0] r4;
+         reg [2:0] r5;
+         reg [0:0] r6;
+         reg [1:0] r7;
+         // d
+         reg [3:0] r8;
+         reg [0:0] r9;
+         // d
+         reg [3:0] r10;
+         reg [0:0] r11;
+         reg [0:0] r12;
+         // d
+         reg [3:0] r13;
+         reg [3:0] r14;
+         reg [0:0] r15;
+         reg [0:0] r16;
+         reg [0:0] r17;
+         reg [0:0] r18;
+         // o
+         reg [3:0] r19;
+         reg [0:0] r20;
+         reg [0:0] r21;
+         reg [1:0] r22;
+         reg [2:0] r23;
+         reg [1:0] r24;
+         reg [2:0] r25;
+         // o
+         reg [3:0] r26;
+         reg [7:0] r27;
+         reg [1:0] r28;
+         localparam l0 = 1'b1;
+         localparam l1 = 1'b1;
+         localparam l2 = 1'b0;
+         localparam l3 = 3'bXX0;
+         localparam l4 = 4'bXXXX;
+         localparam l5 = 1'b0;
+         localparam l6 = 4'bXXXX;
+         localparam l7 = 1'b1;
+         localparam l8 = 3'b000;
+         begin
+            r28 = arg_0;
+            r1 = arg_1;
+            r14 = arg_2;
+            r0 = r1[2:0];
+            r2 = r0[2:2];
+            r3 = r0[1:0];
+            r4 = {r3, l0};
+            case (r2)
+               1'b1 : r5 = r4;
+               1'b0 : r5 = l3;
+            endcase
+            r6 = r5[0:0];
+            r7 = r5[2:1];
+            r8 = l4;
+            r8[1:0] = r7;
+            r9 = ~r6;
+            r10 = r8;
+            r10[2:2] = r9;
+            r11 = r1[3:3];
+            r12 = ~r11;
+            r13 = r10;
+            r13[3:3] = r12;
+            r15 = r14[3:3];
+            r16 = ~r15;
+            r17 = l5;
+            r18 = r17;
+            r18[0:0] = r16;
+            r19 = l6;
+            r19[3:3] = r18;
+            r20 = r14[2:2];
+            r21 = ~r20;
+            r22 = r14[1:0];
+            r24 = r22[1:0];
+            r23 = {l7, r24};
+            r25 = r21 ? r23 : l8;
+            r26 = r19;
+            r26[2:0] = r25;
+            r27 = {r13, r26};
+            kernel_option_carloni_kernel = r27;
+         end
+   endfunction
+endmodule
+module top_write_controller_map_input_buffer_inner(input wire [1:0] clock_reset, input wire [3:0] i, output wire [3:0] o);
+   wire [9:0] od;
+   wire [5:0] d;
+   wire [5:0] q;
+   assign o = od[3:0];
+   top_write_controller_map_input_buffer_inner_main_ff c0(.clock_reset(clock_reset), .i(d[1:0]), .o(q[1:0]));
+   top_write_controller_map_input_buffer_inner_aux_ff c1(.clock_reset(clock_reset), .i(d[3:2]), .o(q[3:2]));
+   top_write_controller_map_input_buffer_inner_void_ff c2(.clock_reset(clock_reset), .i(d[4:4]), .o(q[4:4]));
+   top_write_controller_map_input_buffer_inner_state_ff c3(.clock_reset(clock_reset), .i(d[5:5]), .o(q[5:5]));
+   assign d = od[9:4];
+   assign od = kernel_carloni_kernel(clock_reset, i, q);
+   function [9:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [3:0] arg_1, input reg [5:0] arg_2);
+         reg [0:0] r0;
+         reg [5:0] r1;
+         reg [0:0] r2;
+         reg [3:0] r3;
+         reg [0:0] r4;
+         reg [0:0] r5;
+         reg [0:0] r6;
+         reg [0:0] r7;
+         reg [0:0] r8;
+         reg [0:0] r9;
+         // d
+         reg [5:0] r10;
+         reg [0:0] r11;
+         reg [0:0] r12;
+         reg [0:0] r13;
+         reg [0:0] r14;
+         reg [0:0] r15;
+         reg [0:0] r16;
+         reg [0:0] r17;
+         // d
+         reg [5:0] r18;
+         // aux_en
+         reg [0:0] r19;
+         // d
+         reg [5:0] r20;
+         // aux_en
+         reg [0:0] r21;
+         // d
+         reg [5:0] r22;
+         // main_en
+         reg [0:0] r23;
+         reg [0:0] r24;
+         // d
+         reg [5:0] r25;
+         // d
+         reg [5:0] r26;
+         // main_en
+         reg [0:0] r27;
+         // sel
+         reg [0:0] r28;
+         // stop_out
+         reg [0:0] r29;
+         // aux_en
+         reg [0:0] r30;
+         // d
+         reg [5:0] r31;
+         // main_en
+         reg [0:0] r32;
+         // sel
+         reg [0:0] r33;
+         // stop_out
+         reg [0:0] r34;
+         reg [1:0] r35;
+         reg [1:0] r36;
+         reg [1:0] r37;
+         // d
+         reg [5:0] r38;
+         reg [1:0] r39;
+         reg [1:0] r40;
+         reg [1:0] r41;
+         reg [1:0] r42;
+         reg [1:0] r43;
+         // d
+         reg [5:0] r44;
+         reg [0:0] r45;
+         reg [0:0] r46;
+         reg [0:0] r47;
+         reg [0:0] r48;
+         // d
+         reg [5:0] r49;
+         reg [1:0] r50;
+         // o
+         reg [3:0] r51;
+         reg [0:0] r52;
+         // o
+         reg [3:0] r53;
+         // o
+         reg [3:0] r54;
+         reg [0:0] r55;
+         reg [1:0] r56;
+         reg [0:0] r57;
+         // o
+         reg [3:0] r58;
+         // o
+         reg [3:0] r59;
+         // o
+         reg [3:0] r60;
+         reg [9:0] r61;
+         localparam l0 = 6'bXXXXXX;
+         localparam l1 = 1'b1;
+         localparam l2 = 1'b1;
+         localparam l3 = 1'b0;
+         localparam l4 = 1'b1;
+         localparam l5 = 1'b0;
+         localparam l6 = 1'b0;
+         localparam l7 = 1'b1;
+         localparam l8 = 1'b0;
+         localparam l9 = 1'b1;
+         localparam l10 = 1'b1;
+         localparam l11 = 1'b1;
+         localparam l12 = 1'b0;
+         localparam l13 = 1'b1;
+         localparam l14 = 1'b0;
+         localparam l15 = 1'b0;
+         localparam l16 = 4'bXXXX;
+         localparam l17 = 1'b1;
+         localparam l18 = 1'b1;
+         begin
+            r56 = arg_0;
+            r3 = arg_1;
+            r1 = arg_2;
+            r0 = r1[4:4];
+            r2 = r3[3:3];
+            r4 = r3[2:2];
+            r5 = ~r4;
+            r6 = ~r0;
+            r7 = r5 & r6;
+            r8 = r2 & r7;
+            r9 = r1[5:5];
+            r10 = l0;
+            r10[5:5] = r9;
+            r11 = r1[5:5];
+            r12 = r3[3:3];
+            r13 = ~r12;
+            r14 = r3[2:2];
+            r15 = ~r14;
+            r16 = r15 & r0;
+            r17 = r13 | r16;
+            r18 = r10;
+            r18[5:5] = l1;
+            r19 = r8 ? l2 : l3;
+            r20 = r8 ? r18 : r10;
+            r21 = r17 ? l3 : r19;
+            r22 = r17 ? r10 : r20;
+            r23 = r17 ? l4 : l5;
+            r24 = r3[3:3];
+            r25 = r10;
+            r25[5:5] = l6;
+            r26 = r24 ? r10 : r25;
+            r27 = r24 ? l5 : l7;
+            r28 = r24 ? l8 : l9;
+            r29 = r24 ? l10 : l11;
+            case (r11)
+               1'b0 : r30 = r21;
+               1'b1 : r30 = l3;
+            endcase
+            case (r11)
+               1'b0 : r31 = r22;
+               1'b1 : r31 = r26;
+            endcase
+            case (r11)
+               1'b0 : r32 = r23;
+               1'b1 : r32 = r27;
+            endcase
+            case (r11)
+               1'b0 : r33 = l8;
+               1'b1 : r33 = r28;
+            endcase
+            case (r11)
+               1'b0 : r34 = l14;
+               1'b1 : r34 = r29;
+            endcase
+            r35 = r3[1:0];
+            r36 = r1[3:2];
+            r37 = r30 ? r35 : r36;
+            r38 = r31;
+            r38[3:2] = r37;
+            r39 = r1[3:2];
+            r40 = r3[1:0];
+            r41 = r33 ? r39 : r40;
+            r42 = r1[1:0];
+            r43 = r32 ? r41 : r42;
+            r44 = r38;
+            r44[1:0] = r43;
+            r45 = r3[2:2];
+            r46 = r33 ? l15 : r45;
+            r47 = r1[4:4];
+            r48 = r32 ? r46 : r47;
+            r49 = r44;
+            r49[4:4] = r48;
+            r50 = r1[1:0];
+            r51 = l16;
+            r51[1:0] = r50;
+            r52 = r1[4:4];
+            r53 = r51;
+            r53[2:2] = r52;
+            r54 = r53;
+            r54[3:3] = r34;
+            r55 = r56[1:1];
+            r57 = |r55;
+            r58 = r54;
+            r58[2:2] = l17;
+            r59 = r58;
+            r59[3:3] = l18;
+            r60 = r57 ? r59 : r54;
+            r61 = {r49, r60};
+            kernel_carloni_kernel = r61;
+         end
+   endfunction
+endmodule
+module top_write_controller_map_input_buffer_inner_main_ff(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 2'b00;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 2'b00;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_map_input_buffer_inner_aux_ff(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 2'b00;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 2'b00;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_map_input_buffer_inner_void_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b1;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b1;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_map_input_buffer_inner_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b0;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b0;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_map_func(input wire [1:0] clock_reset, input wire [1:0] i, output wire [1:0] o);
+   assign o = kernel_map_result(clock_reset, i);
+   function [1:0] kernel_map_result(input reg [1:0] arg_0, input reg [1:0] arg_1);
+         reg [1:0] r0;
+         reg [1:0] r1;
+         reg [1:0] r2;
+         localparam l0 = 2'b00;
+         localparam l1 = 2'b10;
+         localparam l2 = 2'b01;
+         localparam l3 = 2'b10;
+         localparam l4 = 2'b10;
+         localparam l5 = 2'b00;
+         localparam l6 = 2'b01;
+         begin
+            r2 = arg_0;
+            r1 = arg_1;
+            case (r1)
+               2'b00 : r0 = l1;
+               2'b01 : r0 = l3;
+               2'b10 : r0 = l5;
+               default : r0 = l6;
+            endcase
+            kernel_map_result = r0;
+         end
+   endfunction
+endmodule
+module top_write_controller_outbuf(input wire [1:0] clock_reset, input wire [3:0] i, output wire [3:0] o);
+   wire [7:0] od;
+   wire [3:0] d;
+   wire [3:0] q;
+   assign o = od[3:0];
+   top_write_controller_outbuf_inbuf c0(.clock_reset(clock_reset), .i(d[3:0]), .o(q[3:0]));
+   assign d = od[7:4];
+   assign od = kernel_kernel(clock_reset, i, q);
+   function [7:0] kernel_kernel(input reg [1:0] arg_0, input reg [3:0] arg_1, input reg [3:0] arg_2);
+         reg [1:0] r0;
+         reg [3:0] r1;
+         // d
+         reg [3:0] r2;
+         reg [0:0] r3;
+         reg [0:0] r4;
+         // d
+         reg [3:0] r5;
+         reg [0:0] r6;
+         reg [0:0] r7;
+         // d
+         reg [3:0] r8;
+         reg [3:0] r9;
+         reg [0:0] r10;
+         reg [0:0] r11;
+         reg [1:0] r12;
+         reg [2:0] r13;
+         reg [1:0] r14;
+         reg [2:0] r15;
+         reg [0:0] r16;
+         reg [0:0] r17;
+         // o
+         reg [3:0] r18;
+         // o
+         reg [3:0] r19;
+         reg [7:0] r20;
+         reg [1:0] r21;
+         localparam l0 = 4'bXXXX;
+         localparam l1 = 1'b1;
+         localparam l2 = 3'b000;
+         localparam l3 = 4'bXXXX;
+         begin
+            r21 = arg_0;
+            r1 = arg_1;
+            r9 = arg_2;
+            r0 = r1[1:0];
+            r2 = l0;
+            r2[1:0] = r0;
+            r3 = r1[2:2];
+            r4 = ~r3;
+            r5 = r2;
+            r5[2:2] = r4;
+            r6 = r1[3:3];
+            r7 = ~r6;
+            r8 = r5;
+            r8[3:3] = r7;
+            r10 = r9[2:2];
+            r11 = ~r10;
+            r12 = r9[1:0];
+            r14 = r12[1:0];
+            r13 = {l1, r14};
+            r15 = r11 ? r13 : l2;
+            r16 = r9[3:3];
+            r17 = ~r16;
+            r18 = l3;
+            r18[3:3] = r17;
+            r19 = r18;
+            r19[2:0] = r15;
+            r20 = {r8, r19};
+            kernel_kernel = r20;
+         end
+   endfunction
+endmodule
+module top_write_controller_outbuf_inbuf(input wire [1:0] clock_reset, input wire [3:0] i, output wire [3:0] o);
+   wire [9:0] od;
+   wire [5:0] d;
+   wire [5:0] q;
+   assign o = od[3:0];
+   top_write_controller_outbuf_inbuf_main_ff c0(.clock_reset(clock_reset), .i(d[1:0]), .o(q[1:0]));
+   top_write_controller_outbuf_inbuf_aux_ff c1(.clock_reset(clock_reset), .i(d[3:2]), .o(q[3:2]));
+   top_write_controller_outbuf_inbuf_void_ff c2(.clock_reset(clock_reset), .i(d[4:4]), .o(q[4:4]));
+   top_write_controller_outbuf_inbuf_state_ff c3(.clock_reset(clock_reset), .i(d[5:5]), .o(q[5:5]));
+   assign d = od[9:4];
+   assign od = kernel_carloni_kernel(clock_reset, i, q);
+   function [9:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [3:0] arg_1, input reg [5:0] arg_2);
+         reg [0:0] r0;
+         reg [5:0] r1;
+         reg [0:0] r2;
+         reg [3:0] r3;
+         reg [0:0] r4;
+         reg [0:0] r5;
+         reg [0:0] r6;
+         reg [0:0] r7;
+         reg [0:0] r8;
+         reg [0:0] r9;
+         // d
+         reg [5:0] r10;
+         reg [0:0] r11;
+         reg [0:0] r12;
+         reg [0:0] r13;
+         reg [0:0] r14;
+         reg [0:0] r15;
+         reg [0:0] r16;
+         reg [0:0] r17;
+         // d
+         reg [5:0] r18;
+         // aux_en
+         reg [0:0] r19;
+         // d
+         reg [5:0] r20;
+         // aux_en
+         reg [0:0] r21;
+         // d
+         reg [5:0] r22;
+         // main_en
+         reg [0:0] r23;
+         reg [0:0] r24;
+         // d
+         reg [5:0] r25;
+         // d
+         reg [5:0] r26;
+         // main_en
+         reg [0:0] r27;
+         // sel
+         reg [0:0] r28;
+         // stop_out
+         reg [0:0] r29;
+         // aux_en
+         reg [0:0] r30;
+         // d
+         reg [5:0] r31;
+         // main_en
+         reg [0:0] r32;
+         // sel
+         reg [0:0] r33;
+         // stop_out
+         reg [0:0] r34;
+         reg [1:0] r35;
+         reg [1:0] r36;
+         reg [1:0] r37;
+         // d
+         reg [5:0] r38;
+         reg [1:0] r39;
+         reg [1:0] r40;
+         reg [1:0] r41;
+         reg [1:0] r42;
+         reg [1:0] r43;
+         // d
+         reg [5:0] r44;
+         reg [0:0] r45;
+         reg [0:0] r46;
+         reg [0:0] r47;
+         reg [0:0] r48;
+         // d
+         reg [5:0] r49;
+         reg [1:0] r50;
+         // o
+         reg [3:0] r51;
+         reg [0:0] r52;
+         // o
+         reg [3:0] r53;
+         // o
+         reg [3:0] r54;
+         reg [0:0] r55;
+         reg [1:0] r56;
+         reg [0:0] r57;
+         // o
+         reg [3:0] r58;
+         // o
+         reg [3:0] r59;
+         // o
+         reg [3:0] r60;
+         reg [9:0] r61;
+         localparam l0 = 6'bXXXXXX;
+         localparam l1 = 1'b1;
+         localparam l2 = 1'b1;
+         localparam l3 = 1'b0;
+         localparam l4 = 1'b1;
+         localparam l5 = 1'b0;
+         localparam l6 = 1'b0;
+         localparam l7 = 1'b1;
+         localparam l8 = 1'b0;
+         localparam l9 = 1'b1;
+         localparam l10 = 1'b1;
+         localparam l11 = 1'b1;
+         localparam l12 = 1'b0;
+         localparam l13 = 1'b1;
+         localparam l14 = 1'b0;
+         localparam l15 = 1'b0;
+         localparam l16 = 4'bXXXX;
+         localparam l17 = 1'b1;
+         localparam l18 = 1'b1;
+         begin
+            r56 = arg_0;
+            r3 = arg_1;
+            r1 = arg_2;
+            r0 = r1[4:4];
+            r2 = r3[3:3];
+            r4 = r3[2:2];
+            r5 = ~r4;
+            r6 = ~r0;
+            r7 = r5 & r6;
+            r8 = r2 & r7;
+            r9 = r1[5:5];
+            r10 = l0;
+            r10[5:5] = r9;
+            r11 = r1[5:5];
+            r12 = r3[3:3];
+            r13 = ~r12;
+            r14 = r3[2:2];
+            r15 = ~r14;
+            r16 = r15 & r0;
+            r17 = r13 | r16;
+            r18 = r10;
+            r18[5:5] = l1;
+            r19 = r8 ? l2 : l3;
+            r20 = r8 ? r18 : r10;
+            r21 = r17 ? l3 : r19;
+            r22 = r17 ? r10 : r20;
+            r23 = r17 ? l4 : l5;
+            r24 = r3[3:3];
+            r25 = r10;
+            r25[5:5] = l6;
+            r26 = r24 ? r10 : r25;
+            r27 = r24 ? l5 : l7;
+            r28 = r24 ? l8 : l9;
+            r29 = r24 ? l10 : l11;
+            case (r11)
+               1'b0 : r30 = r21;
+               1'b1 : r30 = l3;
+            endcase
+            case (r11)
+               1'b0 : r31 = r22;
+               1'b1 : r31 = r26;
+            endcase
+            case (r11)
+               1'b0 : r32 = r23;
+               1'b1 : r32 = r27;
+            endcase
+            case (r11)
+               1'b0 : r33 = l8;
+               1'b1 : r33 = r28;
+            endcase
+            case (r11)
+               1'b0 : r34 = l14;
+               1'b1 : r34 = r29;
+            endcase
+            r35 = r3[1:0];
+            r36 = r1[3:2];
+            r37 = r30 ? r35 : r36;
+            r38 = r31;
+            r38[3:2] = r37;
+            r39 = r1[3:2];
+            r40 = r3[1:0];
+            r41 = r33 ? r39 : r40;
+            r42 = r1[1:0];
+            r43 = r32 ? r41 : r42;
+            r44 = r38;
+            r44[1:0] = r43;
+            r45 = r3[2:2];
+            r46 = r33 ? l15 : r45;
+            r47 = r1[4:4];
+            r48 = r32 ? r46 : r47;
+            r49 = r44;
+            r49[4:4] = r48;
+            r50 = r1[1:0];
+            r51 = l16;
+            r51[1:0] = r50;
+            r52 = r1[4:4];
+            r53 = r51;
+            r53[2:2] = r52;
+            r54 = r53;
+            r54[3:3] = r34;
+            r55 = r56[1:1];
+            r57 = |r55;
+            r58 = r54;
+            r58[2:2] = l17;
+            r59 = r58;
+            r59[3:3] = l18;
+            r60 = r57 ? r59 : r54;
+            r61 = {r49, r60};
+            kernel_carloni_kernel = r61;
+         end
+   endfunction
+endmodule
+module top_write_controller_outbuf_inbuf_main_ff(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 2'b00;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 2'b00;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_outbuf_inbuf_aux_ff(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 2'b00;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 2'b00;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_outbuf_inbuf_void_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b1;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b1;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_write_controller_outbuf_inbuf_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b0;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b0;
       end else begin
          o <= i;
       end
@@ -1295,10 +3739,10 @@ module top_read_controller_inbuf_outbuf(input wire [1:0] clock_reset, input wire
    wire [65:0] d;
    wire [65:0] q;
    assign o = od[33:0];
-   top_read_controller_inbuf_outbuf_aux_ff c0(.clock_reset(clock_reset), .i(d[63:32]), .o(q[63:32]));
-   top_read_controller_inbuf_outbuf_main_ff c1(.clock_reset(clock_reset), .i(d[31:0]), .o(q[31:0]));
-   top_read_controller_inbuf_outbuf_state_ff c2(.clock_reset(clock_reset), .i(d[65:65]), .o(q[65:65]));
-   top_read_controller_inbuf_outbuf_void_ff c3(.clock_reset(clock_reset), .i(d[64:64]), .o(q[64:64]));
+   top_read_controller_inbuf_outbuf_main_ff c0(.clock_reset(clock_reset), .i(d[31:0]), .o(q[31:0]));
+   top_read_controller_inbuf_outbuf_aux_ff c1(.clock_reset(clock_reset), .i(d[63:32]), .o(q[63:32]));
+   top_read_controller_inbuf_outbuf_void_ff c2(.clock_reset(clock_reset), .i(d[64:64]), .o(q[64:64]));
+   top_read_controller_inbuf_outbuf_state_ff c3(.clock_reset(clock_reset), .i(d[65:65]), .o(q[65:65]));
    assign d = od[99:34];
    assign od = kernel_carloni_kernel(clock_reset, i, q);
    function [99:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [33:0] arg_1, input reg [65:0] arg_2);
@@ -1502,22 +3946,6 @@ module top_read_controller_inbuf_outbuf(input wire [1:0] clock_reset, input wire
          end
    endfunction
 endmodule
-module top_read_controller_inbuf_outbuf_aux_ff(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 32'b00000000000000000000000000000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 32'b00000000000000000000000000000000;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
 module top_read_controller_inbuf_outbuf_main_ff(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
    wire  clock;
    wire  reset;
@@ -1534,17 +3962,17 @@ module top_read_controller_inbuf_outbuf_main_ff(input wire [1:0] clock_reset, in
       end
    end
 endmodule
-module top_read_controller_inbuf_outbuf_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+module top_read_controller_inbuf_outbuf_aux_ff(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
    wire  clock;
    wire  reset;
    assign clock = clock_reset[0];
    assign reset = clock_reset[1];
    initial begin
-      o = 1'b0;
+      o = 32'b00000000000000000000000000000000;
    end
    always @(posedge clock) begin
       if (reset) begin
-         o <= 1'b0;
+         o <= 32'b00000000000000000000000000000000;
       end else begin
          o <= i;
       end
@@ -1566,13 +3994,29 @@ module top_read_controller_inbuf_outbuf_void_ff(input wire [1:0] clock_reset, in
       end
    end
 endmodule
+module top_read_controller_inbuf_outbuf_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b0;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b0;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
 module top_read_controller_map(input wire [1:0] clock_reset, input wire [35:0] i, output wire [34:0] o);
    wire [104:0] od;
    wire [69:0] d;
    wire [68:0] q;
    assign o = od[34:0];
-   top_read_controller_map_func c0(.clock_reset(clock_reset), .i(d[69:36]), .o(q[68:36]));
-   top_read_controller_map_input_buffer c1(.clock_reset(clock_reset), .i(d[35:0]), .o(q[35:0]));
+   top_read_controller_map_input_buffer c0(.clock_reset(clock_reset), .i(d[35:0]), .o(q[35:0]));
+   top_read_controller_map_func c1(.clock_reset(clock_reset), .i(d[69:36]), .o(q[68:36]));
    assign d = od[104:35];
    assign od = kernel_kernel(clock_reset, i, q);
    function [104:0] kernel_kernel(input reg [1:0] arg_0, input reg [35:0] arg_1, input reg [68:0] arg_2);
@@ -1653,47 +4097,6 @@ module top_read_controller_map(input wire [1:0] clock_reset, input wire [35:0] i
             r22[34:34] = r20;
             r23 = {r17, r22};
             kernel_kernel = r23;
-         end
-   endfunction
-endmodule
-module top_read_controller_map_func(input wire [1:0] clock_reset, input wire [33:0] i, output wire [32:0] o);
-   assign o = kernel_map_result(clock_reset, i);
-   function [32:0] kernel_map_result(input reg [1:0] arg_0, input reg [33:0] arg_1);
-         reg [1:0] r0;
-         reg [33:0] r1;
-         reg [31:0] r2;
-         reg [32:0] r3;
-         reg [31:0] r4;
-         reg [32:0] r5;
-         reg [32:0] r6;
-         reg [1:0] r7;
-         localparam l0 = 33'b100000000000000000000000000000000;
-         localparam l1 = 33'b100000000000000000000000000000000;
-         localparam l2 = 2'b00;
-         localparam l3 = 2'b01;
-         localparam l4 = 2'b11;
-         localparam l5 = 33'b000000000000000000000000000000001;
-         localparam l6 = 2'b10;
-         localparam l7 = 33'b000000000000000000000000000000000;
-         localparam l8 = 33'b000000000000000000000000000000001;
-         begin
-            r7 = arg_0;
-            r1 = arg_1;
-            r0 = r1[1:0];
-            r2 = r1[33:2];
-            r3 = l0;
-            r3[31:0] = r2;
-            r4 = r1[33:2];
-            r5 = l1;
-            r5[31:0] = r4;
-            case (r0)
-               2'b00 : r6 = r3;
-               2'b01 : r6 = r5;
-               2'b11 : r6 = l5;
-               2'b10 : r6 = l7;
-               default : r6 = l8;
-            endcase
-            kernel_map_result = r6;
          end
    endfunction
 endmodule
@@ -1797,10 +4200,10 @@ module top_read_controller_map_input_buffer_inner(input wire [1:0] clock_reset, 
    wire [69:0] d;
    wire [69:0] q;
    assign o = od[35:0];
-   top_read_controller_map_input_buffer_inner_aux_ff c0(.clock_reset(clock_reset), .i(d[67:34]), .o(q[67:34]));
-   top_read_controller_map_input_buffer_inner_main_ff c1(.clock_reset(clock_reset), .i(d[33:0]), .o(q[33:0]));
-   top_read_controller_map_input_buffer_inner_state_ff c2(.clock_reset(clock_reset), .i(d[69:69]), .o(q[69:69]));
-   top_read_controller_map_input_buffer_inner_void_ff c3(.clock_reset(clock_reset), .i(d[68:68]), .o(q[68:68]));
+   top_read_controller_map_input_buffer_inner_main_ff c0(.clock_reset(clock_reset), .i(d[33:0]), .o(q[33:0]));
+   top_read_controller_map_input_buffer_inner_aux_ff c1(.clock_reset(clock_reset), .i(d[67:34]), .o(q[67:34]));
+   top_read_controller_map_input_buffer_inner_void_ff c2(.clock_reset(clock_reset), .i(d[68:68]), .o(q[68:68]));
+   top_read_controller_map_input_buffer_inner_state_ff c3(.clock_reset(clock_reset), .i(d[69:69]), .o(q[69:69]));
    assign d = od[105:36];
    assign od = kernel_carloni_kernel(clock_reset, i, q);
    function [105:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [35:0] arg_1, input reg [69:0] arg_2);
@@ -2004,6 +4407,22 @@ module top_read_controller_map_input_buffer_inner(input wire [1:0] clock_reset, 
          end
    endfunction
 endmodule
+module top_read_controller_map_input_buffer_inner_main_ff(input wire [1:0] clock_reset, input wire [33:0] i, output reg [33:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 34'b0000000000000000000000000000000000;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 34'b0000000000000000000000000000000000;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
 module top_read_controller_map_input_buffer_inner_aux_ff(input wire [1:0] clock_reset, input wire [33:0] i, output reg [33:0] o);
    wire  clock;
    wire  reset;
@@ -2020,17 +4439,17 @@ module top_read_controller_map_input_buffer_inner_aux_ff(input wire [1:0] clock_
       end
    end
 endmodule
-module top_read_controller_map_input_buffer_inner_main_ff(input wire [1:0] clock_reset, input wire [33:0] i, output reg [33:0] o);
+module top_read_controller_map_input_buffer_inner_void_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
    wire  clock;
    wire  reset;
    assign clock = clock_reset[0];
    assign reset = clock_reset[1];
    initial begin
-      o = 34'b0000000000000000000000000000000000;
+      o = 1'b1;
    end
    always @(posedge clock) begin
       if (reset) begin
-         o <= 34'b0000000000000000000000000000000000;
+         o <= 1'b1;
       end else begin
          o <= i;
       end
@@ -2052,21 +4471,46 @@ module top_read_controller_map_input_buffer_inner_state_ff(input wire [1:0] cloc
       end
    end
 endmodule
-module top_read_controller_map_input_buffer_inner_void_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b1;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b1;
-      end else begin
-         o <= i;
-      end
-   end
+module top_read_controller_map_func(input wire [1:0] clock_reset, input wire [33:0] i, output wire [32:0] o);
+   assign o = kernel_map_result(clock_reset, i);
+   function [32:0] kernel_map_result(input reg [1:0] arg_0, input reg [33:0] arg_1);
+         reg [1:0] r0;
+         reg [33:0] r1;
+         reg [31:0] r2;
+         reg [32:0] r3;
+         reg [31:0] r4;
+         reg [32:0] r5;
+         reg [32:0] r6;
+         reg [1:0] r7;
+         localparam l0 = 33'b100000000000000000000000000000000;
+         localparam l1 = 33'b100000000000000000000000000000000;
+         localparam l2 = 2'b00;
+         localparam l3 = 2'b01;
+         localparam l4 = 2'b11;
+         localparam l5 = 33'b000000000000000000000000000000001;
+         localparam l6 = 2'b10;
+         localparam l7 = 33'b000000000000000000000000000000000;
+         localparam l8 = 33'b000000000000000000000000000000001;
+         begin
+            r7 = arg_0;
+            r1 = arg_1;
+            r0 = r1[1:0];
+            r2 = r1[33:2];
+            r3 = l0;
+            r3[31:0] = r2;
+            r4 = r1[33:2];
+            r5 = l1;
+            r5[31:0] = r4;
+            case (r0)
+               2'b00 : r6 = r3;
+               2'b01 : r6 = r5;
+               2'b11 : r6 = l5;
+               2'b10 : r6 = l7;
+               default : r6 = l8;
+            endcase
+            kernel_map_result = r6;
+         end
+   endfunction
 endmodule
 module top_read_controller_outbuf(input wire [1:0] clock_reset, input wire [35:0] i, output wire [35:0] o);
    wire [71:0] od;
@@ -2145,10 +4589,10 @@ module top_read_controller_outbuf_inbuf(input wire [1:0] clock_reset, input wire
    wire [69:0] d;
    wire [69:0] q;
    assign o = od[35:0];
-   top_read_controller_outbuf_inbuf_aux_ff c0(.clock_reset(clock_reset), .i(d[67:34]), .o(q[67:34]));
-   top_read_controller_outbuf_inbuf_main_ff c1(.clock_reset(clock_reset), .i(d[33:0]), .o(q[33:0]));
-   top_read_controller_outbuf_inbuf_state_ff c2(.clock_reset(clock_reset), .i(d[69:69]), .o(q[69:69]));
-   top_read_controller_outbuf_inbuf_void_ff c3(.clock_reset(clock_reset), .i(d[68:68]), .o(q[68:68]));
+   top_read_controller_outbuf_inbuf_main_ff c0(.clock_reset(clock_reset), .i(d[33:0]), .o(q[33:0]));
+   top_read_controller_outbuf_inbuf_aux_ff c1(.clock_reset(clock_reset), .i(d[67:34]), .o(q[67:34]));
+   top_read_controller_outbuf_inbuf_void_ff c2(.clock_reset(clock_reset), .i(d[68:68]), .o(q[68:68]));
+   top_read_controller_outbuf_inbuf_state_ff c3(.clock_reset(clock_reset), .i(d[69:69]), .o(q[69:69]));
    assign d = od[105:36];
    assign od = kernel_carloni_kernel(clock_reset, i, q);
    function [105:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [35:0] arg_1, input reg [69:0] arg_2);
@@ -2352,22 +4796,6 @@ module top_read_controller_outbuf_inbuf(input wire [1:0] clock_reset, input wire
          end
    endfunction
 endmodule
-module top_read_controller_outbuf_inbuf_aux_ff(input wire [1:0] clock_reset, input wire [33:0] i, output reg [33:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 34'b0000000000000000000000000000000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 34'b0000000000000000000000000000000000;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
 module top_read_controller_outbuf_inbuf_main_ff(input wire [1:0] clock_reset, input wire [33:0] i, output reg [33:0] o);
    wire  clock;
    wire  reset;
@@ -2384,17 +4812,17 @@ module top_read_controller_outbuf_inbuf_main_ff(input wire [1:0] clock_reset, in
       end
    end
 endmodule
-module top_read_controller_outbuf_inbuf_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+module top_read_controller_outbuf_inbuf_aux_ff(input wire [1:0] clock_reset, input wire [33:0] i, output reg [33:0] o);
    wire  clock;
    wire  reset;
    assign clock = clock_reset[0];
    assign reset = clock_reset[1];
    initial begin
-      o = 1'b0;
+      o = 34'b0000000000000000000000000000000000;
    end
    always @(posedge clock) begin
       if (reset) begin
-         o <= 1'b0;
+         o <= 34'b0000000000000000000000000000000000;
       end else begin
          o <= i;
       end
@@ -2416,6 +4844,393 @@ module top_read_controller_outbuf_inbuf_void_ff(input wire [1:0] clock_reset, in
       end
    end
 endmodule
+module top_read_controller_outbuf_inbuf_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b0;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b0;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_outbuf(input wire [1:0] clock_reset, input wire [35:0] i, output wire [35:0] o);
+   wire [71:0] od;
+   wire [35:0] d;
+   wire [35:0] q;
+   assign o = od[35:0];
+   top_outbuf_inner c0(.clock_reset(clock_reset), .i(d[35:0]), .o(q[35:0]));
+   assign d = od[71:36];
+   assign od = kernel_option_carloni_kernel(clock_reset, i, q);
+   function [71:0] kernel_option_carloni_kernel(input reg [1:0] arg_0, input reg [35:0] arg_1, input reg [35:0] arg_2);
+         reg [34:0] r0;
+         reg [35:0] r1;
+         reg [0:0] r2;
+         reg [33:0] r3;
+         reg [34:0] r4;
+         reg [34:0] r5;
+         reg [0:0] r6;
+         reg [33:0] r7;
+         // d
+         reg [35:0] r8;
+         reg [0:0] r9;
+         // d
+         reg [35:0] r10;
+         reg [0:0] r11;
+         reg [0:0] r12;
+         // d
+         reg [35:0] r13;
+         reg [35:0] r14;
+         reg [0:0] r15;
+         reg [0:0] r16;
+         reg [0:0] r17;
+         reg [0:0] r18;
+         // o
+         reg [35:0] r19;
+         reg [0:0] r20;
+         reg [0:0] r21;
+         reg [33:0] r22;
+         reg [34:0] r23;
+         reg [33:0] r24;
+         reg [34:0] r25;
+         // o
+         reg [35:0] r26;
+         reg [71:0] r27;
+         reg [1:0] r28;
+         localparam l0 = 1'b1;
+         localparam l1 = 1'b1;
+         localparam l2 = 1'b0;
+         localparam l3 = 35'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX0;
+         localparam l4 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l5 = 1'b0;
+         localparam l6 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l7 = 1'b1;
+         localparam l8 = 35'b00000000000000000000000000000000000;
+         begin
+            r28 = arg_0;
+            r1 = arg_1;
+            r14 = arg_2;
+            r0 = r1[34:0];
+            r2 = r0[34:34];
+            r3 = r0[33:0];
+            r4 = {r3, l0};
+            case (r2)
+               1'b1 : r5 = r4;
+               1'b0 : r5 = l3;
+            endcase
+            r6 = r5[0:0];
+            r7 = r5[34:1];
+            r8 = l4;
+            r8[33:0] = r7;
+            r9 = ~r6;
+            r10 = r8;
+            r10[34:34] = r9;
+            r11 = r1[35:35];
+            r12 = ~r11;
+            r13 = r10;
+            r13[35:35] = r12;
+            r15 = r14[35:35];
+            r16 = ~r15;
+            r17 = l5;
+            r18 = r17;
+            r18[0:0] = r16;
+            r19 = l6;
+            r19[35:35] = r18;
+            r20 = r14[34:34];
+            r21 = ~r20;
+            r22 = r14[33:0];
+            r24 = r22[33:0];
+            r23 = {l7, r24};
+            r25 = r21 ? r23 : l8;
+            r26 = r19;
+            r26[34:0] = r25;
+            r27 = {r13, r26};
+            kernel_option_carloni_kernel = r27;
+         end
+   endfunction
+endmodule
+module top_outbuf_inner(input wire [1:0] clock_reset, input wire [35:0] i, output wire [35:0] o);
+   wire [105:0] od;
+   wire [69:0] d;
+   wire [69:0] q;
+   assign o = od[35:0];
+   top_outbuf_inner_main_ff c0(.clock_reset(clock_reset), .i(d[33:0]), .o(q[33:0]));
+   top_outbuf_inner_aux_ff c1(.clock_reset(clock_reset), .i(d[67:34]), .o(q[67:34]));
+   top_outbuf_inner_void_ff c2(.clock_reset(clock_reset), .i(d[68:68]), .o(q[68:68]));
+   top_outbuf_inner_state_ff c3(.clock_reset(clock_reset), .i(d[69:69]), .o(q[69:69]));
+   assign d = od[105:36];
+   assign od = kernel_carloni_kernel(clock_reset, i, q);
+   function [105:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [35:0] arg_1, input reg [69:0] arg_2);
+         reg [0:0] r0;
+         reg [69:0] r1;
+         reg [0:0] r2;
+         reg [35:0] r3;
+         reg [0:0] r4;
+         reg [0:0] r5;
+         reg [0:0] r6;
+         reg [0:0] r7;
+         reg [0:0] r8;
+         reg [0:0] r9;
+         // d
+         reg [69:0] r10;
+         reg [0:0] r11;
+         reg [0:0] r12;
+         reg [0:0] r13;
+         reg [0:0] r14;
+         reg [0:0] r15;
+         reg [0:0] r16;
+         reg [0:0] r17;
+         // d
+         reg [69:0] r18;
+         // aux_en
+         reg [0:0] r19;
+         // d
+         reg [69:0] r20;
+         // aux_en
+         reg [0:0] r21;
+         // d
+         reg [69:0] r22;
+         // main_en
+         reg [0:0] r23;
+         reg [0:0] r24;
+         // d
+         reg [69:0] r25;
+         // d
+         reg [69:0] r26;
+         // main_en
+         reg [0:0] r27;
+         // sel
+         reg [0:0] r28;
+         // stop_out
+         reg [0:0] r29;
+         // aux_en
+         reg [0:0] r30;
+         // d
+         reg [69:0] r31;
+         // main_en
+         reg [0:0] r32;
+         // sel
+         reg [0:0] r33;
+         // stop_out
+         reg [0:0] r34;
+         reg [33:0] r35;
+         reg [33:0] r36;
+         reg [33:0] r37;
+         // d
+         reg [69:0] r38;
+         reg [33:0] r39;
+         reg [33:0] r40;
+         reg [33:0] r41;
+         reg [33:0] r42;
+         reg [33:0] r43;
+         // d
+         reg [69:0] r44;
+         reg [0:0] r45;
+         reg [0:0] r46;
+         reg [0:0] r47;
+         reg [0:0] r48;
+         // d
+         reg [69:0] r49;
+         reg [33:0] r50;
+         // o
+         reg [35:0] r51;
+         reg [0:0] r52;
+         // o
+         reg [35:0] r53;
+         // o
+         reg [35:0] r54;
+         reg [0:0] r55;
+         reg [1:0] r56;
+         reg [0:0] r57;
+         // o
+         reg [35:0] r58;
+         // o
+         reg [35:0] r59;
+         // o
+         reg [35:0] r60;
+         reg [105:0] r61;
+         localparam l0 = 70'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l1 = 1'b1;
+         localparam l2 = 1'b1;
+         localparam l3 = 1'b0;
+         localparam l4 = 1'b1;
+         localparam l5 = 1'b0;
+         localparam l6 = 1'b0;
+         localparam l7 = 1'b1;
+         localparam l8 = 1'b0;
+         localparam l9 = 1'b1;
+         localparam l10 = 1'b1;
+         localparam l11 = 1'b1;
+         localparam l12 = 1'b0;
+         localparam l13 = 1'b1;
+         localparam l14 = 1'b0;
+         localparam l15 = 1'b0;
+         localparam l16 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l17 = 1'b1;
+         localparam l18 = 1'b1;
+         begin
+            r56 = arg_0;
+            r3 = arg_1;
+            r1 = arg_2;
+            r0 = r1[68:68];
+            r2 = r3[35:35];
+            r4 = r3[34:34];
+            r5 = ~r4;
+            r6 = ~r0;
+            r7 = r5 & r6;
+            r8 = r2 & r7;
+            r9 = r1[69:69];
+            r10 = l0;
+            r10[69:69] = r9;
+            r11 = r1[69:69];
+            r12 = r3[35:35];
+            r13 = ~r12;
+            r14 = r3[34:34];
+            r15 = ~r14;
+            r16 = r15 & r0;
+            r17 = r13 | r16;
+            r18 = r10;
+            r18[69:69] = l1;
+            r19 = r8 ? l2 : l3;
+            r20 = r8 ? r18 : r10;
+            r21 = r17 ? l3 : r19;
+            r22 = r17 ? r10 : r20;
+            r23 = r17 ? l4 : l5;
+            r24 = r3[35:35];
+            r25 = r10;
+            r25[69:69] = l6;
+            r26 = r24 ? r10 : r25;
+            r27 = r24 ? l5 : l7;
+            r28 = r24 ? l8 : l9;
+            r29 = r24 ? l10 : l11;
+            case (r11)
+               1'b0 : r30 = r21;
+               1'b1 : r30 = l3;
+            endcase
+            case (r11)
+               1'b0 : r31 = r22;
+               1'b1 : r31 = r26;
+            endcase
+            case (r11)
+               1'b0 : r32 = r23;
+               1'b1 : r32 = r27;
+            endcase
+            case (r11)
+               1'b0 : r33 = l8;
+               1'b1 : r33 = r28;
+            endcase
+            case (r11)
+               1'b0 : r34 = l14;
+               1'b1 : r34 = r29;
+            endcase
+            r35 = r3[33:0];
+            r36 = r1[67:34];
+            r37 = r30 ? r35 : r36;
+            r38 = r31;
+            r38[67:34] = r37;
+            r39 = r1[67:34];
+            r40 = r3[33:0];
+            r41 = r33 ? r39 : r40;
+            r42 = r1[33:0];
+            r43 = r32 ? r41 : r42;
+            r44 = r38;
+            r44[33:0] = r43;
+            r45 = r3[34:34];
+            r46 = r33 ? l15 : r45;
+            r47 = r1[68:68];
+            r48 = r32 ? r46 : r47;
+            r49 = r44;
+            r49[68:68] = r48;
+            r50 = r1[33:0];
+            r51 = l16;
+            r51[33:0] = r50;
+            r52 = r1[68:68];
+            r53 = r51;
+            r53[34:34] = r52;
+            r54 = r53;
+            r54[35:35] = r34;
+            r55 = r56[1:1];
+            r57 = |r55;
+            r58 = r54;
+            r58[34:34] = l17;
+            r59 = r58;
+            r59[35:35] = l18;
+            r60 = r57 ? r59 : r54;
+            r61 = {r49, r60};
+            kernel_carloni_kernel = r61;
+         end
+   endfunction
+endmodule
+module top_outbuf_inner_main_ff(input wire [1:0] clock_reset, input wire [33:0] i, output reg [33:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 34'b0000000000000000000000000000000001;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 34'b0000000000000000000000000000000001;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_outbuf_inner_aux_ff(input wire [1:0] clock_reset, input wire [33:0] i, output reg [33:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 34'b0000000000000000000000000000000001;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 34'b0000000000000000000000000000000001;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_outbuf_inner_void_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b1;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b1;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module top_outbuf_inner_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 1'b0;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 1'b0;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
 module top_state(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
    wire  clock;
    wire  reset;
@@ -2427,2821 +5242,6 @@ module top_state(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1
    always @(posedge clock) begin
       if (reset) begin
          o <= 2'b00;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller(input wire [1:0] clock_reset, input wire [74:0] i, output wire [74:0] o);
-   wire [225:0] od;
-   wire [150:0] d;
-   wire [150:0] q;
-   assign o = od[74:0];
-   top_write_controller_addr_buf c0(.clock_reset(clock_reset), .i(d[104:71]), .o(q[104:71]));
-   top_write_controller_data_buf c1(.clock_reset(clock_reset), .i(d[142:105]), .o(q[142:105]));
-   top_write_controller_map c2(.clock_reset(clock_reset), .i(d[146:143]), .o(q[146:143]));
-   top_write_controller_outbuf c3(.clock_reset(clock_reset), .i(d[150:147]), .o(q[150:147]));
-   top_write_controller_tee c4(.clock_reset(clock_reset), .i(d[70:0]), .o(q[70:0]));
-   assign d = od[225:75];
-   assign od = kernel_kernel(clock_reset, i, q);
-   function [225:0] kernel_kernel(input reg [1:0] arg_0, input reg [74:0] arg_1, input reg [150:0] arg_2);
-         reg [68:0] r0;
-         reg [74:0] r1;
-         reg [0:0] r2;
-         reg [67:0] r3;
-         reg [31:0] r4;
-         reg [35:0] r5;
-         reg [67:0] r6;
-         reg [68:0] r7;
-         reg [67:0] r8;
-         // d
-         reg [150:0] r9;
-         // d
-         reg [150:0] r10;
-         reg [70:0] r11;
-         reg [150:0] r12;
-         reg [32:0] r13;
-         // d
-         reg [150:0] r14;
-         reg [33:0] r15;
-         reg [0:0] r16;
-         // d
-         reg [150:0] r17;
-         reg [70:0] r18;
-         reg [36:0] r19;
-         // d
-         reg [150:0] r20;
-         reg [37:0] r21;
-         reg [0:0] r22;
-         // d
-         reg [150:0] r23;
-         reg [70:0] r24;
-         reg [0:0] r25;
-         reg [0:0] r26;
-         reg [0:0] r27;
-         // o
-         reg [74:0] r28;
-         reg [33:0] r29;
-         reg [31:0] r30;
-         // o
-         reg [74:0] r31;
-         reg [33:0] r32;
-         reg [0:0] r33;
-         // o
-         reg [74:0] r34;
-         reg [4:0] r35;
-         reg [0:0] r36;
-         // d
-         reg [150:0] r37;
-         reg [37:0] r38;
-         reg [35:0] r39;
-         reg [31:0] r40;
-         // o
-         reg [74:0] r41;
-         reg [37:0] r42;
-         reg [35:0] r43;
-         reg [3:0] r44;
-         // o
-         reg [74:0] r45;
-         reg [37:0] r46;
-         reg [0:0] r47;
-         // o
-         reg [74:0] r48;
-         reg [4:0] r49;
-         reg [0:0] r50;
-         // d
-         reg [150:0] r51;
-         reg [4:0] r52;
-         reg [1:0] r53;
-         // d
-         reg [150:0] r54;
-         reg [4:0] r55;
-         reg [0:0] r56;
-         // d
-         reg [150:0] r57;
-         reg [3:0] r58;
-         reg [0:0] r59;
-         // o
-         reg [74:0] r60;
-         reg [3:0] r61;
-         reg [2:0] r62;
-         // d
-         reg [150:0] r63;
-         reg [3:0] r64;
-         reg [0:0] r65;
-         // d
-         reg [150:0] r66;
-         reg [3:0] r67;
-         reg [2:0] r68;
-         // o
-         reg [74:0] r69;
-         reg [0:0] r70;
-         // d
-         reg [150:0] r71;
-         reg [225:0] r72;
-         reg [1:0] r73;
-         localparam l0 = 1'b1;
-         localparam l1 = 151'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX000000000000000000000000000000000000000000000000000000000000000000000;
-         localparam l2 = 1'b1;
-         localparam l3 = 1'b0;
-         localparam l4 = 75'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         begin
-            r73 = arg_0;
-            r1 = arg_1;
-            r12 = arg_2;
-            r0 = r1[73:5];
-            r2 = r0[68:68];
-            r3 = r0[67:0];
-            r4 = r3[31:0];
-            r5 = r3[67:32];
-            r6 = {r5, r4};
-            r8 = r6[67:0];
-            r7 = {l0, r8};
-            r9 = l1;
-            r9[68:0] = r7;
-            case (r2)
-               1'b1 : r10 = r9;
-               default : r10 = l1;
-            endcase
-            r11 = r12[70:0];
-            r13 = r11[32:0];
-            r14 = r10;
-            r14[103:71] = r13;
-            r15 = r12[104:71];
-            r16 = r15[33:33];
-            r17 = r14;
-            r17[69:69] = r16;
-            r18 = r12[70:0];
-            r19 = r18[69:33];
-            r20 = r17;
-            r20[141:105] = r19;
-            r21 = r12[142:105];
-            r22 = r21[37:37];
-            r23 = r20;
-            r23[70:70] = r22;
-            r24 = r12[70:0];
-            r25 = r24[70:70];
-            r26 = l3;
-            r27 = r26;
-            r27[0:0] = r25;
-            r28 = l4;
-            r28[71:71] = r27;
-            r29 = r12[104:71];
-            r30 = r29[31:0];
-            r31 = r28;
-            r31[31:0] = r30;
-            r32 = r12[104:71];
-            r33 = r32[32:32];
-            r34 = r31;
-            r34[32:32] = r33;
-            r35 = r1[4:0];
-            r36 = r35[0:0];
-            r37 = r23;
-            r37[104:104] = r36;
-            r38 = r12[142:105];
-            r39 = r38[35:0];
-            r40 = r39[31:0];
-            r41 = r34;
-            r41[64:33] = r40;
-            r42 = r12[142:105];
-            r43 = r42[35:0];
-            r44 = r43[35:32];
-            r45 = r41;
-            r45[68:65] = r44;
-            r46 = r12[142:105];
-            r47 = r46[36:36];
-            r48 = r45;
-            r48[69:69] = r47;
-            r49 = r1[4:0];
-            r50 = r49[1:1];
-            r51 = r37;
-            r51[142:142] = r50;
-            r52 = r1[4:0];
-            r53 = r52[3:2];
-            r54 = r51;
-            r54[148:147] = r53;
-            r55 = r1[4:0];
-            r56 = r55[4:4];
-            r57 = r54;
-            r57[149:149] = r56;
-            r58 = r12[150:147];
-            r59 = r58[3:3];
-            r60 = r48;
-            r60[70:70] = r59;
-            r61 = r12[150:147];
-            r62 = r61[2:0];
-            r63 = r57;
-            r63[145:143] = r62;
-            r64 = r12[146:143];
-            r65 = r64[3:3];
-            r66 = r63;
-            r66[150:150] = r65;
-            r67 = r12[146:143];
-            r68 = r67[2:0];
-            r69 = r60;
-            r69[74:72] = r68;
-            r70 = r1[74:74];
-            r71 = r66;
-            r71[146:146] = r70;
-            r72 = {r71, r69};
-            kernel_kernel = r72;
-         end
-   endfunction
-endmodule
-module top_write_controller_addr_buf(input wire [1:0] clock_reset, input wire [33:0] i, output wire [33:0] o);
-   wire [67:0] od;
-   wire [33:0] d;
-   wire [33:0] q;
-   assign o = od[33:0];
-   top_write_controller_addr_buf_outbuf c0(.clock_reset(clock_reset), .i(d[33:0]), .o(q[33:0]));
-   assign d = od[67:34];
-   assign od = kernel_kernel(clock_reset, i, q);
-   function [67:0] kernel_kernel(input reg [1:0] arg_0, input reg [33:0] arg_1, input reg [33:0] arg_2);
-         reg [32:0] r0;
-         reg [33:0] r1;
-         reg [0:0] r2;
-         reg [31:0] r3;
-         // tdata
-         reg [31:0] r4;
-         // tvalid
-         reg [0:0] r5;
-         // d
-         reg [33:0] r6;
-         reg [0:0] r7;
-         // d
-         reg [33:0] r8;
-         reg [0:0] r9;
-         reg [0:0] r10;
-         // d
-         reg [33:0] r11;
-         reg [33:0] r12;
-         reg [31:0] r13;
-         // o
-         reg [33:0] r14;
-         reg [0:0] r15;
-         reg [0:0] r16;
-         // o
-         reg [33:0] r17;
-         reg [0:0] r18;
-         reg [0:0] r19;
-         reg [0:0] r20;
-         reg [0:0] r21;
-         // o
-         reg [33:0] r22;
-         reg [67:0] r23;
-         reg [1:0] r24;
-         localparam l0 = 1'b1;
-         localparam l1 = 32'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l2 = 1'b1;
-         localparam l3 = 1'b0;
-         localparam l4 = 34'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l5 = 34'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l6 = 1'b0;
-         begin
-            r24 = arg_0;
-            r1 = arg_1;
-            r12 = arg_2;
-            r0 = r1[32:0];
-            r2 = r0[32:32];
-            r3 = r0[31:0];
-            case (r2)
-               1'b1 : r4 = r3;
-               default : r4 = l1;
-            endcase
-            case (r2)
-               1'b1 : r5 = l2;
-               default : r5 = l3;
-            endcase
-            r6 = l4;
-            r6[31:0] = r4;
-            r7 = ~r5;
-            r8 = r6;
-            r8[32:32] = r7;
-            r9 = r1[33:33];
-            r10 = ~r9;
-            r11 = r8;
-            r11[33:33] = r10;
-            r13 = r12[31:0];
-            r14 = l5;
-            r14[31:0] = r13;
-            r15 = r12[32:32];
-            r16 = ~r15;
-            r17 = r14;
-            r17[32:32] = r16;
-            r18 = r12[33:33];
-            r19 = ~r18;
-            r20 = l6;
-            r21 = r20;
-            r21[0:0] = r19;
-            r22 = r17;
-            r22[33:33] = r21;
-            r23 = {r11, r22};
-            kernel_kernel = r23;
-         end
-   endfunction
-endmodule
-module top_write_controller_addr_buf_outbuf(input wire [1:0] clock_reset, input wire [33:0] i, output wire [33:0] o);
-   wire [99:0] od;
-   wire [65:0] d;
-   wire [65:0] q;
-   assign o = od[33:0];
-   top_write_controller_addr_buf_outbuf_aux_ff c0(.clock_reset(clock_reset), .i(d[63:32]), .o(q[63:32]));
-   top_write_controller_addr_buf_outbuf_main_ff c1(.clock_reset(clock_reset), .i(d[31:0]), .o(q[31:0]));
-   top_write_controller_addr_buf_outbuf_state_ff c2(.clock_reset(clock_reset), .i(d[65:65]), .o(q[65:65]));
-   top_write_controller_addr_buf_outbuf_void_ff c3(.clock_reset(clock_reset), .i(d[64:64]), .o(q[64:64]));
-   assign d = od[99:34];
-   assign od = kernel_carloni_kernel(clock_reset, i, q);
-   function [99:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [33:0] arg_1, input reg [65:0] arg_2);
-         reg [0:0] r0;
-         reg [65:0] r1;
-         reg [0:0] r2;
-         reg [33:0] r3;
-         reg [0:0] r4;
-         reg [0:0] r5;
-         reg [0:0] r6;
-         reg [0:0] r7;
-         reg [0:0] r8;
-         reg [0:0] r9;
-         // d
-         reg [65:0] r10;
-         reg [0:0] r11;
-         reg [0:0] r12;
-         reg [0:0] r13;
-         reg [0:0] r14;
-         reg [0:0] r15;
-         reg [0:0] r16;
-         reg [0:0] r17;
-         // d
-         reg [65:0] r18;
-         // aux_en
-         reg [0:0] r19;
-         // d
-         reg [65:0] r20;
-         // aux_en
-         reg [0:0] r21;
-         // d
-         reg [65:0] r22;
-         // main_en
-         reg [0:0] r23;
-         reg [0:0] r24;
-         // d
-         reg [65:0] r25;
-         // d
-         reg [65:0] r26;
-         // main_en
-         reg [0:0] r27;
-         // sel
-         reg [0:0] r28;
-         // stop_out
-         reg [0:0] r29;
-         // aux_en
-         reg [0:0] r30;
-         // d
-         reg [65:0] r31;
-         // main_en
-         reg [0:0] r32;
-         // sel
-         reg [0:0] r33;
-         // stop_out
-         reg [0:0] r34;
-         reg [31:0] r35;
-         reg [31:0] r36;
-         reg [31:0] r37;
-         // d
-         reg [65:0] r38;
-         reg [31:0] r39;
-         reg [31:0] r40;
-         reg [31:0] r41;
-         reg [31:0] r42;
-         reg [31:0] r43;
-         // d
-         reg [65:0] r44;
-         reg [0:0] r45;
-         reg [0:0] r46;
-         reg [0:0] r47;
-         reg [0:0] r48;
-         // d
-         reg [65:0] r49;
-         reg [31:0] r50;
-         // o
-         reg [33:0] r51;
-         reg [0:0] r52;
-         // o
-         reg [33:0] r53;
-         // o
-         reg [33:0] r54;
-         reg [0:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
-         // o
-         reg [33:0] r58;
-         // o
-         reg [33:0] r59;
-         // o
-         reg [33:0] r60;
-         reg [99:0] r61;
-         localparam l0 = 66'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b1;
-         localparam l3 = 1'b0;
-         localparam l4 = 1'b1;
-         localparam l5 = 1'b0;
-         localparam l6 = 1'b0;
-         localparam l7 = 1'b1;
-         localparam l8 = 1'b0;
-         localparam l9 = 1'b1;
-         localparam l10 = 1'b1;
-         localparam l11 = 1'b1;
-         localparam l12 = 1'b0;
-         localparam l13 = 1'b1;
-         localparam l14 = 1'b0;
-         localparam l15 = 1'b0;
-         localparam l16 = 34'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
-         begin
-            r56 = arg_0;
-            r3 = arg_1;
-            r1 = arg_2;
-            r0 = r1[64:64];
-            r2 = r3[33:33];
-            r4 = r3[32:32];
-            r5 = ~r4;
-            r6 = ~r0;
-            r7 = r5 & r6;
-            r8 = r2 & r7;
-            r9 = r1[65:65];
-            r10 = l0;
-            r10[65:65] = r9;
-            r11 = r1[65:65];
-            r12 = r3[33:33];
-            r13 = ~r12;
-            r14 = r3[32:32];
-            r15 = ~r14;
-            r16 = r15 & r0;
-            r17 = r13 | r16;
-            r18 = r10;
-            r18[65:65] = l1;
-            r19 = r8 ? l2 : l3;
-            r20 = r8 ? r18 : r10;
-            r21 = r17 ? l3 : r19;
-            r22 = r17 ? r10 : r20;
-            r23 = r17 ? l4 : l5;
-            r24 = r3[33:33];
-            r25 = r10;
-            r25[65:65] = l6;
-            r26 = r24 ? r10 : r25;
-            r27 = r24 ? l5 : l7;
-            r28 = r24 ? l8 : l9;
-            r29 = r24 ? l10 : l11;
-            case (r11)
-               1'b0 : r30 = r21;
-               1'b1 : r30 = l3;
-            endcase
-            case (r11)
-               1'b0 : r31 = r22;
-               1'b1 : r31 = r26;
-            endcase
-            case (r11)
-               1'b0 : r32 = r23;
-               1'b1 : r32 = r27;
-            endcase
-            case (r11)
-               1'b0 : r33 = l8;
-               1'b1 : r33 = r28;
-            endcase
-            case (r11)
-               1'b0 : r34 = l14;
-               1'b1 : r34 = r29;
-            endcase
-            r35 = r3[31:0];
-            r36 = r1[63:32];
-            r37 = r30 ? r35 : r36;
-            r38 = r31;
-            r38[63:32] = r37;
-            r39 = r1[63:32];
-            r40 = r3[31:0];
-            r41 = r33 ? r39 : r40;
-            r42 = r1[31:0];
-            r43 = r32 ? r41 : r42;
-            r44 = r38;
-            r44[31:0] = r43;
-            r45 = r3[32:32];
-            r46 = r33 ? l15 : r45;
-            r47 = r1[64:64];
-            r48 = r32 ? r46 : r47;
-            r49 = r44;
-            r49[64:64] = r48;
-            r50 = r1[31:0];
-            r51 = l16;
-            r51[31:0] = r50;
-            r52 = r1[64:64];
-            r53 = r51;
-            r53[32:32] = r52;
-            r54 = r53;
-            r54[33:33] = r34;
-            r55 = r56[1:1];
-            r57 = |r55;
-            r58 = r54;
-            r58[32:32] = l17;
-            r59 = r58;
-            r59[33:33] = l18;
-            r60 = r57 ? r59 : r54;
-            r61 = {r49, r60};
-            kernel_carloni_kernel = r61;
-         end
-   endfunction
-endmodule
-module top_write_controller_addr_buf_outbuf_aux_ff(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 32'b00000000000000000000000000000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 32'b00000000000000000000000000000000;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_addr_buf_outbuf_main_ff(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 32'b00000000000000000000000000000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 32'b00000000000000000000000000000000;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_addr_buf_outbuf_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b0;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b0;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_addr_buf_outbuf_void_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b1;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b1;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_data_buf(input wire [1:0] clock_reset, input wire [37:0] i, output wire [37:0] o);
-   wire [75:0] od;
-   wire [37:0] d;
-   wire [37:0] q;
-   assign o = od[37:0];
-   top_write_controller_data_buf_outbuf c0(.clock_reset(clock_reset), .i(d[37:0]), .o(q[37:0]));
-   assign d = od[75:38];
-   assign od = kernel_kernel(clock_reset, i, q);
-   function [75:0] kernel_kernel(input reg [1:0] arg_0, input reg [37:0] arg_1, input reg [37:0] arg_2);
-         reg [36:0] r0;
-         reg [37:0] r1;
-         reg [0:0] r2;
-         reg [35:0] r3;
-         // tdata
-         reg [35:0] r4;
-         // tvalid
-         reg [0:0] r5;
-         // d
-         reg [37:0] r6;
-         reg [0:0] r7;
-         // d
-         reg [37:0] r8;
-         reg [0:0] r9;
-         reg [0:0] r10;
-         // d
-         reg [37:0] r11;
-         reg [37:0] r12;
-         reg [35:0] r13;
-         // o
-         reg [37:0] r14;
-         reg [0:0] r15;
-         reg [0:0] r16;
-         // o
-         reg [37:0] r17;
-         reg [0:0] r18;
-         reg [0:0] r19;
-         reg [0:0] r20;
-         reg [0:0] r21;
-         // o
-         reg [37:0] r22;
-         reg [75:0] r23;
-         reg [1:0] r24;
-         localparam l0 = 1'b1;
-         localparam l1 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l2 = 1'b1;
-         localparam l3 = 1'b0;
-         localparam l4 = 38'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l5 = 38'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l6 = 1'b0;
-         begin
-            r24 = arg_0;
-            r1 = arg_1;
-            r12 = arg_2;
-            r0 = r1[36:0];
-            r2 = r0[36:36];
-            r3 = r0[35:0];
-            case (r2)
-               1'b1 : r4 = r3;
-               default : r4 = l1;
-            endcase
-            case (r2)
-               1'b1 : r5 = l2;
-               default : r5 = l3;
-            endcase
-            r6 = l4;
-            r6[35:0] = r4;
-            r7 = ~r5;
-            r8 = r6;
-            r8[36:36] = r7;
-            r9 = r1[37:37];
-            r10 = ~r9;
-            r11 = r8;
-            r11[37:37] = r10;
-            r13 = r12[35:0];
-            r14 = l5;
-            r14[35:0] = r13;
-            r15 = r12[36:36];
-            r16 = ~r15;
-            r17 = r14;
-            r17[36:36] = r16;
-            r18 = r12[37:37];
-            r19 = ~r18;
-            r20 = l6;
-            r21 = r20;
-            r21[0:0] = r19;
-            r22 = r17;
-            r22[37:37] = r21;
-            r23 = {r11, r22};
-            kernel_kernel = r23;
-         end
-   endfunction
-endmodule
-module top_write_controller_data_buf_outbuf(input wire [1:0] clock_reset, input wire [37:0] i, output wire [37:0] o);
-   wire [111:0] od;
-   wire [73:0] d;
-   wire [73:0] q;
-   assign o = od[37:0];
-   top_write_controller_data_buf_outbuf_aux_ff c0(.clock_reset(clock_reset), .i(d[71:36]), .o(q[71:36]));
-   top_write_controller_data_buf_outbuf_main_ff c1(.clock_reset(clock_reset), .i(d[35:0]), .o(q[35:0]));
-   top_write_controller_data_buf_outbuf_state_ff c2(.clock_reset(clock_reset), .i(d[73:73]), .o(q[73:73]));
-   top_write_controller_data_buf_outbuf_void_ff c3(.clock_reset(clock_reset), .i(d[72:72]), .o(q[72:72]));
-   assign d = od[111:38];
-   assign od = kernel_carloni_kernel(clock_reset, i, q);
-   function [111:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [37:0] arg_1, input reg [73:0] arg_2);
-         reg [0:0] r0;
-         reg [73:0] r1;
-         reg [0:0] r2;
-         reg [37:0] r3;
-         reg [0:0] r4;
-         reg [0:0] r5;
-         reg [0:0] r6;
-         reg [0:0] r7;
-         reg [0:0] r8;
-         reg [0:0] r9;
-         // d
-         reg [73:0] r10;
-         reg [0:0] r11;
-         reg [0:0] r12;
-         reg [0:0] r13;
-         reg [0:0] r14;
-         reg [0:0] r15;
-         reg [0:0] r16;
-         reg [0:0] r17;
-         // d
-         reg [73:0] r18;
-         // aux_en
-         reg [0:0] r19;
-         // d
-         reg [73:0] r20;
-         // aux_en
-         reg [0:0] r21;
-         // d
-         reg [73:0] r22;
-         // main_en
-         reg [0:0] r23;
-         reg [0:0] r24;
-         // d
-         reg [73:0] r25;
-         // d
-         reg [73:0] r26;
-         // main_en
-         reg [0:0] r27;
-         // sel
-         reg [0:0] r28;
-         // stop_out
-         reg [0:0] r29;
-         // aux_en
-         reg [0:0] r30;
-         // d
-         reg [73:0] r31;
-         // main_en
-         reg [0:0] r32;
-         // sel
-         reg [0:0] r33;
-         // stop_out
-         reg [0:0] r34;
-         reg [35:0] r35;
-         reg [35:0] r36;
-         reg [35:0] r37;
-         // d
-         reg [73:0] r38;
-         reg [35:0] r39;
-         reg [35:0] r40;
-         reg [35:0] r41;
-         reg [35:0] r42;
-         reg [35:0] r43;
-         // d
-         reg [73:0] r44;
-         reg [0:0] r45;
-         reg [0:0] r46;
-         reg [0:0] r47;
-         reg [0:0] r48;
-         // d
-         reg [73:0] r49;
-         reg [35:0] r50;
-         // o
-         reg [37:0] r51;
-         reg [0:0] r52;
-         // o
-         reg [37:0] r53;
-         // o
-         reg [37:0] r54;
-         reg [0:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
-         // o
-         reg [37:0] r58;
-         // o
-         reg [37:0] r59;
-         // o
-         reg [37:0] r60;
-         reg [111:0] r61;
-         localparam l0 = 74'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b1;
-         localparam l3 = 1'b0;
-         localparam l4 = 1'b1;
-         localparam l5 = 1'b0;
-         localparam l6 = 1'b0;
-         localparam l7 = 1'b1;
-         localparam l8 = 1'b0;
-         localparam l9 = 1'b1;
-         localparam l10 = 1'b1;
-         localparam l11 = 1'b1;
-         localparam l12 = 1'b0;
-         localparam l13 = 1'b1;
-         localparam l14 = 1'b0;
-         localparam l15 = 1'b0;
-         localparam l16 = 38'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
-         begin
-            r56 = arg_0;
-            r3 = arg_1;
-            r1 = arg_2;
-            r0 = r1[72:72];
-            r2 = r3[37:37];
-            r4 = r3[36:36];
-            r5 = ~r4;
-            r6 = ~r0;
-            r7 = r5 & r6;
-            r8 = r2 & r7;
-            r9 = r1[73:73];
-            r10 = l0;
-            r10[73:73] = r9;
-            r11 = r1[73:73];
-            r12 = r3[37:37];
-            r13 = ~r12;
-            r14 = r3[36:36];
-            r15 = ~r14;
-            r16 = r15 & r0;
-            r17 = r13 | r16;
-            r18 = r10;
-            r18[73:73] = l1;
-            r19 = r8 ? l2 : l3;
-            r20 = r8 ? r18 : r10;
-            r21 = r17 ? l3 : r19;
-            r22 = r17 ? r10 : r20;
-            r23 = r17 ? l4 : l5;
-            r24 = r3[37:37];
-            r25 = r10;
-            r25[73:73] = l6;
-            r26 = r24 ? r10 : r25;
-            r27 = r24 ? l5 : l7;
-            r28 = r24 ? l8 : l9;
-            r29 = r24 ? l10 : l11;
-            case (r11)
-               1'b0 : r30 = r21;
-               1'b1 : r30 = l3;
-            endcase
-            case (r11)
-               1'b0 : r31 = r22;
-               1'b1 : r31 = r26;
-            endcase
-            case (r11)
-               1'b0 : r32 = r23;
-               1'b1 : r32 = r27;
-            endcase
-            case (r11)
-               1'b0 : r33 = l8;
-               1'b1 : r33 = r28;
-            endcase
-            case (r11)
-               1'b0 : r34 = l14;
-               1'b1 : r34 = r29;
-            endcase
-            r35 = r3[35:0];
-            r36 = r1[71:36];
-            r37 = r30 ? r35 : r36;
-            r38 = r31;
-            r38[71:36] = r37;
-            r39 = r1[71:36];
-            r40 = r3[35:0];
-            r41 = r33 ? r39 : r40;
-            r42 = r1[35:0];
-            r43 = r32 ? r41 : r42;
-            r44 = r38;
-            r44[35:0] = r43;
-            r45 = r3[36:36];
-            r46 = r33 ? l15 : r45;
-            r47 = r1[72:72];
-            r48 = r32 ? r46 : r47;
-            r49 = r44;
-            r49[72:72] = r48;
-            r50 = r1[35:0];
-            r51 = l16;
-            r51[35:0] = r50;
-            r52 = r1[72:72];
-            r53 = r51;
-            r53[36:36] = r52;
-            r54 = r53;
-            r54[37:37] = r34;
-            r55 = r56[1:1];
-            r57 = |r55;
-            r58 = r54;
-            r58[36:36] = l17;
-            r59 = r58;
-            r59[37:37] = l18;
-            r60 = r57 ? r59 : r54;
-            r61 = {r49, r60};
-            kernel_carloni_kernel = r61;
-         end
-   endfunction
-endmodule
-module top_write_controller_data_buf_outbuf_aux_ff(input wire [1:0] clock_reset, input wire [35:0] i, output reg [35:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 36'b000000000000000000000000000000000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 36'b000000000000000000000000000000000000;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_data_buf_outbuf_main_ff(input wire [1:0] clock_reset, input wire [35:0] i, output reg [35:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 36'b000000000000000000000000000000000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 36'b000000000000000000000000000000000000;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_data_buf_outbuf_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b0;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b0;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_data_buf_outbuf_void_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b1;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b1;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_map(input wire [1:0] clock_reset, input wire [3:0] i, output wire [3:0] o);
-   wire [9:0] od;
-   wire [5:0] d;
-   wire [5:0] q;
-   assign o = od[3:0];
-   top_write_controller_map_func c0(.clock_reset(clock_reset), .i(d[5:4]), .o(q[5:4]));
-   top_write_controller_map_input_buffer c1(.clock_reset(clock_reset), .i(d[3:0]), .o(q[3:0]));
-   assign d = od[9:4];
-   assign od = kernel_kernel(clock_reset, i, q);
-   function [9:0] kernel_kernel(input reg [1:0] arg_0, input reg [3:0] arg_1, input reg [5:0] arg_2);
-         reg [2:0] r0;
-         reg [3:0] r1;
-         // d
-         reg [5:0] r2;
-         reg [0:0] r3;
-         reg [0:0] r4;
-         reg [0:0] r5;
-         // d
-         reg [5:0] r6;
-         reg [3:0] r7;
-         reg [5:0] r8;
-         reg [2:0] r9;
-         reg [0:0] r10;
-         reg [1:0] r11;
-         // d
-         reg [5:0] r12;
-         reg [1:0] r13;
-         reg [2:0] r14;
-         reg [1:0] r15;
-         // d
-         reg [5:0] r16;
-         // d
-         reg [5:0] r17;
-         reg [2:0] r18;
-         reg [3:0] r19;
-         reg [0:0] r20;
-         reg [3:0] r21;
-         reg [3:0] r22;
-         reg [9:0] r23;
-         reg [1:0] r24;
-         localparam l0 = 6'bXXXXXX;
-         localparam l1 = 1'b0;
-         localparam l2 = 1'b1;
-         localparam l3 = 2'bXX;
-         localparam l4 = 1'b1;
-         localparam l5 = 3'b000;
-         localparam l6 = 4'b0000;
-         begin
-            r24 = arg_0;
-            r1 = arg_1;
-            r8 = arg_2;
-            r0 = r1[2:0];
-            r2 = l0;
-            r2[2:0] = r0;
-            r3 = r1[3:3];
-            r4 = l1;
-            r5 = r4;
-            r5[0:0] = r3;
-            r6 = r2;
-            r6[3:3] = r5;
-            r7 = r8[3:0];
-            r9 = r7[2:0];
-            r10 = r9[2:2];
-            r11 = r9[1:0];
-            r12 = r6;
-            r12[5:4] = r11;
-            r13 = r8[5:4];
-            r15 = r13[1:0];
-            r14 = {l2, r15};
-            r16 = r6;
-            r16[5:4] = l3;
-            case (r10)
-               1'b1 : r17 = r12;
-               default : r17 = r16;
-            endcase
-            case (r10)
-               1'b1 : r18 = r14;
-               default : r18 = l5;
-            endcase
-            r19 = r8[3:0];
-            r20 = r19[3:3];
-            r21 = l6;
-            r21[2:0] = r18;
-            r22 = r21;
-            r22[3:3] = r20;
-            r23 = {r17, r22};
-            kernel_kernel = r23;
-         end
-   endfunction
-endmodule
-module top_write_controller_map_func(input wire [1:0] clock_reset, input wire [1:0] i, output wire [1:0] o);
-   assign o = kernel_map_result(clock_reset, i);
-   function [1:0] kernel_map_result(input reg [1:0] arg_0, input reg [1:0] arg_1);
-         reg [1:0] r0;
-         reg [1:0] r1;
-         reg [1:0] r2;
-         localparam l0 = 2'b00;
-         localparam l1 = 2'b10;
-         localparam l2 = 2'b01;
-         localparam l3 = 2'b10;
-         localparam l4 = 2'b10;
-         localparam l5 = 2'b00;
-         localparam l6 = 2'b01;
-         begin
-            r2 = arg_0;
-            r1 = arg_1;
-            case (r1)
-               2'b00 : r0 = l1;
-               2'b01 : r0 = l3;
-               2'b10 : r0 = l5;
-               default : r0 = l6;
-            endcase
-            kernel_map_result = r0;
-         end
-   endfunction
-endmodule
-module top_write_controller_map_input_buffer(input wire [1:0] clock_reset, input wire [3:0] i, output wire [3:0] o);
-   wire [7:0] od;
-   wire [3:0] d;
-   wire [3:0] q;
-   assign o = od[3:0];
-   top_write_controller_map_input_buffer_inner c0(.clock_reset(clock_reset), .i(d[3:0]), .o(q[3:0]));
-   assign d = od[7:4];
-   assign od = kernel_option_carloni_kernel(clock_reset, i, q);
-   function [7:0] kernel_option_carloni_kernel(input reg [1:0] arg_0, input reg [3:0] arg_1, input reg [3:0] arg_2);
-         reg [2:0] r0;
-         reg [3:0] r1;
-         reg [0:0] r2;
-         reg [1:0] r3;
-         reg [2:0] r4;
-         reg [2:0] r5;
-         reg [0:0] r6;
-         reg [1:0] r7;
-         // d
-         reg [3:0] r8;
-         reg [0:0] r9;
-         // d
-         reg [3:0] r10;
-         reg [0:0] r11;
-         reg [0:0] r12;
-         // d
-         reg [3:0] r13;
-         reg [3:0] r14;
-         reg [0:0] r15;
-         reg [0:0] r16;
-         reg [0:0] r17;
-         reg [0:0] r18;
-         // o
-         reg [3:0] r19;
-         reg [0:0] r20;
-         reg [0:0] r21;
-         reg [1:0] r22;
-         reg [2:0] r23;
-         reg [1:0] r24;
-         reg [2:0] r25;
-         // o
-         reg [3:0] r26;
-         reg [7:0] r27;
-         reg [1:0] r28;
-         localparam l0 = 1'b1;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b0;
-         localparam l3 = 3'bXX0;
-         localparam l4 = 4'bXXXX;
-         localparam l5 = 1'b0;
-         localparam l6 = 4'bXXXX;
-         localparam l7 = 1'b1;
-         localparam l8 = 3'b000;
-         begin
-            r28 = arg_0;
-            r1 = arg_1;
-            r14 = arg_2;
-            r0 = r1[2:0];
-            r2 = r0[2:2];
-            r3 = r0[1:0];
-            r4 = {r3, l0};
-            case (r2)
-               1'b1 : r5 = r4;
-               1'b0 : r5 = l3;
-            endcase
-            r6 = r5[0:0];
-            r7 = r5[2:1];
-            r8 = l4;
-            r8[1:0] = r7;
-            r9 = ~r6;
-            r10 = r8;
-            r10[2:2] = r9;
-            r11 = r1[3:3];
-            r12 = ~r11;
-            r13 = r10;
-            r13[3:3] = r12;
-            r15 = r14[3:3];
-            r16 = ~r15;
-            r17 = l5;
-            r18 = r17;
-            r18[0:0] = r16;
-            r19 = l6;
-            r19[3:3] = r18;
-            r20 = r14[2:2];
-            r21 = ~r20;
-            r22 = r14[1:0];
-            r24 = r22[1:0];
-            r23 = {l7, r24};
-            r25 = r21 ? r23 : l8;
-            r26 = r19;
-            r26[2:0] = r25;
-            r27 = {r13, r26};
-            kernel_option_carloni_kernel = r27;
-         end
-   endfunction
-endmodule
-module top_write_controller_map_input_buffer_inner(input wire [1:0] clock_reset, input wire [3:0] i, output wire [3:0] o);
-   wire [9:0] od;
-   wire [5:0] d;
-   wire [5:0] q;
-   assign o = od[3:0];
-   top_write_controller_map_input_buffer_inner_aux_ff c0(.clock_reset(clock_reset), .i(d[3:2]), .o(q[3:2]));
-   top_write_controller_map_input_buffer_inner_main_ff c1(.clock_reset(clock_reset), .i(d[1:0]), .o(q[1:0]));
-   top_write_controller_map_input_buffer_inner_state_ff c2(.clock_reset(clock_reset), .i(d[5:5]), .o(q[5:5]));
-   top_write_controller_map_input_buffer_inner_void_ff c3(.clock_reset(clock_reset), .i(d[4:4]), .o(q[4:4]));
-   assign d = od[9:4];
-   assign od = kernel_carloni_kernel(clock_reset, i, q);
-   function [9:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [3:0] arg_1, input reg [5:0] arg_2);
-         reg [0:0] r0;
-         reg [5:0] r1;
-         reg [0:0] r2;
-         reg [3:0] r3;
-         reg [0:0] r4;
-         reg [0:0] r5;
-         reg [0:0] r6;
-         reg [0:0] r7;
-         reg [0:0] r8;
-         reg [0:0] r9;
-         // d
-         reg [5:0] r10;
-         reg [0:0] r11;
-         reg [0:0] r12;
-         reg [0:0] r13;
-         reg [0:0] r14;
-         reg [0:0] r15;
-         reg [0:0] r16;
-         reg [0:0] r17;
-         // d
-         reg [5:0] r18;
-         // aux_en
-         reg [0:0] r19;
-         // d
-         reg [5:0] r20;
-         // aux_en
-         reg [0:0] r21;
-         // d
-         reg [5:0] r22;
-         // main_en
-         reg [0:0] r23;
-         reg [0:0] r24;
-         // d
-         reg [5:0] r25;
-         // d
-         reg [5:0] r26;
-         // main_en
-         reg [0:0] r27;
-         // sel
-         reg [0:0] r28;
-         // stop_out
-         reg [0:0] r29;
-         // aux_en
-         reg [0:0] r30;
-         // d
-         reg [5:0] r31;
-         // main_en
-         reg [0:0] r32;
-         // sel
-         reg [0:0] r33;
-         // stop_out
-         reg [0:0] r34;
-         reg [1:0] r35;
-         reg [1:0] r36;
-         reg [1:0] r37;
-         // d
-         reg [5:0] r38;
-         reg [1:0] r39;
-         reg [1:0] r40;
-         reg [1:0] r41;
-         reg [1:0] r42;
-         reg [1:0] r43;
-         // d
-         reg [5:0] r44;
-         reg [0:0] r45;
-         reg [0:0] r46;
-         reg [0:0] r47;
-         reg [0:0] r48;
-         // d
-         reg [5:0] r49;
-         reg [1:0] r50;
-         // o
-         reg [3:0] r51;
-         reg [0:0] r52;
-         // o
-         reg [3:0] r53;
-         // o
-         reg [3:0] r54;
-         reg [0:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
-         // o
-         reg [3:0] r58;
-         // o
-         reg [3:0] r59;
-         // o
-         reg [3:0] r60;
-         reg [9:0] r61;
-         localparam l0 = 6'bXXXXXX;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b1;
-         localparam l3 = 1'b0;
-         localparam l4 = 1'b1;
-         localparam l5 = 1'b0;
-         localparam l6 = 1'b0;
-         localparam l7 = 1'b1;
-         localparam l8 = 1'b0;
-         localparam l9 = 1'b1;
-         localparam l10 = 1'b1;
-         localparam l11 = 1'b1;
-         localparam l12 = 1'b0;
-         localparam l13 = 1'b1;
-         localparam l14 = 1'b0;
-         localparam l15 = 1'b0;
-         localparam l16 = 4'bXXXX;
-         localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
-         begin
-            r56 = arg_0;
-            r3 = arg_1;
-            r1 = arg_2;
-            r0 = r1[4:4];
-            r2 = r3[3:3];
-            r4 = r3[2:2];
-            r5 = ~r4;
-            r6 = ~r0;
-            r7 = r5 & r6;
-            r8 = r2 & r7;
-            r9 = r1[5:5];
-            r10 = l0;
-            r10[5:5] = r9;
-            r11 = r1[5:5];
-            r12 = r3[3:3];
-            r13 = ~r12;
-            r14 = r3[2:2];
-            r15 = ~r14;
-            r16 = r15 & r0;
-            r17 = r13 | r16;
-            r18 = r10;
-            r18[5:5] = l1;
-            r19 = r8 ? l2 : l3;
-            r20 = r8 ? r18 : r10;
-            r21 = r17 ? l3 : r19;
-            r22 = r17 ? r10 : r20;
-            r23 = r17 ? l4 : l5;
-            r24 = r3[3:3];
-            r25 = r10;
-            r25[5:5] = l6;
-            r26 = r24 ? r10 : r25;
-            r27 = r24 ? l5 : l7;
-            r28 = r24 ? l8 : l9;
-            r29 = r24 ? l10 : l11;
-            case (r11)
-               1'b0 : r30 = r21;
-               1'b1 : r30 = l3;
-            endcase
-            case (r11)
-               1'b0 : r31 = r22;
-               1'b1 : r31 = r26;
-            endcase
-            case (r11)
-               1'b0 : r32 = r23;
-               1'b1 : r32 = r27;
-            endcase
-            case (r11)
-               1'b0 : r33 = l8;
-               1'b1 : r33 = r28;
-            endcase
-            case (r11)
-               1'b0 : r34 = l14;
-               1'b1 : r34 = r29;
-            endcase
-            r35 = r3[1:0];
-            r36 = r1[3:2];
-            r37 = r30 ? r35 : r36;
-            r38 = r31;
-            r38[3:2] = r37;
-            r39 = r1[3:2];
-            r40 = r3[1:0];
-            r41 = r33 ? r39 : r40;
-            r42 = r1[1:0];
-            r43 = r32 ? r41 : r42;
-            r44 = r38;
-            r44[1:0] = r43;
-            r45 = r3[2:2];
-            r46 = r33 ? l15 : r45;
-            r47 = r1[4:4];
-            r48 = r32 ? r46 : r47;
-            r49 = r44;
-            r49[4:4] = r48;
-            r50 = r1[1:0];
-            r51 = l16;
-            r51[1:0] = r50;
-            r52 = r1[4:4];
-            r53 = r51;
-            r53[2:2] = r52;
-            r54 = r53;
-            r54[3:3] = r34;
-            r55 = r56[1:1];
-            r57 = |r55;
-            r58 = r54;
-            r58[2:2] = l17;
-            r59 = r58;
-            r59[3:3] = l18;
-            r60 = r57 ? r59 : r54;
-            r61 = {r49, r60};
-            kernel_carloni_kernel = r61;
-         end
-   endfunction
-endmodule
-module top_write_controller_map_input_buffer_inner_aux_ff(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 2'b00;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 2'b00;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_map_input_buffer_inner_main_ff(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 2'b00;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 2'b00;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_map_input_buffer_inner_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b0;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b0;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_map_input_buffer_inner_void_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b1;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b1;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_outbuf(input wire [1:0] clock_reset, input wire [3:0] i, output wire [3:0] o);
-   wire [7:0] od;
-   wire [3:0] d;
-   wire [3:0] q;
-   assign o = od[3:0];
-   top_write_controller_outbuf_inbuf c0(.clock_reset(clock_reset), .i(d[3:0]), .o(q[3:0]));
-   assign d = od[7:4];
-   assign od = kernel_kernel(clock_reset, i, q);
-   function [7:0] kernel_kernel(input reg [1:0] arg_0, input reg [3:0] arg_1, input reg [3:0] arg_2);
-         reg [1:0] r0;
-         reg [3:0] r1;
-         // d
-         reg [3:0] r2;
-         reg [0:0] r3;
-         reg [0:0] r4;
-         // d
-         reg [3:0] r5;
-         reg [0:0] r6;
-         reg [0:0] r7;
-         // d
-         reg [3:0] r8;
-         reg [3:0] r9;
-         reg [0:0] r10;
-         reg [0:0] r11;
-         reg [1:0] r12;
-         reg [2:0] r13;
-         reg [1:0] r14;
-         reg [2:0] r15;
-         reg [0:0] r16;
-         reg [0:0] r17;
-         // o
-         reg [3:0] r18;
-         // o
-         reg [3:0] r19;
-         reg [7:0] r20;
-         reg [1:0] r21;
-         localparam l0 = 4'bXXXX;
-         localparam l1 = 1'b1;
-         localparam l2 = 3'b000;
-         localparam l3 = 4'bXXXX;
-         begin
-            r21 = arg_0;
-            r1 = arg_1;
-            r9 = arg_2;
-            r0 = r1[1:0];
-            r2 = l0;
-            r2[1:0] = r0;
-            r3 = r1[2:2];
-            r4 = ~r3;
-            r5 = r2;
-            r5[2:2] = r4;
-            r6 = r1[3:3];
-            r7 = ~r6;
-            r8 = r5;
-            r8[3:3] = r7;
-            r10 = r9[2:2];
-            r11 = ~r10;
-            r12 = r9[1:0];
-            r14 = r12[1:0];
-            r13 = {l1, r14};
-            r15 = r11 ? r13 : l2;
-            r16 = r9[3:3];
-            r17 = ~r16;
-            r18 = l3;
-            r18[3:3] = r17;
-            r19 = r18;
-            r19[2:0] = r15;
-            r20 = {r8, r19};
-            kernel_kernel = r20;
-         end
-   endfunction
-endmodule
-module top_write_controller_outbuf_inbuf(input wire [1:0] clock_reset, input wire [3:0] i, output wire [3:0] o);
-   wire [9:0] od;
-   wire [5:0] d;
-   wire [5:0] q;
-   assign o = od[3:0];
-   top_write_controller_outbuf_inbuf_aux_ff c0(.clock_reset(clock_reset), .i(d[3:2]), .o(q[3:2]));
-   top_write_controller_outbuf_inbuf_main_ff c1(.clock_reset(clock_reset), .i(d[1:0]), .o(q[1:0]));
-   top_write_controller_outbuf_inbuf_state_ff c2(.clock_reset(clock_reset), .i(d[5:5]), .o(q[5:5]));
-   top_write_controller_outbuf_inbuf_void_ff c3(.clock_reset(clock_reset), .i(d[4:4]), .o(q[4:4]));
-   assign d = od[9:4];
-   assign od = kernel_carloni_kernel(clock_reset, i, q);
-   function [9:0] kernel_carloni_kernel(input reg [1:0] arg_0, input reg [3:0] arg_1, input reg [5:0] arg_2);
-         reg [0:0] r0;
-         reg [5:0] r1;
-         reg [0:0] r2;
-         reg [3:0] r3;
-         reg [0:0] r4;
-         reg [0:0] r5;
-         reg [0:0] r6;
-         reg [0:0] r7;
-         reg [0:0] r8;
-         reg [0:0] r9;
-         // d
-         reg [5:0] r10;
-         reg [0:0] r11;
-         reg [0:0] r12;
-         reg [0:0] r13;
-         reg [0:0] r14;
-         reg [0:0] r15;
-         reg [0:0] r16;
-         reg [0:0] r17;
-         // d
-         reg [5:0] r18;
-         // aux_en
-         reg [0:0] r19;
-         // d
-         reg [5:0] r20;
-         // aux_en
-         reg [0:0] r21;
-         // d
-         reg [5:0] r22;
-         // main_en
-         reg [0:0] r23;
-         reg [0:0] r24;
-         // d
-         reg [5:0] r25;
-         // d
-         reg [5:0] r26;
-         // main_en
-         reg [0:0] r27;
-         // sel
-         reg [0:0] r28;
-         // stop_out
-         reg [0:0] r29;
-         // aux_en
-         reg [0:0] r30;
-         // d
-         reg [5:0] r31;
-         // main_en
-         reg [0:0] r32;
-         // sel
-         reg [0:0] r33;
-         // stop_out
-         reg [0:0] r34;
-         reg [1:0] r35;
-         reg [1:0] r36;
-         reg [1:0] r37;
-         // d
-         reg [5:0] r38;
-         reg [1:0] r39;
-         reg [1:0] r40;
-         reg [1:0] r41;
-         reg [1:0] r42;
-         reg [1:0] r43;
-         // d
-         reg [5:0] r44;
-         reg [0:0] r45;
-         reg [0:0] r46;
-         reg [0:0] r47;
-         reg [0:0] r48;
-         // d
-         reg [5:0] r49;
-         reg [1:0] r50;
-         // o
-         reg [3:0] r51;
-         reg [0:0] r52;
-         // o
-         reg [3:0] r53;
-         // o
-         reg [3:0] r54;
-         reg [0:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
-         // o
-         reg [3:0] r58;
-         // o
-         reg [3:0] r59;
-         // o
-         reg [3:0] r60;
-         reg [9:0] r61;
-         localparam l0 = 6'bXXXXXX;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b1;
-         localparam l3 = 1'b0;
-         localparam l4 = 1'b1;
-         localparam l5 = 1'b0;
-         localparam l6 = 1'b0;
-         localparam l7 = 1'b1;
-         localparam l8 = 1'b0;
-         localparam l9 = 1'b1;
-         localparam l10 = 1'b1;
-         localparam l11 = 1'b1;
-         localparam l12 = 1'b0;
-         localparam l13 = 1'b1;
-         localparam l14 = 1'b0;
-         localparam l15 = 1'b0;
-         localparam l16 = 4'bXXXX;
-         localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
-         begin
-            r56 = arg_0;
-            r3 = arg_1;
-            r1 = arg_2;
-            r0 = r1[4:4];
-            r2 = r3[3:3];
-            r4 = r3[2:2];
-            r5 = ~r4;
-            r6 = ~r0;
-            r7 = r5 & r6;
-            r8 = r2 & r7;
-            r9 = r1[5:5];
-            r10 = l0;
-            r10[5:5] = r9;
-            r11 = r1[5:5];
-            r12 = r3[3:3];
-            r13 = ~r12;
-            r14 = r3[2:2];
-            r15 = ~r14;
-            r16 = r15 & r0;
-            r17 = r13 | r16;
-            r18 = r10;
-            r18[5:5] = l1;
-            r19 = r8 ? l2 : l3;
-            r20 = r8 ? r18 : r10;
-            r21 = r17 ? l3 : r19;
-            r22 = r17 ? r10 : r20;
-            r23 = r17 ? l4 : l5;
-            r24 = r3[3:3];
-            r25 = r10;
-            r25[5:5] = l6;
-            r26 = r24 ? r10 : r25;
-            r27 = r24 ? l5 : l7;
-            r28 = r24 ? l8 : l9;
-            r29 = r24 ? l10 : l11;
-            case (r11)
-               1'b0 : r30 = r21;
-               1'b1 : r30 = l3;
-            endcase
-            case (r11)
-               1'b0 : r31 = r22;
-               1'b1 : r31 = r26;
-            endcase
-            case (r11)
-               1'b0 : r32 = r23;
-               1'b1 : r32 = r27;
-            endcase
-            case (r11)
-               1'b0 : r33 = l8;
-               1'b1 : r33 = r28;
-            endcase
-            case (r11)
-               1'b0 : r34 = l14;
-               1'b1 : r34 = r29;
-            endcase
-            r35 = r3[1:0];
-            r36 = r1[3:2];
-            r37 = r30 ? r35 : r36;
-            r38 = r31;
-            r38[3:2] = r37;
-            r39 = r1[3:2];
-            r40 = r3[1:0];
-            r41 = r33 ? r39 : r40;
-            r42 = r1[1:0];
-            r43 = r32 ? r41 : r42;
-            r44 = r38;
-            r44[1:0] = r43;
-            r45 = r3[2:2];
-            r46 = r33 ? l15 : r45;
-            r47 = r1[4:4];
-            r48 = r32 ? r46 : r47;
-            r49 = r44;
-            r49[4:4] = r48;
-            r50 = r1[1:0];
-            r51 = l16;
-            r51[1:0] = r50;
-            r52 = r1[4:4];
-            r53 = r51;
-            r53[2:2] = r52;
-            r54 = r53;
-            r54[3:3] = r34;
-            r55 = r56[1:1];
-            r57 = |r55;
-            r58 = r54;
-            r58[2:2] = l17;
-            r59 = r58;
-            r59[3:3] = l18;
-            r60 = r57 ? r59 : r54;
-            r61 = {r49, r60};
-            kernel_carloni_kernel = r61;
-         end
-   endfunction
-endmodule
-module top_write_controller_outbuf_inbuf_aux_ff(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 2'b00;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 2'b00;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_outbuf_inbuf_main_ff(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 2'b00;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 2'b00;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_outbuf_inbuf_state_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b0;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b0;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_outbuf_inbuf_void_ff(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b1;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b1;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee(input wire [1:0] clock_reset, input wire [70:0] i, output wire [70:0] o);
-   wire [212:0] od;
-   wire [141:0] d;
-   wire [144:0] q;
-   assign o = od[70:0];
-   top_write_controller_tee_in_buffer c0(.clock_reset(clock_reset), .i(d[69:0]), .o(q[70:0]));
-   top_write_controller_tee_s_buffer c1(.clock_reset(clock_reset), .i(d[103:70]), .o(q[105:71]));
-   top_write_controller_tee_t_buffer c2(.clock_reset(clock_reset), .i(d[141:104]), .o(q[144:106]));
-   assign d = od[212:71];
-   assign od = kernel_kernel(clock_reset, i, q);
-   function [212:0] kernel_kernel(input reg [1:0] arg_0, input reg [70:0] arg_1, input reg [144:0] arg_2);
-         reg [34:0] r0;
-         reg [144:0] r1;
-         reg [0:0] r2;
-         reg [38:0] r3;
-         reg [0:0] r4;
-         reg [0:0] r5;
-         reg [0:0] r6;
-         reg [70:0] r7;
-         reg [68:0] r8;
-         reg [0:0] r9;
-         reg [67:0] r10;
-         reg [31:0] r11;
-         reg [32:0] r12;
-         reg [31:0] r13;
-         reg [35:0] r14;
-         reg [36:0] r15;
-         reg [35:0] r16;
-         // next
-         reg [0:0] r17;
-         // s_val
-         reg [32:0] r18;
-         // t_val
-         reg [36:0] r19;
-         // next
-         reg [0:0] r20;
-         // s_val
-         reg [32:0] r21;
-         // t_val
-         reg [36:0] r22;
-         // d
-         reg [141:0] r23;
-         // d
-         reg [141:0] r24;
-         // d
-         reg [141:0] r25;
-         reg [68:0] r26;
-         reg [70:0] r27;
-         // d
-         reg [141:0] r28;
-         reg [0:0] r29;
-         // d
-         reg [141:0] r30;
-         reg [0:0] r31;
-         // d
-         reg [141:0] r32;
-         reg [34:0] r33;
-         reg [32:0] r34;
-         reg [38:0] r35;
-         reg [36:0] r36;
-         reg [70:0] r37;
-         reg [0:0] r38;
-         reg [70:0] r39;
-         reg [70:0] r40;
-         reg [70:0] r41;
-         reg [212:0] r42;
-         reg [1:0] r43;
-         localparam l0 = 1'b1;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b1;
-         localparam l3 = 1'b1;
-         localparam l4 = 1'b0;
-         localparam l5 = 33'b000000000000000000000000000000000;
-         localparam l6 = 37'b0000000000000000000000000000000000000;
-         localparam l7 = 142'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l8 = 71'b00000000000000000000000000000000000000000000000000000000000000000000000;
-         begin
-            r43 = arg_0;
-            r27 = arg_1;
-            r1 = arg_2;
-            r0 = r1[105:71];
-            r2 = r0[33:33];
-            r3 = r1[144:106];
-            r4 = r3[37:37];
-            r5 = r2 | r4;
-            r6 = ~r5;
-            r7 = r1[70:0];
-            r8 = r7[68:0];
-            r9 = r8[68:68];
-            r10 = r8[67:0];
-            r11 = r10[31:0];
-            r13 = r11[31:0];
-            r12 = {l0, r13};
-            r14 = r10[67:32];
-            r16 = r14[35:0];
-            r15 = {l1, r16};
-            case (r9)
-               1'b1 : r17 = l3;
-               default : r17 = l4;
-            endcase
-            case (r9)
-               1'b1 : r18 = r12;
-               default : r18 = l5;
-            endcase
-            case (r9)
-               1'b1 : r19 = r15;
-               default : r19 = l6;
-            endcase
-            r20 = r6 ? r17 : l4;
-            r21 = r6 ? r18 : l5;
-            r22 = r6 ? r19 : l6;
-            r23 = l7;
-            r23[102:70] = r21;
-            r24 = r23;
-            r24[140:104] = r22;
-            r25 = r24;
-            r25[69:69] = r20;
-            r26 = r27[68:0];
-            r28 = r25;
-            r28[68:0] = r26;
-            r29 = r27[69:69];
-            r30 = r28;
-            r30[103:103] = r29;
-            r31 = r27[70:70];
-            r32 = r30;
-            r32[141:141] = r31;
-            r33 = r1[105:71];
-            r34 = r33[32:0];
-            r35 = r1[144:106];
-            r36 = r35[36:0];
-            r37 = r1[70:0];
-            r38 = r37[69:69];
-            r39 = l8;
-            r39[32:0] = r34;
-            r40 = r39;
-            r40[69:33] = r36;
-            r41 = r40;
-            r41[70:70] = r38;
-            r42 = {r32, r41};
-            kernel_kernel = r42;
-         end
-   endfunction
-endmodule
-module top_write_controller_tee_in_buffer(input wire [1:0] clock_reset, input wire [69:0] i, output wire [70:0] o);
-   wire [210:0] od;
-   wire [139:0] d;
-   wire [139:0] q;
-   assign o = od[70:0];
-   top_write_controller_tee_in_buffer_one_slot c0(.clock_reset(clock_reset), .i(d[137:70]), .o(q[137:70]));
-   top_write_controller_tee_in_buffer_read_slot c1(.clock_reset(clock_reset), .i(d[139:139]), .o(q[139:139]));
-   top_write_controller_tee_in_buffer_state c2(.clock_reset(clock_reset), .i(d[1:0]), .o(q[1:0]));
-   top_write_controller_tee_in_buffer_write_slot c3(.clock_reset(clock_reset), .i(d[138:138]), .o(q[138:138]));
-   top_write_controller_tee_in_buffer_zero_slot c4(.clock_reset(clock_reset), .i(d[69:2]), .o(q[69:2]));
-   assign d = od[210:71];
-   assign od = kernel_kernel(clock_reset, i, q);
-   function [210:0] kernel_kernel(input reg [1:0] arg_0, input reg [69:0] arg_1, input reg [139:0] arg_2);
-         reg [0:0] r0;
-         reg [69:0] r1;
-         reg [68:0] r2;
-         reg [0:0] r3;
-         reg [0:0] r4;
-         reg [1:0] r5;
-         reg [139:0] r6;
-         reg [1:0] r7;
-         reg [1:0] r8;
-         reg [1:0] r9;
-         reg [1:0] r10;
-         reg [1:0] r11;
-         reg [1:0] r12;
-         // d
-         reg [139:0] r13;
-         reg [1:0] r14;
-         reg [0:0] r15;
-         reg [1:0] r16;
-         reg [0:0] r17;
-         reg [0:0] r18;
-         reg [0:0] r19;
-         reg [67:0] r20;
-         // d
-         reg [139:0] r21;
-         reg [67:0] r22;
-         // d
-         reg [139:0] r23;
-         reg [68:0] r24;
-         reg [0:0] r25;
-         reg [67:0] r26;
-         reg [0:0] r27;
-         // d
-         reg [139:0] r28;
-         // d
-         reg [139:0] r29;
-         // d
-         reg [139:0] r30;
-         // d
-         reg [139:0] r31;
-         // d
-         reg [139:0] r32;
-         reg [0:0] r33;
-         reg [0:0] r34;
-         // d
-         reg [139:0] r35;
-         reg [0:0] r36;
-         reg [0:0] r37;
-         // d
-         reg [139:0] r38;
-         reg [1:0] r39;
-         reg [0:0] r40;
-         reg [0:0] r41;
-         reg [0:0] r42;
-         reg [67:0] r43;
-         reg [68:0] r44;
-         reg [67:0] r45;
-         // o
-         reg [70:0] r46;
-         reg [67:0] r47;
-         reg [68:0] r48;
-         reg [67:0] r49;
-         // o
-         reg [70:0] r50;
-         // o
-         reg [70:0] r51;
-         // o
-         reg [70:0] r52;
-         reg [0:0] r53;
-         reg [0:0] r54;
-         // o
-         reg [70:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
-         // o
-         reg [70:0] r58;
-         reg [210:0] r59;
-         reg [1:0] r60;
-         localparam l0 = 1'b1;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b0;
-         localparam l3 = 1'b0;
-         localparam l4 = 2'b11;
-         localparam l5 = 2'b00;
-         localparam l6 = 2'b01;
-         localparam l7 = 2'b00;
-         localparam l8 = 2'b01;
-         localparam l9 = 2'b01;
-         localparam l10 = 2'b10;
-         localparam l11 = 2'b10;
-         localparam l12 = 2'b00;
-         localparam l13 = 2'b11;
-         localparam l14 = 2'b01;
-         localparam l15 = 2'b01;
-         localparam l16 = 2'b10;
-         localparam l17 = 2'b00;
-         localparam l18 = 2'b01;
-         localparam l19 = 2'b10;
-         localparam l20 = 2'b11;
-         localparam l21 = 2'b11;
-         localparam l22 = 140'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l23 = 2'b10;
-         localparam l24 = 2'b11;
-         localparam l25 = 1'b1;
-         localparam l26 = 2'b00;
-         localparam l27 = 1'b1;
-         localparam l28 = 71'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l29 = 1'b1;
-         localparam l30 = 71'bXX000000000000000000000000000000000000000000000000000000000000000000000;
-         localparam l31 = 1'b0;
-         localparam l32 = 2'b11;
-         begin
-            r60 = arg_0;
-            r1 = arg_1;
-            r6 = arg_2;
-            r0 = r1[69:69];
-            r2 = r1[68:0];
-            r3 = r2[68:68];
-            case (r3)
-               1'b1 : r4 = l1;
-               1'b0 : r4 = l3;
-            endcase
-            r5 = r6[1:0];
-            r7 = r0 ? l4 : l5;
-            r8 = r4 ? l6 : r7;
-            r9 = {r0, r4};
-            case (r9)
-               2'b00 : r10 = l8;
-               2'b01 : r10 = l10;
-               2'b10 : r10 = l12;
-               2'b11 : r10 = l14;
-            endcase
-            r11 = r0 ? l15 : l16;
-            case (r5)
-               2'b00 : r12 = r8;
-               2'b01 : r12 = r10;
-               2'b10 : r12 = r11;
-               2'b11 : r12 = l21;
-            endcase
-            r13 = l22;
-            r13[1:0] = r12;
-            r14 = r6[1:0];
-            r15 = r14 != l23;
-            r16 = r6[1:0];
-            r17 = r16 != l24;
-            r18 = r15 & r17;
-            r19 = r4 & r18;
-            r20 = r6[69:2];
-            r21 = r13;
-            r21[69:2] = r20;
-            r22 = r6[137:70];
-            r23 = r21;
-            r23[137:70] = r22;
-            r24 = r1[68:0];
-            r25 = r24[68:68];
-            r26 = r24[67:0];
-            r27 = r6[138:138];
-            r28 = r23;
-            r28[137:70] = r26;
-            r29 = r23;
-            r29[69:2] = r26;
-            r30 = r27 ? r28 : r29;
-            r31 = r19 ? r30 : r23;
-            case (r25)
-               1'b1 : r32 = r31;
-               default : r32 = r23;
-            endcase
-            r33 = r6[138:138];
-            r34 = r19 ^ r33;
-            r35 = r32;
-            r35[138:138] = r34;
-            r36 = r6[139:139];
-            r37 = r0 ^ r36;
-            r38 = r35;
-            r38[139:139] = r37;
-            r39 = r6[1:0];
-            r40 = r39 == l26;
-            r41 = r6[139:139];
-            r42 = ~r41;
-            r43 = r6[69:2];
-            r45 = r43[67:0];
-            r44 = {l27, r45};
-            r46 = l28;
-            r46[68:0] = r44;
-            r47 = r6[137:70];
-            r49 = r47[67:0];
-            r48 = {l29, r49};
-            r50 = l28;
-            r50[68:0] = r48;
-            r51 = r42 ? r46 : r50;
-            r52 = r40 ? l30 : r51;
-            r53 = l31;
-            r54 = r53;
-            r54[0:0] = r18;
-            r55 = r52;
-            r55[69:69] = r54;
-            r56 = r6[1:0];
-            r57 = r56 == l32;
-            r58 = r55;
-            r58[70:70] = r57;
-            r59 = {r38, r58};
-            kernel_kernel = r59;
-         end
-   endfunction
-endmodule
-module top_write_controller_tee_in_buffer_one_slot(input wire [1:0] clock_reset, input wire [67:0] i, output reg [67:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 68'b00000000000000000000000000000000000000000000000000000000000000000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 68'b00000000000000000000000000000000000000000000000000000000000000000000;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_in_buffer_read_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b0;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b0;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_in_buffer_state(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 2'b00;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 2'b00;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_in_buffer_write_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b0;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b0;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_in_buffer_zero_slot(input wire [1:0] clock_reset, input wire [67:0] i, output reg [67:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 68'b00000000000000000000000000000000000000000000000000000000000000000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 68'b00000000000000000000000000000000000000000000000000000000000000000000;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_s_buffer(input wire [1:0] clock_reset, input wire [33:0] i, output wire [34:0] o);
-   wire [102:0] od;
-   wire [67:0] d;
-   wire [67:0] q;
-   assign o = od[34:0];
-   top_write_controller_tee_s_buffer_one_slot c0(.clock_reset(clock_reset), .i(d[65:34]), .o(q[65:34]));
-   top_write_controller_tee_s_buffer_read_slot c1(.clock_reset(clock_reset), .i(d[67:67]), .o(q[67:67]));
-   top_write_controller_tee_s_buffer_state c2(.clock_reset(clock_reset), .i(d[1:0]), .o(q[1:0]));
-   top_write_controller_tee_s_buffer_write_slot c3(.clock_reset(clock_reset), .i(d[66:66]), .o(q[66:66]));
-   top_write_controller_tee_s_buffer_zero_slot c4(.clock_reset(clock_reset), .i(d[33:2]), .o(q[33:2]));
-   assign d = od[102:35];
-   assign od = kernel_kernel(clock_reset, i, q);
-   function [102:0] kernel_kernel(input reg [1:0] arg_0, input reg [33:0] arg_1, input reg [67:0] arg_2);
-         reg [32:0] r0;
-         reg [33:0] r1;
-         reg [0:0] r2;
-         reg [0:0] r3;
-         reg [0:0] r4;
-         reg [1:0] r5;
-         reg [67:0] r6;
-         reg [1:0] r7;
-         reg [1:0] r8;
-         reg [1:0] r9;
-         reg [1:0] r10;
-         reg [1:0] r11;
-         reg [1:0] r12;
-         // d
-         reg [67:0] r13;
-         reg [31:0] r14;
-         // d
-         reg [67:0] r15;
-         reg [31:0] r16;
-         // d
-         reg [67:0] r17;
-         reg [32:0] r18;
-         reg [0:0] r19;
-         reg [31:0] r20;
-         reg [0:0] r21;
-         reg [0:0] r22;
-         // d
-         reg [67:0] r23;
-         // d
-         reg [67:0] r24;
-         // d
-         reg [67:0] r25;
-         // d
-         reg [67:0] r26;
-         reg [1:0] r27;
-         reg [0:0] r28;
-         reg [0:0] r29;
-         reg [1:0] r30;
-         reg [0:0] r31;
-         reg [0:0] r32;
-         reg [0:0] r33;
-         reg [0:0] r34;
-         // d
-         reg [67:0] r35;
-         reg [0:0] r36;
-         reg [0:0] r37;
-         // d
-         reg [67:0] r38;
-         reg [1:0] r39;
-         reg [0:0] r40;
-         reg [0:0] r41;
-         reg [0:0] r42;
-         reg [31:0] r43;
-         reg [32:0] r44;
-         reg [31:0] r45;
-         // o
-         reg [34:0] r46;
-         reg [31:0] r47;
-         reg [32:0] r48;
-         reg [31:0] r49;
-         // o
-         reg [34:0] r50;
-         // o
-         reg [34:0] r51;
-         // o
-         reg [34:0] r52;
-         reg [1:0] r53;
-         reg [0:0] r54;
-         // o
-         reg [34:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
-         // o
-         reg [34:0] r58;
-         reg [102:0] r59;
-         reg [1:0] r60;
-         localparam l0 = 1'b1;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b0;
-         localparam l3 = 1'b0;
-         localparam l4 = 2'b01;
-         localparam l5 = 2'b00;
-         localparam l6 = 2'b00;
-         localparam l7 = 2'b01;
-         localparam l8 = 2'b01;
-         localparam l9 = 2'b10;
-         localparam l10 = 2'b10;
-         localparam l11 = 2'b00;
-         localparam l12 = 2'b11;
-         localparam l13 = 2'b01;
-         localparam l14 = 2'b01;
-         localparam l15 = 2'b10;
-         localparam l16 = 2'b11;
-         localparam l17 = 2'b00;
-         localparam l18 = 2'b01;
-         localparam l19 = 2'b10;
-         localparam l20 = 2'b11;
-         localparam l21 = 2'b11;
-         localparam l22 = 68'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l23 = 1'b1;
-         localparam l24 = 2'b11;
-         localparam l25 = 2'b00;
-         localparam l26 = 1'b1;
-         localparam l27 = 35'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l28 = 1'b1;
-         localparam l29 = 35'bXX000000000000000000000000000000000;
-         localparam l30 = 2'b10;
-         localparam l31 = 2'b11;
-         begin
-            r60 = arg_0;
-            r1 = arg_1;
-            r6 = arg_2;
-            r0 = r1[32:0];
-            r2 = r0[32:32];
-            case (r2)
-               1'b1 : r3 = l1;
-               1'b0 : r3 = l3;
-            endcase
-            r4 = r1[33:33];
-            r5 = r6[1:0];
-            r7 = r3 ? l4 : l5;
-            r8 = {r4, r3};
-            case (r8)
-               2'b00 : r9 = l7;
-               2'b01 : r9 = l9;
-               2'b10 : r9 = l11;
-               2'b11 : r9 = l13;
-            endcase
-            r10 = r4 ? l14 : l15;
-            r11 = r3 ? l16 : r10;
-            case (r5)
-               2'b00 : r12 = r7;
-               2'b01 : r12 = r9;
-               2'b10 : r12 = r11;
-               2'b11 : r12 = l21;
-            endcase
-            r13 = l22;
-            r13[1:0] = r12;
-            r14 = r6[33:2];
-            r15 = r13;
-            r15[33:2] = r14;
-            r16 = r6[65:34];
-            r17 = r15;
-            r17[65:34] = r16;
-            r18 = r1[32:0];
-            r19 = r18[32:32];
-            r20 = r18[31:0];
-            r21 = r6[66:66];
-            r22 = ~r21;
-            r23 = r17;
-            r23[33:2] = r20;
-            r24 = r17;
-            r24[65:34] = r20;
-            r25 = r22 ? r23 : r24;
-            case (r19)
-               1'b1 : r26 = r25;
-               default : r26 = r17;
-            endcase
-            r27 = r6[1:0];
-            r28 = |r27;
-            r29 = r4 & r28;
-            r30 = r6[1:0];
-            r31 = r30 != l24;
-            r32 = r29 & r31;
-            r33 = r6[66:66];
-            r34 = r3 ^ r33;
-            r35 = r26;
-            r35[66:66] = r34;
-            r36 = r6[67:67];
-            r37 = r32 ^ r36;
-            r38 = r35;
-            r38[67:67] = r37;
-            r39 = r6[1:0];
-            r40 = r39 == l25;
-            r41 = r6[67:67];
-            r42 = ~r41;
-            r43 = r6[33:2];
-            r45 = r43[31:0];
-            r44 = {l26, r45};
-            r46 = l27;
-            r46[32:0] = r44;
-            r47 = r6[65:34];
-            r49 = r47[31:0];
-            r48 = {l28, r49};
-            r50 = l27;
-            r50[32:0] = r48;
-            r51 = r42 ? r46 : r50;
-            r52 = r40 ? l29 : r51;
-            r53 = r6[1:0];
-            r54 = r53 == l30;
-            r55 = r52;
-            r55[33:33] = r54;
-            r56 = r6[1:0];
-            r57 = r56 == l31;
-            r58 = r55;
-            r58[34:34] = r57;
-            r59 = {r38, r58};
-            kernel_kernel = r59;
-         end
-   endfunction
-endmodule
-module top_write_controller_tee_s_buffer_one_slot(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 32'b00000000000000000000000000000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 32'b00000000000000000000000000000000;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_s_buffer_read_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b0;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b0;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_s_buffer_state(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 2'b00;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 2'b00;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_s_buffer_write_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b0;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b0;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_s_buffer_zero_slot(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 32'b00000000000000000000000000000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 32'b00000000000000000000000000000000;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_t_buffer(input wire [1:0] clock_reset, input wire [37:0] i, output wire [38:0] o);
-   wire [114:0] od;
-   wire [75:0] d;
-   wire [75:0] q;
-   assign o = od[38:0];
-   top_write_controller_tee_t_buffer_one_slot c0(.clock_reset(clock_reset), .i(d[73:38]), .o(q[73:38]));
-   top_write_controller_tee_t_buffer_read_slot c1(.clock_reset(clock_reset), .i(d[75:75]), .o(q[75:75]));
-   top_write_controller_tee_t_buffer_state c2(.clock_reset(clock_reset), .i(d[1:0]), .o(q[1:0]));
-   top_write_controller_tee_t_buffer_write_slot c3(.clock_reset(clock_reset), .i(d[74:74]), .o(q[74:74]));
-   top_write_controller_tee_t_buffer_zero_slot c4(.clock_reset(clock_reset), .i(d[37:2]), .o(q[37:2]));
-   assign d = od[114:39];
-   assign od = kernel_kernel(clock_reset, i, q);
-   function [114:0] kernel_kernel(input reg [1:0] arg_0, input reg [37:0] arg_1, input reg [75:0] arg_2);
-         reg [36:0] r0;
-         reg [37:0] r1;
-         reg [0:0] r2;
-         reg [0:0] r3;
-         reg [0:0] r4;
-         reg [1:0] r5;
-         reg [75:0] r6;
-         reg [1:0] r7;
-         reg [1:0] r8;
-         reg [1:0] r9;
-         reg [1:0] r10;
-         reg [1:0] r11;
-         reg [1:0] r12;
-         // d
-         reg [75:0] r13;
-         reg [35:0] r14;
-         // d
-         reg [75:0] r15;
-         reg [35:0] r16;
-         // d
-         reg [75:0] r17;
-         reg [36:0] r18;
-         reg [0:0] r19;
-         reg [35:0] r20;
-         reg [0:0] r21;
-         reg [0:0] r22;
-         // d
-         reg [75:0] r23;
-         // d
-         reg [75:0] r24;
-         // d
-         reg [75:0] r25;
-         // d
-         reg [75:0] r26;
-         reg [1:0] r27;
-         reg [0:0] r28;
-         reg [0:0] r29;
-         reg [1:0] r30;
-         reg [0:0] r31;
-         reg [0:0] r32;
-         reg [0:0] r33;
-         reg [0:0] r34;
-         // d
-         reg [75:0] r35;
-         reg [0:0] r36;
-         reg [0:0] r37;
-         // d
-         reg [75:0] r38;
-         reg [1:0] r39;
-         reg [0:0] r40;
-         reg [0:0] r41;
-         reg [0:0] r42;
-         reg [35:0] r43;
-         reg [36:0] r44;
-         reg [35:0] r45;
-         // o
-         reg [38:0] r46;
-         reg [35:0] r47;
-         reg [36:0] r48;
-         reg [35:0] r49;
-         // o
-         reg [38:0] r50;
-         // o
-         reg [38:0] r51;
-         // o
-         reg [38:0] r52;
-         reg [1:0] r53;
-         reg [0:0] r54;
-         // o
-         reg [38:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
-         // o
-         reg [38:0] r58;
-         reg [114:0] r59;
-         reg [1:0] r60;
-         localparam l0 = 1'b1;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b0;
-         localparam l3 = 1'b0;
-         localparam l4 = 2'b01;
-         localparam l5 = 2'b00;
-         localparam l6 = 2'b00;
-         localparam l7 = 2'b01;
-         localparam l8 = 2'b01;
-         localparam l9 = 2'b10;
-         localparam l10 = 2'b10;
-         localparam l11 = 2'b00;
-         localparam l12 = 2'b11;
-         localparam l13 = 2'b01;
-         localparam l14 = 2'b01;
-         localparam l15 = 2'b10;
-         localparam l16 = 2'b11;
-         localparam l17 = 2'b00;
-         localparam l18 = 2'b01;
-         localparam l19 = 2'b10;
-         localparam l20 = 2'b11;
-         localparam l21 = 2'b11;
-         localparam l22 = 76'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l23 = 1'b1;
-         localparam l24 = 2'b11;
-         localparam l25 = 2'b00;
-         localparam l26 = 1'b1;
-         localparam l27 = 39'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l28 = 1'b1;
-         localparam l29 = 39'bXX0000000000000000000000000000000000000;
-         localparam l30 = 2'b10;
-         localparam l31 = 2'b11;
-         begin
-            r60 = arg_0;
-            r1 = arg_1;
-            r6 = arg_2;
-            r0 = r1[36:0];
-            r2 = r0[36:36];
-            case (r2)
-               1'b1 : r3 = l1;
-               1'b0 : r3 = l3;
-            endcase
-            r4 = r1[37:37];
-            r5 = r6[1:0];
-            r7 = r3 ? l4 : l5;
-            r8 = {r4, r3};
-            case (r8)
-               2'b00 : r9 = l7;
-               2'b01 : r9 = l9;
-               2'b10 : r9 = l11;
-               2'b11 : r9 = l13;
-            endcase
-            r10 = r4 ? l14 : l15;
-            r11 = r3 ? l16 : r10;
-            case (r5)
-               2'b00 : r12 = r7;
-               2'b01 : r12 = r9;
-               2'b10 : r12 = r11;
-               2'b11 : r12 = l21;
-            endcase
-            r13 = l22;
-            r13[1:0] = r12;
-            r14 = r6[37:2];
-            r15 = r13;
-            r15[37:2] = r14;
-            r16 = r6[73:38];
-            r17 = r15;
-            r17[73:38] = r16;
-            r18 = r1[36:0];
-            r19 = r18[36:36];
-            r20 = r18[35:0];
-            r21 = r6[74:74];
-            r22 = ~r21;
-            r23 = r17;
-            r23[37:2] = r20;
-            r24 = r17;
-            r24[73:38] = r20;
-            r25 = r22 ? r23 : r24;
-            case (r19)
-               1'b1 : r26 = r25;
-               default : r26 = r17;
-            endcase
-            r27 = r6[1:0];
-            r28 = |r27;
-            r29 = r4 & r28;
-            r30 = r6[1:0];
-            r31 = r30 != l24;
-            r32 = r29 & r31;
-            r33 = r6[74:74];
-            r34 = r3 ^ r33;
-            r35 = r26;
-            r35[74:74] = r34;
-            r36 = r6[75:75];
-            r37 = r32 ^ r36;
-            r38 = r35;
-            r38[75:75] = r37;
-            r39 = r6[1:0];
-            r40 = r39 == l25;
-            r41 = r6[75:75];
-            r42 = ~r41;
-            r43 = r6[37:2];
-            r45 = r43[35:0];
-            r44 = {l26, r45};
-            r46 = l27;
-            r46[36:0] = r44;
-            r47 = r6[73:38];
-            r49 = r47[35:0];
-            r48 = {l28, r49};
-            r50 = l27;
-            r50[36:0] = r48;
-            r51 = r42 ? r46 : r50;
-            r52 = r40 ? l29 : r51;
-            r53 = r6[1:0];
-            r54 = r53 == l30;
-            r55 = r52;
-            r55[37:37] = r54;
-            r56 = r6[1:0];
-            r57 = r56 == l31;
-            r58 = r55;
-            r58[38:38] = r57;
-            r59 = {r38, r58};
-            kernel_kernel = r59;
-         end
-   endfunction
-endmodule
-module top_write_controller_tee_t_buffer_one_slot(input wire [1:0] clock_reset, input wire [35:0] i, output reg [35:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 36'b000000000000000000000000000000000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 36'b000000000000000000000000000000000000;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_t_buffer_read_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b0;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b0;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_t_buffer_state(input wire [1:0] clock_reset, input wire [1:0] i, output reg [1:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 2'b00;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 2'b00;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_t_buffer_write_slot(input wire [1:0] clock_reset, input wire [0:0] i, output reg [0:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 1'b0;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 1'b0;
-      end else begin
-         o <= i;
-      end
-   end
-endmodule
-module top_write_controller_tee_t_buffer_zero_slot(input wire [1:0] clock_reset, input wire [35:0] i, output reg [35:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 36'b000000000000000000000000000000000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 36'b000000000000000000000000000000000000;
       end else begin
          o <= i;
       end

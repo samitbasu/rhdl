@@ -166,7 +166,7 @@ clk   +----+    +----+    +----+
 #![doc = include_str!("../../doc/sync_cross.md")]
 
 use quote::format_ident;
-use rhdl::prelude::*;
+use rhdl::{core::ScopedName, prelude::*};
 use syn::parse_quote;
 
 /// A simple two-register synchronizer for crossing
@@ -243,24 +243,28 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
         signal(state.reg2_current)
     }
 
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        Ok(CircuitDescriptor {
-            unique_name: name.to_string(),
-            input_kind: <Self::I as Digital>::static_kind(),
-            output_kind: <Self::O as Digital>::static_kind(),
-            d_kind: Kind::Empty,
-            q_kind: Kind::Empty,
-            children: Default::default(),
-            rtl: None,
-            ntl: rhdl::core::ntl::builder::circuit_black_box(self, name)?,
-            circuit_type: CircuitType::Asynchronous,
-        })
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+        let name = scoped_name.to_string();
+        Descriptor {
+            name: scoped_name,
+            input_kind: <<Self as CircuitIO>::I as Digital>::static_kind(),
+            output_kind: <<Self as CircuitIO>::O as Digital>::static_kind(),
+            d_kind: <<Self as CircuitDQ>::D as Digital>::static_kind(),
+            q_kind: <<Self as CircuitDQ>::Q as Digital>::static_kind(),
+            circuit_type: CircuitType::Synchronous,
+            kernel: None,
+            netlist: None,
+            hdl: Some(self.hdl(&name)?),
+        }
+        .with_netlist_black_box()
     }
+}
 
+impl<W: Domain, R: Domain> Sync1Bit<W, R> {
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = name.to_owned();
         let module_ident = format_ident!("{}", module_name);
-        let i_kind = <Self::I as Digital>::static_kind();
+        let i_kind = <<Self as CircuitIO>::I as Digital>::static_kind();
         let reset_index = bit_range(i_kind, &path!(.cr.val().reset))?;
         let reset_index = syn::Index::from(reset_index.0.start);
         let clock_index = bit_range(i_kind, &path!(.cr.val().clock))?;

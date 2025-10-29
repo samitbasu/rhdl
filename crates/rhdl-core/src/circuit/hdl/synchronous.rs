@@ -1,6 +1,6 @@
 use crate::{
     CompilationMode, HDLDescriptor, Kind, RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
-    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor},
+    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor, scoped_name::ScopedName},
     compile_design,
     ntl::{self, from_rtl::build_ntl_from_rtl},
     rtl,
@@ -14,10 +14,11 @@ use rhdl_vlog::{self as vlog, parse_quote_miette};
 use syn::parse_quote;
 
 fn build_synchronous_hdl<C: Synchronous>(
-    name: &str,
+    scoped_name: &ScopedName,
     kernel: &rtl::Object,
     children: &[Descriptor],
 ) -> Result<HDLDescriptor, RHDLError> {
+    let local_name = scoped_name.to_string();
     let circuit_output = <C as SynchronousIO>::O::static_kind();
     let circuit_input = <C as SynchronousIO>::I::static_kind();
     let d_kind = <C as SynchronousDQ>::D::static_kind();
@@ -41,7 +42,7 @@ fn build_synchronous_hdl<C: Synchronous>(
             continue;
         }
         child_hdls.push(child_desc.hdl()?.modules.clone());
-        let local_name = &child_desc.name;
+        let local_name = &child_desc.name.last().unwrap();
         let child_path = Path::default().field(local_name);
         let (d_range, _) = bit_range(d_kind, &child_path)?;
         let (q_range, _) = bit_range(q_kind, &child_path)?;
@@ -53,7 +54,7 @@ fn build_synchronous_hdl<C: Synchronous>(
             output_binding,
         ];
         let bindings = bindings.iter().flatten();
-        let component_name = format_ident!("{}", child_desc.name);
+        let component_name = format_ident!("{}", child_desc.name.to_string());
         let component_instance = format_ident!("c{ndx}");
         child_decls.push(quote! {
             #component_name #component_instance(
@@ -68,7 +69,7 @@ fn build_synchronous_hdl<C: Synchronous>(
     let args = [Some(format_ident!("clock_reset")), i_bind, q_bind];
     let args = args.iter().flatten();
     let kernel_name = format_ident!("{}", kernel.name);
-    let module_ident = format_ident!("{}", name);
+    let module_ident = format_ident!("{local_name}");
     let output_range: vlog::BitRange = (0..outputs).into();
     let d_bind = (d_kind.bits() != 0).then(|| {
         let d_range: vlog::BitRange = (outputs..(d_kind.bits() + outputs)).into();
@@ -86,20 +87,21 @@ fn build_synchronous_hdl<C: Synchronous>(
         #(#child_hdls)*
     }?;
     Ok(HDLDescriptor {
-        name: name.to_string(),
+        name: local_name,
         modules,
     })
 }
 
 fn build_synchronous_netlist<C: Synchronous>(
-    name: &str,
+    scoped_name: &ScopedName,
     kernel: &rtl::Object,
     children: &[Descriptor],
 ) -> Result<ntl::Object, RHDLError> {
+    let name = scoped_name.to_string();
     // Construct the netlist for the update function
     let update_netlist = build_ntl_from_rtl(kernel);
     // Create a manual builder for the top level netlist
-    let mut builder = ntl::builder::Builder::new(name);
+    let mut builder = ntl::builder::Builder::new(&name);
     // This is the kind of output of the update kernel - it must be equal to
     // (Update::O, Update::D)
     // The update_fg will have 3 arguments (rst,i,q) and 2 outputs (o,d)
@@ -142,7 +144,7 @@ fn build_synchronous_netlist<C: Synchronous>(
         .collect::<Vec<_>>();
     // Create the inputs for the children by splitting bits off of the d_index
     for child in children {
-        let child_name = &child.name;
+        let child_name = child.name.last().unwrap();
         // Compute the bit range for this child's input based on its name
         // The tuple index of .1 is to get the D element of the output from the kernel
         let child_path = Path::default().field(child_name);
@@ -152,7 +154,7 @@ fn build_synchronous_netlist<C: Synchronous>(
             .netlist
             .as_ref()
             .ok_or(RHDLError::FunctionNotSynthesizable {
-                name: child.name.clone(),
+                name: child.name.to_string(),
             })?;
         // Merge the child's netlist into ours
         let child_offset = builder.import(netlist);
@@ -178,20 +180,20 @@ fn build_synchronous_netlist<C: Synchronous>(
 
 pub fn build_synchronous_descriptor<C: Synchronous>(
     circuit: &C,
-    name: &str,
+    scoped_name: ScopedName,
 ) -> Result<Descriptor, RHDLError> {
     let kernel = compile_design::<C::Kernel>(CompilationMode::Synchronous)?;
     let children = circuit
-        .children()
+        .children(&scoped_name)
         .collect::<Result<Vec<Descriptor>, RHDLError>>()?;
-    let hdl = build_synchronous_hdl::<C>(name, &kernel, &children)?;
-    let netlist = build_synchronous_netlist::<C>(name, &kernel, &children)?;
+    let hdl = build_synchronous_hdl::<C>(&scoped_name, &kernel, &children)?;
+    let netlist = build_synchronous_netlist::<C>(&scoped_name, &kernel, &children)?;
     let circuit_output = <C as SynchronousIO>::O::static_kind();
     let circuit_input = <C as SynchronousIO>::I::static_kind();
     let d_kind = <C as SynchronousDQ>::D::static_kind();
     let q_kind = <C as SynchronousDQ>::Q::static_kind();
     Ok(Descriptor {
-        name: name.to_string(),
+        name: scoped_name,
         input_kind: circuit_input,
         output_kind: circuit_output,
         d_kind,
