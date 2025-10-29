@@ -3,10 +3,7 @@ use rhdl_trace_type::RTT;
 use rhdl_vlog::{self as vlog, LitVerilog, maybe_decl_reg, maybe_decl_wire};
 use syn::parse_quote;
 
-use crate::{
-    Circuit, CircuitIO, Digital, RHDLError, TimedSample, circuit::scoped_name::ScopedName,
-    sim::test_module::TestModule,
-};
+use crate::{Circuit, CircuitIO, Digital, RHDLError, TimedSample, sim::test_module::TestModule};
 
 use super::TestBenchOptions;
 

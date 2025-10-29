@@ -246,10 +246,7 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
 
 #[cfg(test)]
 mod tests {
-    use rhdl::{
-        core::circuit::{descriptor, scoped_name::ScopedName},
-        prelude::vlog::Pretty,
-    };
+    use rhdl::{core::circuit::scoped_name::ScopedName, prelude::vlog::Pretty};
 
     use super::*;
 

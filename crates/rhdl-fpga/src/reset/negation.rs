@@ -39,10 +39,7 @@ resetN++--->| +○+--+>reset
 //!
 
 use quote::format_ident;
-use rhdl::{
-    core::{circuit::descriptor, ScopedName},
-    prelude::*,
-};
+use rhdl::{core::ScopedName, prelude::*};
 use syn::parse_quote;
 
 #[derive(PartialEq, Debug, Clone, Default)]
