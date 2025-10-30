@@ -249,6 +249,7 @@ mod tests {
 
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
+        env_logger::init();
         type UC = CrossCounter<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();

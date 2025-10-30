@@ -12,7 +12,7 @@ use rhdl_vlog;
 ///
 /// This struct captures the HDL representation of a circuit,
 /// including its name, body, and any child circuits it may have.
-#[derive(Clone, Hash)]
+#[derive(Clone, Hash, Debug)]
 pub struct HDLDescriptor {
     /// The unique name of the circuit.
     pub name: String,

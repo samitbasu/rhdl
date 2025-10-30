@@ -251,7 +251,7 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
             output_kind: <<Self as CircuitIO>::O as Digital>::static_kind(),
             d_kind: <<Self as CircuitDQ>::D as Digital>::static_kind(),
             q_kind: <<Self as CircuitDQ>::Q as Digital>::static_kind(),
-            circuit_type: CircuitType::Synchronous,
+            circuit_type: CircuitType::Asynchronous,
             kernel: None,
             netlist: None,
             hdl: Some(self.hdl(&name)?),

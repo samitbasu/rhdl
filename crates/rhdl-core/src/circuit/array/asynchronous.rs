@@ -121,6 +121,16 @@ fn netlist<T: Circuit, const N: usize>(
     let ti = builder.add_input(input_kind);
     let to = builder.allocate_outputs(output_kind);
     for (i, child_descriptor) in children.iter().enumerate() {
+        if child_descriptor.circuit_type != CircuitType::Asynchronous {
+            return Err(RHDLError::CircuitTypeMismatch {
+                expected: CircuitType::Asynchronous,
+                found: child_descriptor.circuit_type,
+                context: format!(
+                    "in AsynchronousArray circuit {}, child: {:?}",
+                    name, child_descriptor
+                ),
+            });
+        }
         let child_path = Path::default().index(i);
         let (output_bit_range, _) = bit_range(output_kind, &child_path)?;
         let (input_bit_range, _) = bit_range(input_kind, &child_path)?;

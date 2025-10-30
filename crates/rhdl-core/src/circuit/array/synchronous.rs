@@ -134,6 +134,13 @@ fn netlist<T: Synchronous, const N: usize>(
     let ti = builder.add_input(input_kind);
     let to = builder.allocate_outputs(output_kind);
     for (i, child_descriptor) in children.iter().enumerate() {
+        if child_descriptor.circuit_type != CircuitType::Synchronous {
+            return Err(RHDLError::CircuitTypeMismatch {
+                expected: CircuitType::Synchronous,
+                found: child_descriptor.circuit_type,
+                context: format!("in SynchronousArray circuit {}", name),
+            });
+        }
         let child_path = Path::default().index(i);
         let (output_bit_range, _) = bit_range(output_kind, &child_path)?;
         let (input_bit_range, _) = bit_range(input_kind, &child_path)?;
