@@ -127,6 +127,13 @@ impl<C: Synchronous, D: Domain> DigitalFn for Adapter<C, D> {}
 
 impl<C: Synchronous, D: Domain> Adapter<C, D> {
     fn hdl(&self, name: &str, child_descriptor: &Descriptor) -> Result<HDLDescriptor, RHDLError> {
+        if child_descriptor.circuit_type != CircuitType::Synchronous {
+            return Err(RHDLError::CircuitTypeMismatch {
+                expected: CircuitType::Synchronous,
+                found: child_descriptor.circuit_type,
+                context: format!("in Adapter circuit {}", name),
+            });
+        }
         let ports = [
             maybe_port_wire(vlog::Direction::Input, <Self as CircuitIO>::I::bits(), "i"),
             maybe_port_wire(vlog::Direction::Output, <Self as CircuitIO>::O::bits(), "o"),
@@ -160,6 +167,13 @@ impl<C: Synchronous, D: Domain> Adapter<C, D> {
         let ti = builder.add_input(input_reg);
         let to = builder.allocate_outputs(output_reg);
         let child_netlist = child_descriptor.netlist()?;
+        if child_descriptor.circuit_type != CircuitType::Synchronous {
+            return Err(RHDLError::CircuitTypeMismatch {
+                expected: CircuitType::Synchronous,
+                found: child_descriptor.circuit_type,
+                context: format!("in Adapter circuit {} (netlist)", name),
+            });
+        }
         let child_offset = builder.import(child_netlist);
         let child_inputs = child_netlist.inputs.iter().flatten();
         for (&t, c) in ti.iter().zip(child_inputs) {

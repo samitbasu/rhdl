@@ -4,6 +4,7 @@ use crate::{
     ntl, rtl,
 };
 
+#[derive(Debug)]
 pub struct Descriptor {
     pub name: ScopedName,
     pub input_kind: Kind,

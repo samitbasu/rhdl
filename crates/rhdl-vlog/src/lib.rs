@@ -402,6 +402,14 @@ impl std::fmt::Display for ModuleList {
     }
 }
 
+impl std::fmt::Debug for ModuleList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut fmt = crate::formatter::Formatter::new();
+        self.pretty_print(&mut fmt);
+        write!(f, "{}", fmt.finish())
+    }
+}
+
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ModuleDef {
     pub name: String,

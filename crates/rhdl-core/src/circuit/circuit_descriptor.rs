@@ -52,7 +52,7 @@ pub struct CircuitDescriptor {
 }
 
 /// The type of circuit: asynchronous or synchronous.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CircuitType {
     /// Asynchronous circuit type.
     Asynchronous,

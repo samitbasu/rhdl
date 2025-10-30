@@ -36,6 +36,7 @@ impl Pass for CheckForUndriven {
                 if sense.is_read() {
                     if let Some(reg) = op.reg() {
                         if !written_set.contains(&reg) {
+                            log::warn!("{:?}", input);
                             err = Some(NetListError {
                                 cause: crate::ntl::error::NetListICE::UndrivenNetlistNode,
                                 src: input.code.source(),
