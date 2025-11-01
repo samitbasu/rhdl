@@ -1,9 +1,28 @@
+//! Synchronous circuit composition
+//!
+//! This struct allows you to chain two synchronous circuits together.
+//! ! Given two circuits A and B, where the output type of A matches the input type of B,
+//! you can create a new circuit that represents the composition of A followed by B.
+//!
+#![doc = badascii_doc::badascii!(r"
+  +---+Chain<A, B> +---------+  
+  |                          |  
+  +  I   +----+  P  +----+   |  
++------->|    +---->|    | O +  
+  |  cr  | A  |     | B  +----->
++----+-->|    |  +->|    |   +  
+  +  |   +----+  |  +----+   |  
+  |  +-----------+           |  
+  +--------------------------+  
+")]
+//!
+//! The input type of the composed circuit is the input type of A,
+//! and the output type is the output type of B.
 use quote::{format_ident, quote};
 use rhdl_vlog::declaration;
 use syn::parse_quote;
 
-use crate::circuit::circuit_descriptor::CircuitType;
-use crate::circuit::descriptor::Descriptor;
+use crate::circuit::descriptor::{Descriptor, SyncKind};
 use crate::circuit::scoped_name::ScopedName;
 use crate::{
     ClockReset, Digital, HDLDescriptor, Kind, Synchronous, SynchronousDQ, SynchronousIO,
@@ -13,13 +32,17 @@ use crate::{RHDLError, ntl};
 use rhdl_vlog as vlog;
 use rhdl_vlog::{maybe_port_wire, unsigned_width};
 
-#[derive(Clone)]
+/// Chain two synchronous circuits together.
+/// Given two circuits A and B, where the output type of A matches the input type of B,
+/// create a new circuit that represents the composition of A followed by B.
 pub struct Chain<A, B> {
     a: A,
     b: B,
 }
 
 impl<A, B> Chain<A, B> {
+    /// Create a new [Chain] circuit from the given circuits A and B.
+    #[must_use]
     pub fn new(a: A, b: B) -> Self {
         Self { a, b }
     }
@@ -59,27 +82,27 @@ where
         o
     }
 
-    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError> {
         let a_descriptor = self.a.descriptor(scoped_name.with("a"))?;
         let b_descriptor = self.b.descriptor(scoped_name.with("b"))?;
         let name = scoped_name.to_string();
-        Ok(Descriptor {
+        Ok(Descriptor::<SyncKind> {
             name: scoped_name,
             input_kind: a_descriptor.input_kind,
             output_kind: b_descriptor.output_kind,
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            circuit_type: CircuitType::Synchronous,
             kernel: None,
             netlist: Some(self.netlist(&name, &a_descriptor, &b_descriptor)?),
             hdl: Some(self.hdl(&name, &a_descriptor, &b_descriptor)?),
+            _phantom: std::marker::PhantomData,
         })
     }
 
     fn children(
         &self,
         parent_scope: &ScopedName,
-    ) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+    ) -> impl Iterator<Item = Result<Descriptor<SyncKind>, RHDLError>> {
         std::iter::once(self.a.descriptor(parent_scope.with("a")))
             .chain(std::iter::once(self.b.descriptor(parent_scope.with("b"))))
     }
@@ -93,8 +116,8 @@ where
     fn hdl(
         &self,
         name: &str,
-        a_descriptor: &Descriptor,
-        b_descriptor: &Descriptor,
+        a_descriptor: &Descriptor<SyncKind>,
+        b_descriptor: &Descriptor<SyncKind>,
     ) -> Result<HDLDescriptor, RHDLError> {
         let ports = [
             maybe_port_wire(vlog::Direction::Input, <A as SynchronousIO>::I::bits(), "i"),
@@ -141,8 +164,8 @@ where
     fn netlist(
         &self,
         name: &str,
-        a_descriptor: &Descriptor,
-        b_descriptor: &Descriptor,
+        a_descriptor: &Descriptor<SyncKind>,
+        b_descriptor: &Descriptor<SyncKind>,
     ) -> Result<ntl::Object, RHDLError> {
         let mut builder = ntl::Builder::new(name);
         let input_kind: Kind = <A as SynchronousIO>::I::static_kind();

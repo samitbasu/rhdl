@@ -39,7 +39,8 @@
 use crate::{
     DigitalFn, Timed,
     circuit::{
-        descriptor::Descriptor, hdl::asynchronous::build_asynchronous_descriptor,
+        descriptor::{AsyncKind, Descriptor},
+        hdl::asynchronous::build_asynchronous_descriptor,
         scoped_name::ScopedName,
     },
     digital_fn::DigitalFn2,
@@ -252,14 +253,16 @@ pub trait Circuit: 'static + CircuitIO + Sized {
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O;
 
     /// Provides run time description of the circuit.
-    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
         build_asynchronous_descriptor(self, scoped_name)
     }
 
+    /// Iterate over the child circuits of this circuit, getting their
+    /// descriptors.
     fn children(
         &self,
         _parent_scope: &ScopedName,
-    ) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+    ) -> impl Iterator<Item = Result<Descriptor<AsyncKind>, RHDLError>> {
         std::iter::empty()
     }
 }

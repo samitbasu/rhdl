@@ -42,7 +42,10 @@
 
 use crate::{
     ClockReset, Digital, DigitalFn,
-    circuit::{descriptor::Descriptor, scoped_name::ScopedName},
+    circuit::{
+        descriptor::{Descriptor, SyncKind},
+        scoped_name::ScopedName,
+    },
     digital_fn::DigitalFn3,
     error::RHDLError,
 };
@@ -120,7 +123,7 @@ use crate::{
   (c&r) |                   +-----------------------+                   |        
         +---------------------------------------------------------------+        
 ")]
-pub trait SynchronousDQ: 'static + Sized + Clone {
+pub trait SynchronousDQ: 'static {
     /// The type of the internal data input to the children of the circuit.
     type D: Digital;
     /// The type of the internal data output from the children of the circuit.
@@ -174,7 +177,7 @@ pub trait SynchronousDQ: 'static + Sized + Clone {
 ///              <Self as SynchronousDQ>::D
 ///            );
 /// ```
-pub trait SynchronousIO: 'static + Sized + Clone + SynchronousDQ {
+pub trait SynchronousIO: 'static + SynchronousDQ {
     /// The type of the input to the circuit.
     type I: Digital;
     /// The type of the output from the circuit.
@@ -252,7 +255,7 @@ pub trait SynchronousIO: 'static + Sized + Clone + SynchronousDQ {
 /// There are implementations of `Synchronous` provided for arrays of circuits, so
 /// you can create arrays of synchronous circuits as long as the element type
 /// also implements `Synchronous`.
-pub trait Synchronous: 'static + Sized + Clone + SynchronousIO {
+pub trait Synchronous: 'static + Sized + SynchronousIO {
     /// The simulation state type.
     /// This type is used to represent the internal state of the circuit
     /// during simulation.  It must be `PartialEq` and `Clone`.  It holds whatever
@@ -273,14 +276,15 @@ pub trait Synchronous: 'static + Sized + Clone + SynchronousIO {
     fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O;
 
     /// Provides run time reflection of the circuit.
-    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError> {
         super::hdl::synchronous::build_synchronous_descriptor(self, scoped_name)
     }
 
+    /// Iterate over the child circuits of this circuit.
     fn children(
         &self,
         _parent_scope: &ScopedName,
-    ) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+    ) -> impl Iterator<Item = Result<Descriptor<SyncKind>, RHDLError>> {
         std::iter::empty()
     }
 }

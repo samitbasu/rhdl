@@ -87,7 +87,10 @@ reset (out)  +-----+                  +---------+
 #![doc = include_str!("../../doc/reset_conditioner.md")]
 
 use quote::format_ident;
-use rhdl::{core::ScopedName, prelude::*};
+use rhdl::{
+    core::{circuit::descriptor::AsyncKind, ScopedName},
+    prelude::*,
+};
 use syn::parse_quote;
 
 #[derive(PartialEq, Debug, Clone, Default)]
@@ -175,9 +178,9 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
         signal(reset(state.reg2_current))
     }
 
-    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
         let name = scoped_name.to_string();
-        let mut descriptor = Descriptor {
+        Descriptor::<AsyncKind> {
             name: scoped_name,
             input_kind: <Self::I as Digital>::static_kind(),
             output_kind: <Self::O as Digital>::static_kind(),
@@ -185,11 +188,10 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
             q_kind: <Self::Q as Digital>::static_kind(),
             kernel: None,
             hdl: Some(self.hdl(&name)?),
-            circuit_type: CircuitType::Asynchronous,
+            _phantom: std::marker::PhantomData,
             netlist: None,
-        };
-        descriptor.netlist = Some(circuit_black_box(&descriptor)?);
-        Ok(descriptor)
+        }
+        .with_netlist_black_box()
     }
 }
 

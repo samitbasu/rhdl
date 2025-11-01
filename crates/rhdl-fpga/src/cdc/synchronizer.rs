@@ -166,7 +166,10 @@ clk   +----+    +----+    +----+
 #![doc = include_str!("../../doc/sync_cross.md")]
 
 use quote::format_ident;
-use rhdl::{core::ScopedName, prelude::*};
+use rhdl::{
+    core::{circuit::descriptor::AsyncKind, ScopedName},
+    prelude::*,
+};
 use syn::parse_quote;
 
 /// A simple two-register synchronizer for crossing
@@ -243,18 +246,18 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
         signal(state.reg2_current)
     }
 
-    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
         let name = scoped_name.to_string();
-        Descriptor {
+        Descriptor::<AsyncKind> {
             name: scoped_name,
             input_kind: <<Self as CircuitIO>::I as Digital>::static_kind(),
             output_kind: <<Self as CircuitIO>::O as Digital>::static_kind(),
             d_kind: <<Self as CircuitDQ>::D as Digital>::static_kind(),
             q_kind: <<Self as CircuitDQ>::Q as Digital>::static_kind(),
-            circuit_type: CircuitType::Asynchronous,
             kernel: None,
             netlist: None,
             hdl: Some(self.hdl(&name)?),
+            _phantom: std::marker::PhantomData,
         }
         .with_netlist_black_box()
     }

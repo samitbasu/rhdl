@@ -1,6 +1,44 @@
+//! Support for arrays of [Synchronous](crate::Synchronous)
+//!
+//! In RHDL, there is a blanket implementation of [Synchronous](crate::Synchronous) for
+//! an array of `impl Synchronous`.  This allows you to create arrays of synchronous circuits
+//! and use them as a single synchronous circuit.  The array circuit will have inputs and
+//! outputs that are arrays of the inputs and outputs of the individual circuits.  The
+//! clock and reset are automatically fed to each individual circuit.
+//!
+#![doc = badascii_doc::badascii!(r"
+            [0]   I   +-------+   O    +          
+         +----------->| C 0   +------->|          
+         |            +-------+        |          
+         |               ^ cr          |          
+         |     +---------+             |          
+         |  [1]   I   +-------+   O    |          
+         +----------->| C 1   +------->|          
+         |     +      +-------+        |          
+         |     |        ^ cr           |          
+ [I;N]   |     +--------+ .            | [O;N]    
++--------+     |          .            +--------->
+         |     |          .            |          
+         |     +                       |          
+         | [N-1]  I   +-------+   O    |          
+         +----------->| C N-1 +------->|          
+               +      +-------+        +          
+               |          ^ cr                    
++--------------+----------+                       
+")]
+//!
+//! Here, there are `N` instances of circuit `C`, each taking an input of type `I`
+//! and producing an output of type `O`.  The array circuit takes an input
+//! of type `[I; N]` (an array of `N` inputs of type `I`) and produces an output
+//! of type `[O; N]` (an array of `N` outputs of type `O`).  The
+//! clock and reset signals are provided to each individual circuit automatically.
+//!
 use crate::{
     ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
-    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor, scoped_name::ScopedName},
+    circuit::{
+        descriptor::{Descriptor, SyncKind},
+        scoped_name::ScopedName,
+    },
     digital_fn::NoKernel3,
     ntl, trace_pop_path, trace_push_path,
     types::path::{Path, bit_range},
@@ -48,7 +86,10 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
     // This requires a custom implementation because the default implementation
     // assumes that the children of the current circuit are named with field names
     // as part of a struct.
-    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, crate::RHDLError> {
+    fn descriptor(
+        &self,
+        scoped_name: ScopedName,
+    ) -> Result<Descriptor<SyncKind>, crate::RHDLError> {
         let children = self
             .children(&scoped_name)
             .collect::<Result<Vec<_>, RHDLError>>()?;
@@ -61,22 +102,22 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
             q_kind: Kind::Empty,
             kernel: None,
             hdl: Some(hdl::<T, N>(&name, &children)?),
-            circuit_type: CircuitType::Synchronous,
             netlist: Some(netlist::<T, N>(&name, &children)?),
+            _phantom: std::marker::PhantomData,
         })
     }
 
     fn children(
         &self,
         parent_scope: &ScopedName,
-    ) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+    ) -> impl Iterator<Item = Result<Descriptor<SyncKind>, RHDLError>> {
         (0..N).map(move |i| self[i].descriptor(parent_scope.with(format!("c{i}"))))
     }
 }
 
 fn hdl<T: Synchronous, const N: usize>(
     name: &str,
-    children: &[Descriptor],
+    children: &[Descriptor<SyncKind>],
 ) -> Result<HDLDescriptor, RHDLError> {
     let module_name = &name;
     let module_ident = format_ident!("{module_name}");
@@ -87,6 +128,7 @@ fn hdl<T: Synchronous, const N: usize>(
         vlog::maybe_port_wire(vlog::Direction::Input, i_kind.bits(), "i"),
         vlog::maybe_port_wire(vlog::Direction::Output, o_kind.bits(), "o"),
     ];
+    let ports = ports.iter().flatten();
     let mut child_hdls = vec![];
     let mut child_decls = vec![];
     for (ndx, child) in children.iter().enumerate() {
@@ -124,7 +166,7 @@ fn hdl<T: Synchronous, const N: usize>(
 
 fn netlist<T: Synchronous, const N: usize>(
     name: &str,
-    children: &[Descriptor],
+    children: &[Descriptor<SyncKind>],
 ) -> Result<ntl::Object, RHDLError> {
     let mut builder = ntl::Builder::new(name);
     let cr_kind: Kind = ClockReset::static_kind();
@@ -134,13 +176,6 @@ fn netlist<T: Synchronous, const N: usize>(
     let ti = builder.add_input(input_kind);
     let to = builder.allocate_outputs(output_kind);
     for (i, child_descriptor) in children.iter().enumerate() {
-        if child_descriptor.circuit_type != CircuitType::Synchronous {
-            return Err(RHDLError::CircuitTypeMismatch {
-                expected: CircuitType::Synchronous,
-                found: child_descriptor.circuit_type,
-                context: format!("in SynchronousArray circuit {}", name),
-            });
-        }
         let child_path = Path::default().index(i);
         let (output_bit_range, _) = bit_range(output_kind, &child_path)?;
         let (input_bit_range, _) = bit_range(input_kind, &child_path)?;

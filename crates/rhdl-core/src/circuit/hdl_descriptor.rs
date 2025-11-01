@@ -1,4 +1,4 @@
-//! A runtime hardware description of a [Circuit] or [Synchronous] circuit.
+//! A runtime hardware description of a [Circuit](crate::Circuit) or [Synchronous](crate::Synchronous) circuit.
 //!
 //! This module defines the `HDLDescriptor` struct, which captures
 //! the HDL representation of a circuit, including its name, body,

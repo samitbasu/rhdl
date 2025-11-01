@@ -1,6 +1,19 @@
+//! Generate HDL (Verilog) for [Synchronous](crate::Synchronous)
+//!
+//! This module provides functionality to generate HDL (specifically Verilog)
+//! representations of RHDL synchronous circuits.  You will generally not need to call these
+//! functions directly.  Instead use the method `descriptor` on [Synchronous](crate::Synchronous).
+//! The returned [Descriptor](crate::circuit::descriptor::Descriptor) will contain
+//! the HDL description of the circuit.
+//!
+//!! See the book for more details on HDL generation in RHDL.
+
 use crate::{
     CompilationMode, HDLDescriptor, Kind, RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
-    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor, scoped_name::ScopedName},
+    circuit::{
+        descriptor::{Descriptor, SyncKind},
+        scoped_name::ScopedName,
+    },
     compile_design,
     ntl::{self, from_rtl::build_ntl_from_rtl},
     rtl,
@@ -16,7 +29,7 @@ use syn::parse_quote;
 fn build_synchronous_hdl<C: Synchronous>(
     scoped_name: &ScopedName,
     kernel: &rtl::Object,
-    children: &[Descriptor],
+    children: &[Descriptor<SyncKind>],
 ) -> Result<HDLDescriptor, RHDLError> {
     let local_name = scoped_name.to_string();
     let circuit_output = <C as SynchronousIO>::O::static_kind();
@@ -95,7 +108,7 @@ fn build_synchronous_hdl<C: Synchronous>(
 fn build_synchronous_netlist<C: Synchronous>(
     scoped_name: &ScopedName,
     kernel: &rtl::Object,
-    children: &[Descriptor],
+    children: &[Descriptor<SyncKind>],
 ) -> Result<ntl::Object, RHDLError> {
     let name = scoped_name.to_string();
     // Construct the netlist for the update function
@@ -178,14 +191,16 @@ fn build_synchronous_netlist<C: Synchronous>(
     builder.build(ntl::builder::BuilderMode::Synchronous)
 }
 
+/// Build run time description of a circuit, where the circuit is
+/// named by `scoped_name`.
 pub fn build_synchronous_descriptor<C: Synchronous>(
     circuit: &C,
     scoped_name: ScopedName,
-) -> Result<Descriptor, RHDLError> {
+) -> Result<Descriptor<SyncKind>, RHDLError> {
     let kernel = compile_design::<C::Kernel>(CompilationMode::Synchronous)?;
     let children = circuit
         .children(&scoped_name)
-        .collect::<Result<Vec<Descriptor>, RHDLError>>()?;
+        .collect::<Result<Vec<Descriptor<SyncKind>>, RHDLError>>()?;
     let hdl = build_synchronous_hdl::<C>(&scoped_name, &kernel, &children)?;
     let netlist = build_synchronous_netlist::<C>(&scoped_name, &kernel, &children)?;
     let circuit_output = <C as SynchronousIO>::O::static_kind();
@@ -198,9 +213,9 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         output_kind: circuit_output,
         d_kind,
         q_kind,
-        circuit_type: CircuitType::Synchronous,
         kernel: Some(kernel),
         netlist: Some(netlist),
         hdl: Some(hdl),
+        _phantom: std::marker::PhantomData,
     })
 }

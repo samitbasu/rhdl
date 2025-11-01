@@ -1,10 +1,7 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::{
-    KernelFnKind, TypedBits, circuit::circuit_descriptor::CircuitType,
-    compiler::mir::ty::UnifyError, types::path::PathError,
-};
+use crate::{KernelFnKind, TypedBits, compiler::mir::ty::UnifyError, types::path::PathError};
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum RHDLError {
@@ -79,12 +76,6 @@ pub enum RHDLError {
     HDLNotAvailable { name: String },
     #[error("Netlist not available for circuit {name}")]
     NetlistNotAvailable { name: String },
-    #[error("Circuit type mismatch: expected {expected:?}, found {found:?}, {context}")]
-    CircuitTypeMismatch {
-        expected: CircuitType,
-        found: CircuitType,
-        context: String,
-    },
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError
