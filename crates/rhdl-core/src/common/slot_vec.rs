@@ -14,14 +14,22 @@ use std::collections::BTreeMap;
 use std::hash::Hash;
 use std::ops::{Index, IndexMut};
 
-pub trait SlotKey: Copy + Clone + PartialEq + Eq + Ord + PartialOrd + Hash {
+/// A trait for key types used in [SlotVec].
+/// The key type must be able to create a new key from an ID and index,
+/// and must be able to return the ID and index from the key.
+///
+/// The index must be a [usize].  The ID must be a [u64].
+pub(crate) trait SlotKey: Copy + Clone + PartialEq + Eq + Ord + PartialOrd + Hash {
+    /// Create a new key from an ID and index.
     fn new(id: u64, index: usize) -> Self;
+    /// Get the ID from the key.
     fn id(self) -> u64;
+    /// Get the index from the key.
     fn index(self) -> usize;
 }
 
 #[derive(Clone, Hash)]
-pub struct SlotVec<T, I> {
+pub(crate) struct SlotVec<T, I> {
     id: u64,
     vals: Vec<T>,
     index: std::marker::PhantomData<I>,
@@ -38,28 +46,28 @@ impl<T, I> Default for SlotVec<T, I> {
 }
 
 impl<T, I: SlotKey> SlotVec<T, I> {
-    pub fn inner(&self) -> &[T] {
+    pub(crate) fn inner(&self) -> &[T] {
         &self.vals
     }
     #[must_use]
-    pub fn push(&mut self, val: T) -> I {
+    pub(crate) fn push(&mut self, val: T) -> I {
         let ndx = self.vals.len();
         self.vals.push(val);
         I::new(self.id, ndx)
     }
-    pub fn iter(&self) -> impl Iterator<Item = (I, &T)> + '_ {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (I, &T)> + '_ {
         self.vals
             .iter()
             .enumerate()
             .map(|(ndx, val)| (I::new(self.id, ndx), val))
     }
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (I, &mut T)> + '_ {
+    pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item = (I, &mut T)> + '_ {
         self.vals
             .iter_mut()
             .enumerate()
             .map(|(ndx, val)| (I::new(self.id, ndx), val))
     }
-    pub fn transmute<S, F>(self, mut f: F) -> SlotVec<S, I>
+    pub(crate) fn transmute<S, F>(self, mut f: F) -> SlotVec<S, I>
     where
         F: FnMut(I, T) -> S,
     {
@@ -75,7 +83,7 @@ impl<T, I: SlotKey> SlotVec<T, I> {
             index: std::marker::PhantomData,
         }
     }
-    pub fn try_transmute<S, F>(self, mut f: F) -> Result<SlotVec<S, I>, RHDLError>
+    pub(crate) fn try_transmute<S, F>(self, mut f: F) -> Result<SlotVec<S, I>, RHDLError>
     where
         F: FnMut(I, T) -> Result<S, RHDLError>,
     {
@@ -91,7 +99,7 @@ impl<T, I: SlotKey> SlotVec<T, I> {
             index: std::marker::PhantomData,
         })
     }
-    pub fn merge(&mut self, mut other: Self) -> impl Fn(I) -> I + use<T, I> {
+    pub(crate) fn merge(&mut self, mut other: Self) -> impl Fn(I) -> I + use<T, I> {
         let offset = self.vals.len();
         self.vals.append(&mut other.vals);
         let other_id = other.id;
@@ -109,7 +117,10 @@ impl<T, I: SlotKey> SlotVec<T, I> {
             I::new(self_id, ndx)
         }
     }
-    pub fn retain<F: Fn(I, &T) -> bool>(&mut self, f: F) -> impl Fn(I) -> Option<I> + use<T, I, F> {
+    pub(crate) fn retain<F: Fn(I, &T) -> bool>(
+        &mut self,
+        f: F,
+    ) -> impl Fn(I) -> Option<I> + use<T, I, F> {
         let mut reorder = BTreeMap::default();
         let mut counter = 0;
         let vals = std::mem::take(&mut self.vals);
@@ -128,7 +139,7 @@ impl<T, I: SlotKey> SlotVec<T, I> {
             .collect();
         move |index| reorder.get(&index).cloned()
     }
-    pub fn is_key_valid(&self, index: I) -> bool {
+    pub(crate) fn is_key_valid(&self, index: I) -> bool {
         self.id == index.id() && index.index() < self.vals.len()
     }
 }
