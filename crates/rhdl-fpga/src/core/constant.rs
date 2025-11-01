@@ -28,7 +28,10 @@
 //! The simulation trace is pretty boring.  
 #![doc = include_str!("../../doc/constant.md")]
 use quote::format_ident;
-use rhdl::{core::ScopedName, prelude::*};
+use rhdl::{
+    core::{circuit::descriptor::SyncKind, ScopedName},
+    prelude::*,
+};
 use syn::parse_quote;
 
 #[derive(Clone, Debug)]
@@ -67,7 +70,7 @@ impl<T: Digital> Synchronous for Constant<T> {
         self.value
     }
 
-    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError> {
         let name = scoped_name.to_string();
         Ok(Descriptor {
             name: scoped_name,
@@ -78,7 +81,7 @@ impl<T: Digital> Synchronous for Constant<T> {
             kernel: None,
             netlist: Some(constant(&self.value, &name)?),
             hdl: Some(self.hdl(&name)?),
-            circuit_type: CircuitType::Synchronous,
+            _phantom: std::marker::PhantomData,
         })
     }
 }

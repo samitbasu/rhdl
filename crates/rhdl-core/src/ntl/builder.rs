@@ -1,4 +1,5 @@
 use crate::ast::spanned_source::SpannedSourceSet;
+use crate::circuit::descriptor::{AsyncKind, SyncKind};
 use crate::common::symtab::RegisterId;
 use crate::ntl::object::WireDetails;
 use crate::ntl::spec::{self, Assign, BlackBoxId, WireKind};
@@ -93,7 +94,7 @@ impl Builder {
     }
 }
 
-pub fn circuit_black_box(descriptor: &Descriptor) -> Result<Object, RHDLError> {
+pub fn circuit_black_box(descriptor: &Descriptor<AsyncKind>) -> Result<Object, RHDLError> {
     let flat_name = descriptor.name.to_string();
     let mut builder = Builder::new(&flat_name);
     let hdl = descriptor.hdl()?;
@@ -116,7 +117,7 @@ pub fn circuit_black_box(descriptor: &Descriptor) -> Result<Object, RHDLError> {
     builder.build(BuilderMode::Asynchronous)
 }
 
-pub fn synchronous_black_box(descriptor: &Descriptor) -> Result<Object, RHDLError> {
+pub fn synchronous_black_box(descriptor: &Descriptor<SyncKind>) -> Result<Object, RHDLError> {
     let flat_name = descriptor.name.to_string();
     let mut builder = Builder::new(&flat_name);
     let hdl = descriptor.hdl()?;

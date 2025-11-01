@@ -1,6 +1,18 @@
+//! Generate HDL (Verilog) for [Circuit](crate::Circuit)
+//!
+//! This module provides functionality to generate HDL (specifically Verilog)
+//! representations of RHDL circuits.  You will generally not need to call these
+//! functions directly.  Instead use the method `descriptor` on [Circuit](crate::Circuit).
+//! The returned [Descriptor](crate::circuit::descriptor::Descriptor) will contain
+//! the HDL description of the circuit.
+//!
+//! See the book for more details on HDL generation in RHDL.
 use crate::{
     Circuit, CircuitDQ, CircuitIO, CompilationMode, HDLDescriptor, Kind, RHDLError,
-    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor, scoped_name::ScopedName},
+    circuit::{
+        descriptor::{AsyncKind, Descriptor},
+        scoped_name::ScopedName,
+    },
     compile_design,
     ntl::{self, from_rtl::build_ntl_from_rtl},
     rtl,
@@ -15,7 +27,7 @@ use rhdl_vlog as vlog;
 fn build_circuit_hdl<C: Circuit>(
     scoped_name: &ScopedName,
     kernel: &rtl::Object,
-    children: &[Descriptor],
+    children: &[Descriptor<AsyncKind>],
 ) -> Result<HDLDescriptor, RHDLError> {
     let local_name = scoped_name.to_string();
     let circuit_output = <C as CircuitIO>::O::static_kind();
@@ -86,7 +98,7 @@ fn build_circuit_hdl<C: Circuit>(
 fn build_circuit_netlist<C: Circuit>(
     scoped_name: &ScopedName,
     kernel: &rtl::Object,
-    children: &[Descriptor],
+    children: &[Descriptor<AsyncKind>],
 ) -> Result<ntl::Object, RHDLError> {
     let name = scoped_name.to_string();
     // Build the netlist
@@ -154,15 +166,16 @@ fn build_circuit_netlist<C: Circuit>(
     builder.build(ntl::builder::BuilderMode::Asynchronous)
 }
 
-/// Build run time description of a circuit
+/// Build run time description of a circui, where the circuit is
+/// named by `scoped_name`.
 pub fn build_asynchronous_descriptor<C: Circuit>(
     circuit: &C,
     scoped_name: ScopedName,
-) -> Result<Descriptor, RHDLError> {
+) -> Result<Descriptor<AsyncKind>, RHDLError> {
     let kernel = compile_design::<C::Kernel>(CompilationMode::Asynchronous)?;
     let children = circuit
         .children(&scoped_name)
-        .collect::<Result<Vec<Descriptor>, RHDLError>>()?;
+        .collect::<Result<Vec<Descriptor<AsyncKind>>, RHDLError>>()?;
     let hdl = build_circuit_hdl::<C>(&scoped_name, &kernel, &children)?;
     let netlist = build_circuit_netlist::<C>(&scoped_name, &kernel, &children)?;
     let circuit_output = <C as CircuitIO>::O::static_kind();
@@ -176,8 +189,8 @@ pub fn build_asynchronous_descriptor<C: Circuit>(
         d_kind,
         q_kind,
         kernel: Some(kernel),
-        circuit_type: CircuitType::Asynchronous,
         hdl: Some(hdl),
         netlist: Some(netlist),
+        _phantom: std::marker::PhantomData,
     })
 }

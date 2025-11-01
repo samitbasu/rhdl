@@ -2,7 +2,6 @@
 pub use types::kind::Kind;
 pub mod clock_details;
 
-pub use circuit::circuit_descriptor::CircuitDescriptor;
 pub use circuit::circuit_impl::Circuit;
 pub use circuit::circuit_impl::CircuitDQ;
 pub use circuit::circuit_impl::CircuitIO;
@@ -24,6 +23,8 @@ pub use types::kernel::KernelFnKind;
 pub use types::kind::DiscriminantAlignment;
 //pub use types::register::Register;
 //pub use types::register::SignedRegister;
+pub use circuit::descriptor::AsyncKind;
+pub use circuit::descriptor::SyncKind;
 pub use types::reset::Reset;
 pub use types::reset_n::ResetN;
 pub use types::signal::Signal;
@@ -56,10 +57,7 @@ pub use types::kernel;
 pub const MAX_ITERS: usize = 10;
 pub mod error;
 pub use error::RHDLError;
-//pub mod flow_graph;
 pub mod rtl;
-pub use circuit::circuit_descriptor::build_descriptor;
-pub use circuit::circuit_descriptor::build_synchronous_descriptor;
 pub use compiler::CompilationMode;
 pub use types::clock_reset::ClockReset;
 pub use types::clock_reset::clock_reset;

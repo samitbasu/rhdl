@@ -1,6 +1,39 @@
+//! Support for arrays of [Circuit](crate::Circuit)
+//!
+//! In RHDL, there is a blanket implementation of [Circuit](crate::Circuit) for
+//! an array of `impl Circuit`.  This allows you to create arrays of circuits
+//! and use them as a single circuit.  The array circuit will have inputs and
+//! outputs that are arrays of the inputs and outputs of the individual circuits.
+//!
+#![doc = badascii_doc::badascii!(r"
+            [0]   I   +-------+   O    +          
+         +----------->| C 0   +------->|          
+         |            +-------+        |          
+         |                             |          
+         |  [1]   I   +-------+   O    |          
+         +----------->| C 1   +------->|          
+         |            +-------+        |          
+         |                             |          
+ [I;N]   |                .            | [O;N]    
++--------+                .            +--------->
+         |                .            |          
+         |                             |          
+         | [N-1]  I   +-------+   O    |          
+         +----------->| C N-1 +------->|          
+                      +-------+        +          
+")]
+//!
+//! Here, there are `N` instances of circuit `C`, each taking an input of type `I`
+//! and producing an output of type `O`.  The array circuit takes an input
+//! of type `[I; N]` (an array of `N` inputs of type `I`) and produces an output
+//! of type `[O; N]` (an array of `N` outputs of type `O`).
+//!
 use crate::{
     Circuit, CircuitDQ, CircuitIO, Digital, HDLDescriptor, Kind, RHDLError,
-    circuit::{circuit_descriptor::CircuitType, descriptor::Descriptor, scoped_name::ScopedName},
+    circuit::{
+        descriptor::{AsyncKind, Descriptor},
+        scoped_name::ScopedName,
+    },
     digital_fn::NoKernel2,
     ntl, trace_pop_path, trace_push_path,
     types::path::{Path, bit_range},
@@ -42,7 +75,7 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
     // This requires a custom implementation because the default implementation
     // assumes that the children of the current circuit are named with field names
     // as part of a struct.
-    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
         let children = self
             .children(&scoped_name)
             .collect::<Result<Vec<_>, RHDLError>>()?;
@@ -55,22 +88,22 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
             q_kind: Kind::Empty,
             kernel: None,
             hdl: Some(hdl::<T, N>(&name, &children)?),
-            circuit_type: CircuitType::Asynchronous,
             netlist: Some(netlist::<T, N>(&name, &children)?),
+            _phantom: std::marker::PhantomData,
         })
     }
 
     fn children(
         &self,
         scoped_name: &ScopedName,
-    ) -> impl Iterator<Item = Result<Descriptor, RHDLError>> {
+    ) -> impl Iterator<Item = Result<Descriptor<AsyncKind>, RHDLError>> {
         (0..N).map(move |i| self[i].descriptor(scoped_name.with(format!("c{i}"))))
     }
 }
 
 fn hdl<T: Circuit, const N: usize>(
     name: &str,
-    children: &[Descriptor],
+    children: &[Descriptor<AsyncKind>],
 ) -> Result<HDLDescriptor, RHDLError> {
     let module_name = &name;
     let module_ident = format_ident!("{module_name}");
@@ -113,7 +146,7 @@ fn hdl<T: Circuit, const N: usize>(
 
 fn netlist<T: Circuit, const N: usize>(
     name: &str,
-    children: &[Descriptor],
+    children: &[Descriptor<AsyncKind>],
 ) -> Result<ntl::Object, RHDLError> {
     let mut builder = ntl::Builder::new(name);
     let input_kind: Kind = <[T; N] as CircuitIO>::I::static_kind();
@@ -121,16 +154,6 @@ fn netlist<T: Circuit, const N: usize>(
     let ti = builder.add_input(input_kind);
     let to = builder.allocate_outputs(output_kind);
     for (i, child_descriptor) in children.iter().enumerate() {
-        if child_descriptor.circuit_type != CircuitType::Asynchronous {
-            return Err(RHDLError::CircuitTypeMismatch {
-                expected: CircuitType::Asynchronous,
-                found: child_descriptor.circuit_type,
-                context: format!(
-                    "in AsynchronousArray circuit {}, child: {:?}",
-                    name, child_descriptor
-                ),
-            });
-        }
         let child_path = Path::default().index(i);
         let (output_bit_range, _) = bit_range(output_kind, &child_path)?;
         let (input_bit_range, _) = bit_range(input_kind, &child_path)?;

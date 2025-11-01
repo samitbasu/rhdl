@@ -69,7 +69,10 @@ bool  |                     |
 #![doc = include_str!("../../../doc/sync_bram.md")]
 
 use quote::{format_ident, quote};
-use rhdl::{core::ScopedName, prelude::*};
+use rhdl::{
+    core::{ScopedName, SyncKind},
+    prelude::*,
+};
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 use syn::parse_quote;
 
@@ -210,9 +213,9 @@ where
         state.output_current
     }
 
-    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor, RHDLError> {
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError> {
         let name = scoped_name.to_string();
-        Descriptor {
+        Descriptor::<SyncKind> {
             name: scoped_name,
             input_kind: <<Self as SynchronousIO>::I as Digital>::static_kind(),
             output_kind: <<Self as SynchronousIO>::O as Digital>::static_kind(),
@@ -221,7 +224,7 @@ where
             kernel: None,
             netlist: None,
             hdl: Some(self.hdl(&name)?),
-            circuit_type: CircuitType::Synchronous,
+            _phantom: std::marker::PhantomData,
         }
         .with_netlist_black_box()
     }

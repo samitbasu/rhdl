@@ -9,7 +9,10 @@
 //! be included in your simulations and test fixtures.
 //!
 
-use rhdl::{core::ScopedName, prelude::*};
+use rhdl::{
+    core::{ScopedName, SyncKind},
+    prelude::*,
+};
 
 use crate::stream::Ready;
 
@@ -143,7 +146,7 @@ impl<T: Digital> Synchronous for SourceFromFn<T> {
         me.value
     }
 
-    fn descriptor(&self, _name: ScopedName) -> Result<Descriptor, RHDLError> {
+    fn descriptor(&self, _name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError> {
         Err(RHDLError::NotSynthesizable)
     }
 }

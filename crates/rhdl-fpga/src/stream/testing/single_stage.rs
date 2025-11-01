@@ -24,7 +24,10 @@ use crate::stream::{Ready, StreamIO};
 
 use super::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn};
 use badascii_doc::badascii;
-use rhdl::{core::ScopedName, prelude::*};
+use rhdl::{
+    core::{ScopedName, SyncKind},
+    prelude::*,
+};
 
 #[derive(Clone)]
 /// The [SingleStage] test fixture
@@ -136,7 +139,7 @@ where
     fn descriptor(
         &self,
         _name: ScopedName,
-    ) -> Result<rhdl::core::Descriptor, rhdl::core::RHDLError> {
+    ) -> Result<rhdl::core::Descriptor<SyncKind>, rhdl::core::RHDLError> {
         Err(RHDLError::NotSynthesizable)
     }
     fn sim(
