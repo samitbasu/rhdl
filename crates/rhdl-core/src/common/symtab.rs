@@ -1,10 +1,35 @@
+//! Symbol table for literals and registers.
+//!
+//! A symbol table consists of the following:
+//!
+//!  - A [SlotVec] of literals, which map [LiteralId]s to some literal value type `L` and associated metadata `M`.
+//!  - A [SlotVec] of registers, which map [RegisterId]s to some register value type `R` and associated metadata `M`.
+//!
+//! Access to the symbol table can occur via the [Symbol] enum which can represent either a literal or a register.
+//! You can also access the table directly via the [LiteralId] and [RegisterId] types, in which case, you can access
+//! the literal or register values directly.
+//!
+//! Most of the methods of this are `pub(crate)`, but a few are `pub` so that you can
+//! interrogate a symbol table for analysis purposes.
 use super::slot_vec::*;
 use std::hash::Hash;
 
+/// Marker trait for indicest that will
+/// This trait is used to differentiate between different kinds of symbols
+/// used in RHDL.  The `NAME` associated constant is used when printing the
+/// symbol out for display and debug purposes.  
 pub trait SymbolKind: Copy + Ord + Hash + Default {
+    /// The name of the symbol kind, e.g., if this is
+    /// for operand symbols, this might be "op" or even just "o".
+    /// If the index is a literal index, then it will be written out as
+    /// "ol{id}", or "opl{id}", etc.
     const NAME: &'static str;
 }
 
+/// Identifier for a literal in the symbol table.
+///
+/// The `K` type parameter is used to differentiate between different
+/// kinds of symbols, e.g., operand literals, slot literals, etc.
 #[derive(Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct LiteralId<K> {
     id: u64,
@@ -38,6 +63,9 @@ impl<K: SymbolKind> std::fmt::Debug for LiteralId<K> {
     }
 }
 
+/// Identifier for a register in the symbol table.
+/// The `K` type parameter is used to differentiate between different
+/// kinds of symbols, e.g., operand registers, slot registers, etc.
 #[derive(Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct RegisterId<K>
 where
@@ -76,9 +104,14 @@ impl<K: SymbolKind> std::fmt::Debug for RegisterId<K> {
     }
 }
 
+/// A symbol in the symbol table, which can be either a literal or a register.
+/// The `K` type parameter is used to differentiate between different
+/// kinds of symbols, e.g., operand symbols, slot symbols, etc.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub enum Symbol<K: SymbolKind> {
+    /// A literal symbol.
     Literal(LiteralId<K>),
+    /// A register symbol.
     Register(RegisterId<K>),
 }
 
@@ -125,31 +158,52 @@ impl<K: SymbolKind> From<&RegisterId<K>> for Symbol<K> {
 }
 
 impl<K: SymbolKind> Symbol<K> {
+    /// Returns the literal ID if the symbol is a literal.
     pub fn lit(self) -> Option<LiteralId<K>> {
         match self {
             Symbol::Literal(lit) => Some(lit),
             _ => None,
         }
     }
+    /// Returns the register ID if the symbol is a register.
     pub fn reg(self) -> Option<RegisterId<K>> {
         match self {
             Symbol::Register(reg) => Some(reg),
             _ => None,
         }
     }
+    /// Returns true if the symbol is a literal.
+    #[must_use]
     pub fn is_lit(&self) -> bool {
         matches!(self, Symbol::Literal(_))
     }
+    /// Returns true if the symbol is a register.
+    #[must_use]
     pub fn is_reg(&self) -> bool {
         matches!(self, Symbol::Register(_))
     }
 }
 
+/// A symbol table mapping literals and registers to their values and metadata.
+///
+/// The `L` type parameter is the type of literal values.
+/// The `R` type parameter is the type of register values.
+/// The `M` type parameter is the type of metadata associated with each symbol.
+/// The `K` type parameter is used to differentiate between different kinds of symbols.
+///
+/// The `K` type is a marker used so that literal and register IDs from different
+/// symbol tables are not confused with each other.
+///
 #[derive(Clone, Hash)]
 pub struct SymbolTable<L, R, M, K: SymbolKind> {
     lit: SlotVec<(L, M), LiteralId<K>>,
     reg: SlotVec<(R, M), RegisterId<K>>,
 }
+
+type Parts<L, R, M, K> = (
+    SlotVec<(L, M), LiteralId<K>>,
+    SlotVec<(R, M), RegisterId<K>>,
+);
 
 impl<L, R, M, K: SymbolKind> Default for SymbolTable<L, R, M, K> {
     fn default() -> Self {
@@ -161,26 +215,33 @@ impl<L, R, M, K: SymbolKind> Default for SymbolTable<L, R, M, K> {
 }
 
 impl<L, R, M, K: SymbolKind> SymbolTable<L, R, M, K> {
+    /// Returns a reference to the vector of literal values and their metadata.
+    #[must_use]
     pub fn lit_vec(&self) -> &[(L, M)] {
         self.lit.inner()
     }
+    /// Returns a reference to the vector of register values and their metadata.
+    #[must_use]
     pub fn reg_vec(&self) -> &[(R, M)] {
         self.reg.inner()
     }
-    pub fn lit(&mut self, value: L, meta: M) -> Symbol<K> {
+    pub(crate) fn lit(&mut self, value: L, meta: M) -> Symbol<K> {
         let lid = self.lit.push((value, meta));
         Symbol::Literal(lid)
     }
-    pub fn reg(&mut self, value: R, meta: M) -> Symbol<K> {
+    pub(crate) fn reg(&mut self, value: R, meta: M) -> Symbol<K> {
         let rid = self.reg.push((value, meta));
         Symbol::Register(rid)
     }
+    /// Iterate over all literals in the symbol table.
     pub fn iter_lit(&self) -> impl Iterator<Item = (LiteralId<K>, &(L, M))> + '_ {
         self.lit.iter()
     }
+    /// Iterate over all registers in the symbol table.
     pub fn iter_reg(&self) -> impl Iterator<Item = (RegisterId<K>, &(R, M))> + '_ {
         self.reg.iter()
     }
+    /// Iterate over all symbols in the symbol table.
     pub fn iter_sym(&self) -> impl Iterator<Item = (Symbol<K>, &M)> + '_ {
         self.iter_lit()
             .map(|(lid, (_, meta))| (Symbol::Literal(lid), meta))
@@ -189,13 +250,15 @@ impl<L, R, M, K: SymbolKind> SymbolTable<L, R, M, K> {
                     .map(|(rid, (_, meta))| (Symbol::Register(rid), meta)),
             )
     }
-    pub fn iter_lit_mut(&mut self) -> impl Iterator<Item = (LiteralId<K>, &mut (L, M))> + '_ {
+    pub(crate) fn iter_lit_mut(
+        &mut self,
+    ) -> impl Iterator<Item = (LiteralId<K>, &mut (L, M))> + '_ {
         self.lit.iter_mut()
     }
-    pub fn iter_reg_mut(&mut self) -> impl Iterator<Item = (RegisterId<K>, &mut (R, M))> + '_ {
-        self.reg.iter_mut()
-    }
-    pub fn merge(&mut self, other: Self) -> impl Fn(Symbol<K>) -> Symbol<K> + use<L, R, M, K> {
+    pub(crate) fn merge(
+        &mut self,
+        other: Self,
+    ) -> impl Fn(Symbol<K>) -> Symbol<K> + use<L, R, M, K> {
         let Self { lit, reg } = other;
         let lit_merge = self.lit.merge(lit);
         let reg_merge = self.reg.merge(reg);
@@ -204,19 +267,7 @@ impl<L, R, M, K: SymbolKind> SymbolTable<L, R, M, K> {
             Symbol::Register(id) => Symbol::Register(reg_merge(id)),
         }
     }
-    pub fn retain_literals<F: Fn(LiteralId<K>, &(L, M)) -> bool>(
-        &mut self,
-        f: F,
-    ) -> impl Fn(LiteralId<K>) -> Option<LiteralId<K>> + use<F, L, R, M, K> {
-        self.lit.retain(f)
-    }
-    pub fn retain_registers<F: Fn(RegisterId<K>, &(R, M)) -> bool>(
-        &mut self,
-        f: F,
-    ) -> impl Fn(RegisterId<K>) -> Option<RegisterId<K>> + use<F, L, R, M, K> {
-        self.reg.retain(f)
-    }
-    pub fn retain<F: Fn(Symbol<K>, &M) -> bool + Clone>(
+    pub(crate) fn retain<F: Fn(Symbol<K>, &M) -> bool + Clone>(
         &mut self,
         f: F,
     ) -> impl Fn(Symbol<K>) -> Option<Symbol<K>> + use<F, L, R, M, K> {
@@ -233,7 +284,7 @@ impl<L, R, M, K: SymbolKind> SymbolTable<L, R, M, K> {
             Symbol::Register(rid) => retain_reg(rid).map(Symbol::Register),
         }
     }
-    pub fn transmute<T, F>(self, f: F) -> SymbolTable<L, R, T, K>
+    pub(crate) fn transmute<T, F>(self, f: F) -> SymbolTable<L, R, T, K>
     where
         F: Fn(Symbol<K>, M) -> T,
     {
@@ -246,20 +297,17 @@ impl<L, R, M, K: SymbolKind> SymbolTable<L, R, M, K> {
                 .transmute(|indx, val| (val.0, f(Symbol::Register(indx), val.1))),
         }
     }
-    pub fn into_parts(
-        self,
-    ) -> (
-        SlotVec<(L, M), LiteralId<K>>,
-        SlotVec<(R, M), RegisterId<K>>,
-    ) {
+    pub(crate) fn into_parts(self) -> Parts<L, R, M, K> {
         (self.lit, self.reg)
     }
-    pub fn from_parts(
+    pub(crate) fn from_parts(
         lit: SlotVec<(L, M), LiteralId<K>>,
         reg: SlotVec<(R, M), RegisterId<K>>,
     ) -> Self {
         Self { lit, reg }
     }
+    /// Check if a symbol key is valid in the symbol table.
+    #[must_use]
     pub fn is_key_valid(&self, key: Symbol<K>) -> bool {
         match key {
             Symbol::Literal(lid) => self.lit.is_key_valid(lid),

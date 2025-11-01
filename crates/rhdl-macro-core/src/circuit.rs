@@ -95,7 +95,9 @@ fn derive_circuit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 
 #[cfg(test)]
 mod test {
-    use crate::utils::assert_tokens_eq;
+    use expect_test::expect_file;
+
+    use crate::utils::pretty_print;
 
     use super::*;
 
@@ -108,82 +110,8 @@ mod test {
             }
         );
         let output = derive_circuit(decl).unwrap();
-        let expected = quote!(
-            impl<const N: usize> rhdl::core::Circuit for Strobe<N> {
-                type S = (
-                    Self::Q,
-                    <DFF<Bits<N>> as rhdl::core::Circuit>::S,
-                    <Constant<Bits<N>> as rhdl::core::Circuit>::S,
-                );
-                fn init(&self) -> Self::S {
-                    (
-                        <<Self as rhdl::core::CircuitDQ>::Q as rhdl::core::Digital>::dont_care(),
-                        self.strobe.init(),
-                        self.value.init(),
-                    )
-                }
-                fn descriptor(
-                    &self,
-                    name: &str,
-                ) -> Result<rhdl::core::CircuitDescriptor, rhdl::core::RHDLError> {
-                    use std::collections::BTreeMap;
-                    let mut children: BTreeMap<String, rhdl::core::CircuitDescriptor> =
-                        BTreeMap::new();
-                    children.insert(
-                        stringify!(strobe).to_string(),
-                        self.strobe
-                            .descriptor(&format!("{name}_{}", stringify!(strobe)))?,
-                    );
-                    children.insert(
-                        stringify!(value).to_string(),
-                        self.value
-                            .descriptor(&format!("{name}_{}", stringify!(value)))?,
-                    );
-                    rhdl::core::build_descriptor::<Self>(name, children)
-                }
-                fn hdl(
-                    &self,
-                    name: &str,
-                ) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
-                    use std::collections::BTreeMap;
-                    let mut children: BTreeMap<String, rhdl::core::HDLDescriptor> = BTreeMap::new();
-                    children.insert(
-                        stringify!(strobe).to_string(),
-                        self.strobe.hdl(&format!("{name}_{}", stringify!(strobe)))?,
-                    );
-                    children.insert(
-                        stringify!(value).to_string(),
-                        self.value.hdl(&format!("{name}_{}", stringify!(value)))?,
-                    );
-                    rhdl::core::build_hdl(self, name, children)
-                }
-                fn sim(
-                    &self,
-                    input: <Self as rhdl::core::CircuitIO>::I,
-                    state: &mut Self::S,
-                ) -> <Self as CircuitIO>::O {
-                    let update_fn =
-                        <<Self as rhdl::core::CircuitIO>::Kernel as rhdl::core::DigitalFn2>::func();
-                    rhdl::core::trace("input", &input);
-                    for _ in 0..rhdl::core::MAX_ITERS {
-                        let prev_state = state.clone();
-                        let (outputs, internal_inputs) = update_fn(input, state.0);
-                        rhdl::core::trace_push_path(stringify!(strobe));
-                        state.0.strobe = self.strobe.sim(internal_inputs.strobe, &mut state.1);
-                        rhdl::core::trace_pop_path();
-                        rhdl::core::trace_push_path(stringify!(value));
-                        state.0.value = self.value.sim(internal_inputs.value, &mut state.2);
-                        rhdl::core::trace_pop_path();
-                        if state == &prev_state {
-                            rhdl::core::trace("outputs", &outputs);
-                            return outputs;
-                        }
-                    }
-                    panic!("Simulation did not converge");
-                }
-            }
-        );
-        assert_tokens_eq(&expected, &output);
+        let expected = expect_file!["expect/test_template_circuit_derive.expect"];
+        expected.assert_eq(pretty_print(&output).as_str());
     }
 
     #[test]
@@ -198,117 +126,7 @@ mod test {
             }
         );
         let output = derive_circuit(decl).unwrap();
-        let expected = quote!(
-        impl rhdl::core::Circuit for Push {
-            type S = (
-                Self::Q,
-                <Strobe<32> as rhdl::core::Circuit>::S,
-                <Constant<Bits<8>> as rhdl::core::Circuit>::S,
-                <ZDriver<8> as rhdl::core::Circuit>::S,
-                <DFF<Side> as rhdl::core::Circuit>::S,
-                <DFF<Bits<8>> as rhdl::core::Circuit>::S,
-            );
-            fn init(&self) -> Self::S {
-                (
-                    <<Self as rhdl::core::CircuitDQ>::Q as rhdl::core::Digital>::dont_care(),
-                    self.strobe.init(),
-                    self.value.init(),
-                    self.buf_z.init(),
-                    self.side.init(),
-                    self.latch.init(),
-                )
-            }
-            fn descriptor(
-                &self,
-                name: &str,
-            ) -> Result<rhdl::core::CircuitDescriptor, rhdl::core::RHDLError> {
-                use std::collections::BTreeMap;
-                let mut children: BTreeMap<String, rhdl::core::CircuitDescriptor> = BTreeMap::new();
-                children.insert(
-                    stringify!(strobe).to_string(),
-                    self.strobe
-                        .descriptor(&format!("{name}_{}", stringify!(strobe)))?,
-                );
-                children.insert(
-                    stringify!(value).to_string(),
-                    self.value
-                        .descriptor(&format!("{name}_{}", stringify!(value)))?,
-                );
-                children.insert(
-                    stringify!(buf_z).to_string(),
-                    self.buf_z
-                        .descriptor(&format!("{name}_{}", stringify!(buf_z)))?,
-                );
-                children.insert(
-                    stringify!(side).to_string(),
-                    self.side
-                        .descriptor(&format!("{name}_{}", stringify!(side)))?,
-                );
-                children.insert(
-                    stringify!(latch).to_string(),
-                    self.latch
-                        .descriptor(&format!("{name}_{}", stringify!(latch)))?,
-                );
-                rhdl::core::build_descriptor::<Self>(name, children)
-            }
-            fn hdl(&self, name: &str) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
-                use std::collections::BTreeMap;
-                let mut children: BTreeMap<String, rhdl::core::HDLDescriptor> = BTreeMap::new();
-                children.insert(
-                    stringify!(strobe).to_string(),
-                    self.strobe.hdl(&format!("{name}_{}", stringify!(strobe)))?,
-                );
-                children.insert(
-                    stringify!(value).to_string(),
-                    self.value.hdl(&format!("{name}_{}", stringify!(value)))?,
-                );
-                children.insert(
-                    stringify!(buf_z).to_string(),
-                    self.buf_z.hdl(&format!("{name}_{}", stringify!(buf_z)))?,
-                );
-                children.insert(
-                    stringify!(side).to_string(),
-                    self.side.hdl(&format!("{name}_{}", stringify!(side)))?,
-                );
-                children.insert(
-                    stringify!(latch).to_string(),
-                    self.latch.hdl(&format!("{name}_{}", stringify!(latch)))?,
-                );
-                rhdl::core::build_hdl(self, name, children)
-            }
-            fn sim(
-                &self,
-                input: <Self as rhdl::core::CircuitIO>::I,
-                state: &mut Self::S,
-            ) -> <Self as CircuitIO>::O {
-                let update_fn = <<Self as rhdl::core::CircuitIO>::Kernel as rhdl::core::DigitalFn2>::func();
-                rhdl::core::trace("input", &input);
-                for _ in 0..rhdl::core::MAX_ITERS {
-                    let prev_state = state.clone();
-                    let (outputs, internal_inputs) = update_fn(input, state.0);
-                    rhdl::core::trace_push_path(stringify!(strobe));
-                    state.0.strobe = self.strobe.sim(internal_inputs.strobe, &mut state.1);
-                    rhdl::core::trace_pop_path();
-                    rhdl::core::trace_push_path(stringify!(value));
-                    state.0.value = self.value.sim(internal_inputs.value, &mut state.2);
-                    rhdl::core::trace_pop_path();
-                    rhdl::core::trace_push_path(stringify!(buf_z));
-                    state.0.buf_z = self.buf_z.sim(internal_inputs.buf_z, &mut state.3);
-                    rhdl::core::trace_pop_path();
-                    rhdl::core::trace_push_path(stringify!(side));
-                    state.0.side = self.side.sim(internal_inputs.side, &mut state.4);
-                    rhdl::core::trace_pop_path();
-                    rhdl::core::trace_push_path(stringify!(latch));
-                    state.0.latch = self.latch.sim(internal_inputs.latch, &mut state.5);
-                    rhdl::core::trace_pop_path();
-                    if state == &prev_state {
-                        rhdl::core::trace("outputs", &outputs);
-                        return outputs;
-                    }
-                }
-                panic!("Simulation did not converge");
-            }
-        });
-        assert_tokens_eq(&expected, &output);
+        let expected = expect_file!["expect/circuit_derive.expect"];
+        expected.assert_eq(pretty_print(&output).as_str());
     }
 }
