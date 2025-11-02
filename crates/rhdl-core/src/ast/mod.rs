@@ -1,9 +1,9 @@
-pub mod ast_impl;
+#[warn(missing_docs)]
+pub(crate) mod ast_impl;
 pub mod builder;
-pub mod visit;
-pub mod visit_mut;
+pub(crate) mod visit;
 pub use ast_impl::KernelFlags;
-pub mod spanned_source;
-pub use ast_impl::SourceLocation;
-pub use spanned_source::SourcePool;
-pub use spanned_source::SpannedSource;
+pub(crate) mod spanned_source;
+pub(crate) use ast_impl::SourceLocation;
+pub(crate) use spanned_source::SourcePool;
+pub(crate) use spanned_source::SpannedSource;

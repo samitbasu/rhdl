@@ -112,8 +112,8 @@ impl std::fmt::Debug for Object {
         vec_disp(f, &self.outputs)?;
         writeln!(f)?;
         for lop in &self.ops {
-            writeln!(f, "{:?}", lop.op)?;
+            writeln!(f, "   {:?}", lop.op)?;
         }
-        Ok(())
+        writeln!(f, "Done")
     }
 }

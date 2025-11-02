@@ -6,7 +6,7 @@
 
 /// Used to mark an operation as a read or a write.
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Sense {
+pub enum Sense {
     /// Read operation
     Read,
     /// Write operation
@@ -16,12 +16,12 @@ pub(crate) enum Sense {
 impl Sense {
     /// Returns true if the sense is read.
     #[must_use]
-    pub(crate) fn is_read(&self) -> bool {
+    pub fn is_read(&self) -> bool {
         matches!(self, Sense::Read)
     }
     /// Returns true if the sense is write.
     #[must_use]
-    pub(crate) fn is_write(&self) -> bool {
+    pub fn is_write(&self) -> bool {
         matches!(self, Sense::Write)
     }
 }

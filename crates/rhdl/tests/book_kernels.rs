@@ -9,6 +9,7 @@
 
 mod arrays_1 {
     use rhdl::prelude::*;
+    use test_log::test;
 
     #[kernel]
     fn kernel(x: [b4; 4]) -> b6 {
@@ -21,7 +22,15 @@ mod arrays_1 {
 
     #[test]
     fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+        let kernel = compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+        expect_test::expect_file!["expect/book_kernel_arrays_1.expect"].assert_debug_eq(&kernel);
+        let netlist: rhdl_core::ntl::Object = rhdl_core::ntl::from_rtl::build_ntl_from_rtl(&kernel);
+        let netlist = rhdl_core::compiler::optimize_ntl(netlist).unwrap();
+        expect_test::expect_file!["expect/book_kernel_arrays_1_ntl.expect"]
+            .assert_debug_eq(&netlist);
+        let vlog = kernel.as_vlog().unwrap();
+        let vlog_str = vlog.pretty();
+        expect_test::expect_file!["expect/book_kernel_arrays_1_vlog.expect"].assert_eq(&vlog_str);
     }
 }
 
