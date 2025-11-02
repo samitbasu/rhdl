@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+#![warn(clippy::missing_docs_in_private_items)]
 //! Circuit-related modules and types.
 //!
 //! This module contains the core abstractions and implementations
