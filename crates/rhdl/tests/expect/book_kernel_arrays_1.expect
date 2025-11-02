@@ -1,5 +1,5 @@
 Object kernel
-  fn_id FnID(acf150c5f91134b1)
+  fn_id FnID(8073e51c5defe01)
   arguments [Some(or1)]
   return_register r12
   reg r0 : b4 //  b4

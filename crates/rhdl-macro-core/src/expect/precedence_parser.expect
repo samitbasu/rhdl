@@ -1,17 +1,16 @@
 fn jnk() -> Vec<Stmt> {
-    bob.block_expr(
+    block_expr(
         0u32.into(),
-        bob
-            .block(
-                1u32.into(),
-                vec![
-                    bob.expr_stmt(2u32.into(), bob.binary_expr(3u32.into(),
-                    rhdl::core::ast::builder::BinOp::Add, bob.lit_expr(4u32.into(), bob
-                    .expr_lit_int(stringify!(1))), bob.binary_expr(5u32.into(),
-                    rhdl::core::ast::builder::BinOp::Mul, bob.lit_expr(6u32.into(), bob
-                    .expr_lit_int(stringify!(3))), bob.lit_expr(7u32.into(), bob
-                    .expr_lit_int(stringify!(9))))))
-                ],
-            ),
+        block(
+            1u32.into(),
+            vec![
+                expr_stmt(2u32.into(), binary_expr(3u32.into(),
+                rhdl::core::ast::builder::BinOp::Add, lit_expr(4u32.into(),
+                expr_lit_int(stringify!(1))), binary_expr(5u32.into(),
+                rhdl::core::ast::builder::BinOp::Mul, lit_expr(6u32.into(),
+                expr_lit_int(stringify!(3))), lit_expr(7u32.into(),
+                expr_lit_int(stringify!(9))))))
+            ],
+        ),
     )
 }

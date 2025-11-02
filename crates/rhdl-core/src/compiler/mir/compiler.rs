@@ -267,7 +267,7 @@ impl<'a> MirContext<'a> {
         }
         Ok(())
     }
-    fn unpack_arguments(&mut self, args: &[Box<Pat>], id: NodeId) -> Result<()> {
+    fn unpack_arguments(&mut self, args: &[Pat], id: NodeId) -> Result<()> {
         for arg in args {
             let slot = self.reg(arg.id);
             let PatKind::Type(ty) = &arg.kind else {
@@ -332,7 +332,7 @@ impl<'a> MirContext<'a> {
         self.lit(
             id,
             ExprLit::TypedBits(ExprTypedBits {
-                path: Box::new(ast_impl::Path { segments: vec![] }),
+                path: ast_impl::Path { segments: vec![] },
                 value: place_holder.clone(),
                 code: String::new(),
             }),
@@ -566,7 +566,7 @@ impl<'a> MirContext<'a> {
                 let discriminant_slot = self.lit(
                     arm.id,
                     ExprLit::TypedBits(ast_impl::ExprTypedBits {
-                        path: Box::new(ast_impl::Path { segments: vec![] }),
+                        path: ast_impl::Path { segments: vec![] },
                         value: discriminant.clone(),
                         code: String::new(),
                     }),
@@ -861,7 +861,7 @@ impl<'a> MirContext<'a> {
         Ok(lhs)
     }
 
-    fn expr_list(&mut self, exprs: &[Box<Expr>]) -> Result<Vec<Slot>> {
+    fn expr_list(&mut self, exprs: &[Expr]) -> Result<Vec<Slot>> {
         exprs.iter().map(|expr| self.expr(expr)).collect()
     }
     fn expr(&mut self, expr: &Expr) -> Result<Slot> {
@@ -1050,7 +1050,7 @@ impl<'a> MirContext<'a> {
         };
         let my_match = ExprMatch {
             expr: if_let_expr.test.clone(),
-            arms: vec![Box::new(active_arm), Box::new(else_arm)],
+            arms: vec![active_arm, else_arm],
         };
         self.match_expr(id, &my_match)
     }
