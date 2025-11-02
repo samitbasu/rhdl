@@ -86,7 +86,7 @@ impl std::fmt::Debug for Object {
         writeln!(f, "Object {}", self.name)?;
         writeln!(f, "  fn_id {:?}", self.fn_id)?;
         writeln!(f, "  arguments {:?}", self.arguments)?;
-        writeln!(f, "  return_register {:?}", self.return_register)?;
+        writeln!(f, "  return_register {}", self.return_register)?;
         for (rid, (kind, details)) in self.symtab.iter_reg() {
             let name = match details.name.as_ref() {
                 Some(s) => s.as_str(),
@@ -94,31 +94,31 @@ impl std::fmt::Debug for Object {
             };
             let reg_type = if kind.is_signed() { "s" } else { "b" };
             let reg_bits = kind.bits();
-            writeln!(f, "Reg {rid:?} : {reg_type}{reg_bits} // {name} {kind:?}")?;
+            writeln!(f, "  reg {rid} : {reg_type}{reg_bits} // {name} {kind:?}")?;
         }
         for (lid, (literal, _)) in self.symtab.iter_lit() {
             let bs: BitString = literal.into();
             let kind = literal.kind();
-            writeln!(f, "Lit {lid:?} : {bs:?} // {kind:?}")?;
+            writeln!(f, "  lit {lid} : {bs} // {kind:?}")?;
         }
         let mut body_str = String::new();
         for lop in &self.ops {
-            writeln!(body_str, "{:?}", lop.op)?;
+            writeln!(body_str, "  {:?}", lop.op)?;
         }
-        let mut indent = 0;
+        let mut indent = 1;
         for line in body_str.lines() {
             let line = line.trim();
             if line.contains('}') {
                 indent -= 1;
             }
             for _ in 0..indent {
-                write!(f, "   ")?;
+                write!(f, "  ")?;
             }
             if line.contains('{') {
                 indent += 1;
             }
             writeln!(f, "{line}")?;
         }
-        Ok(())
+        writeln!(f, "Done")
     }
 }

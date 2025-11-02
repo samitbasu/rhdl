@@ -2,12 +2,12 @@
 
 Every circuit in RHDL is classified as either
 
-- a Circuit, which is considered asynchronous (no single set of clock and reset lines)
-- a Synchronous circuit, which must have a single clock and reset line for the components of that circuit
+- a `Circuit`, which is considered asynchronous (no single set of clock and reset lines)
+- a `Synchronous` circuit, which must have a single clock and reset line for the components of that circuit
 
 You can think of this as a segmentation between "blocking/async", much as we have in regular Rust.  While `Synchronous` circuits are far more common in practice, we start with `Circuit` because it imposes fewer constraints on the design, and is slightly easier to describe.  
 
-The `Circuit` trait, along with the `CircuitIO` and `CircuitDQ` traits relate to the canonical diagram in the folloing manner:
+The `Circuit` trait, along with the `CircuitIO` and `CircuitDQ` traits relate to the canonical diagram in the following manner:
 
 ```badascii
                 CircuitIO::I    CircuitIO::Kernel          CircuitIO::O          
@@ -40,17 +40,18 @@ We will start with the `Circuit` trait itself, and the cover the other traits ne
 - A type for the internal feedback inputs and outputs for components
 - A `kernel` function to relate the inputs, outputs and feedback signals
 
-The remainder of the `Circuit` trait is connected to the support mechanisms for synthesis and simulation.  Here is a break down of the `Circuit` trait, edited for simplicity:
+The remainder of the `Circuit` trait is connected to the support mechanisms for synthesis and simulation.  Here is a break down of the `Circuit` trait:
 
 ```rust
-pub trait Circuit: 'static + Sized + Clone + CircuitIO {
+pub trait Circuit: 'static + CircuitIO + Sized {
     type S: Clone + PartialEq;
 
     fn init(&self) -> Self::S;
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O;
-    fn description(&self) -> String;
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError>;
-    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError>;
-    fn netlist_hdl(&self, name: &str) -> Result<rhdl_vlog::ModuleList, RHDLError>; 
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError>; 
+    fn children(&self, parent_scope: &ScopedName) -> impl Iterator<Item = Result<Descriptor<AsyncKind>, RHDLError>>;
 }
+```
+
+Even though you will rarely `impl Circuit` manually, it's important to understand how it works, and what happens under the hood when you tag your struct with `#[derive(Circuit)]`.  
 
