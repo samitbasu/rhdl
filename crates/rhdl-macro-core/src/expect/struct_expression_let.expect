@@ -1,24 +1,20 @@
 fn jnk() -> Vec<Stmt> {
-    bob.local_stmt(
+    local_stmt(
         4u32.into(),
-        bob.ident_pat(0u32.into(), stringify!(d), false),
+        ident_pat(0u32.into(), stringify!(d), false),
         Some(
-            bob
-                .struct_expr(
-                    1u32.into(),
-                    bob
-                        .path(
-                            vec![bob.path_segment(stringify!(Foo), vec![stringify!(T)])],
-                        ),
-                    vec![
-                        bob.field_value(bob.member_named(stringify!(a)), bob
-                        .lit_expr(2u32.into(), bob.expr_lit_int(stringify!(1)))), bob
-                        .field_value(bob.member_named(stringify!(b)), bob.lit_expr(3u32
-                        .into(), bob.expr_lit_int(stringify!(2))))
-                    ],
-                    None,
-                    <Foo<T> as rhdl::core::Digital>::static_kind().place_holder(),
-                ),
+            struct_expr(
+                1u32.into(),
+                path(vec![path_segment(stringify!(Foo), vec![stringify!(T)])]),
+                vec![
+                    field_value(member_named(stringify!(a)), lit_expr(2u32.into(),
+                    expr_lit_int(stringify!(1)))),
+                    field_value(member_named(stringify!(b)), lit_expr(3u32.into(),
+                    expr_lit_int(stringify!(2))))
+                ],
+                None,
+                <Foo<T> as rhdl::core::Digital>::static_kind().place_holder(),
+            ),
         ),
     )
 }

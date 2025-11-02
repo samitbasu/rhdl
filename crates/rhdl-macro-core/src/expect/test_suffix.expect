@@ -51,138 +51,116 @@ impl rhdl::core::digital_fn::DigitalFn0 for update {
 }
 impl rhdl::core::digital_fn::DigitalFn for update {
     fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+        use rhdl::core::ast::builder::*;
         const META_DATA: &'static str = "{\"0\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"1\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"2\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"3\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":9},\"attributes\":[]},\"4\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"5\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"6\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":3},\"attributes\":[]},\"7\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"8\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"9\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":8},\"attributes\":[]},\"10\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"11\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"12\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":10},\"attributes\":[]},\"13\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"14\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"15\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":9},\"attributes\":[]},\"16\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"17\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"18\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":4},\"attributes\":[]},\"19\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"20\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"21\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":14},\"attributes\":[]},\"22\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"23\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"24\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":12},\"attributes\":[]},\"25\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"26\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"27\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"28\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"29\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"30\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"31\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"32\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"33\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"34\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"35\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"36\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"37\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"38\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"39\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"40\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"41\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"42\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"43\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"44\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"45\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"46\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"47\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"48\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"49\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"50\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"51\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"52\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"53\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"54\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"55\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"56\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"57\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"58\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"59\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"60\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"61\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"62\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"63\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"64\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"65\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"66\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"67\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"68\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"69\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"70\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"71\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"72\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"73\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"74\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"75\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"76\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"77\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"78\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"79\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"80\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"81\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"82\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"83\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"84\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"85\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"86\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"87\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"88\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"89\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"90\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"91\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"92\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"93\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"94\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"95\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"96\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":4},\"attributes\":[]},\"97\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":4},\"attributes\":[]},\"98\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"99\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":4},\"attributes\":[]},\"100\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"101\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"102\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"103\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]},\"104\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"105\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":1},\"attributes\":[]}}";
-        let bob = rhdl::core::ast::builder::ASTBuilder::default();
         Some(
-            bob
-                .kernel_fn(
-                    0u32.into(),
-                    stringify!(update),
-                    vec! {},
-                    rhdl::core::Kind::Empty,
-                    bob
-                        .block(
-                            1u32.into(),
-                            vec![
-                                bob.local_stmt(4u32.into(), bob.ident_pat(2u32.into(),
-                                stringify!(b), false), Some(bob.lit_expr(3u32.into(), bob
-                                .expr_lit_int(stringify!(0x4313_u8))))), bob.local_stmt(7u32
-                                .into(), bob.ident_pat(5u32.into(), stringify!(j), false),
-                                Some(bob.lit_expr(6u32.into(), bob
-                                .expr_lit_int(stringify!(342))))), bob.local_stmt(10u32
-                                .into(), bob.ident_pat(8u32.into(), stringify!(i), false),
-                                Some(bob.lit_expr(9u32.into(), bob
-                                .expr_lit_int(stringify!(0x432_u8))))), bob.local_stmt(13u32
-                                .into(), bob.ident_pat(11u32.into(), stringify!(a), false),
-                                Some(bob.lit_expr(12u32.into(), bob
-                                .expr_lit_int(stringify!(54_234_i14))))), bob
-                                .local_stmt(16u32.into(), bob.ident_pat(14u32.into(),
-                                stringify!(p), false), Some(bob.lit_expr(15u32.into(), bob
-                                .expr_lit_int(stringify!(0o644_u12))))), bob
-                                .local_stmt(19u32.into(), bob.ident_pat(17u32.into(),
-                                stringify!(z), false), Some(bob.lit_expr(18u32.into(), bob
-                                .expr_lit_int(stringify!(2_u4))))), bob.local_stmt(22u32
-                                .into(), bob.ident_pat(20u32.into(), stringify!(h), false),
-                                Some(bob.lit_expr(21u32.into(), bob
-                                .expr_lit_int(stringify!(0b1010110_u_10))))), bob
-                                .local_stmt(25u32.into(), bob.ident_pat(23u32.into(),
-                                stringify!(p), false), Some(bob.lit_expr(24u32.into(), bob
-                                .expr_lit_int(stringify!(0b110011_i15))))), bob
-                                .local_stmt(29u32.into(), bob.type_pat(26u32.into(), bob
-                                .ident_pat(27u32.into(), stringify!(q), false), < u8 as
-                                rhdl::core::Digital > ::static_kind()), Some(bob
-                                .lit_expr(28u32.into(), bob.expr_lit_int(stringify!(4))))),
-                                bob.local_stmt(33u32.into(), bob.ident_pat(30u32.into(),
-                                stringify!(z), false), Some(bob.field_expr(31u32.into(), bob
-                                .path_expr(32u32.into(), bob.path(vec![bob
-                                .path_segment(stringify!(a), bob.path_arguments_none())],)),
-                                bob.member_named(stringify!(c))))), bob.local_stmt(38u32
-                                .into(), bob.ident_pat(34u32.into(), stringify!(w), false),
-                                Some(bob.tuple_expr(35u32.into(), vec![bob.path_expr(36u32
-                                .into(), bob.path(vec![bob.path_segment(stringify!(a), bob
-                                .path_arguments_none())],)), bob.path_expr(37u32.into(), bob
-                                .path(vec![bob.path_segment(stringify!(a), bob
-                                .path_arguments_none())],))]))), bob.semi_stmt(39u32.into(),
-                                bob.assign_expr(40u32.into(), bob.index_expr(41u32.into(),
-                                bob.field_expr(43u32.into(), bob.path_expr(44u32.into(), bob
-                                .path(vec![bob.path_segment(stringify!(a), bob
-                                .path_arguments_none())],)), bob
-                                .member_named(stringify!(c))), bob.lit_expr(42u32.into(),
-                                bob.expr_lit_int(stringify!(1)))), bob.binary_expr(45u32
-                                .into(), rhdl::core::ast::builder::BinOp::Add, bob
-                                .path_expr(46u32.into(), bob.path(vec![bob
-                                .path_segment(stringify!(q), bob.path_arguments_none())],)),
-                                bob.lit_expr(47u32.into(), bob
-                                .expr_lit_int(stringify!(3)))))), bob.semi_stmt(48u32
-                                .into(), bob.assign_expr(49u32.into(), bob.field_expr(50u32
-                                .into(), bob.path_expr(51u32.into(), bob.path(vec![bob
-                                .path_segment(stringify!(a), bob.path_arguments_none())],)),
-                                bob.member_named(stringify!(c))), bob.repeat_expr(52u32
-                                .into(), bob.lit_expr(53u32.into(), bob
-                                .expr_lit_int(stringify!(0))), < usize as
-                                rhdl::core::Digital > ::typed_bits(3).as_i64().unwrap()))),
-                                bob.semi_stmt(54u32.into(), bob.assign_expr(55u32.into(),
-                                bob.field_expr(56u32.into(), bob.path_expr(57u32.into(), bob
-                                .path(vec![bob.path_segment(stringify!(a), bob
-                                .path_arguments_none())],)), bob
-                                .member_named(stringify!(c))), bob.array_expr(58u32.into(),
-                                vec![bob.lit_expr(59u32.into(), bob
-                                .expr_lit_int(stringify!(1))), bob.lit_expr(60u32.into(),
-                                bob.expr_lit_int(stringify!(2))), bob.lit_expr(61u32.into(),
-                                bob.expr_lit_int(stringify!(3)))]))), bob.local_stmt(69u32
-                                .into(), bob.ident_pat(62u32.into(), stringify!(q), false),
-                                Some(bob.tuple_expr(63u32.into(), vec![bob.lit_expr(64u32
-                                .into(), bob.expr_lit_int(stringify!(1))), bob
-                                .tuple_expr(65u32.into(), vec![bob.lit_expr(66u32.into(),
-                                bob.expr_lit_int(stringify!(0))), bob.lit_expr(67u32.into(),
-                                bob.expr_lit_int(stringify!(5)))]), bob.lit_expr(68u32
-                                .into(), bob.expr_lit_int(stringify!(6)))]))), bob
-                                .local_stmt(78u32.into(), bob.type_pat(70u32.into(), bob
-                                .tuple_pat(76u32.into(), vec![bob.ident_pat(71u32.into(),
-                                stringify!(q0), false), bob.tuple_pat(74u32.into(), vec![bob
-                                .ident_pat(72u32.into(), stringify!(q1), false), bob
-                                .ident_pat(73u32.into(), stringify!(q1b), false)]), bob
-                                .ident_pat(75u32.into(), stringify!(q2), false)]), < (u8,
-                                (u8, u8), u16) as rhdl::core::Digital > ::static_kind()),
-                                Some(bob.path_expr(77u32.into(), bob.path(vec![bob
-                                .path_segment(stringify!(q), bob
-                                .path_arguments_none())],)))), bob.semi_stmt(79u32.into(),
-                                bob.assign_expr(80u32.into(), bob.field_expr(81u32.into(),
-                                bob.path_expr(82u32.into(), bob.path(vec![bob
-                                .path_segment(stringify!(a), bob.path_arguments_none())],)),
-                                bob.member_named(stringify!(a))), bob.binary_expr(83u32
-                                .into(), rhdl::core::ast::builder::BinOp::Add, bob
-                                .binary_expr(84u32.into(),
-                                rhdl::core::ast::builder::BinOp::Add, bob.lit_expr(85u32
-                                .into(), bob.expr_lit_int(stringify!(2))), bob
-                                .lit_expr(86u32.into(), bob.expr_lit_int(stringify!(3)))),
-                                bob.path_expr(87u32.into(), bob.path(vec![bob
-                                .path_segment(stringify!(q1), bob
-                                .path_arguments_none())],))))), bob.local_stmt(89u32.into(),
-                                bob.ident_pat(88u32.into(), stringify!(z), false), None),
-                                bob.expr_stmt(90u32.into(), bob.if_expr(91u32.into(), bob
-                                .binary_expr(92u32.into(),
-                                rhdl::core::ast::builder::BinOp::Gt, bob.lit_expr(93u32
-                                .into(), bob.expr_lit_int(stringify!(1))), bob
-                                .lit_expr(94u32.into(), bob.expr_lit_int(stringify!(3)))),
-                                bob.block(95u32.into(), vec![bob.semi_stmt(96u32.into(), bob
-                                .assign_expr(97u32.into(), bob.path_expr(98u32.into(), bob
-                                .path(vec![bob.path_segment(stringify!(z), bob
-                                .path_arguments_none())],)), bob.lit_expr(99u32.into(), bob
-                                .expr_lit_int(stringify!(2_u4)))))],), Some(bob
-                                .block_expr(100u32.into(), bob.block(101u32.into(), vec![bob
-                                .semi_stmt(102u32.into(), bob.assign_expr(103u32.into(), bob
-                                .path_expr(104u32.into(), bob.path(vec![bob
-                                .path_segment(stringify!(z), bob.path_arguments_none())],)),
-                                bob.lit_expr(105u32.into(), bob
-                                .expr_lit_int(stringify!(5)))))],)))))
-                            ],
-                        ),
-                    std::any::TypeId::of::<update>(),
-                    None,
-                    rhdl::serde_json::from_str(META_DATA).unwrap(),
-                    vec![],
+            kernel_fn(
+                0u32.into(),
+                stringify!(update),
+                vec! {},
+                rhdl::core::Kind::Empty,
+                block(
+                    1u32.into(),
+                    vec![
+                        local_stmt(4u32.into(), ident_pat(2u32.into(), stringify!(b),
+                        false), Some(lit_expr(3u32.into(),
+                        expr_lit_int(stringify!(0x4313_u8))))), local_stmt(7u32.into(),
+                        ident_pat(5u32.into(), stringify!(j), false), Some(lit_expr(6u32
+                        .into(), expr_lit_int(stringify!(342))))), local_stmt(10u32
+                        .into(), ident_pat(8u32.into(), stringify!(i), false),
+                        Some(lit_expr(9u32.into(), expr_lit_int(stringify!(0x432_u8))))),
+                        local_stmt(13u32.into(), ident_pat(11u32.into(), stringify!(a),
+                        false), Some(lit_expr(12u32.into(),
+                        expr_lit_int(stringify!(54_234_i14))))), local_stmt(16u32.into(),
+                        ident_pat(14u32.into(), stringify!(p), false),
+                        Some(lit_expr(15u32.into(),
+                        expr_lit_int(stringify!(0o644_u12))))), local_stmt(19u32.into(),
+                        ident_pat(17u32.into(), stringify!(z), false),
+                        Some(lit_expr(18u32.into(), expr_lit_int(stringify!(2_u4))))),
+                        local_stmt(22u32.into(), ident_pat(20u32.into(), stringify!(h),
+                        false), Some(lit_expr(21u32.into(),
+                        expr_lit_int(stringify!(0b1010110_u_10))))), local_stmt(25u32
+                        .into(), ident_pat(23u32.into(), stringify!(p), false),
+                        Some(lit_expr(24u32.into(),
+                        expr_lit_int(stringify!(0b110011_i15))))), local_stmt(29u32
+                        .into(), type_pat(26u32.into(), ident_pat(27u32.into(),
+                        stringify!(q), false), < u8 as rhdl::core::Digital >
+                        ::static_kind()), Some(lit_expr(28u32.into(),
+                        expr_lit_int(stringify!(4))))), local_stmt(33u32.into(),
+                        ident_pat(30u32.into(), stringify!(z), false),
+                        Some(field_expr(31u32.into(), path_expr(32u32.into(),
+                        path(vec![path_segment(stringify!(a), path_arguments_none())],)),
+                        member_named(stringify!(c))))), local_stmt(38u32.into(),
+                        ident_pat(34u32.into(), stringify!(w), false),
+                        Some(tuple_expr(35u32.into(), vec![path_expr(36u32.into(),
+                        path(vec![path_segment(stringify!(a), path_arguments_none())],)),
+                        path_expr(37u32.into(), path(vec![path_segment(stringify!(a),
+                        path_arguments_none())],))]))), semi_stmt(39u32.into(),
+                        assign_expr(40u32.into(), index_expr(41u32.into(),
+                        field_expr(43u32.into(), path_expr(44u32.into(),
+                        path(vec![path_segment(stringify!(a), path_arguments_none())],)),
+                        member_named(stringify!(c))), lit_expr(42u32.into(),
+                        expr_lit_int(stringify!(1)))), binary_expr(45u32.into(),
+                        rhdl::core::ast::builder::BinOp::Add, path_expr(46u32.into(),
+                        path(vec![path_segment(stringify!(q), path_arguments_none())],)),
+                        lit_expr(47u32.into(), expr_lit_int(stringify!(3)))))),
+                        semi_stmt(48u32.into(), assign_expr(49u32.into(),
+                        field_expr(50u32.into(), path_expr(51u32.into(),
+                        path(vec![path_segment(stringify!(a), path_arguments_none())],)),
+                        member_named(stringify!(c))), repeat_expr(52u32.into(),
+                        lit_expr(53u32.into(), expr_lit_int(stringify!(0))), < usize as
+                        rhdl::core::Digital > ::typed_bits(3).as_i64().unwrap()))),
+                        semi_stmt(54u32.into(), assign_expr(55u32.into(),
+                        field_expr(56u32.into(), path_expr(57u32.into(),
+                        path(vec![path_segment(stringify!(a), path_arguments_none())],)),
+                        member_named(stringify!(c))), array_expr(58u32.into(),
+                        vec![lit_expr(59u32.into(), expr_lit_int(stringify!(1))),
+                        lit_expr(60u32.into(), expr_lit_int(stringify!(2))),
+                        lit_expr(61u32.into(), expr_lit_int(stringify!(3)))]))),
+                        local_stmt(69u32.into(), ident_pat(62u32.into(), stringify!(q),
+                        false), Some(tuple_expr(63u32.into(), vec![lit_expr(64u32.into(),
+                        expr_lit_int(stringify!(1))), tuple_expr(65u32.into(),
+                        vec![lit_expr(66u32.into(), expr_lit_int(stringify!(0))),
+                        lit_expr(67u32.into(), expr_lit_int(stringify!(5)))]),
+                        lit_expr(68u32.into(), expr_lit_int(stringify!(6)))]))),
+                        local_stmt(78u32.into(), type_pat(70u32.into(), tuple_pat(76u32
+                        .into(), vec![ident_pat(71u32.into(), stringify!(q0), false),
+                        tuple_pat(74u32.into(), vec![ident_pat(72u32.into(),
+                        stringify!(q1), false), ident_pat(73u32.into(), stringify!(q1b),
+                        false)]), ident_pat(75u32.into(), stringify!(q2), false)]), <
+                        (u8, (u8, u8), u16) as rhdl::core::Digital > ::static_kind()),
+                        Some(path_expr(77u32.into(),
+                        path(vec![path_segment(stringify!(q),
+                        path_arguments_none())],)))), semi_stmt(79u32.into(),
+                        assign_expr(80u32.into(), field_expr(81u32.into(),
+                        path_expr(82u32.into(), path(vec![path_segment(stringify!(a),
+                        path_arguments_none())],)), member_named(stringify!(a))),
+                        binary_expr(83u32.into(), rhdl::core::ast::builder::BinOp::Add,
+                        binary_expr(84u32.into(), rhdl::core::ast::builder::BinOp::Add,
+                        lit_expr(85u32.into(), expr_lit_int(stringify!(2))),
+                        lit_expr(86u32.into(), expr_lit_int(stringify!(3)))),
+                        path_expr(87u32.into(), path(vec![path_segment(stringify!(q1),
+                        path_arguments_none())],))))), local_stmt(89u32.into(),
+                        ident_pat(88u32.into(), stringify!(z), false), None),
+                        expr_stmt(90u32.into(), if_expr(91u32.into(), binary_expr(92u32
+                        .into(), rhdl::core::ast::builder::BinOp::Gt, lit_expr(93u32
+                        .into(), expr_lit_int(stringify!(1))), lit_expr(94u32.into(),
+                        expr_lit_int(stringify!(3)))), block(95u32.into(),
+                        vec![semi_stmt(96u32.into(), assign_expr(97u32.into(),
+                        path_expr(98u32.into(), path(vec![path_segment(stringify!(z),
+                        path_arguments_none())],)), lit_expr(99u32.into(),
+                        expr_lit_int(stringify!(2_u4)))))],), Some(block_expr(100u32
+                        .into(), block(101u32.into(), vec![semi_stmt(102u32.into(),
+                        assign_expr(103u32.into(), path_expr(104u32.into(),
+                        path(vec![path_segment(stringify!(z), path_arguments_none())],)),
+                        lit_expr(105u32.into(), expr_lit_int(stringify!(5)))))],)))))
+                    ],
                 ),
+                std::any::TypeId::of::<update>(),
+                None,
+                rhdl::serde_json::from_str(META_DATA).unwrap(),
+                vec![],
+            ),
         )
     }
 }

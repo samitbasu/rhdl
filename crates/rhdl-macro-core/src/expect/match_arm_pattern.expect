@@ -34,43 +34,38 @@ impl rhdl::core::digital_fn::DigitalFn1 for update {
 }
 impl rhdl::core::digital_fn::DigitalFn for update {
     fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+        use rhdl::core::ast::builder::*;
         const META_DATA: &'static str = "{\"0\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"1\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"2\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"3\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"4\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":4},\"attributes\":[]},\"5\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"6\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"7\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":4},\"attributes\":[]},\"8\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"9\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"10\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"11\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"12\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"13\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"14\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"15\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]}}";
-        let bob = rhdl::core::ast::builder::ASTBuilder::default();
         Some(
-            bob
-                .kernel_fn(
-                    0u32.into(),
-                    stringify!(update),
-                    vec! {
-                        bob.type_pat(15u32.into(), bob.ident_pat(14u32.into(),
-                        stringify!(z), false), < u8 as rhdl::core::Digital >
-                        ::static_kind())
-                    },
-                    rhdl::core::Kind::Empty,
-                    bob
-                        .block(
-                            1u32.into(),
-                            vec![
-                                bob.expr_stmt(2u32.into(), bob.match_expr(3u32.into(), bob
-                                .path_expr(13u32.into(), bob.path(vec![bob
-                                .path_segment(stringify!(z), bob.path_arguments_none())],)),
-                                vec![bob.arm(4u32.into(), bob.arm_kind_constant(bob
-                                .expr_lit_int(stringify!(1_u4))), bob.block_expr(5u32
-                                .into(), bob.block(6u32.into(), vec![],))), bob.arm(7u32
-                                .into(), bob.arm_kind_constant(bob
-                                .expr_lit_int(stringify!(2_u4))), bob.block_expr(8u32
-                                .into(), bob.block(9u32.into(), vec![],))), bob.arm(10u32
-                                .into(), bob.arm_kind_constant(bob
-                                .expr_lit_typed_bits(rhdl::core::Digital::typed_bits(CONST_VAL),
-                                stringify!(CONST_VAL))), bob.block_expr(11u32.into(), bob
-                                .block(12u32.into(), vec![],)))]))
-                            ],
-                        ),
-                    std::any::TypeId::of::<update>(),
-                    None,
-                    rhdl::serde_json::from_str(META_DATA).unwrap(),
-                    vec![],
+            kernel_fn(
+                0u32.into(),
+                stringify!(update),
+                vec! {
+                    type_pat(15u32.into(), ident_pat(14u32.into(), stringify!(z), false),
+                    < u8 as rhdl::core::Digital > ::static_kind())
+                },
+                rhdl::core::Kind::Empty,
+                block(
+                    1u32.into(),
+                    vec![
+                        expr_stmt(2u32.into(), match_expr(3u32.into(), path_expr(13u32
+                        .into(), path(vec![path_segment(stringify!(z),
+                        path_arguments_none())],)), vec![arm(4u32.into(),
+                        arm_kind_constant(expr_lit_int(stringify!(1_u4))),
+                        block_expr(5u32.into(), block(6u32.into(), vec![],))), arm(7u32
+                        .into(), arm_kind_constant(expr_lit_int(stringify!(2_u4))),
+                        block_expr(8u32.into(), block(9u32.into(), vec![],))), arm(10u32
+                        .into(),
+                        arm_kind_constant(expr_lit_typed_bits(rhdl::core::Digital::typed_bits(CONST_VAL),
+                        stringify!(CONST_VAL))), block_expr(11u32.into(), block(12u32
+                        .into(), vec![],)))]))
+                    ],
                 ),
+                std::any::TypeId::of::<update>(),
+                None,
+                rhdl::serde_json::from_str(META_DATA).unwrap(),
+                vec![],
+            ),
         )
     }
 }

@@ -1,25 +1,22 @@
 fn jnk() -> Vec<Stmt> {
-    bob.local_stmt(
+    local_stmt(
         8u32.into(),
-        bob
-            .tuple_pat(
-                3u32.into(),
+        tuple_pat(
+            3u32.into(),
+            vec![
+                ident_pat(0u32.into(), stringify!(a), false), ident_pat(1u32.into(),
+                stringify!(b), false), ident_pat(2u32.into(), stringify!(c), false)
+            ],
+        ),
+        Some(
+            tuple_expr(
+                4u32.into(),
                 vec![
-                    bob.ident_pat(0u32.into(), stringify!(a), false), bob.ident_pat(1u32
-                    .into(), stringify!(b), false), bob.ident_pat(2u32.into(),
-                    stringify!(c), false)
+                    lit_expr(5u32.into(), expr_lit_int(stringify!(3))), lit_expr(6u32
+                    .into(), expr_lit_int(stringify!(4))), lit_expr(7u32.into(),
+                    expr_lit_int(stringify!(5)))
                 ],
             ),
-        Some(
-            bob
-                .tuple_expr(
-                    4u32.into(),
-                    vec![
-                        bob.lit_expr(5u32.into(), bob.expr_lit_int(stringify!(3))), bob
-                        .lit_expr(6u32.into(), bob.expr_lit_int(stringify!(4))), bob
-                        .lit_expr(7u32.into(), bob.expr_lit_int(stringify!(5)))
-                    ],
-                ),
         ),
     )
 }

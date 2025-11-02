@@ -61,7 +61,7 @@ pub enum ICE {
     #[error("Attempt to set local variable {name} that does not exist")]
     LocalVariableDoesNotExist { name: String },
     #[error("Argument pattern {arg:?} not supported")]
-    UnsupportedArgumentPattern { arg: Box<Pat> },
+    UnsupportedArgumentPattern { arg: Pat },
     #[error("Rebind of unbound variable {name}")]
     RebindOfUnboundVariable { name: String },
     #[error("Calling slot-to-index mapping on non-literal slot {slot:?}")]
