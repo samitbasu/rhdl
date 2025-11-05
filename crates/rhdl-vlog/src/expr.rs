@@ -1,3 +1,10 @@
+//! Expression parsing and representation.
+//!
+//! This module defines the `Expr` enum and related structures to represent
+//! and parse expressions in Verilog.  It uses a Pratt parser approach to handle
+//! operator precedence and associativity.  See the maklad's article for
+//! [details](https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html).
+//!
 use quote::{ToTokens, format_ident, quote};
 use serde::{Deserialize, Serialize};
 use syn::parse::{Parse, ParseStream};
@@ -13,20 +20,34 @@ use crate::kw_ops::{BinaryOp, DynOp, MinusColon, PlusColon, UnaryOp};
 
 const TERNARY_BINDING: (u8, u8) = (2, 1);
 
+/// An expression in Verilog.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub enum Expr {
+    /// A binary operation expression, e.g. `a + b`.
     Binary(ExprBinary),
+    /// A unary operation expression, e.g. `-a`.
     Unary(ExprUnary),
+    /// A constant expression, e.g. `8'd255`.
     Constant(LitVerilog),
+    /// An integer literal expression, e.g. `42`.
     Literal(i32),
+    /// A string literal expression, e.g. `"hello"`.
     String(String),
+    /// An identifier expression, e.g. `my_signal`.
     Ident(String),
+    /// A parenthesized expression, e.g. `(a + b)`.
     Paren(Box<Expr>),
+    /// A ternary expression, e.g. `a ? b : c`.
     Ternary(ExprTernary),
+    /// A concatenation expression, e.g. `{a, b, c}`.
     Concat(ExprConcat),
+    /// A replication expression, e.g. `{3{a}}`.
     Replica(ExprReplica),
+    /// An index expression, e.g. `a[0]`.
     Index(ExprIndex),
+    /// A dynamic index expression, e.g. `a[i]`.
     DynIndex(ExprDynIndex),
+    /// A function call expression, e.g. `foo(a, b)`.
     Function(ExprFunction),
 }
 impl Parse for Expr {
@@ -178,10 +199,14 @@ fn expr_bp(input: &mut ParseStream, min_bp: u8) -> Result<Expr> {
     Ok(lhs)
 }
 
+/// A binary operation expression, e.g. `a + b`.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ExprBinary {
+    /// The left-hand side expression.
     pub lhs: Box<Expr>,
+    /// The binary operator.
     pub op: BinaryOp,
+    /// The right-hand side expression.
     pub rhs: Box<Expr>,
 }
 
@@ -204,9 +229,12 @@ impl ToTokens for ExprBinary {
     }
 }
 
+/// A unary operation expression, e.g. `-a`.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ExprUnary {
+    /// The unary operator.
     pub op: UnaryOp,
+    /// The argument expression.
     pub arg: Box<Expr>,
 }
 
@@ -225,8 +253,10 @@ impl ToTokens for ExprUnary {
     }
 }
 
+/// A concatenation expression, e.g. `{a, b, c}`.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ExprConcat {
+    /// The elements of the concatenation in source code order.
     pub elements: Vec<Expr>,
 }
 
@@ -256,9 +286,12 @@ impl ToTokens for ExprConcat {
     }
 }
 
+/// A replication expression, e.g. `{3{a}}`.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ExprReplicaInner {
+    /// The replication count.
     pub count: u32,
+    /// The concatenation to be replicated.
     pub concatenation: ExprConcat,
 }
 
@@ -291,8 +324,10 @@ impl ToTokens for ExprReplicaInner {
     }
 }
 
+/// A replication expression, e.g. `{3{a}}`.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ExprReplica {
+    /// The inner replication details.
     pub inner: ExprReplicaInner,
 }
 
@@ -317,9 +352,12 @@ impl ToTokens for ExprReplica {
     }
 }
 
+/// A function call expression, e.g. `foo(a, b)`.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ExprFunction {
+    /// The name of the function.
     pub name: String,
+    /// The arguments to the function.
     pub args: Vec<Expr>,
 }
 
@@ -367,10 +405,14 @@ impl ToTokens for ExprFunction {
     }
 }
 
+/// A dynamic index expression, e.g. `i +: <width>`.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ExprDynIndexInner {
+    /// The base expression being indexed.
     pub base: Box<Expr>,
+    /// The dynamic indexing operator.
     pub op: DynOp,
+    /// The width expression for the dynamic index.
     pub width: Box<Expr>,
 }
 
@@ -400,9 +442,12 @@ impl ToTokens for ExprDynIndexInner {
     }
 }
 
+/// A dynamic index expression, e.g. `a[i +: <width>]`.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ExprDynIndex {
+    /// The target being indexed.
     pub target: String,
+    /// The address expression for the dynamic index.
     pub address: ExprDynIndexInner,
 }
 
@@ -436,9 +481,12 @@ impl ToTokens for ExprDynIndex {
     }
 }
 
+/// An index address expression, e.g. `msb:lsb` or `index`.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ExprIndexAddress {
+    /// The most significant bit or the index.
     pub msb: Box<Expr>,
+    /// The least significant bit, if present.
     pub lsb: Option<Box<Expr>>,
 }
 
@@ -479,9 +527,12 @@ impl ToTokens for ExprIndexAddress {
     }
 }
 
+/// An index expression, e.g. `a[0]` or `a[msb:lsb]`.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ExprIndex {
+    /// The target being indexed.
     pub target: String,
+    /// The address expression for the index.
     pub address: ExprIndexAddress,
 }
 
@@ -515,10 +566,14 @@ impl ToTokens for ExprIndex {
     }
 }
 
+/// A ternary expression, e.g. `a ? b : c`.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ExprTernary {
+    /// The condition expression.
     pub lhs: Box<Expr>,
+    /// The expression if the condition is true.
     pub mhs: Box<Expr>,
+    /// The expression if the condition is false.
     pub rhs: Box<Expr>,
 }
 

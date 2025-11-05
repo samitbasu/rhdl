@@ -1,3 +1,6 @@
+//! Statements in Verilog HDL.
+//! This module defines various statement kinds and their parsing,
+//! pretty-printing, and tokenization.
 use quote::{ToTokens, format_ident, quote};
 use serde::{Deserialize, Serialize};
 use syn::{
@@ -14,20 +17,34 @@ use crate::{
     kw_ops::{LeftArrow, kw},
 };
 
+/// Different kinds of statements in Verilog HDL.
 #[derive(Default, Clone, PartialEq, Hash, Serialize, Deserialize)]
 pub enum StmtKind {
+    /// If/else statement
     If(If),
+    /// Always block
     Always(Always),
+    /// Case statement
     Case(Case),
+    /// Local parameter declaration
     LocalParam(LocalParam),
+    /// Begin...end block
     Block(Block),
+    /// Continuous assignment
     ContinuousAssign(ContinuousAssign),
+    /// Function call
     FunctionCall(FunctionCall),
+    /// Non-blocking assignment
     NonblockAssign(NonblockAssign),
+    /// Blocking assignment
     Assign(Assign),
+    /// Module instance
     Instance(Instance),
+    /// Dynamic splice
     DynamicSplice(DynamicSplice),
+    /// Delay statement
     Delay(Delay),
+    /// Concatenation assignment
     ConcatAssign(ConcatAssign),
     #[default]
     /// Required because the parser for if/else uses it as a placeholder
@@ -121,8 +138,10 @@ impl ToTokens for StmtKind {
     }
 }
 
+/// A Verilog HDL statement.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize, Default)]
 pub struct Stmt {
+    /// The kind of statement.
     pub kind: StmtKind,
 }
 
@@ -146,8 +165,10 @@ impl ToTokens for Stmt {
     }
 }
 
+/// A delay statement in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Delay {
+    /// The length of the delay.
     pub length: u64,
 }
 
@@ -175,9 +196,12 @@ impl ToTokens for Delay {
     }
 }
 
+/// A function call statement in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct FunctionCall {
+    /// The name of the function.
     pub name: String,
+    /// The arguments to the function.
     pub args: Vec<Expr>,
 }
 
@@ -221,10 +245,14 @@ impl ToTokens for FunctionCall {
     }
 }
 
+/// An item in a case statement in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub enum CaseItem {
+    /// An identifier case item.
     Ident(String),
+    /// A literal case item.
     Literal(LitVerilog),
+    /// A wildcard case item (default).
     Wild,
 }
 
@@ -265,9 +293,12 @@ impl ToTokens for CaseItem {
     }
 }
 
+/// A line in a case statement in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct CaseLine {
+    /// The case item.
     pub item: CaseItem,
+    /// The statement associated with the case item.
     pub stmt: Box<Stmt>,
 }
 
@@ -299,9 +330,12 @@ impl ToTokens for CaseLine {
     }
 }
 
+/// A case statement in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Case {
+    /// The expression being matched against.
     pub discriminant: Box<Expr>,
+    /// The lines of the case statement.
     pub lines: Vec<CaseLine>,
 }
 
@@ -350,9 +384,12 @@ impl ToTokens for Case {
     }
 }
 
+/// A connection in a module instance in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Connection {
+    /// The target port name.
     pub target: String,
+    /// The local expression connected to the target port.
     pub local: Box<Expr>,
 }
 
@@ -387,9 +424,12 @@ impl ToTokens for Connection {
     }
 }
 
+/// A parameter in a module instance in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Parameter {
+    /// The name of the parameter.
     pub name: String,
+    /// The value of the parameter.
     pub value: Box<ConstExpr>,
 }
 
@@ -424,11 +464,16 @@ impl Pretty for Parameter {
     }
 }
 
+/// A module instance in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Instance {
+    /// The name of the module being instantiated.
     pub module: String,
+    /// The parameters for the module instance.
     pub parameters: Vec<Parameter>,
+    /// The name of the instance.
     pub instance: String,
+    /// The connections for the module instance.
     pub connections: Vec<Connection>,
 }
 
@@ -485,6 +530,7 @@ impl ToTokens for Instance {
     }
 }
 
+/// A list of statements in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct StmtList(pub Vec<Stmt>);
 
@@ -506,8 +552,10 @@ impl Pretty for StmtList {
     }
 }
 
+/// A begin...end block in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Block {
+    /// The body of the block.
     pub body: Vec<Stmt>,
 }
 
@@ -551,9 +599,12 @@ impl ToTokens for Block {
     }
 }
 
+/// A dynamic splice assignment in Verilog HDL, `a[b +: N] = expr;`.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct DynamicSplice {
+    /// The left-hand side expression with dynamic index.
     pub lhs: Box<ExprDynIndex>,
+    /// The right-hand side expression.
     pub rhs: Box<Expr>,
 }
 
@@ -582,9 +633,12 @@ impl ToTokens for DynamicSplice {
     }
 }
 
+/// An always block in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Always {
+    /// The sensitivity list of the always block.
     pub sensitivity: SensitivityList,
+    /// The body of the always block.
     pub body: Box<Stmt>,
 }
 
@@ -617,9 +671,12 @@ impl ToTokens for Always {
     }
 }
 
+/// A local parameter declaration in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct LocalParam {
+    /// The name of the local parameter.
     pub target: String,
+    /// The value of the local parameter.
     pub rhs: ConstExpr,
 }
 
@@ -654,8 +711,10 @@ impl ToTokens for LocalParam {
     }
 }
 
+/// An else branch in an if statement in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ElseBranch {
+    /// The statement in the else branch.
     pub stmt: Box<Stmt>,
 }
 
@@ -673,14 +732,19 @@ impl ToTokens for ElseBranch {
     }
 }
 
+/// An if statement in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct If {
+    /// The condition expression of the if statement.
     pub condition: Box<Expr>,
+    /// The statement executed if the condition is true.
     pub true_stmt: Box<Stmt>,
+    /// The optional else branch of the if statement.
     pub else_branch: Option<ElseBranch>,
 }
 
 impl Parse for If {
+    // See syn's source code for where this came from
     fn parse(input: ParseStream) -> Result<Self> {
         let mut clauses = Vec::new();
         let mut stmt;
@@ -747,9 +811,12 @@ impl ToTokens for If {
     }
 }
 
+/// An assignment target in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub enum AssignTarget {
+    /// An identifier as the assignment target.
     Ident(String),
+    /// An indexed expression as the assignment target.
     Index(ExprIndex),
 }
 
@@ -792,9 +859,12 @@ impl ToTokens for AssignTarget {
     }
 }
 
+/// A non-blocking assignment in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct NonblockAssign {
+    /// The target of the non-blocking assignment.
     pub target: AssignTarget,
+    /// The right-hand side expression of the assignment.
     pub rhs: Box<Expr>,
 }
 
@@ -823,8 +893,10 @@ impl ToTokens for NonblockAssign {
     }
 }
 
+/// A continuous assignment in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ContinuousAssign {
+    /// The assignment statement.
     pub assign: Assign,
 }
 
@@ -850,9 +922,12 @@ impl ToTokens for ContinuousAssign {
     }
 }
 
+/// A blocking assignment in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Assign {
+    /// The target of the blocking assignment.
     pub target: AssignTarget,
+    /// The right-hand side expression of the assignment.
     pub rhs: Box<Expr>,
 }
 
@@ -881,9 +956,12 @@ impl ToTokens for Assign {
     }
 }
 
+/// A concatenation assignment in Verilog HDL, e.g., `{a, b} = expr;`.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ConcatAssign {
+    /// The concatenation target of the assignment.
     pub target: ExprConcat,
+    /// The right-hand side expression of the assignment.
     pub rhs: Box<Expr>,
 }
 

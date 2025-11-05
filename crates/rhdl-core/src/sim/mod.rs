@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 pub mod iter;
 pub mod probe;
 pub mod run;

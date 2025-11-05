@@ -61,7 +61,7 @@ impl<C: Domain> CircuitDQ for ResetNegation<C> {
 impl<C: Domain> CircuitIO for ResetNegation<C> {
     type I = Signal<ResetN, C>;
     type O = Signal<Reset, C>;
-    type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
+    type Kernel = NoCircuitKernel<Self::I, (), (Self::O, ())>;
 }
 
 impl<C: Domain> Circuit for ResetNegation<C> {

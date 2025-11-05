@@ -14,7 +14,7 @@ use crate::{
         descriptor::{Descriptor, SyncKind},
         scoped_name::ScopedName,
     },
-    digital_fn::NoKernel3,
+    digital_fn::NoSynchronousKernel,
 };
 
 use quote::format_ident;
@@ -67,7 +67,7 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
 impl<T: Digital + 'static> SynchronousIO for std::marker::PhantomData<T> {
     type I = ();
     type O = ();
-    type Kernel = NoKernel3<ClockReset, (), (), ((), ())>;
+    type Kernel = NoSynchronousKernel<ClockReset, (), (), ((), ())>;
 }
 
 impl<T: Digital + 'static> SynchronousDQ for std::marker::PhantomData<T> {

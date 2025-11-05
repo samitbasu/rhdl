@@ -120,7 +120,7 @@ impl<W: Domain, R: Domain> CircuitDQ for ResetConditioner<W, R> {
 impl<W: Domain, R: Domain> CircuitIO for ResetConditioner<W, R> {
     type I = In<W, R>;
     type O = Signal<Reset, R>;
-    type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
+    type Kernel = NoCircuitKernel<Self::I, (), (Self::O, ())>;
 }
 
 #[derive(Debug, Clone, PartialEq)]

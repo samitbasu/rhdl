@@ -47,7 +47,7 @@ mod tests {
         impl CircuitIO for T {
             type I = I;
             type O = ();
-            type Kernel = NoKernel2<I, (), ((), ())>;
+            type Kernel = NoCircuitKernel<I, (), ((), ())>;
         }
 
         let clock_driver = super::sys_clock::<T>(&path!(.clock.val())).unwrap();

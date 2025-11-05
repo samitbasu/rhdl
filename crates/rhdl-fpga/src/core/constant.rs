@@ -50,7 +50,7 @@ impl<T: Digital> Constant<T> {
 impl<T: Digital> SynchronousIO for Constant<T> {
     type I = ();
     type O = T;
-    type Kernel = NoKernel3<ClockReset, (), (), (T, ())>;
+    type Kernel = NoSynchronousKernel<ClockReset, (), (), (T, ())>;
 }
 
 impl<T: Digital> SynchronousDQ for Constant<T> {

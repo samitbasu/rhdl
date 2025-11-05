@@ -1,3 +1,12 @@
+//! A simple formatter for pretty-printing Verilog constructs.
+//!
+//! It supports indentation, line breaks, and common
+//! formatting patterns like parentheses, braces, brackets,
+//! and comma-separated lists.
+//!
+//!
+
+/// A simple formatter for pretty-printing Verilog constructs.
 #[derive(Default)]
 pub struct Formatter {
     indent_level: usize,
@@ -8,6 +17,7 @@ pub struct Formatter {
 const TAB: &str = "   ";
 
 impl Formatter {
+    /// Create a new formatter.
     pub fn new() -> Self {
         Self {
             indent_level: 0,
@@ -15,15 +25,15 @@ impl Formatter {
             start_of_line: true,
         }
     }
-
+    /// Increase the indentation level.
     pub fn push(&mut self) {
         self.indent_level += 1;
     }
-
+    /// Decrease the indentation level.
     pub fn pop(&mut self) {
         self.indent_level = self.indent_level.saturating_sub(1);
     }
-
+    /// Write text to the formatter.
     pub fn write(&mut self, text: &str) {
         if self.start_of_line {
             self.contents.push_str(&TAB.repeat(self.indent_level));
@@ -32,40 +42,40 @@ impl Formatter {
         self.contents.push_str(text);
         self.start_of_line = text.ends_with('\n');
     }
-
+    /// Write a newline to the formatter.
     pub fn newline(&mut self) {
         self.contents.push('\n');
         self.start_of_line = true;
     }
-
+    /// Finish formatting and return the resulting string.
     pub fn finish(self) -> String {
         self.contents
     }
-
+    /// Create a new scoped block in the formatter.
     pub fn scoped(&mut self, f: impl FnOnce(&mut Self)) {
         self.push();
         f(self);
         self.pop();
     }
-
+    /// Write a parenthesized block to the formatter.
     pub fn parenthesized(&mut self, f: impl FnOnce(&mut Self)) {
         self.write("(");
         f(self);
         self.write(")");
     }
-
+    /// Write a braced block to the formatter.
     pub fn braced(&mut self, f: impl FnOnce(&mut Self)) {
         self.write("{");
         f(self);
         self.write("}");
     }
-
+    /// Write a bracketed block to the formatter.
     pub fn bracketed(&mut self, f: impl FnOnce(&mut Self)) {
         self.write("[");
         f(self);
         self.write("]");
     }
-
+    /// Write a comma-separated list to the formatter.
     pub fn comma_separated<T: Pretty>(&mut self, items: impl IntoIterator<Item = T>) {
         let mut iter = items.into_iter();
         if let Some(first) = iter.next() {
@@ -76,7 +86,7 @@ impl Formatter {
             }
         }
     }
-
+    /// Write multiple lines to the formatter.
     pub fn lines<T: Pretty>(&mut self, items: impl IntoIterator<Item = T>) {
         let iter = items.into_iter();
         for item in iter {
@@ -96,8 +106,11 @@ impl Formatter {
     }
 }
 
+/// A trait for types that can be pretty-printed using the [Formatter].
 pub trait Pretty {
+    /// Pretty-print the value using the given formatter.
     fn pretty_print(&self, formatter: &mut Formatter);
+    /// Return a pretty-printed string representation of the value.
     fn pretty(&self) -> String {
         let mut formatter = Formatter::new();
         self.pretty_print(&mut formatter);

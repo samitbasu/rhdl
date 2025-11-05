@@ -25,3 +25,10 @@ diagram is extremely important to understanding how RHDL works:
 ```
 
 In this section, we will cover this diagram in greater detail, including how the composition works, the various types and traits used to describe the hardware design, and the simulation and synthesis of the circuit.
+
+In general, the design process will go like this:
+
+- Decide the inputs and outputs of your circuit
+- Select the internal subcircuits that you need
+- Write the kernel function
+- Validate and test

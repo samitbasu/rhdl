@@ -154,7 +154,7 @@ where
 {
     type I = In<T, N>;
     type O = T;
-    type Kernel = NoKernel3<ClockReset, Self::I, (), (Self::O, ())>;
+    type Kernel = NoSynchronousKernel<ClockReset, Self::I, (), (Self::O, ())>;
 }
 
 #[derive(PartialEq, Debug, Clone)]

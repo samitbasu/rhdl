@@ -28,7 +28,7 @@ use crate::{
         scoped_name::ScopedName,
     },
     compile_design,
-    digital_fn::{DigitalFn2, NoKernel3},
+    digital_fn::{DigitalFn2, NoSynchronousKernel},
     ntl::from_rtl::build_ntl_from_rtl,
     rtl::Object,
     trace, trace_pop_path, trace_push_path,
@@ -49,7 +49,7 @@ pub struct Func<I: Digital, O: Digital> {
 impl<I: Digital, O: Digital> SynchronousIO for Func<I, O> {
     type I = I;
     type O = O;
-    type Kernel = NoKernel3<ClockReset, I, (), (O, ())>;
+    type Kernel = NoSynchronousKernel<ClockReset, I, (), (O, ())>;
 }
 
 impl<I: Digital, O: Digital> SynchronousDQ for Func<I, O> {

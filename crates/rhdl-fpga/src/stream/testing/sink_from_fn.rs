@@ -69,7 +69,7 @@ where
     type I = Option<T>;
     // Ready signal
     type O = Ready<T>;
-    type Kernel = NoKernel3<ClockReset, Option<T>, (), (Ready<T>, ())>;
+    type Kernel = NoSynchronousKernel<ClockReset, Option<T>, (), (Ready<T>, ())>;
 }
 
 impl<T> SynchronousDQ for SinkFromFn<T>
