@@ -99,6 +99,7 @@ pub trait UniformExt<Q>: IntoIterator + Sized
 where
     Q: Digital,
 {
+    /// Create a `Uniform` iterator from the current iterator and the specified period.
     fn uniform(self, period: u64) -> Uniform<Self::IntoIter, Q>;
 }
 
