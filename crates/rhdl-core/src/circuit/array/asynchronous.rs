@@ -34,7 +34,7 @@ use crate::{
         descriptor::{AsyncKind, Descriptor},
         scoped_name::ScopedName,
     },
-    digital_fn::NoKernel2,
+    digital_fn::NoCircuitKernel,
     ntl, trace_pop_path, trace_push_path,
     types::path::{Path, bit_range},
 };
@@ -47,7 +47,7 @@ use syn::parse_quote;
 impl<T: CircuitIO, const N: usize> CircuitIO for [T; N] {
     type I = [T::I; N];
     type O = [T::O; N];
-    type Kernel = NoKernel2<Self::I, Self::Q, (Self::O, Self::D)>;
+    type Kernel = NoCircuitKernel<Self::I, Self::Q, (Self::O, Self::D)>;
 }
 
 impl<T: CircuitIO, const N: usize> CircuitDQ for [T; N] {

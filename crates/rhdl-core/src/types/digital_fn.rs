@@ -51,15 +51,15 @@ pub trait DigitalFn2 {
 }
 
 /// A placeholder DigitalFn2 implementation for functions without kernels.
-pub struct NoKernel2<A0, A1, O> {
+pub struct NoCircuitKernel<A0, A1, O> {
     _a0: std::marker::PhantomData<A0>,
     _a1: std::marker::PhantomData<A1>,
     _o: std::marker::PhantomData<O>,
 }
 
-impl<A0, A1, O> DigitalFn for NoKernel2<A0, A1, O> {}
+impl<A0, A1, O> DigitalFn for NoCircuitKernel<A0, A1, O> {}
 
-impl<A0: Digital, A1: Digital, O: Digital> DigitalFn2 for NoKernel2<A0, A1, O> {
+impl<A0: Digital, A1: Digital, O: Digital> DigitalFn2 for NoCircuitKernel<A0, A1, O> {
     type A0 = A0;
     type A1 = A1;
     type O = O;
@@ -84,15 +84,17 @@ pub trait DigitalFn3 {
 }
 
 /// A placeholder DigitalFn3 implementation for functions without kernels.
-pub struct NoKernel3<A0, A1, A2, O> {
+pub struct NoSynchronousKernel<A0, A1, A2, O> {
     _a0: std::marker::PhantomData<A0>,
     _a1: std::marker::PhantomData<A1>,
     _a2: std::marker::PhantomData<A2>,
     _o: std::marker::PhantomData<O>,
 }
 
-impl<A0, A1, A2, O> DigitalFn for NoKernel3<A0, A1, A2, O> {}
-impl<A0: Digital, A1: Digital, A2: Digital, O: Digital> DigitalFn3 for NoKernel3<A0, A1, A2, O> {
+impl<A0, A1, A2, O> DigitalFn for NoSynchronousKernel<A0, A1, A2, O> {}
+impl<A0: Digital, A1: Digital, A2: Digital, O: Digital> DigitalFn3
+    for NoSynchronousKernel<A0, A1, A2, O>
+{
     type A0 = A0;
     type A1 = A1;
     type A2 = A2;

@@ -197,7 +197,7 @@ impl<W: Domain, R: Domain> CircuitDQ for Sync1Bit<W, R> {
 impl<W: Domain, R: Domain> CircuitIO for Sync1Bit<W, R> {
     type I = In<W, R>;
     type O = Signal<bool, R>;
-    type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
+    type Kernel = NoCircuitKernel<Self::I, (), (Self::O, ())>;
 }
 
 #[derive(PartialEq, Debug, Digital, Clone, Copy)]

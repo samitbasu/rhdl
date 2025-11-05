@@ -69,7 +69,7 @@ use crate::{
         descriptor::{AsyncKind, Descriptor, SyncKind},
         scoped_name::ScopedName,
     },
-    digital_fn::NoKernel2,
+    digital_fn::NoCircuitKernel,
     ntl,
     types::{kind::Field, signal::signal},
 };
@@ -155,7 +155,7 @@ impl<I: Digital, D: Domain> Digital for AdapterInput<I, D> {
 impl<C: Synchronous, D: Domain> CircuitIO for Adapter<C, D> {
     type I = AdapterInput<C::I, D>;
     type O = Signal<C::O, D>;
-    type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
+    type Kernel = NoCircuitKernel<Self::I, (), (Self::O, ())>;
 }
 
 impl<C: Synchronous, D: Domain> CircuitDQ for Adapter<C, D> {

@@ -113,7 +113,7 @@ where
 {
     type I = ();
     type O = ();
-    type Kernel = NoKernel3<ClockReset, (), Q<S, T>, ((), D<S, T>)>;
+    type Kernel = NoSynchronousKernel<ClockReset, (), Q<S, T>, ((), D<S, T>)>;
 }
 
 impl<S, T, C> Synchronous for SingleStage<S, T, C>

@@ -1,3 +1,8 @@
+#![allow(missing_docs)]
+/// Operators and keywords used in Verilog HDL.
+///
+/// This module defines various operators and keywords used in Verilog HDL,
+/// along with their parsing and pretty-printing implementations.
 use quote::{ToTokens, quote};
 use serde::{Deserialize, Serialize};
 use syn::parse::{Parse, ParseStream};
@@ -11,7 +16,6 @@ syn::custom_punctuation!(MinusColon, -:);
 syn::custom_punctuation!(LeftArrow, <=);
 
 syn::custom_punctuation!(CaseUnequal, !==);
-
 syn::custom_punctuation!(CaseEqual, ===);
 
 syn::custom_punctuation!(SignedRightShift, >>>);
@@ -41,9 +45,12 @@ pub(crate) mod kw {
     syn::custom_keyword!(doc);
 }
 
+/// Dynamic indexing operators in Verilog HDL.
 #[derive(Copy, Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
 pub enum DynOp {
+    /// `+:` operator
     PlusColon,
+    /// `-:` operator
     MinusColon,
 }
 
@@ -93,14 +100,22 @@ impl ToTokens for DynOp {
     }
 }
 
+/// Unary operators in Verilog HDL.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Serialize, Deserialize)]
 pub enum UnaryOp {
+    /// `+` operator
     Plus,
+    /// `-` operator
     Minus,
+    /// `!` operator
     Bang,
+    /// `~` operator
     Not,
+    /// `&` operator
     And,
+    /// `|` operator
     Or,
+    /// `^` operator
     Xor,
 }
 
@@ -179,32 +194,54 @@ impl ToTokens for UnaryOp {
 }
 
 impl UnaryOp {
+    /// Returns the binding power of the unary operator.
     pub fn binding_power(&self) -> u8 {
         50
     }
 }
 
+/// Binary operators in Verilog HDL.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Serialize, Deserialize)]
 pub enum BinaryOp {
+    /// `<<` operator
     Shl,
+    /// `>>>` operator (signed right shift)
     SignedRightShift,
+    /// `>>` operator
     Shr,
+    /// `&&` operator
     ShortAnd,
+    /// `||` operator
     ShortOr,
+    /// `===` operator
     CaseEq,
+    /// `!==` operator
     CaseNe,
+    /// `!=` operator
     Ne,
+    /// `==` operator
     Eq,
+    /// `>=` operator
     Ge,
+    /// `<=` operator
     Le,
+    /// `>` operator
     Gt,
+    /// `<` operator
     Lt,
+    /// `+` operator
     Plus,
+    /// `-` operator
     Minus,
+    /// `&` operator
     And,
+    /// `|` operator
     Or,
+    /// `^` operator
     Xor,
+    /// `%` operator
     Mod,
+    /// `*` operator
     Mul,
 }
 
@@ -389,6 +426,9 @@ impl ToTokens for BinaryOp {
 }
 
 impl BinaryOp {
+    /// Returns the binding power of the binary operator.
+    /// The first element of the tuple is the left binding power,
+    /// and the second element is the right binding power.
     pub fn binding_power(&self) -> (u8, u8) {
         match self {
             BinaryOp::Mod | BinaryOp::Mul => (20, 21),

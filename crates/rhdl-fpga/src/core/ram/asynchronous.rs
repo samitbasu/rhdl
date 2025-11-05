@@ -191,7 +191,7 @@ where
 {
     type I = In<T, W, R, N>;
     type O = Signal<T, R>;
-    type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
+    type Kernel = NoCircuitKernel<Self::I, (), (Self::O, ())>;
 }
 
 #[derive(PartialEq, Debug, Clone)]

@@ -580,7 +580,7 @@ mod tests {
         impl CircuitIO for U {
             type I = I;
             type O = O;
-            type Kernel = NoKernel2<I, (), (O, ())>;
+            type Kernel = NoCircuitKernel<I, (), (O, ())>;
         }
 
         let mut ok_host = super::Host::<U>::default();

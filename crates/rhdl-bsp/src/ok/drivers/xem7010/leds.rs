@@ -45,7 +45,7 @@ mod tests {
         impl CircuitIO for U {
             type I = ();
             type O = O;
-            type Kernel = NoKernel2<(), (), (O, ())>;
+            type Kernel = NoCircuitKernel<(), (), (O, ())>;
         }
 
         let led_driver = super::leds::<U>(&path!(.leds.val())).unwrap();

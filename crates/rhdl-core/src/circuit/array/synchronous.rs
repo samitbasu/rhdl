@@ -39,7 +39,7 @@ use crate::{
         descriptor::{Descriptor, SyncKind},
         scoped_name::ScopedName,
     },
-    digital_fn::NoKernel3,
+    digital_fn::NoSynchronousKernel,
     ntl, trace_pop_path, trace_push_path,
     types::path::{Path, bit_range},
 };
@@ -51,7 +51,7 @@ use syn::parse_quote;
 impl<T: SynchronousIO, const N: usize> SynchronousIO for [T; N] {
     type I = [T::I; N];
     type O = [T::O; N];
-    type Kernel = NoKernel3<ClockReset, Self::I, Self::Q, (Self::O, Self::D)>;
+    type Kernel = NoSynchronousKernel<ClockReset, Self::I, Self::Q, (Self::O, Self::D)>;
 }
 
 impl<T: SynchronousIO, const N: usize> SynchronousDQ for [T; N] {

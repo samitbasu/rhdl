@@ -1,3 +1,8 @@
+//! Support for atoms - basic building blocks of Verilog HDL.
+//!
+//! Note that none of these terms are spec compliant Verilog terminology; they are
+//! simply convenient names for concepts that appear in Verilog HDL.
+
 use crate::{
     ParenCommaList,
     formatter::{Formatter, Pretty},
@@ -15,16 +20,21 @@ use syn::{
 // Import the custom keywords from the parent module
 use crate::kw_ops::kw;
 
+/// HDL declaration kinds: wire, reg, etc.
 #[derive(Debug, Clone, Hash, Copy, PartialEq, Serialize, Deserialize)]
 pub enum HDLKind {
+    /// Wire declaration
     Wire,
+    /// Register declaration
     Reg,
 }
 
 impl HDLKind {
+    /// Returns true if the kind is `Reg`.
     pub fn is_reg(&self) -> bool {
         matches!(self, HDLKind::Reg)
     }
+    /// Returns true if the kind is `Wire`.
     pub fn is_wire(&self) -> bool {
         matches!(self, HDLKind::Wire)
     }
@@ -63,20 +73,27 @@ impl ToTokens for HDLKind {
     }
 }
 
+/// Direction of a port: input, output, or inout.
 #[derive(Debug, Clone, Hash, Copy, PartialEq, Serialize, Deserialize)]
 pub enum Direction {
+    /// Input port
     Input,
+    /// Output port
     Output,
+    /// Inout port
     Inout,
 }
 
 impl Direction {
+    /// Returns true if the direction is `Input`.
     pub fn is_input(&self) -> bool {
         matches!(self, Direction::Input)
     }
+    /// Returns true if the direction is `Output`.
     pub fn is_output(&self) -> bool {
         matches!(self, Direction::Output)
     }
+    /// Returns true if the direction is `Inout`.
     pub fn is_inout(&self) -> bool {
         matches!(self, Direction::Inout)
     }
@@ -126,9 +143,14 @@ impl ToTokens for Direction {
     }
 }
 
+/// A range of bits, specified by start and end indices.  Note that
+/// start is the lower index and end is the higher index.
+/// Note also that end is inclusive.
 #[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct BitRange {
+    /// Start index of the bit range.
     pub start: u32,
+    /// End index of the bit range.
     pub end: u32,
 }
 
@@ -168,15 +190,19 @@ impl ToTokens for BitRange {
     }
 }
 
+/// A width specification for a signal, e.g., [7:0].
 #[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct WidthSpec {
+    /// The bit range specifying the width.
     pub bit_range: BitRange,
 }
 
 impl WidthSpec {
+    /// Returns the length of the width specification.
     pub fn len(&self) -> usize {
         (self.bit_range.end - self.bit_range.start + 1) as usize
     }
+    /// Returns true if the width specification is empty.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -206,18 +232,25 @@ impl ToTokens for WidthSpec {
     }
 }
 
+/// A signed or unsigned width specification.
+///
+/// In Verilog, this would be represented as either "signed [7:0]" or simply "[7:0]".
 #[derive(Clone, Debug, Hash, PartialEq, Serialize, Deserialize)]
 pub enum SignedWidth {
+    /// Signed width specification.
     Signed(WidthSpec),
+    /// Unsigned width specification.
     Unsigned(WidthSpec),
 }
 
 impl SignedWidth {
+    /// Returns the length of the width specification.
     pub fn len(&self) -> usize {
         match self {
             SignedWidth::Signed(width) | SignedWidth::Unsigned(width) => width.len(),
         }
     }
+    /// Returns true if the width specification is empty.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -265,9 +298,12 @@ impl ToTokens for SignedWidth {
     }
 }
 
+/// A declaration kind, consisting of a name and an optional width.
 #[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct DeclKind {
+    /// The name of the declaration kind.
     pub name: String,
+    /// The optional width specification.
     pub width: Option<SignedWidth>,
 }
 
@@ -301,10 +337,14 @@ impl ToTokens for DeclKind {
     }
 }
 
+/// A list of declarations of a given kind (wire, reg, etc.).
 #[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct DeclarationList {
+    /// The kind of declaration (e.g., wire, reg).
     pub kind: HDLKind,
+    /// The optional signed width specification.
     pub signed_width: Option<SignedWidth>,
+    /// The list of declaration items.
     pub items: Vec<DeclKind>,
 }
 
@@ -345,14 +385,19 @@ impl ToTokens for DeclarationList {
     }
 }
 
+/// A single declaration, consisting of a kind, optional width, and name.
 #[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Declaration {
+    /// The kind of declaration (e.g., wire, reg).
     pub kind: HDLKind,
+    /// The optional signed width specification.
     pub signed_width: Option<SignedWidth>,
+    /// The name of the declaration.
     pub name: String,
 }
 
 impl Declaration {
+    /// Returns the width of the declaration.
     pub fn width(&self) -> usize {
         self.signed_width.as_ref().map(|w| w.len()).unwrap_or(1)
     }
@@ -394,13 +439,18 @@ impl ToTokens for Declaration {
     }
 }
 
+/// A port declaration, consisting of a direction and a declaration.
+/// In Verilog, this would be represented as e.g., `input wire [7:0] data_in`
 #[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Port {
+    /// The direction of the port (input, output, inout).
     pub direction: Direction,
+    /// The declaration associated with the port.
     pub decl: Declaration,
 }
 
 impl Port {
+    /// Returns the width of the port.
     pub fn width(&self) -> usize {
         self.decl.width()
     }
@@ -431,9 +481,15 @@ impl ToTokens for Port {
     }
 }
 
+/// A Verilog literal, consisting of a width and a value.
+/// In Verilog, this would be represented as e.g., `8'b10101010`.
+/// The value is represented as a string to accommodate various
+/// formats (binary, hexadecimal, decimal, etc.).
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize, Debug)]
 pub struct LitVerilog {
+    /// The width of the literal.
     pub width: u32,
+    /// The value of the literal as a string.
     pub value: String,
 }
 
@@ -464,11 +520,16 @@ impl ToTokens for LitVerilog {
     }
 }
 
+/// A sensitivity specification for always blocks.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub enum Sensitivity {
+    /// A positive edge sensitivity (posedge).
     PosEdge(PosEdgeSensitivity),
+    /// A negative edge sensitivity (negedge).
     NegEdge(NegEdgeSensitivity),
+    /// A signal sensitivity.
     Signal(String),
+    /// A star (*) sensitivity.
     Star,
 }
 
@@ -525,8 +586,10 @@ impl ToTokens for Sensitivity {
     }
 }
 
+/// A positive edge sensitivity (posedge).
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct PosEdgeSensitivity {
+    /// The identifier associated with the positive edge sensitivity.
     pub ident: String,
 }
 
@@ -554,8 +617,10 @@ impl ToTokens for PosEdgeSensitivity {
     }
 }
 
+/// A negative edge sensitivity (negedge).
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct NegEdgeSensitivity {
+    /// The identifier associated with the negative edge sensitivity.
     pub ident: String,
 }
 
@@ -583,8 +648,10 @@ impl ToTokens for NegEdgeSensitivity {
     }
 }
 
+/// A sensitivity list for always blocks.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct SensitivityList {
+    /// The list of sensitivity elements.
     pub elements: Vec<Sensitivity>,
 }
 
@@ -614,11 +681,16 @@ impl ToTokens for SensitivityList {
     }
 }
 
+/// A constant expression.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub enum ConstExpr {
+    /// A Verilog literal.
     LitVerilog(LitVerilog),
+    /// An integer literal.
     LitInt(i32),
+    /// A string literal.
     LitStr(String),
+    /// A real number literal.
     LitReal(String),
 }
 

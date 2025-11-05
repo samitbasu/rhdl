@@ -58,6 +58,8 @@
 	- [Kernels](circuits/kernels.md)
 	- [Simulation](circuits/simulation.md)
 	- [Synthesis](circuits/synthesis.md)
+- [Simulations](simulations/summary.md)
+- [Fixturing and Synthesis](fixturing/summary.md)
 - [A Simple Xor Gate](xor_gate/summary.md)
 	- [Setting Up](xor_gate/setting_up.md)
 	- [The Gate](xor_gate/the_gate.md)

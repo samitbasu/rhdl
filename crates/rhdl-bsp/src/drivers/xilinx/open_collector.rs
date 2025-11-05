@@ -74,7 +74,7 @@ mod tests {
         impl CircuitIO for U {
             type I = ();
             type O = (Signal<b2, Red>, Signal<b4, Blue>);
-            type Kernel = NoKernel2<(), (), ((Signal<b2, Red>, Signal<b4, Blue>), ())>;
+            type Kernel = NoCircuitKernel<(), (), ((Signal<b2, Red>, Signal<b4, Blue>), ())>;
         }
 
         let driver = build::<U>("led", &path!(.0.val()), &options).unwrap();

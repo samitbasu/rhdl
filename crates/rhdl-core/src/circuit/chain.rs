@@ -26,7 +26,7 @@ use crate::circuit::descriptor::{Descriptor, SyncKind};
 use crate::circuit::scoped_name::ScopedName;
 use crate::{
     ClockReset, Digital, HDLDescriptor, Kind, Synchronous, SynchronousDQ, SynchronousIO,
-    digital_fn::NoKernel3, trace_pop_path, trace_push_path,
+    digital_fn::NoSynchronousKernel, trace_pop_path, trace_push_path,
 };
 use crate::{RHDLError, ntl};
 use rhdl_vlog as vlog;
@@ -51,7 +51,7 @@ impl<A, B> Chain<A, B> {
 impl<A: Synchronous, B: Synchronous> SynchronousIO for Chain<A, B> {
     type I = <A as SynchronousIO>::I;
     type O = <B as SynchronousIO>::O;
-    type Kernel = NoKernel3<ClockReset, Self::I, (), (Self::O, ())>;
+    type Kernel = NoSynchronousKernel<ClockReset, Self::I, (), (Self::O, ())>;
 }
 
 impl<A: Synchronous, B: Synchronous> SynchronousDQ for Chain<A, B> {

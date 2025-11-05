@@ -95,7 +95,7 @@ impl<T: Digital + Default> Default for DFF<T> {
 impl<T: Digital> SynchronousIO for DFF<T> {
     type I = T;
     type O = T;
-    type Kernel = NoKernel3<ClockReset, T, (), (T, ())>;
+    type Kernel = NoSynchronousKernel<ClockReset, T, (), (T, ())>;
 }
 
 impl<T: Digital> SynchronousDQ for DFF<T> {

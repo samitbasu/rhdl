@@ -26,7 +26,7 @@ use crate::{
         scoped_name::ScopedName,
     },
     compile_design,
-    digital_fn::{DigitalFn1, NoKernel2},
+    digital_fn::{DigitalFn1, NoCircuitKernel},
     ntl::from_rtl::build_ntl_from_rtl,
     rtl::Object,
 };
@@ -45,7 +45,7 @@ pub struct AsyncFunc<I: Timed, O: Timed> {
 impl<I: Timed, O: Timed> CircuitIO for AsyncFunc<I, O> {
     type I = I;
     type O = O;
-    type Kernel = NoKernel2<I, (), (O, ())>;
+    type Kernel = NoCircuitKernel<I, (), (O, ())>;
 }
 
 impl<I: Timed, O: Timed> CircuitDQ for AsyncFunc<I, O> {
