@@ -1,5 +1,5 @@
+//! A path representation for indexing into [Digital](crate::types::digital::Digital) types.
 use internment::Intern;
-use log::debug;
 use miette::Diagnostic;
 use rhdl_trace_type::TraceType;
 use std::iter::once;
@@ -13,6 +13,7 @@ use crate::error::rhdl_error;
 use crate::rhif::spec::Member;
 use crate::rhif::spec::Slot;
 
+#[allow(missing_docs)]
 #[derive(Error, Debug, Diagnostic)]
 pub enum PathError {
     #[error("Path {prefix:?} is not a prefix of {path:?}")]
@@ -68,18 +69,28 @@ pub enum PathError {
 
 type Result<T> = std::result::Result<T, RHDLError>;
 
+/// An element of a [Path](crate::types::path::Path).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PathElement {
+    /// An index into an array, e.g. `x[3]`
     Index(usize),
+    /// A tuple index, e.g. `x.0`
     TupleIndex(usize),
+    /// A struct field, e.g. `x.field_name`
     Field(Intern<String>),
+    /// The enum discriminant, e.g. `x#`
     EnumDiscriminant,
+    /// The enum payload, e.g. `x#VariantName`
     EnumPayload(Intern<String>),
+    /// The enum payload by discriminant value, e.g. `x#0`
     EnumPayloadByValue(i64),
+    /// A dynamic index, e.g. `x[y]`
     DynamicIndex(Slot),
+    /// The value of a Signal, e.g. `x@`
     SignalValue,
 }
 
+/// A path for indexing into [Digital](crate::types::digital::Digital) types.
 #[derive(Clone, PartialEq, Hash, Default)]
 pub struct Path {
     elements: Vec<PathElement>,
@@ -112,44 +123,54 @@ impl std::fmt::Debug for Path {
 }
 
 impl Path {
+    /// Get an iterator over the path elements.
     pub fn iter(&self) -> impl Iterator<Item = &PathElement> {
         self.elements.iter()
     }
+    /// Get an iterator over the path elements by value.
     pub fn elements(self) -> impl Iterator<Item = PathElement> {
         self.elements.into_iter()
     }
+    /// Get the number of elements in the path.
     pub fn len(&self) -> usize {
         self.elements.len()
     }
+    /// Get an iterator over the dynamic slots in the path.
     pub fn dynamic_slots(&self) -> impl Iterator<Item = &Slot> {
         self.elements.iter().filter_map(|e| match e {
             PathElement::DynamicIndex(slot) => Some(slot),
             _ => None,
         })
     }
+    /// Get a mutable iterator over the dynamic slots in the path.
     pub fn dynamic_slots_mut(&mut self) -> impl Iterator<Item = &mut Slot> {
         self.elements.iter_mut().filter_map(|e| match e {
             PathElement::DynamicIndex(slot) => Some(slot),
             _ => None,
         })
     }
+    /// Add an index element to the path.
     pub fn index(mut self, index: usize) -> Self {
         self.elements.push(PathElement::Index(index));
         self
     }
+    /// Add a tuple index element to the path.
     pub fn tuple_index(mut self, ndx: usize) -> Self {
         self.elements.push(PathElement::TupleIndex(ndx));
         self
     }
+    /// Add a field element to the path.
     pub fn field(mut self, field: &str) -> Self {
         self.elements
             .push(PathElement::Field(field.to_string().into()));
         self
     }
+    /// Add a signal value element to the path.
     pub fn signal_value(mut self) -> Self {
         self.elements.push(PathElement::SignalValue);
         self
     }
+    /// Add a member element to the path.
     pub fn member(mut self, member: &Member) -> Self {
         match member {
             Member::Named(name) => self.elements.push(PathElement::Field(name.to_owned())),
@@ -157,36 +178,44 @@ impl Path {
         }
         self
     }
+    /// Add a discriminant element to the path.
     pub fn discriminant(mut self) -> Self {
         self.elements.push(PathElement::EnumDiscriminant);
         self
     }
+    /// Add a dynamic index element to the path.
     pub fn dynamic(mut self, slot: Slot) -> Self {
         self.elements.push(PathElement::DynamicIndex(slot));
         self
     }
+    /// Add a payload element to the path.
     pub fn payload(mut self, name: &str) -> Self {
         self.elements
             .push(PathElement::EnumPayload(name.to_string().into()));
         self
     }
+    /// Add a payload by value element to the path.
     pub fn join(mut self, other: &Path) -> Self {
         self.elements.extend(other.elements.clone());
         self
     }
+    /// Check if the path is empty.
     pub fn is_empty(&self) -> bool {
         self.elements.is_empty()
     }
+    /// Add a payload by value element to the path.
     pub fn payload_by_value(mut self, discriminant: i64) -> Self {
         self.elements
             .push(PathElement::EnumPayloadByValue(discriminant));
         self
     }
+    /// Check if the path contains any dynamic indices.
     pub fn any_dynamic(&self) -> bool {
         self.elements
             .iter()
             .any(|e| matches!(e, PathElement::DynamicIndex(_)))
     }
+    /// Remap all dynamic indices using the given function.
     pub fn remap_slots<F: FnMut(Slot) -> Slot>(self, mut f: F) -> Path {
         Path {
             elements: self
@@ -199,6 +228,7 @@ impl Path {
                 .collect(),
         }
     }
+    /// Check if the path is a prefix of another path.
     pub fn is_prefix_of(&self, other: &Path) -> bool {
         self.elements.len() <= other.elements.len()
             && self
@@ -207,6 +237,7 @@ impl Path {
                 .zip(other.elements.iter())
                 .all(|(a, b)| a == b)
     }
+    /// Strip the given prefix from the path.
     pub fn strip_prefix(&self, prefix: &Path) -> Result<Path> {
         if !prefix.is_prefix_of(self) {
             return Err(rhdl_error(PathError::NotAPrefix {
@@ -218,14 +249,14 @@ impl Path {
             elements: self.elements[prefix.elements.len()..].to_vec(),
         })
     }
-
+    /// Check if the path is the magic `#val` path.
     pub fn is_magic_val_path(&self) -> bool {
         self.elements.len() == 1
             && (self.elements[0] == PathElement::Field("#val".to_string().into()))
     }
-    // Replace all dynamic indices such as `x[[a]]` with
-    // simple indices `x[0]`.  Used to calculate the offset
-    // of a dynamic indexing expression.
+    /// Replace all dynamic indices such as `x[[a]]` with
+    /// simple indices `x[0]`.  Used to calculate the offset
+    /// of a dynamic indexing expression.
     pub fn zero_out_dynamic_indices(&self) -> Path {
         Path {
             elements: self
@@ -238,10 +269,10 @@ impl Path {
                 .collect(),
         }
     }
-    // Stride path - zero out all dynamic indices except the one
-    // with the given slot.  In that case, use an index of 1.
-    // This is equivalent to, um, differentiating the bit-range with
-    // respect to the given slot.
+    /// Stride path - zero out all dynamic indices except the one
+    /// with the given slot.  In that case, use an index of 1.
+    /// This is equivalent to, um, differentiating the bit-range with
+    /// respect to the given slot.
     pub fn stride_path(&self, slot: Slot) -> Path {
         Path {
             elements: self
@@ -255,15 +286,15 @@ impl Path {
                 .collect(),
         }
     }
-
+    /// Create a path with a single element.
     pub(crate) fn with_element(x: PathElement) -> Path {
         Path { elements: vec![x] }
     }
-
+    /// Pop the last element from the path.
     pub(crate) fn pop(&mut self) -> Option<PathElement> {
         self.elements.pop()
     }
-
+    /// Push an element to the path.
     pub(crate) fn push(&mut self, element: PathElement) {
         self.elements.push(element);
     }
@@ -285,7 +316,7 @@ impl From<Member> for Path {
 // Given a path and a kind, generate all leaf paths starting
 // at the given path - these are paths that terminate in
 // non-composite elements of a data structure.
-pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
+pub(crate) fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
     match kind {
         Kind::Array(array) => (0..array.size)
             .flat_map(|i| leaf_paths(&array.base, base.clone().index(i)))
@@ -312,50 +343,12 @@ pub fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
     }
 }
 
-// Given a path and a kind, computes all possible paths that can be
-// generated from the base path using legal values for the dynamic
-// indices.
-pub fn path_star(kind: &Kind, path: &Path) -> Result<Vec<Path>> {
-    debug!("path star called with kind {:?} and path {:?}", kind, path);
-    if !path.any_dynamic() {
-        return Ok(vec![path.clone()]);
-    }
-    if let Some(element) = path.elements.first() {
-        match element {
-            PathElement::DynamicIndex(_) => {
-                let Kind::Array(array) = kind else {
-                    return Err(rhdl_error(PathError::DynamicIndexOnNonArray {
-                        element: *element,
-                        kind: *kind,
-                    }));
-                };
-                let mut paths = Vec::new();
-                for i in 0..array.size {
-                    let mut path = path.clone();
-                    path.elements[0] = PathElement::Index(i);
-                    paths.extend(path_star(kind, &path)?);
-                }
-                return Ok(paths);
-            }
-            p => {
-                let prefix_path = Path { elements: vec![*p] };
-                let prefix_kind = sub_kind(*kind, &prefix_path)?;
-                let suffix_path = path.strip_prefix(&prefix_path)?;
-                let suffix_star = path_star(&prefix_kind, &suffix_path)?;
-                return Ok(suffix_star
-                    .into_iter()
-                    .map(|suffix| prefix_path.clone().join(&suffix))
-                    .collect());
-            }
-        }
-    }
-    Ok(vec![path.clone()])
-}
-
+/// Given a [Kind] and a [Path], compute the [Kind] at the endpoint of the path.
 pub fn sub_kind(kind: Kind, path: &Path) -> Result<Kind> {
     bit_range(kind, path).map(|(_, kind)| kind)
 }
 
+/// Given a [TraceType] and a [Path], compute the [TraceType] at the endpoint of the path.
 pub fn sub_trace_type(trace: TraceType, path: &Path) -> Result<TraceType> {
     let mut trace = trace;
     for p in &path.elements {
@@ -423,8 +416,9 @@ pub fn sub_trace_type(trace: TraceType, path: &Path) -> Result<TraceType> {
     Ok(trace)
 }
 
-// Given a Kind and a Vec<Path>, compute the bit offsets of
-// the endpoint of the path within the original data structure.
+/// Given a [Kind] and a [Path], compute the bit offsets of
+/// the endpoint of the path within the original data structure,
+/// as well as the [Kind] at that endpoint.
 pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
     let mut range = 0..kind.bits();
     let mut kind = kind;
@@ -617,12 +611,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        Kind,
-        common::symtab::SymbolTable,
-        rhif::spec::SlotKind,
-        types::{kind::DiscriminantLayout, path::path_star},
-    };
+    use crate::{Kind, types::kind::DiscriminantLayout};
 
     use super::{Path, leaf_paths};
 
@@ -665,60 +654,5 @@ mod tests {
             }
         }
         assert!(bit_mask.iter().all(|b| *b));
-    }
-
-    #[test]
-    fn test_path_star() {
-        let mut symtab = SymbolTable::<(), (), (), SlotKind>::default();
-        let s0 = symtab.reg((), ());
-        let s1 = symtab.reg((), ());
-        let base_struct = Kind::make_struct(
-            "base",
-            vec![
-                Kind::make_field("a", Kind::make_bits(8)),
-                Kind::make_field("b", Kind::make_array(Kind::make_bits(8), 3)),
-            ]
-            .into(),
-        );
-        // Create a path with a struct, containing and array of structs
-        let kind = Kind::make_struct(
-            "foo",
-            vec![
-                Kind::make_field("c", base_struct),
-                Kind::make_field("d", Kind::make_array(base_struct, 4)),
-            ]
-            .into(),
-        );
-        let path1 = Path::default().field("c").field("a");
-        assert_eq!(path_star(&kind, &path1).unwrap().len(), 1);
-        let path1 = Path::default().field("c").field("b");
-        assert_eq!(path_star(&kind, &path1).unwrap().len(), 1);
-        let path1 = Path::default().field("c").field("b").index(0);
-        assert_eq!(path_star(&kind, &path1).unwrap().len(), 1);
-        let path1 = Path::default().field("c").field("b").dynamic(s0);
-        let path1_star = path_star(&kind, &path1).unwrap();
-        assert_eq!(path1_star.len(), 3);
-        for path in path1_star {
-            assert_eq!(path.elements.len(), 3);
-            assert!(!path.any_dynamic());
-        }
-        let path2 = Path::default().field("d").dynamic(s0).field("b");
-        let path2_star = path_star(&kind, &path2).unwrap();
-        assert_eq!(path2_star.len(), 4);
-        for path in path2_star {
-            assert_eq!(path.elements.len(), 3);
-            assert!(!path.any_dynamic());
-        }
-        let path3 = Path::default()
-            .field("d")
-            .dynamic(s0)
-            .field("b")
-            .dynamic(s1);
-        let path3_star = path_star(&kind, &path3).unwrap();
-        assert_eq!(path3_star.len(), 12);
-        for path in path3_star {
-            assert_eq!(path.elements.len(), 4);
-            assert!(!path.any_dynamic());
-        }
     }
 }

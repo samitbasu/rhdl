@@ -1,3 +1,4 @@
+//! A string of 3-value bits `0,1,x` that may be signed or unsigned.
 use crate::{
     Kind, RHDLError, TypedBits,
     bitx::{BitX, bitx_string},

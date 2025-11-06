@@ -23,12 +23,6 @@ fn test_func_with_structured_args() -> miette::Result<()> {
         // Invisible comment
         signal(a.val() + b.val())
     }
-    let foo = <do_stuff as DigitalFn>::kernel_fn().unwrap();
-    let rhdl_core::KernelFnKind::Kernel(k) = foo else {
-        panic!("Expected kernel function");
-    };
-    let k = k.inner();
-    let metadb = &k.meta_db;
     let err = test_kernel_vm_and_verilog::<do_stuff, _, _, _>(
         do_stuff,
         [((signal(b8(0)), signal(b8(3))),)].into_iter(),
