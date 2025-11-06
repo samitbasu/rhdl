@@ -89,8 +89,9 @@ clk   +----+    +----+    +----+    +----+
 //! Finally, if you only want to cross data relatively slowly, use
 //! a multi-bit handshake based method, like the [SlowCrosser].
 //!
-//! For more detail, see [this doc]!  It has lots of great detail.
+//! For more detail, see [this doc]
 //! (http://cva.stanford.edu/people/davidbbs/classes/ee108a/winter0607%20labs/lect.9.Metastability-blackschaffer.ppt)
+//! from Stanford University.  It has a lot of great detail on the phenomenon.
 //!
 //! And just in case you think I am exaggerating the danger here (which
 //! is very analogous to a memory safety issue), here we end up
