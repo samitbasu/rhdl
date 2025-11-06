@@ -14,7 +14,6 @@ use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use crate::KernelFnKind;
 use crate::Kind;
 use crate::TypedBits;
 use crate::ast::SpannedSource;
@@ -33,7 +32,7 @@ use crate::common::symtab::SymbolTable;
 use crate::compiler::stage1::CompilationMode;
 use crate::compiler::stage1::compile;
 use crate::error::RHDLError;
-use crate::kernel::Kernel;
+use crate::kernel::KernelFnKind;
 use crate::rhif;
 use crate::rhif::Object;
 use crate::rhif::object::LocatedOpCode;
@@ -445,9 +444,9 @@ impl<'a> MirContext<'a> {
                 .into()),
         }
     }
-    fn stash(&mut self, kernel: &Kernel) -> Result<FuncId> {
+    fn stash(&mut self, kernel: &ast_impl::KernelFn) -> Result<FuncId> {
         let ndx = self.stash.len().into();
-        let object = compile(kernel.clone(), self.mode)?;
+        let object = compile(kernel, self.mode)?;
         self.stash.insert(ndx, Box::new(object));
         Ok(ndx)
     }
@@ -837,18 +836,12 @@ impl<'a> MirContext<'a> {
                     .collect();
                 self.op(op_enum(lhs, fields, template.clone()), id);
             }
-            KernelFnKind::Kernel(kernel) => {
+            KernelFnKind::AstKernel(kernel) => {
                 let func = self.stash(kernel)?;
                 self.op(op_exec(lhs, func, args), id);
             }
             KernelFnKind::SignalConstructor(color) => {
                 self.op(op_retime(lhs, args[0], *color), id);
-            }
-            KernelFnKind::BitCast(to) => {
-                self.op(op_as_bits(lhs, args[0], *to), id);
-            }
-            KernelFnKind::SignedCast(to) => {
-                self.op(op_as_signed(lhs, args[0], *to), id);
             }
             KernelFnKind::Wrap(wrap_op) => {
                 let empty = self.lit_empty(id);
@@ -1549,28 +1542,28 @@ impl Visitor for MirContext<'_> {
     }
 }
 
-pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
-    let source = func.inner().sources()?;
-    for id in 0..func.inner().id.as_u32() {
+pub fn compile_mir(func: &ast_impl::KernelFn, mode: CompilationMode) -> Result<Mir> {
+    let source = func.sources()?;
+    for id in 0..func.id.as_u32() {
         let node = NodeId::new(id);
         if !source.span_map.contains_key(&node) {
             panic!("Missing span for node {node:?}");
         }
     }
     let copy_source = source.clone();
-    let mut compiler = MirContext::new(&source, mode, func.inner().fn_id);
-    compiler.visit_kernel_fn(func.inner())?;
+    let mut compiler = MirContext::new(&source, mode, func.fn_id);
+    compiler.visit_kernel_fn(func)?;
     let Some(return_slot) = compiler.return_slot else {
         return Err(compiler
-            .raise_ice(ICE::ReturnSlotNotInitialized, func.inner().id)
+            .raise_ice(ICE::ReturnSlotNotInitialized, func.id)
             .into());
     };
-    compiler.bind_slot_to_type(return_slot, func.inner().ret);
+    compiler.bind_slot_to_type(return_slot, func.ret);
     if let Some(kind) = compiler.ty.get(&return_slot)
         && kind.is_empty()
     {
         return Err(compiler
-            .raise_syntax_error(Syntax::EmptyReturnForFunction, func.inner().id)
+            .raise_syntax_error(Syntax::EmptyReturnForFunction, func.id)
             .into());
     }
     let fn_id = compiler.fn_id;
@@ -1590,6 +1583,6 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
         ty_equate: compiler.ty_equate,
         stash: compiler.stash,
         name: compiler.name.to_string(),
-        flags: func.inner().flags.clone(),
+        flags: func.flags.clone(),
     })
 }

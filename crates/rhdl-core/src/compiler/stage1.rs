@@ -1,6 +1,7 @@
 use log::debug;
 
 use crate::{
+    ast::ast_impl::KernelFn,
     compiler::{
         mir::{compiler::compile_mir, infer::infer},
         rhif_passes::{
@@ -25,7 +26,6 @@ use crate::{
         },
     },
     error::RHDLError,
-    kernel::Kernel,
     rhif::Object,
 };
 
@@ -45,7 +45,7 @@ pub enum CompilationMode {
     Synchronous,
 }
 
-pub(crate) fn compile(kernel: Kernel, mode: CompilationMode) -> Result<Object> {
+pub(crate) fn compile(kernel: &KernelFn, mode: CompilationMode) -> Result<Object> {
     let mir = compile_mir(kernel, mode)?;
     let mut obj = infer(mir)?;
     obj = SymbolTableIsComplete::run(obj)?;

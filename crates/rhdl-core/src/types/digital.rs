@@ -538,7 +538,7 @@ mod test {
         }
 
         assert_eq!(Mixed::BITS, Mixed::static_kind().bits());
-        let svg = crate::svg_grid(&Mixed::static_kind(), "val");
+        let svg = Mixed::static_kind().svg("val");
         expect_test::expect_file!("expect/test_mixed_enum_svg.expect").assert_eq(&svg.to_string());
     }
 

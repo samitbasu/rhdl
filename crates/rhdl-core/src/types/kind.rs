@@ -596,7 +596,7 @@ impl Kind {
     }
     /// Generates an SVG representation of the kind.
     pub fn svg(&self, name: &str) -> svg::Document {
-        crate::svg_grid(self, name)
+        super::svg::kind_svg::svg_grid(self, name)
     }
 }
 

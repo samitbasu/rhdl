@@ -1,3 +1,8 @@
+//! The SVG visualizer for RHDL kinds
+//!
+//! This module provides functionality to generate SVG representations of RHDL kinds.
+//! The main function is `svg_grid`, which takes a [Kind](crate::types::kind::Kind)
+//! and a name, and produces an SVG document that visually represents the structure of the kind.
 use std::ops::Range;
 
 use super::kind::{DiscriminantAlignment, Kind};
@@ -227,7 +232,9 @@ fn make_lsb_kind(layout: &[KindLayout]) -> Vec<KindLayout> {
         .collect()
 }
 
-pub mod kind_svg {
+pub(crate) mod kind_svg {
+    //! The SVG visualizer for RHDL kinds
+    //! This module provides functionality to generate SVG representations of RHDL kinds.
     use std::{
         collections::{BTreeMap, BTreeSet},
         iter::once,
@@ -317,7 +324,7 @@ pub mod kind_svg {
         document
     }
 
-    pub fn svg_grid(kind: &Kind, name: &str) -> svg::Document {
+    pub(crate) fn svg_grid(kind: &Kind, name: &str) -> svg::Document {
         let mut layout = generate_kind_layout(kind, name, 0, 0);
         let max_rows = layout.iter().map(|x| x.row + x.size).max().unwrap_or(1);
         // Collect the bit breakpoints

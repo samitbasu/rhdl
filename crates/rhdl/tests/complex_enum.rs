@@ -235,7 +235,7 @@ fn test_nested_struct_case() {
 
 #[test]
 fn test_documentation_svgs() {
-    let svg = rhdl::core::svg_grid(&Packet::static_kind(), "Packet");
+    let svg = Packet::static_kind().svg("Packet");
     expect_test::expect_file!["expect/complex_enum_packet.svg"].assert_eq(&svg.to_string());
 }
 

@@ -1,4 +1,4 @@
-/// A string of 3-value bits `0,1,x` that may be signed or unsigned.
+#![warn(missing_docs)]
 pub mod bit_string;
 pub mod bitz;
 pub mod clock;
@@ -18,8 +18,7 @@ pub mod reset;
 pub mod reset_n;
 /// A signal carrying a Digital value in a specific time domain.
 pub mod signal;
-/// SVG layout generation for Digital data structures.
-pub mod svg;
+pub(crate) mod svg;
 /// Marker trait for types in which all elements belong to a time domain
 pub mod timed;
 /// Struct that holds a Digital value, along with a timestamp

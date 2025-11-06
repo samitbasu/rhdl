@@ -2,6 +2,7 @@
 /// Each domain type implements the Domain trait, which provides a color
 /// marker for the domain.
 pub trait Domain: Copy + PartialEq + 'static + Default {
+    /// Get the color marker for this domain.
     fn color() -> Color;
 }
 
@@ -17,6 +18,15 @@ macro_rules! decl_domains {
 
 macro_rules! decl_domain {
     ($name: ident) => {
+        #[doc = concat!(
+                    "Clock domain marker for the ",
+                    stringify!($name),
+                    " domain.\n\n",
+                    "This is a zero-sized type (ZST) that implements the [`Domain`] trait and ",
+                    "represents the ",
+                    stringify!($name),
+                    " timing domain."
+                )]
         #[derive(Copy, Clone, Debug, PartialEq, Default)]
         pub struct $name;
 

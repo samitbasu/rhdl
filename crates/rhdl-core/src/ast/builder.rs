@@ -624,20 +624,17 @@ pub fn kernel_fn(
     let mut hasher = fnv::FnvHasher::default();
     fn_id.hash(&mut hasher);
     let fn_id = hasher.finish().into();
-    KernelFnKind::Kernel(
-        Box::new(KernelFn {
-            id,
-            name,
-            inputs,
-            ret,
-            body,
-            fn_id,
-            text,
-            meta_db,
-            flags,
-        })
-        .into(),
-    )
+    KernelFnKind::AstKernel(Box::new(KernelFn {
+        id,
+        name,
+        inputs,
+        ret,
+        body,
+        fn_id,
+        text,
+        meta_db,
+        flags,
+    }))
 }
 
 /// Build a cast expression node
