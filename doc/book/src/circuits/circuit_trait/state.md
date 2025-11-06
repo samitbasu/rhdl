@@ -1,6 +1,6 @@
 # State
 
-Each `Circuit` element is assumed to have some internal state needed to simulate its response to some provided input.  You can use any type you want, provided it is cloneable and comparable.  The derive macro uses roughly:
+Each `Circuit` element is assumed to have some internal state needed to simulate its response to some provided input.  You can use any type you want, provided it is cloneable and comparable.  The derive macro uses:
 
 ```rust
 type S = (Self::Q, <child_0>::S, <child_1>::S,...)

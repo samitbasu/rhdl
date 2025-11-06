@@ -1,6 +1,6 @@
 # Simulation
 
-The `sim` function is responsible for calculating the output of the circuit given its current state and an input.  The circuit is allowed to mutate the state as a result of the input.  
+The `sim` method is responsible for calculating the output of the circuit given its current state and an input.  The circuit is allowed to mutate the state as a result of the input.  
 
 ```rust
 fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O;

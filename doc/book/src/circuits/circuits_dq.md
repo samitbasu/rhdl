@@ -62,6 +62,7 @@ pub struct X {
 In this case, the type of `D` must be equivalent to:
 
 ```rust
+#[derive(Digital, Timed, Clone, Copy, PartialEq)]
 pub struct D {
     child_1: <A as CircuitIO>::I,
     child_2: <B as CircuitIO>::I,
@@ -72,6 +73,7 @@ pub struct D {
 and similarly, the type of `Q` must be equivalent to
 
 ```rust
+#[derive(Digital, Timed, Clone, Copy, PartialEq)]
 pub struct Q {
     child_1: <A as CircuitIO>::O,
     child_2: <B as CircuitIO>::O,
