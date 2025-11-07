@@ -1,3 +1,4 @@
+//! Core RHDL types.
 #![warn(missing_docs)]
 pub mod bit_string;
 pub mod bitz;
