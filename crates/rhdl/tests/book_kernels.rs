@@ -1014,3 +1014,28 @@ mod variables_8 {
         compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
     }
 }
+
+mod simulation_exhaustive {
+    use rhdl::prelude::*;
+    fn counter(cr: ClockReset, i: bool, q: b8) -> (b8, b8) {
+        let d = if i { q + 1 } else { q };
+        let o = q;
+        (o, d)
+    }
+
+    #[test]
+    fn test_counter_exhaustively() {
+        let cr = clock_reset(clock(false), reset(false));
+        for i in [false, true] {
+            for q in (0..256).map(b8) {
+                let (o, d) = counter(cr, i, q);
+                if i {
+                    assert_eq!(d, q + 1);
+                } else {
+                    assert_eq!(d, q);
+                }
+                assert_eq!(o, q);
+            }
+        }
+    }
+}
