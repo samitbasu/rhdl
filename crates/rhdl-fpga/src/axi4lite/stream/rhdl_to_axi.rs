@@ -177,7 +177,7 @@ mod tests {
         let input = std::iter::repeat_n((), 10_000)
             .with_reset(1)
             .clock_pos_edge(100);
-        uut.run_without_synthesis(input)?.for_each(drop);
+        uut.run(input).for_each(drop);
         Ok(())
     }
 }

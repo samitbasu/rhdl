@@ -99,7 +99,7 @@ mod tests {
     fn synth_works() -> miette::Result<()> {
         let input = repeat_n((), 100).with_reset(1).clock_pos_edge(100);
         let uut = Fixture::default();
-        let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         vcd.dump_to_file("thing.vcd").unwrap();
         Ok(())
     }

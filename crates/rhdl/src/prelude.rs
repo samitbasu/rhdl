@@ -100,7 +100,6 @@ pub use rhdl_core::sim::run::async_fn::run_async_red_blue;
 pub use rhdl_core::sim::run::asynchronous::RunExt;
 pub use rhdl_core::sim::run::sync_fn::RunSynchronousFeedbackExt;
 pub use rhdl_core::sim::run::synchronous::RunSynchronousExt;
-pub use rhdl_core::sim::run::synchronous::RunWithoutSynthesisSynchronousExt;
 pub use rhdl_core::sim::testbench::TestBenchOptions;
 pub use rhdl_core::sim::testbench::asynchronous::TestBench;
 pub use rhdl_core::sim::testbench::synchronous::SynchronousTestBench;

@@ -1039,3 +1039,16 @@ mod simulation_exhaustive {
         }
     }
 }
+
+#[test]
+fn test_iterator_timed_from_map() {
+    use rhdl::prelude::*;
+    let i = (0..)
+        .map(b8)
+        .map(signal::<_, Red>)
+        .enumerate()
+        .map(|(ndx, s)| timed_sample(ndx as u64 * 50, s));
+    i.take(10).for_each(|x| {
+        println!("{x}");
+    })
+}
