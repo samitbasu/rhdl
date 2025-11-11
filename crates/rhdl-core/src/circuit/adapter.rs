@@ -170,7 +170,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
             endmodule
         };
         Ok(crate::HDLDescriptor {
-            name: child_name.into(),
+            name: name.into(),
             body: module,
             children: [("c".into(), child_hdl)].into(),
         })
