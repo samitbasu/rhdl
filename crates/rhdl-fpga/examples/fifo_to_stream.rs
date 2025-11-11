@@ -16,7 +16,7 @@ fn main() -> Result<(), RHDLError> {
             |out| {
                 if need_reset {
                     need_reset = false;
-                    return Some(rhdl::core::sim::ResetOrData::Reset);
+                    return Some(None);
                 }
                 let mut input = fifo_to_stream::In::<b4>::dont_care();
                 let want_to_pause = rand::random::<u8>() > 200;
@@ -27,7 +27,7 @@ fn main() -> Result<(), RHDLError> {
                 if !out.full && want_to_send {
                     input.data = source_rng.next().map(|x| bits((x & 0xF) as u128));
                 }
-                Some(rhdl::core::sim::ResetOrData::Data(input))
+                Some(Some(input))
             },
             100,
         )

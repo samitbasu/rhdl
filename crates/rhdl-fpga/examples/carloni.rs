@@ -17,7 +17,7 @@ fn main() -> Result<(), RHDLError> {
             |out| {
                 if need_reset {
                     need_reset = false;
-                    return Some(rhdl::core::sim::ResetOrData::Reset);
+                    return Some(None);
                 }
                 let mut input = carloni::In::<b4>::dont_care();
                 // See if we want to pause the stream as the consumer
@@ -33,7 +33,7 @@ fn main() -> Result<(), RHDLError> {
                     input.data_in = bits((source_rng.next().unwrap() & 0xF) as u128);
                     input.void_in = false;
                 }
-                Some(rhdl::core::sim::ResetOrData::Data(input))
+                Some(Some(input))
             },
             100,
         )

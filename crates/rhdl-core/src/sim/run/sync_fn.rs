@@ -1,6 +1,6 @@
 use crate::{
-    clock::clock, clock_reset, sim::ResetOrData, timed_sample, trace, trace_time,
-    types::reset::reset, Clock, ClockReset, Digital, Synchronous, SynchronousIO, TimedSample,
+    Clock, ClockReset, Digital, Synchronous, SynchronousIO, TimedSample, clock::clock, clock_reset,
+    timed_sample, trace, trace_time, types::reset::reset,
 };
 
 #[derive(Clone)]
@@ -23,7 +23,7 @@ pub struct RunSynchronousFeedback<'a, T, F, S, I, O> {
     uut: &'a T,
     input_fn: F,
     uut_state: Option<S>,
-    sample: ResetOrData<I>,
+    sample: Option<I>,
     last_output: Option<O>,
     time: u64,
     next_time: u64,
@@ -66,7 +66,7 @@ pub fn run_fn<T, F, S, I, O>(
         period,
         next_time: 0,
         state: State::Init,
-        sample: ResetOrData::Reset,
+        sample: None,
         last_output: None,
     }
 }
@@ -77,13 +77,13 @@ where
     I: Digital,
     O: Digital,
     T: SynchronousIO<I = I, O = O>,
-    F: FnMut(<T as SynchronousIO>::O) -> Option<ResetOrData<<T as SynchronousIO>::I>>,
+    F: FnMut(<T as SynchronousIO>::O) -> Option<Option<<T as SynchronousIO>::I>>,
 {
     fn this_sample(&mut self, clock: Clock) -> TimedSample<(ClockReset, I, O)> {
         let uut_state = self.uut_state.get_or_insert_with(|| self.uut.init());
         trace_time(self.time);
         match self.sample {
-            ResetOrData::Data(i) => {
+            Some(i) => {
                 let cr = clock_reset(clock, reset(false));
                 trace("clock", &cr.clock);
                 trace("reset", &cr.reset);
@@ -91,7 +91,7 @@ where
                 self.last_output = Some(o);
                 timed_sample(self.time, (cr, i, o))
             }
-            ResetOrData::Reset => {
+            None => {
                 let cr = clock_reset(clock, reset(true));
                 trace("clock", &cr.clock);
                 trace("reset", &cr.reset);
@@ -109,7 +109,7 @@ where
     I: Digital,
     O: Digital,
     T: SynchronousIO<I = I, O = O>,
-    F: FnMut(<T as SynchronousIO>::O) -> Option<ResetOrData<<T as SynchronousIO>::I>>,
+    F: FnMut(<T as SynchronousIO>::O) -> Option<Option<<T as SynchronousIO>::I>>,
 {
     type Item = TimedSample<(ClockReset, <T as SynchronousIO>::I, <T as SynchronousIO>::O)>;
 
@@ -163,7 +163,7 @@ pub trait RunSynchronousFeedbackExt {
     ) -> RunSynchronousFeedback<'_, Self, F, Self::S, Self::I, Self::O>
     where
         Self: Synchronous,
-        F: FnMut(Self::O) -> Option<ResetOrData<Self::I>>;
+        F: FnMut(Self::O) -> Option<Option<Self::I>>;
 }
 
 impl<T> RunSynchronousFeedbackExt for T
@@ -183,7 +183,7 @@ where
         <Self as SynchronousIO>::O,
     >
     where
-        F: FnMut(<Self as SynchronousIO>::O) -> Option<ResetOrData<<Self as SynchronousIO>::I>>,
+        F: FnMut(<Self as SynchronousIO>::O) -> Option<Option<<Self as SynchronousIO>::I>>,
     {
         run_fn(self, input_fn, period)
     }

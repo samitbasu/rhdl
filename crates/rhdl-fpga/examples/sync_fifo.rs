@@ -1,4 +1,4 @@
-use rhdl::{core::sim::ResetOrData, prelude::*};
+use rhdl::prelude::*;
 use rhdl_fpga::{doc::write_svg_as_markdown, fifo::synchronous::SyncFIFO};
 
 fn main() -> Result<(), RHDLError> {
@@ -17,7 +17,7 @@ fn main() -> Result<(), RHDLError> {
                 // Handle the reset pulse at the begining
                 if need_reset {
                     need_reset = false;
-                    return Some(ResetOrData::Reset);
+                    return Some(None);
                 }
                 let mut input = <Uut as SynchronousIO>::I::dont_care();
                 // By default, we do not insert more data.
@@ -34,7 +34,7 @@ fn main() -> Result<(), RHDLError> {
                     assert_eq!(output_seq.next().unwrap(), output.data.unwrap());
                 }
                 // Return the constructed input
-                Some(ResetOrData::Data(input))
+                Some(Some(input))
             },
             100,
         )

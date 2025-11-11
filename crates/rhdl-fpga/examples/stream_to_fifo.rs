@@ -15,7 +15,7 @@ fn main() -> Result<(), RHDLError> {
             |out| {
                 if need_reset {
                     need_reset = false;
-                    return Some(rhdl::core::sim::ResetOrData::Reset);
+                    return Some(None);
                 }
                 let mut input = rhdl_fpga::stream::stream_to_fifo::In::<b4>::dont_care();
                 let may_accept = rand::random::<u8>() > 150;
@@ -35,7 +35,7 @@ fn main() -> Result<(), RHDLError> {
                 if will_advance {
                     source_datum = source_rng.next();
                 }
-                Some(rhdl::core::sim::ResetOrData::Data(input))
+                Some(Some(input))
             },
             100,
         )

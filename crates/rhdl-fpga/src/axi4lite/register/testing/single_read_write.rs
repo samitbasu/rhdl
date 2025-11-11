@@ -61,7 +61,6 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
 #[cfg(test)]
 mod tests {
     use expect_test::expect;
-    use rhdl::core::sim::ResetOrData;
 
     use crate::axi4lite::types::{AXI4Error, StrobedData, WriteCommand};
 
@@ -122,7 +121,7 @@ mod tests {
                 |o| {
                     if need_reset {
                         need_reset = false;
-                        return Some(ResetOrData::Reset);
+                        return Some(None);
                     }
                     let mut input = In::dont_care();
                     input.cmd = None;
@@ -133,7 +132,7 @@ mod tests {
                         }
                         tail += 1;
                     }
-                    Some(ResetOrData::Data(input))
+                    Some(Some(input))
                 },
                 100,
             )
@@ -160,7 +159,7 @@ mod tests {
                 |o| {
                     if need_reset {
                         need_reset = false;
-                        return Some(ResetOrData::Reset);
+                        return Some(None);
                     }
                     let mut input = In::dont_care();
                     input.cmd = None;
@@ -171,7 +170,7 @@ mod tests {
                         }
                         tail += 1;
                     }
-                    Some(ResetOrData::Data(input))
+                    Some(Some(input))
                 },
                 100,
             )
