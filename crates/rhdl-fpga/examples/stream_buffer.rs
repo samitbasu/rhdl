@@ -22,7 +22,7 @@ fn main() -> Result<(), RHDLError> {
             |out| {
                 if need_reset {
                     need_reset = false;
-                    return Some(rhdl::core::sim::ResetOrData::Reset);
+                    return Some(None);
                 }
                 let mut input = stream_buffer::In::<b4>::dont_care();
                 // if the valid flag is high, then advance the source RNG (maybe)
@@ -31,7 +31,7 @@ fn main() -> Result<(), RHDLError> {
                     input.data = send.next().unwrap();
                 }
                 input.ready.raw = rand::random::<u8>() < 170;
-                Some(rhdl::core::sim::ResetOrData::Data(input))
+                Some(Some(input))
             },
             100,
         )

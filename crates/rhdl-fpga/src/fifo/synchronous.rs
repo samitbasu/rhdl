@@ -158,7 +158,6 @@ mod tests {
     use std::path::PathBuf;
 
     use expect_test::expect;
-    use rhdl::core::sim::ResetOrData;
 
     use super::*;
 
@@ -242,7 +241,7 @@ mod tests {
                 |output| {
                     if need_reset {
                         need_reset = false;
-                        return Some(ResetOrData::Reset);
+                        return Some(None);
                     }
                     let mut next_input = In {
                         data: None,
@@ -258,7 +257,7 @@ mod tests {
                     if writer_finished && output.data.is_none() {
                         return None;
                     }
-                    Some(ResetOrData::Data(next_input))
+                    Some(Some(next_input))
                 },
                 100,
             )

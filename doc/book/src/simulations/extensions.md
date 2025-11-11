@@ -67,7 +67,40 @@ Suppose we have an iterator `i` that yields items `i0, i1, i2...` each of type `
    p0    p1     p2     p3       
 ```
 
-where `p0, p1, p2` are the successive clock periods.  
+where `p0, p1, p2` are the successive clock periods.  One way to model this is to use the rust `Option<I>` type to indicate that we want data of type `I` or a reset.  We thus want to yield something like:
+
+```badascii
++reset+-+i0+-+-+i1+-+-+i2+-+    
++-----+------+------+------+ ...
+   p0    p1     p2     p3       
+             +                  
+             v                  
+                                
+++None++Some+++Some+++Some++    
+|     | (i0) | (i1) | (i2) |    
++-----+------+------+------+ ...
+   p0    p1     p2     p3       
+```
+
+This is simple to construct with iterators.  We would simply `once(None).chain(i.map(Some))`.  If we wanted more resets (like 3 reset intervals, instead of just the 1), we could use `repeat(None).take(3).chain(i.map(Some))`.  The shortcut for this is provided by the `with_reset` method and the `without_reset` methods from another extension trait:
+
+```rust
+/// Extension trait to provide `with_reset` and `without_reset` methods on iterators.
+pub trait TimedStreamExt<Q>: IntoIterator + Sized
+where
+    Q: Digital,
+{
+    /// Creates a ResetWrapper that does not prepend any reset pulses.
+    fn without_reset(self) -> ResetWrapper<<Self as IntoIterator>::IntoIter>;
+
+    /// Creates a ResetWrapper that prepends the given number of reset pulses.
+    fn with_reset(self, pulse: usize) -> ResetWrapper<<Self as IntoIterator>::IntoIter>;
+}
+```
+
+Thus, we can call `i.with_reset(n)` which is equivalent to `repeat(None).take(n).chain(i.map(Some))` or `i.without_reset()`, which is equivalent to `i.map(Some)`.  In both cases, we turn an iterator with item `I` into an iterator of item `Option<I>`, with the `None` variant representing the `Reset` case, and the `Some` variant representing data.  This is not sufficient for simulation yet, as we still need to generate the `ClockReset` signals from this sequence of `Option<I>`.  That operation is provided by a slightly more complicated extension trait.
+
+
 
 
 

@@ -133,8 +133,6 @@ where
 #[cfg(test)]
 mod tests {
 
-    use rhdl::core::sim::ResetOrData;
-
     use super::*;
 
     #[test]
@@ -149,7 +147,7 @@ mod tests {
                 |output| {
                     if need_reset {
                         need_reset = false;
-                        return Some(ResetOrData::Reset);
+                        return Some(None);
                     }
                     if output.next {
                         rng_out = xorshift.next().unwrap();
@@ -161,7 +159,7 @@ mod tests {
                     let next_input = In {
                         data: Some(b16((rng_out & 0xFFFF) as u128)),
                     };
-                    Some(ResetOrData::Data(next_input))
+                    Some(Some(next_input))
                 },
                 100,
             )
@@ -184,13 +182,13 @@ mod tests {
                 |output| {
                     if need_reset {
                         need_reset = false;
-                        return Some(ResetOrData::Reset);
+                        return Some(None);
                     }
                     if output.next {
                         rng_out = xorshift.next().unwrap();
                     }
                     let next_input = Some(b16((rng_out & 0xFFFF) as u128));
-                    Some(ResetOrData::Data(In { data: next_input }))
+                    Some(Some(In { data: next_input }))
                 },
                 100,
             )
@@ -213,13 +211,13 @@ mod tests {
                 |output| {
                     if need_reset {
                         need_reset = false;
-                        return Some(ResetOrData::Reset);
+                        return Some(None);
                     }
                     if output.next {
                         rng_out = xorshift.next().unwrap();
                     }
                     let next_input = Some(b16((rng_out & 0xFFFF) as u128));
-                    Some(ResetOrData::Data(In { data: next_input }))
+                    Some(Some(In { data: next_input }))
                 },
                 100,
             )
