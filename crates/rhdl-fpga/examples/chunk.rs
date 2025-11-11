@@ -12,7 +12,7 @@
 ")]
 
 use badascii_doc::badascii;
-use rhdl::{core::sim::run::synchronous::RunWithoutSynthesisSynchronousExt, prelude::*};
+use rhdl::prelude::*;
 use rhdl_fpga::{
     rng::xorshift::XorShift128,
     stream::{
@@ -58,7 +58,7 @@ fn main() -> Result<(), RHDLError> {
     let input = std::iter::repeat_n((), 15)
         .with_reset(1)
         .clock_pos_edge(100);
-    let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
+    let vcd = uut.run(input).collect::<Vcd>();
     rhdl_fpga::doc::write_svg_as_markdown(
         vcd,
         "chunk.md",

@@ -43,7 +43,7 @@ fn main() -> Result<(), RHDLError> {
     let input = std::iter::repeat_n((), 15)
         .with_reset(1)
         .clock_pos_edge(100);
-    let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
+    let vcd = uut.run(input).collect::<Vcd>();
     let options = SvgOptions::default();
     rhdl_fpga::doc::write_svg_as_markdown(vcd, "axi_2_rhdl_stream.md", options)?;
     Ok(())

@@ -1,5 +1,7 @@
+//! An iterator wrapper that prepends reset pulses to an input iterator.
 use crate::{Digital, sim::ResetOrData};
 
+/// An iterator that prepends reset pulses to an input iterator.
 pub struct ResetWrapper<I> {
     reset_counter: usize,
     input: I,
@@ -34,6 +36,7 @@ where
     }
 }
 
+/// Creates a ResetWrapper that does not prepend any reset pulses.
 pub fn without_reset<I>(input: I) -> ResetWrapper<I> {
     ResetWrapper {
         input,
@@ -41,6 +44,7 @@ pub fn without_reset<I>(input: I) -> ResetWrapper<I> {
     }
 }
 
+/// Creates a ResetWrapper that prepends the given number of reset pulses.
 pub fn with_reset<I>(input: I, pulse: usize) -> ResetWrapper<I>
 where
     I: Iterator,
@@ -52,12 +56,15 @@ where
     }
 }
 
+/// Extension trait to provide `with_reset` and `without_reset` methods on iterators.
 pub trait TimedStreamExt<Q>: IntoIterator + Sized
 where
     Q: Digital,
 {
+    /// Creates a ResetWrapper that does not prepend any reset pulses.
     fn without_reset(self) -> ResetWrapper<<Self as IntoIterator>::IntoIter>;
 
+    /// Creates a ResetWrapper that prepends the given number of reset pulses.
     fn with_reset(self, pulse: usize) -> ResetWrapper<<Self as IntoIterator>::IntoIter>;
 }
 

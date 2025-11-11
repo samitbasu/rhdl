@@ -75,7 +75,7 @@
 	- [Open vs. Closed Loop](simulations/open_loop.md)
 	- [Exhaustive Testing](simulations/exhaustive_testing.md)
 	- [Iterator Based Simulation](simulations/iterator.md)
-	- [Iterator Extensions](simulations/extensions.md)
+	- [Synchronous Iterator Extensions](simulations/extensions.md)
 	- [Roll Your Own](simulations/roll_your_own.md)
 	- [Probes](simulations/probes.md)
 	- [Tracing](simulations/tracing.md)

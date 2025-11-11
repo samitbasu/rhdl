@@ -388,7 +388,7 @@ mod tests {
         };
         let input = repeat_n((), 200).with_reset(1).clock_pos_edge(100);
         let sims = uut
-            .run_without_synthesis(input)?
+            .run(input)
             .synchronous_sample()
             .filter_map(|ts| ts.value.2)
             .collect::<Vec<_>>();

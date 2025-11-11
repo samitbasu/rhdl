@@ -55,7 +55,7 @@ fn main() -> Result<(), RHDLError> {
     let uut = single_stage(filter_map, a_rng, consume);
     // Run a few samples through
     let input = repeat_n((), 15).with_reset(1).clock_pos_edge(100);
-    let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
+    let vcd = uut.run(input).collect::<Vcd>();
     rhdl_fpga::doc::write_svg_as_markdown(vcd, "filter_map.md", SvgOptions::default())?;
     Ok(())
 }
