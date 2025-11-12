@@ -289,7 +289,7 @@ mod tests {
             move |out| {
                 if need_reset {
                     need_reset = false;
-                    return Some(None);
+                    return Some(rhdl::core::sim::ResetOrData::Reset);
                 }
                 let mut input = super::In::<b4, N>::dont_care();
                 // Downstream is likely to run
@@ -309,7 +309,7 @@ mod tests {
                 if input.ready.raw && out.data.is_some() {
                     assert_eq!(dest_rng.next(), out.data);
                 }
-                Some(Some(input))
+                Some(rhdl::core::sim::ResetOrData::Data(input))
             },
             100,
         )

@@ -109,7 +109,7 @@ mod tests {
                 |o| {
                     if need_reset {
                         need_reset = false;
-                        return Some(None);
+                        return Some(rhdl::core::sim::ResetOrData::Reset);
                     }
                     let mut input = In::dont_care();
                     input.cmd = None;
@@ -120,7 +120,7 @@ mod tests {
                         }
                         tail += 1;
                     }
-                    Some(Some(input))
+                    Some(rhdl::core::sim::ResetOrData::Data(input))
                 },
                 100,
             )
@@ -154,7 +154,7 @@ mod tests {
             |o| {
                 if need_reset {
                     need_reset = false;
-                    return Some(None);
+                    return Some(rhdl::core::sim::ResetOrData::Reset);
                 }
                 let mut input = In::dont_care();
                 input.cmd = None;
@@ -169,7 +169,7 @@ mod tests {
                     let expected = answers.next().unwrap();
                     assert_eq!(expected, data.raw() as u32);
                 }
-                Some(Some(input))
+                Some(rhdl::core::sim::ResetOrData::Data(input))
             },
             100,
         )

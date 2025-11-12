@@ -120,6 +120,7 @@ pub fn option_carloni_kernel<T: Digital>(_cr: ClockReset, i: In<T>, q: Q<T>) -> 
 
 #[cfg(test)]
 mod tests {
+    use rhdl::core::sim::ResetOrData;
 
     use crate::rng::xorshift::XorShift128;
 
@@ -135,7 +136,7 @@ mod tests {
             |out| {
                 if need_reset {
                     need_reset = false;
-                    return Some(None);
+                    return Some(ResetOrData::Reset);
                 }
                 let mut input = In::<b32>::dont_care();
                 // Downstream reandomly wants to pause
@@ -154,7 +155,7 @@ mod tests {
                     // The output will advance on this clock cycle
                     assert_eq!(out.data, Some(bits(output_rng.next().unwrap() as u128)));
                 }
-                Some(Some(input))
+                Some(ResetOrData::Data(input))
             },
             100,
         )

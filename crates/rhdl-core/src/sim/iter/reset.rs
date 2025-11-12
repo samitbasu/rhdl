@@ -1,5 +1,5 @@
 //! An iterator wrapper that prepends reset pulses to an input iterator.
-use crate::Digital;
+use crate::{Digital, sim::ResetOrData};
 
 /// An iterator that prepends reset pulses to an input iterator.
 pub struct ResetWrapper<I> {
@@ -12,14 +12,14 @@ where
     I: Iterator,
     <I as Iterator>::Item: Digital,
 {
-    type Item = Option<I::Item>;
+    type Item = ResetOrData<I::Item>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.reset_counter > 0 {
             self.reset_counter -= 1;
-            Some(None)
+            Some(ResetOrData::Reset)
         } else {
-            self.input.next().map(Some)
+            self.input.next().map(ResetOrData::Data)
         }
     }
 }
@@ -93,7 +93,10 @@ mod tests {
         let k = 0..10;
         let s = k.map(b8).without_reset();
         let v = s.collect::<Vec<_>>();
-        assert_eq!(v, (0..10).map(b8).map(Some).collect::<Vec<_>>());
+        assert_eq!(
+            v,
+            (0..10).map(b8).map(ResetOrData::Data).collect::<Vec<_>>()
+        );
     }
 
     #[test]
@@ -106,7 +109,7 @@ mod tests {
             vec![0, 1, 2, 3, 4]
                 .into_iter()
                 .map(b8)
-                .map(Some)
+                .map(ResetOrData::Data)
                 .collect::<Vec<_>>()
         );
     }
