@@ -140,21 +140,27 @@ mod tests {
     use std::iter::once;
 
     use crate::sim::extension::*;
-    use crate::timed_sample;
+    use crate::{sim::ResetOrData, timed_sample};
 
     use super::*;
 
     #[test]
     fn test_merge_reset() {
         let merged = once(b8(1)).with_reset(4);
-        let expected = vec![None, None, None, None, Some(b8(1))];
+        let expected = vec![
+            ResetOrData::Reset,
+            ResetOrData::Reset,
+            ResetOrData::Reset,
+            ResetOrData::Reset,
+            ResetOrData::Data(b8(1)),
+        ];
         assert_eq!(merged.collect::<Vec<_>>(), expected);
     }
 
     #[test]
     fn test_merge_reset_no_pulse() {
         let merged = once(b8(1)).without_reset();
-        let expected = vec![Some(b8(1))];
+        let expected = vec![ResetOrData::Data(b8(1))];
         assert_eq!(merged.collect::<Vec<_>>(), expected);
     }
 
@@ -164,13 +170,13 @@ mod tests {
         let part_b = [].into_iter().with_reset(1);
         let rst = part_a.chain(part_b);
         let expected = vec![
-            None,
-            None,
-            Some(b8(1)),
-            Some(b8(2)),
-            Some(b8(3)),
-            Some(b8(4)),
-            None,
+            ResetOrData::Reset,
+            ResetOrData::Reset,
+            ResetOrData::Data(b8(1)),
+            ResetOrData::Data(b8(2)),
+            ResetOrData::Data(b8(3)),
+            ResetOrData::Data(b8(4)),
+            ResetOrData::Reset,
         ];
         assert_eq!(rst.collect::<Vec<_>>(), expected);
     }

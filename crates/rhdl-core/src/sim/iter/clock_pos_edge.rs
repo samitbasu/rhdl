@@ -1,6 +1,6 @@
 use crate::{
-    Clock, ClockReset, Digital, TimedSample, clock::clock, clock_reset, timed_sample,
-    types::reset::reset,
+    Clock, ClockReset, Digital, TimedSample, clock::clock, clock_reset, sim::ResetOrData,
+    timed_sample, types::reset::reset,
 };
 
 #[derive(Clone)]
@@ -21,7 +21,7 @@ where
     S: Digital,
 {
     input: I,
-    sample: Option<S>,
+    sample: ResetOrData<S>,
     state: State,
     time: u64,
     next_time: u64,
@@ -34,8 +34,10 @@ where
 {
     fn this_sample(&self, clock: Clock) -> TimedSample<(ClockReset, S)> {
         match self.sample {
-            Some(x) => timed_sample(self.time, (clock_reset(clock, reset(false)), x)),
-            None => timed_sample(self.time, (clock_reset(clock, reset(true)), S::dont_care())),
+            ResetOrData::Data(x) => timed_sample(self.time, (clock_reset(clock, reset(false)), x)),
+            ResetOrData::Reset => {
+                timed_sample(self.time, (clock_reset(clock, reset(true)), S::dont_care()))
+            }
         }
     }
 }
@@ -77,7 +79,7 @@ where
 
 impl<I, S> Iterator for ClockPosEdge<I, S>
 where
-    I: Iterator<Item = Option<S>>,
+    I: Iterator<Item = ResetOrData<S>>,
     S: Digital,
 {
     type Item = TimedSample<(ClockReset, S)>;
@@ -126,12 +128,12 @@ where
 
 pub fn clock_pos_edge<I, S>(input: I, period: u64) -> ClockPosEdge<I, S>
 where
-    I: Iterator<Item = Option<S>>,
+    I: Iterator<Item = ResetOrData<S>>,
     S: Digital,
 {
     ClockPosEdge {
         input,
-        sample: None,
+        sample: ResetOrData::Reset,
         state: State::Init,
         time: 0,
         next_time: 0,
@@ -148,7 +150,7 @@ where
 
 impl<I, Q> ClockPosEdgeExt<Q> for I
 where
-    I: IntoIterator<Item = Option<Q>>,
+    I: IntoIterator<Item = ResetOrData<Q>>,
     Q: Digital,
 {
     fn clock_pos_edge(self, period: u64) -> ClockPosEdge<Self::IntoIter, Q> {
@@ -180,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_clock_pos_edge_on_iterator() {
-        let k = (0..4).map(b8).map(Some).clock_pos_edge(10);
+        let k = (0..4).map(b8).map(ResetOrData::Data).clock_pos_edge(10);
         let v = k.collect::<Vec<_>>();
         assert_eq!(v, expected());
     }
@@ -190,7 +192,7 @@ mod tests {
         let k = vec![0, 1, 2, 3]
             .into_iter()
             .map(b8)
-            .map(Some)
+            .map(ResetOrData::Data)
             .clock_pos_edge(10);
         let v = k.collect::<Vec<_>>();
         assert_eq!(v, expected());

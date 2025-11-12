@@ -238,7 +238,7 @@ mod tests {
             |out| {
                 if need_reset {
                     need_reset = false;
-                    return Some(None);
+                    return Some(rhdl::core::sim::ResetOrData::Reset);
                 }
                 let mut input = super::In::<b4>::dont_care();
                 let may_accept = rand::random::<u8>() > 150;
@@ -258,7 +258,7 @@ mod tests {
                 if will_advance {
                     source_datum = source_rng.next();
                 }
-                Some(Some(input))
+                Some(rhdl::core::sim::ResetOrData::Data(input))
             },
             100,
         )

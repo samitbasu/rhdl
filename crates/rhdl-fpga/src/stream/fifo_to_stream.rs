@@ -285,7 +285,7 @@ mod tests {
             |out| {
                 if need_reset {
                     need_reset = false;
-                    return Some(None);
+                    return Some(rhdl::core::sim::ResetOrData::Reset);
                 }
                 let mut input = super::In::<b4>::dont_care();
                 let want_to_pause = rand::random::<u8>() > 200;
@@ -299,7 +299,7 @@ mod tests {
                 if out.data.is_some() && input.ready.raw {
                     assert_eq!(out.data, dest_rng.next());
                 }
-                Some(Some(input))
+                Some(rhdl::core::sim::ResetOrData::Data(input))
             },
             100,
         )
