@@ -1,5 +1,8 @@
 use crate::{Digital, TimedSample};
 
+/// An iterator that merges two timed streams into one, using a provided merging function.
+///
+/// Generally, you will create this with the `merge` method on the `MergeExt` trait.
 pub struct Merge<A, B, S: Digital, T: Digital, F> {
     stream1: A,
     stream2: B,
@@ -31,6 +34,7 @@ where
     }
 }
 
+/// Creates a Merge iterator that merges two timed streams using the provided merging function.
 pub fn merge<A, B, S: Digital, T: Digital, F>(
     mut stream1: A,
     mut stream2: B,
@@ -99,7 +103,9 @@ where
     }
 }
 
+/// Extension trait to provide a `merge` method on iterators.
 pub trait MergeExt<I, S, T>: IntoIterator + Sized {
+    /// Creates a Merge iterator that merges two timed streams using the provided merging function.
     fn merge<F, U>(
         self,
         other: I,

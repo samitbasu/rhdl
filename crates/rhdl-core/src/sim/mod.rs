@@ -22,6 +22,6 @@ pub enum ResetOrData<T> {
 pub mod extension {
     pub use crate::sim::iter::clock_pos_edge::ClockPosEdgeExt;
     pub use crate::sim::iter::merge::MergeExt;
-    pub use crate::sim::iter::reset::TimedStreamExt;
+    pub use crate::sim::iter::reset::ResetExt;
     pub use crate::sim::iter::uniform::UniformExt;
 }

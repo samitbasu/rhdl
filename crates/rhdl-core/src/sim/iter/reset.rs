@@ -57,7 +57,7 @@ where
 }
 
 /// Extension trait to provide `with_reset` and `without_reset` methods on iterators.
-pub trait TimedStreamExt<Q>: IntoIterator + Sized
+pub trait ResetExt<Q>: IntoIterator + Sized
 where
     Q: Digital,
 {
@@ -68,7 +68,7 @@ where
     fn with_reset(self, pulse: usize) -> ResetWrapper<<Self as IntoIterator>::IntoIter>;
 }
 
-impl<I, Q> TimedStreamExt<Q> for I
+impl<I, Q> ResetExt<Q> for I
 where
     I: IntoIterator<Item = Q>,
     Q: Digital,
