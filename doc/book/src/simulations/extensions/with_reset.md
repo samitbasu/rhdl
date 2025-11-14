@@ -1,6 +1,4 @@
-# Synchronous Iterator Extensions
-In [this](./iterator.md), we covered the basics of open-loop simulation of a circuit using iterators and the `.uniform` extension trait, along with the introduction of `TimedSample`.  The utility of iterator based testing for _asynchronous_ circuits tends to be limited, though, since there is no general notion of time in such circuits.  You can still do it, and often asynchronous circuits are composed of multiple synchronous ones running on different clocks.  But the iterator extensions really help with dealing with synchronous circuits.
-
+# With Reset
 Recall that a synchronous circuit has a couple of additional input signals, beyond the input and output:
 
 ```badascii
@@ -39,7 +37,7 @@ pub trait RunSynchronousExt<I>: Synchronous + Sized {
 }
 ```
 
-It provides the same `.run` method we used for asynchronous circuits [here](./iterator.md).  The blanket implementation illustrates the critical difference, though:
+It provides the same `.run` method we used for asynchronous circuits [here](../iterator.md).  The blanket implementation illustrates the critical difference, though:
 
 ```rust
 impl<T, I> RunSynchronousExt<I> for T
@@ -67,7 +65,46 @@ Suppose we have an iterator `i` that yields items `i0, i1, i2...` each of type `
    p0    p1     p2     p3       
 ```
 
-where `p0, p1, p2` are the successive clock periods.  
+where `p0, p1, p2` are the successive clock periods.  In RHDL, there is a data type that is similar in shape to `Option<T>` called `ResetOrData<T>`.  The full definition of the enum is here:
 
+```rust
+#[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
+pub enum ResetOrData<T> {
+    Reset, // Like "Option::None"
+    Data(T), // Like "Option::Some(T)"
+}
+```
 
+```admonish note
+While I experimented with using `Option` for this type, it lead to less readable code, so stuck with this somewhat verbose type.  It makes test code easier to read.
+```
 
+Given the iterator `i` that yields `i0, i1, ...`, we can construct the reset and data sequence as roughly:
+
+```rust
+once(Reset).chain(i.map(Data))
+```
+
+If we need `N` reset pulses (sometimes needed if the reset itself needs to cross clock domains or if some device requires a multi-clock reset for its internal circuitry), then we could use
+
+```rust
+repeat(Reset).take(N).chain(i.map(Data))
+```
+
+If _no_ reset is required/desired, then we can simply:
+
+```rust
+i.map(Data)
+```
+
+The `ResetExt` trait and the corresponding blanket implementation mean that we can simply all
+
+```rust
+i.with_reset(N)
+```
+
+to generate an iterator that will insert the `N` reset pulses before feeding the iterator data.  Alternately, if you want `N=0`, then you can use the method:
+
+```rust
+i.without_reset()
+```

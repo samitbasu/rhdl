@@ -126,6 +126,9 @@ where
     }
 }
 
+/// Creates a ClockPosEdge iterator that produces clock and reset signals along with the input samples.
+///
+/// See the book for examples of how to use this iterator adaptor.
 pub fn clock_pos_edge<I, S>(input: I, period: u64) -> ClockPosEdge<I, S>
 where
     I: Iterator<Item = ResetOrData<S>>,
@@ -141,10 +144,12 @@ where
     }
 }
 
+/// Extension trait to provide a `clock_pos_edge` method on iterators.
 pub trait ClockPosEdgeExt<Q>: IntoIterator + Sized
 where
     Q: Digital,
 {
+    /// Creates a ClockPosEdge iterator that produces clock and reset signals along with the input samples.
     fn clock_pos_edge(self, period: u64) -> ClockPosEdge<<Self as IntoIterator>::IntoIter, Q>;
 }
 
