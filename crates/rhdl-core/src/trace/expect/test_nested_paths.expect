@@ -1,0 +1,34 @@
+$timescale 1 ps $end
+$comment
+    TraceInfo({"top.fn1.a":Bits(6),"top.fn1.fn2.a":Bits(1)})
+$end
+$scope module top $end
+$scope module fn1 $end
+$var wire 6 ! a $end
+$scope module fn2 $end
+$var wire 1 " a $end
+$upscope $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+b000000 !
+b1 "
+#1000
+b000001 !
+#2000
+b000010 !
+#3000
+b000011 !
+#4000
+b000100 !
+#5000
+b000101 !
+#6000
+b000110 !
+#7000
+b000111 !
+#8000
+b001000 !
+#9000
+b001001 !

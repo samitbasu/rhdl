@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[kernel]\nfn kernel(x: [b4; 4]) -> b6 {\n    let mut accum = b6(0);\n    for i in 0..4 {\n         accum += x[i].resize::<6>();\n    }\n    accum\n}\n"},{"End":"CodeBlock"}]

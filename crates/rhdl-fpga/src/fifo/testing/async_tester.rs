@@ -8,16 +8,21 @@ use super::drainer::FIFODrainer;
 
 #[derive(Clone, Circuit, CircuitDQ, Default)]
 /// The tester fixture
-pub struct AsyncFIFOTester<W: Domain, R: Domain, N: BitWidth, const Z: usize>
+pub struct AsyncFIFOTester<W: Domain, R: Domain, const N: usize, const Z: usize>
 where
-    Const<Z>: BitWidth,
+    rhdl::bits::W<Z>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     filler: Adapter<crate::fifo::testing::filler::FIFOFiller<N>, W>,
     fifo: crate::fifo::asynchronous::AsyncFIFO<Bits<N>, W, R, Z>,
     drainer: Adapter<crate::fifo::testing::drainer::FIFODrainer<N>, R>,
 }
 
-impl<W: Domain, R: Domain, N: BitWidth, const Z: usize> AsyncFIFOTester<W, R, N, Z> {
+impl<W: Domain, R: Domain, const N: usize, const Z: usize> AsyncFIFOTester<W, R, N, Z>
+where
+    rhdl::bits::W<N>: BitWidth,
+    rhdl::bits::W<Z>: BitWidth,
+{
     /// Replace the drainer with the supplied one
     pub fn with_drainer(mut self, drainer: FIFODrainer<N>) -> Self {
         self.drainer = Adapter::new(drainer);
@@ -25,7 +30,7 @@ impl<W: Domain, R: Domain, N: BitWidth, const Z: usize> AsyncFIFOTester<W, R, N,
     }
 }
 
-#[derive(PartialEq, Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// Inputs to the [AsyncFIFOTester] struct
 pub struct In<W: Domain, R: Domain> {
     /// Clock and reset for the write side of the FIFO
@@ -34,9 +39,10 @@ pub struct In<W: Domain, R: Domain> {
     pub cr_r: Signal<ClockReset, R>,
 }
 
-impl<W: Domain, R: Domain, N: BitWidth, const Z: usize> CircuitIO for AsyncFIFOTester<W, R, N, Z>
+impl<W: Domain, R: Domain, const N: usize, const Z: usize> CircuitIO for AsyncFIFOTester<W, R, N, Z>
 where
-    Const<Z>: BitWidth,
+    rhdl::bits::W<Z>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     type I = In<W, R>;
     type O = Signal<bool, R>;
@@ -45,12 +51,13 @@ where
 
 #[kernel]
 /// Tester kernel
-pub fn fixture_kernel<W: Domain, R: Domain, N: BitWidth, const Z: usize>(
+pub fn fixture_kernel<W: Domain, R: Domain, const N: usize, const Z: usize>(
     i: In<W, R>,
     q: Q<W, R, N, Z>,
 ) -> (Signal<bool, R>, D<W, R, N, Z>)
 where
-    Const<Z>: BitWidth,
+    rhdl::bits::W<Z>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     let mut d = D::<W, R, N, Z>::dont_care();
     // The filler needs access to the full signal of the FIFO
@@ -80,19 +87,19 @@ mod tests {
 
     #[test]
     fn test_async_fifo_svg() -> miette::Result<()> {
-        let uut = AsyncFIFOTester::<Red, Blue, U16, 4> {
-            drainer: Adapter::new(crate::fifo::testing::drainer::FIFODrainer::<U16>::new(
+        let uut = AsyncFIFOTester::<Red, Blue, 16, 4> {
+            drainer: Adapter::new(crate::fifo::testing::drainer::FIFODrainer::<16>::new(
                 5, 0.812,
             )),
             ..Default::default()
         };
         let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
         let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(78);
-        let input = red_input.merge(blue_input, |r, b| In {
+        let input = red_input.merge_map(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let vcd = uut.run(input.take(100))?.collect::<Vcd>();
+        let vcd = uut.run(input.take(100)).collect::<Vcd>();
         let svg = vcd.dump_svg(&Default::default());
         let expect = expect_file!["async_fifo.svg.expect"];
         expect.assert_eq(&svg.to_string());
@@ -101,24 +108,24 @@ mod tests {
 
     #[test]
     fn test_async_fifo_trace() -> miette::Result<()> {
-        let uut = AsyncFIFOTester::<Red, Blue, U16, 4> {
-            drainer: Adapter::new(crate::fifo::testing::drainer::FIFODrainer::<U16>::new(
+        let uut = AsyncFIFOTester::<Red, Blue, 16, 4> {
+            drainer: Adapter::new(crate::fifo::testing::drainer::FIFODrainer::<16>::new(
                 5, 0.812,
             )),
             ..Default::default()
         };
         let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
         let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(78);
-        let input = red_input.merge(blue_input, |r, b| In {
+        let input = red_input.merge_map(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let vcd = uut.run(input.take(10000))?.collect::<Vcd>();
+        let vcd = uut.run(input.take(10000)).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["c682b9d8e3d34f6b75cb8cfe958a1289027f340b49881cbc9a30256aca5eaad8"];
+        let expect = expect!["5c71048aabc3f1693796b745fca2cbb2ecddf070944cc4b9a4f38e0dcfa10130"];
         let digest = vcd.dump_to_file(root.join("async_fifo_trace.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -126,42 +133,42 @@ mod tests {
 
     #[test]
     fn test_async_fifo_works_fast_reader() -> miette::Result<()> {
-        let uut: AsyncFIFOTester<Red, Blue, U16, 4> = Default::default();
+        let uut: AsyncFIFOTester<Red, Blue, 16, 4> = Default::default();
         let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
         let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(26);
-        let input = red_input.merge(blue_input, |r, b| In {
+        let input = red_input.merge_map(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let last = uut.run(input.take(10_000))?.last().unwrap();
+        let last = uut.run(input.take(10_000)).last().unwrap();
         assert!(last.value.1.val());
         Ok(())
     }
 
     #[test]
     fn test_async_fifo_works_slow_reader() -> miette::Result<()> {
-        let uut: AsyncFIFOTester<Red, Blue, U16, 4> = Default::default();
+        let uut: AsyncFIFOTester<Red, Blue, 16, 4> = Default::default();
         let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
         let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(126);
-        let input = red_input.merge(blue_input, |r, b| In {
+        let input = red_input.merge_map(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let last = uut.run(input.take(10_000))?.last().unwrap();
+        let last = uut.run(input.take(10_000)).last().unwrap();
         assert!(last.value.1.val());
         Ok(())
     }
 
     #[test]
     fn test_async_fifo_test_hdl() -> miette::Result<()> {
-        let uut: AsyncFIFOTester<Red, Blue, U16, 4> = Default::default();
+        let uut: AsyncFIFOTester<Red, Blue, 16, 4> = Default::default();
         let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
         let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(126);
-        let input = red_input.merge(blue_input, |r, b| In {
+        let input = red_input.merge_map(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let test_bench = uut.run(input.take(1_000))?.collect::<TestBench<_, _>>();
+        let test_bench = uut.run(input.take(1_000)).collect::<TestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.ntl(&uut, &TestBenchOptions::default())?;

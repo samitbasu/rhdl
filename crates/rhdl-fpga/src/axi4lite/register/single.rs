@@ -85,7 +85,7 @@ impl AxiRegister {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Input for the [AxiRegister]
 pub struct In {
     /// AXI signals from the bus for reading
@@ -96,7 +96,7 @@ pub struct In {
     pub data: Option<AxilData>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Output for the [AxiRegister]
 pub struct Out {
     /// AXI signals to the bus for reading
@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn hdl_is_ok() -> miette::Result<()> {
         let uut = AxiRegister::new(bits(0), bits(0));
-        let _ = uut.hdl("top")?;
+        let _ = uut.descriptor("top".into())?.hdl()?;
         Ok(())
     }
 }

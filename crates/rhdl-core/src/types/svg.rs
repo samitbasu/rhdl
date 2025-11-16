@@ -1,20 +1,14 @@
+//! The SVG visualizer for RHDL kinds
+//!
+//! This module provides functionality to generate SVG representations of RHDL kinds.
+//! The main function is `svg_grid`, which takes a [Kind](crate::types::kind::Kind)
+//! and a name, and produces an SVG document that visually represents the structure of the kind.
 use std::ops::Range;
 
 use super::kind::{DiscriminantAlignment, Kind};
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SvgOrientation {
-    Horizontal,
-    Vertical,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SvgOptions {
-    pub orientation: SvgOrientation,
-}
-
 #[derive(Clone, Debug)]
-pub enum LayoutLabel {
+enum LayoutLabel {
     Name(String),
     Bits(Range<usize>),
 }
@@ -52,16 +46,16 @@ impl std::fmt::Display for LayoutLabel {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct KindLayout {
-    pub row: usize,
-    pub size: usize,
-    pub cols: Range<usize>,
-    pub label: Option<LayoutLabel>,
-    pub fill_color: Option<&'static str>,
-    pub stroke_color: Option<&'static str>,
+struct KindLayout {
+    row: usize,
+    size: usize,
+    cols: Range<usize>,
+    label: Option<LayoutLabel>,
+    fill_color: Option<&'static str>,
+    stroke_color: Option<&'static str>,
 }
 
-pub fn generate_kind_layout(
+fn generate_kind_layout(
     kind: &Kind,
     name: &str,
     mut offset_row: usize,
@@ -212,7 +206,7 @@ fn get_chars_per_bit(layout: &[KindLayout]) -> usize {
         .unwrap_or(0)
 }
 
-pub fn color_layout(iter: impl Iterator<Item = KindLayout>) -> impl Iterator<Item = KindLayout> {
+fn color_layout(iter: impl Iterator<Item = KindLayout>) -> impl Iterator<Item = KindLayout> {
     let soft_palette_colors = [
         "#99FFCC", "#CCCC99", "#CCCCCC", "#CCCCFF", "#CCFF99", "#CCFFCC", "#CCFFFF", "#FFCC99",
         "#FFCCCC", "#FFCCFF", "#FFFF99", "#FFFFCC",
@@ -225,19 +219,7 @@ pub fn color_layout(iter: impl Iterator<Item = KindLayout>) -> impl Iterator<Ite
         })
 }
 
-pub fn fixed_color(
-    iter: impl Iterator<Item = KindLayout>,
-    fill_color: &'static str,
-    stroke_color: &'static str,
-) -> impl Iterator<Item = KindLayout> {
-    iter.map(|x| KindLayout {
-        fill_color: Some(fill_color),
-        stroke_color: Some(stroke_color),
-        ..x
-    })
-}
-
-pub fn make_lsb_kind(layout: &[KindLayout]) -> Vec<KindLayout> {
+fn make_lsb_kind(layout: &[KindLayout]) -> Vec<KindLayout> {
     let max_cols = layout.iter().map(|l| l.cols.end).max().unwrap_or(1);
     layout
         .iter()
@@ -250,7 +232,9 @@ pub fn make_lsb_kind(layout: &[KindLayout]) -> Vec<KindLayout> {
         .collect()
 }
 
-pub mod kind_svg {
+pub(crate) mod kind_svg {
+    //! The SVG visualizer for RHDL kinds
+    //! This module provides functionality to generate SVG representations of RHDL kinds.
     use std::{
         collections::{BTreeMap, BTreeSet},
         iter::once,
@@ -295,7 +279,7 @@ pub mod kind_svg {
             .set("stroke", stroke_color);
         document.add(rect).add(text)
     }
-    pub fn svg_grid_from_layout_precolored(layout: &[KindLayout]) -> svg::Document {
+    fn svg_grid_from_layout_precolored(layout: &[KindLayout]) -> svg::Document {
         let num_rows = layout.iter().map(|x| x.row).max().unwrap_or(0) + 1;
         let num_cols = layout.iter().map(|x| x.cols.end).max().unwrap_or(0);
         let chars_per_bit = get_chars_per_bit(layout);
@@ -340,7 +324,7 @@ pub mod kind_svg {
         document
     }
 
-    pub fn svg_grid(kind: &Kind, name: &str) -> svg::Document {
+    pub(crate) fn svg_grid(kind: &Kind, name: &str) -> svg::Document {
         let mut layout = generate_kind_layout(kind, name, 0, 0);
         let max_rows = layout.iter().map(|x| x.row + x.size).max().unwrap_or(1);
         // Collect the bit breakpoints
@@ -401,7 +385,7 @@ mod test {
                 Kind::make_variant("B", Kind::Bits(8), 1),
                 Kind::make_variant(
                     "C",
-                    Kind::make_tuple(vec![Kind::Bits(8), Kind::Bits(16)]),
+                    Kind::make_tuple(vec![Kind::Bits(8), Kind::Bits(16)].into()),
                     2,
                 ),
                 Kind::make_variant(
@@ -411,7 +395,8 @@ mod test {
                         vec![
                             Kind::make_field("a", Kind::Bits(8)),
                             Kind::make_field("b", Kind::Bits(16)),
-                        ],
+                        ]
+                        .into(),
                     ),
                     -3,
                 ),
@@ -428,17 +413,18 @@ mod test {
                 Kind::make_variant("B", Kind::Bits(8), 1),
                 Kind::make_variant(
                     "C",
-                    Kind::make_tuple(vec![Kind::Bits(8), Kind::Bits(16)]),
+                    Kind::make_tuple([Kind::Bits(8), Kind::Bits(16)].into()),
                     2,
                 ),
                 Kind::make_variant(
                     "D",
                     Kind::make_struct(
                         "Test::D",
-                        vec![
+                        [
                             Kind::make_field("a", Kind::Bits(8)),
                             Kind::make_field("b", Kind::Bits(16)),
-                        ],
+                        ]
+                        .into(),
                     ),
                     3,
                 ),
@@ -457,13 +443,13 @@ mod test {
         let len = kind.bits();
         let template = kind.enum_template("B").unwrap();
         let disc: TypedBits = 1_u64.into();
-        assert_eq!(template.bits, disc.unsigned_cast(len).unwrap().bits);
+        assert_eq!(template.bits(), disc.unsigned_cast(len).unwrap().bits());
         let template = kind.enum_template("C").unwrap();
         let disc: TypedBits = 2_u64.into();
-        assert_eq!(template.bits, disc.unsigned_cast(len).unwrap().bits);
+        assert_eq!(template.bits(), disc.unsigned_cast(len).unwrap().bits());
         let template = kind.enum_template("D").unwrap();
         let disc: TypedBits = 3_u64.into();
-        assert_eq!(template.bits, disc.unsigned_cast(len).unwrap().bits);
+        assert_eq!(template.bits(), disc.unsigned_cast(len).unwrap().bits());
     }
 
     #[test]
@@ -472,13 +458,13 @@ mod test {
         let template = kind.enum_template("A").unwrap();
         let disc: TypedBits = (-1_i64).into();
         let disc = disc.signed_cast(4).unwrap();
-        let pad = kind.pad(disc.bits);
-        assert_eq!(template.bits, pad);
+        let pad = kind.pad(disc.bits().to_vec());
+        assert_eq!(template.bits(), pad.to_vec());
         let template = kind.enum_template("B").unwrap();
         let disc: TypedBits = 1_i64.into();
         let disc = disc.signed_cast(4).unwrap();
-        let pad = kind.pad(disc.bits);
-        assert_eq!(template.bits, pad);
+        let pad = kind.pad(disc.bits().to_vec());
+        assert_eq!(template.bits(), pad.to_vec());
     }
 
     // Create a complex kind for testing that
@@ -510,14 +496,14 @@ mod test {
                 Variant {
                     name: "C".to_string().into(),
                     discriminant: 2,
-                    kind: Kind::make_tuple(vec![Kind::make_bits(8), Kind::make_bits(16)]),
+                    kind: Kind::make_tuple([Kind::make_bits(8), Kind::make_bits(16)].into()),
                 },
                 Variant {
                     name: "D".to_string().into(),
                     discriminant: 3,
                     kind: Kind::make_struct(
                         "Crazy::D",
-                        vec![
+                        [
                             Field {
                                 name: "a".to_string().into(),
                                 kind: Kind::make_bits(8),
@@ -526,7 +512,8 @@ mod test {
                                 name: "b".to_string().into(),
                                 kind: Kind::make_bits(16),
                             },
-                        ],
+                        ]
+                        .into(),
                     ),
                 },
                 Variant {
@@ -539,7 +526,7 @@ mod test {
                     discriminant: 5,
                     kind: Kind::make_struct(
                         "Crazy::F",
-                        vec![
+                        [
                             Field {
                                 name: "a".to_string().into(),
                                 kind: Kind::make_bits(8),
@@ -548,7 +535,8 @@ mod test {
                                 name: "b".to_string().into(),
                                 kind: Kind::make_array(Kind::make_bits(8), 4),
                             },
-                        ],
+                        ]
+                        .into(),
                     ),
                 },
                 Variant {
@@ -556,7 +544,7 @@ mod test {
                     discriminant: 6,
                     kind: Kind::make_struct(
                         "Crazy::G",
-                        vec![
+                        [
                             Field {
                                 name: "a".to_string().into(),
                                 kind: Kind::make_bits(8),
@@ -569,7 +557,8 @@ mod test {
                                 name: "c".to_string().into(),
                                 kind: Kind::make_bits(16),
                             },
-                        ],
+                        ]
+                        .into(),
                     ),
                 },
                 Variant {
@@ -619,13 +608,14 @@ mod test {
     fn test_layout_of_complex_kind() {
         let kind = make_complex_kind();
         let svg = kind_svg::svg_grid(&kind, "value");
-        svg::save("test.svg", &svg).unwrap();
+        expect_test::expect_file!("expect/test_complex_kind_svg.expect")
+            .assert_eq(&svg.to_string());
     }
     #[test]
     fn test_layout_of_struct() {
         let kind = Kind::make_struct(
             "Foo",
-            vec![
+            [
                 Field {
                     name: "a".to_string().into(),
                     kind: Kind::make_bits(8),
@@ -638,16 +628,17 @@ mod test {
                     name: "c".to_string().into(),
                     kind: Kind::make_bits(32),
                 },
-            ],
+            ]
+            .into(),
         );
         let svg = kind_svg::svg_grid(&kind, "value");
-        svg::save("test.svg", &svg).unwrap();
+        expect_test::expect_file!("expect/test_struct_svg.expect").assert_eq(&svg.to_string());
     }
     #[test]
     fn test_layout_of_struct_with_nesting() {
         let kind = Kind::make_struct(
             "Foo",
-            vec![
+            [
                 Field {
                     name: "a".to_string().into(),
                     kind: Kind::make_bits(8),
@@ -660,7 +651,7 @@ mod test {
                     name: "c".to_string().into(),
                     kind: Kind::make_struct(
                         "Foo:c",
-                        vec![
+                        [
                             Field {
                                 name: "d".to_string().into(),
                                 kind: Kind::make_bits(8),
@@ -669,13 +660,16 @@ mod test {
                                 name: "e".to_string().into(),
                                 kind: Kind::make_bits(16),
                             },
-                        ],
+                        ]
+                        .into(),
                     ),
                 },
-            ],
+            ]
+            .into(),
         );
         let svg = kind_svg::svg_grid(&kind, "value");
-        svg::save("test.svg", &svg).unwrap();
+        expect_test::expect_file!("expect/test_struct_with_nesting_svg.expect")
+            .assert_eq(&svg.to_string());
     }
 
     #[test]
@@ -706,16 +700,16 @@ mod test {
             ),
         );
         let svg = kind_svg::svg_grid(&kind, "value");
-        svg::save("test.svg", &svg).unwrap();
+        expect_test::expect_file!("expect/test_simple_enum_svg.expect").assert_eq(&svg.to_string());
     }
 
     #[test]
     fn test_result_recognized() {
-        use rhdl_bits::alias::*;
         use crate::Digital;
+        use rhdl_bits::alias::*;
         let a = std::result::Result::<b8, b8>::Ok(b8(42)).typed_bits();
-        assert!(a.kind.is_result());
+        assert!(a.kind().is_result());
         let b = std::result::Result::<b4, ()>::Err(()).typed_bits();
-        assert!(b.kind.is_result());
+        assert!(b.kind().is_result());
     }
 }

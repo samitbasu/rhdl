@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{spanned::Spanned, Data, DeriveInput};
+use syn::{Data, DeriveInput, spanned::Spanned};
 
 use crate::utils::FieldSet;
 
@@ -26,14 +26,14 @@ fn derive_synchronous_dq_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     // Create a new struct by appending a Q to the name of the struct, and for each field, map
     // the type to <ty as rhdl::core::Synchronous>::O,
     let new_struct_q = quote! {
-        #[derive(Digital, PartialEq)]
+        #[derive(Digital, Clone, Copy, PartialEq)]
         #[doc(hidden)]
         pub struct Q #generics #where_clause {
             #(#component_name: <#component_ty as rhdl::core::SynchronousIO>::O),*
         }
     };
     let new_struct_d = quote! {
-        #[derive(Digital, PartialEq)]
+        #[derive(Digital, Clone, Copy, PartialEq)]
         #[doc(hidden)]
         pub struct D #generics #where_clause {
             #(#component_name: <#component_ty as rhdl::core::SynchronousIO>::I),*

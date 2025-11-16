@@ -69,11 +69,17 @@ use rhdl::prelude::*;
 /// the BRAM will hold `2^N` elements.
 /// The `W` domain is the clock domain where data is written.
 /// The `R` domain is the clock domain where the reads run.
-pub struct OptionAsyncBRAM<T: Digital, W: Domain, R: Domain, N: BitWidth> {
+pub struct OptionAsyncBRAM<T: Digital, W: Domain, R: Domain, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     inner: super::asynchronous::AsyncBRAM<T, W, R, N>,
 }
 
-impl<T: Digital, W: Domain, R: Domain, N: BitWidth> OptionAsyncBRAM<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, const N: usize> OptionAsyncBRAM<T, W, R, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// Create a new [OptionAsyncBRAM] with the provided initial contents.
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
         Self {
@@ -82,27 +88,36 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> OptionAsyncBRAM<T, W, R, N> 
     }
 }
 
-type ReadI<N> = super::asynchronous::ReadI<N>;
+type ReadI<const N: usize> = super::asynchronous::ReadI<N>;
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// The write interface for the [OptionAsyncBRAM].
-pub struct WriteI<T: Digital, N: BitWidth> {
+pub struct WriteI<T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// The clock signal for the write.
     pub clock: Clock,
     /// The data command for writing
     pub data: Option<(Bits<N>, T)>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// The input struct for the [OptionAsyncBRAM]
-pub struct In<T: Digital, W: Domain, R: Domain, N: BitWidth> {
+pub struct In<T: Digital, W: Domain, R: Domain, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// The write instruction
     pub write: Signal<WriteI<T, N>, W>,
     /// The read instruction
     pub read: Signal<ReadI<N>, R>,
 }
 
-impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitIO for OptionAsyncBRAM<T, W, R, N> {
+impl<T: Digital, W: Domain, R: Domain, const N: usize> CircuitIO for OptionAsyncBRAM<T, W, R, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = In<T, W, R, N>;
     type O = Signal<T, R>;
     type Kernel = ram_kernel<T, W, R, N>;
@@ -110,10 +125,13 @@ impl<T: Digital, W: Domain, R: Domain, N: BitWidth> CircuitIO for OptionAsyncBRA
 
 #[kernel(allow_weak_partial)]
 /// Kernel function for [OptionAsyncBRAM]
-pub fn ram_kernel<T: Digital, W: Domain, R: Domain, N: BitWidth>(
+pub fn ram_kernel<T: Digital, W: Domain, R: Domain, const N: usize>(
     i: In<T, W, R, N>,
     q: Q<T, W, R, N>,
-) -> (Signal<T, R>, D<T, W, R, N>) {
+) -> (Signal<T, R>, D<T, W, R, N>)
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     // We need a struct for the write inputs to the RAM
     let mut w = super::asynchronous::WriteI::<T, N>::dont_care();
     // These are mapped from our input signals
@@ -143,11 +161,14 @@ mod tests {
 
     use super::*;
 
-    fn get_scan_out_stream<N: BitWidth>(
+    fn get_scan_out_stream<const N: usize>(
         read_clock: u64,
         count: usize,
-    ) -> impl Iterator<Item = TimedSample<ReadI<N>>> + Clone {
-        let scan_addr = (0..(1 << N::BITS)).map(bits::<N>).cycle().take(count);
+    ) -> impl Iterator<Item = TimedSample<ReadI<N>>> + Clone
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
+        let scan_addr = (0..(1 << N)).map(bits::<N>).cycle().take(count);
         let stream_read = scan_addr.without_reset().clock_pos_edge(read_clock);
         stream_read.map(|t| {
             t.map(|(cr, val)| ReadI {
@@ -157,10 +178,13 @@ mod tests {
         })
     }
 
-    fn get_write_stream<T: Digital, N: BitWidth>(
+    fn get_write_stream<T: Digital, const N: usize>(
         write_clock: u64,
         write_data: impl Iterator<Item = Option<(Bits<N>, T)>> + Clone,
-    ) -> impl Iterator<Item = TimedSample<WriteI<T, N>>> + Clone {
+    ) -> impl Iterator<Item = TimedSample<WriteI<T, N>>> + Clone
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
         let stream_write = write_data.without_reset().clock_pos_edge(write_clock);
         stream_write.map(|t| {
             t.map(|(cr, val)| WriteI {
@@ -172,20 +196,22 @@ mod tests {
 
     #[test]
     fn test_ram_netlist() -> miette::Result<()> {
-        let uut = OptionAsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
+        let uut = OptionAsyncBRAM::<Bits<8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
         );
-        let hdl = uut.netlist_hdl("uut")?;
+        let desc = uut.descriptor("uut".into())?;
+        let netlist = desc.netlist()?;
+        let hdl = netlist.as_vlog("uut")?;
         let expect = expect_file!["ram_fg.expect"];
-        expect.assert_eq(&hdl.to_string());
+        expect.assert_eq(&hdl.modules.to_string());
         Ok(())
     }
 
     #[test]
     fn test_ram_as_verilog() -> miette::Result<()> {
-        let uut = OptionAsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
+        let uut = OptionAsyncBRAM::<Bits<8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -194,11 +220,11 @@ mod tests {
         // The write interface will be dormant
         let stream_write = get_write_stream(70, std::iter::repeat_n(None, 50));
         // Stitch the two streams together
-        let stream = stream_read.merge(stream_write, |r, w| In {
+        let stream = stream_read.merge_map(stream_write, |r, w| In {
             read: signal(r),
             write: signal(w),
         });
-        let test_bench = uut.run(stream)?.collect::<TestBench<_, _>>();
+        let test_bench = uut.run(stream).collect::<TestBench<_, _>>();
         let test_mod = test_bench.rtl(&uut, &TestBenchOptions::default().skip(10))?;
         test_mod.run_iverilog()?;
         Ok(())
@@ -206,7 +232,7 @@ mod tests {
 
     #[test]
     fn test_ram_write_behavior() -> miette::Result<()> {
-        let uut = OptionAsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
+        let uut = OptionAsyncBRAM::<Bits<8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits(0))),
@@ -220,24 +246,24 @@ mod tests {
         ];
         let stream_read = get_scan_out_stream(100, 32);
         let stream_write = get_write_stream(70, writes.into_iter().chain(std::iter::repeat(None)));
-        let stream = stream_read.merge(stream_write, |r, w| In {
+        let stream = stream_read.merge_map(stream_write, |r, w| In {
             read: signal(r),
             write: signal(w),
         });
         let expected = vec![142, 0, 100, 0, 0, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23]
             .into_iter()
             .map(|x| signal(bits(x)));
-        let vcd = uut.run(stream.clone())?.collect::<Vcd>();
+        let vcd = uut.run(stream.clone()).collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("ram")
             .join("option_async");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["e0a6e699f9858ae40bf823703a2e62f7e5d587f2afe79dabdc278a04a8423ce1"];
+        let expect = expect!["b99d0afef7cb17f1d743fc75e68375dfffe766e387b385b60027b0b3a3481d11"];
         let digest = vcd.dump_to_file(root.join("ram_write.vcd")).unwrap();
         expect.assert_eq(&digest);
         let output = uut
-            .run(stream)?
+            .run(stream)
             .glitch_check(|x| (x.value.0.read.val().clock, x.value.1.val()))
             .sample_at_pos_edge(|x| x.value.0.read.val().clock)
             .skip(17)
@@ -252,7 +278,7 @@ mod tests {
     fn test_ram_read_only_behavior() -> miette::Result<()> {
         // Let's start with a simple test where the RAM is pre-initialized,
         // and we just want to read it.
-        let uut = OptionAsyncBRAM::<Bits<U8>, Red, Green, U4>::new(
+        let uut = OptionAsyncBRAM::<Bits<8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -261,13 +287,13 @@ mod tests {
         // The write interface will be dormant
         let stream_write = get_write_stream(70, std::iter::repeat_n(None, 50));
         // Stitch the two streams together
-        let stream = merge(stream_read, stream_write, |r, w| In {
+        let stream = merge_map(stream_read, stream_write, |r, w| In {
             read: signal(r),
             write: signal(w),
         });
         let values = (0..16).map(|x| bits(15 - x)).cycle().take(32);
         let samples = uut
-            .run(stream)?
+            .run(stream)
             .sample_at_pos_edge(|i| i.value.0.read.val().clock)
             .skip(1);
         let output = samples.map(|x| x.value.1.val());

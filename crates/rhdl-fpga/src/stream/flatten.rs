@@ -29,7 +29,7 @@
 //! of the chain, one element at a time.  When it is empty, the delay
 //! line can be reloaded from the input buffer.  Buffers at the input
 //! and output eliminate combinatorial paths.  This design is a bit
-//! register/flip flop heavy, so be careful with it's use.
+//! register/flip flop heavy, so be careful with its use.
 //!
 #![doc = badascii!(r"
         +IBuf+-----+        +-+unpck++                                                        
@@ -96,7 +96,7 @@ use rhdl::prelude::*;
 
 use super::StreamIO;
 
-#[derive(Debug, Default, PartialEq, Digital)]
+#[derive(Debug, Default, PartialEq, Digital, Clone, Copy)]
 #[doc(hidden)]
 pub enum State {
     #[default]
@@ -110,7 +110,11 @@ pub enum State {
 /// This core takes a stream of `[T; N]`, and produces
 /// a stream of `T`, reading out the input stream in
 /// index order (`0, 1, 2..`).  
-pub struct Flatten<M: BitWidth, T: Digital, const N: usize> {
+pub struct Flatten<T: Digital, const M: usize, const N: usize>
+where
+    rhdl::bits::W<M>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
+{
     input_buffer: StreamToFIFO<[T; N]>,
     delay: [dff::DFF<T>; N],
     count: dff::DFF<Bits<M>>,
@@ -118,9 +122,13 @@ pub struct Flatten<M: BitWidth, T: Digital, const N: usize> {
     state: dff::DFF<State>,
 }
 
-impl<M: BitWidth, T: Digital, const N: usize> Default for Flatten<M, T, N> {
+impl<T: Digital, const M: usize, const N: usize> Default for Flatten<T, M, N>
+where
+    rhdl::bits::W<M>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
+{
     fn default() -> Self {
-        assert!((1 << M::BITS) >= N, "Expect that the bitwidth of the counter is sufficient to count the elements in the array.  I.e., (1 << M) >= N");
+        assert!((1 << M) >= N, "Expect that the bitwidth of the counter is sufficient to count the elements in the array.  I.e., (1 << M) >= N");
         Self {
             delay: core::array::from_fn(|_| dff::DFF::new(T::dont_care())),
             input_buffer: StreamToFIFO::default(),
@@ -137,21 +145,29 @@ pub type In<T, const N: usize> = StreamIO<[T; N], T>;
 /// Outputs from the [FlattenPipe] core
 pub type Out<T, const N: usize> = StreamIO<T, [T; N]>;
 
-impl<M: BitWidth, T: Digital, const N: usize> SynchronousIO for Flatten<M, T, N> {
+impl<T: Digital, const M: usize, const N: usize> SynchronousIO for Flatten<T, M, N>
+where
+    rhdl::bits::W<M>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = In<T, N>;
     type O = Out<T, N>;
-    type Kernel = kernel<M, T, N>;
+    type Kernel = kernel<T, M, N>;
 }
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<M: BitWidth, T: Digital, const N: usize>(
+pub fn kernel<T: Digital, const M: usize, const N: usize>(
     _cr: ClockReset,
     i: In<T, N>,
-    q: Q<M, T, N>,
-) -> (Out<T, N>, D<M, T, N>) {
+    q: Q<T, M, N>,
+) -> (Out<T, N>, D<T, M, N>)
+where
+    rhdl::bits::W<M>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
+{
     let n_minus_1 = bits::<M>(N as u128 - 1);
-    let mut d = D::<M, T, N>::dont_care();
+    let mut d = D::<T, M, N>::dont_care();
     // Connect the input buffer to the input data stream
     d.input_buffer.data = i.data;
     // Do not advance the input buffer unless asked.
@@ -241,14 +257,14 @@ mod tests {
 
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
-        let uut = Flatten::<U2, b4, 4>::default();
+        let uut = Flatten::<b4, 2, 4>::default();
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }
 
     #[test]
     fn test_operation() -> miette::Result<()> {
-        type Uut = Flatten<U2, b4, 4>;
+        type Uut = Flatten<b4, 2, 4>;
         let uut = Uut::default();
         let mut need_reset = true;
         let mut source_rng = XorShift128::default().map(|x| bits((x & 0xF) as u128));

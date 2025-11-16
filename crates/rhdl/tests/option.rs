@@ -11,7 +11,7 @@ use rhdl::core::sim::testbench::kernel::{
 
 #[test]
 fn test_option_is_digital() {
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     struct Test {
         a: Option<b8>,
         b: Option<b8>,
@@ -29,7 +29,7 @@ fn test_option_is_digital() {
 
 #[test]
 fn test_result_is_digital() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
     enum Eflag {
         BadNumber,
         OutOfRange,
@@ -77,6 +77,22 @@ fn test_option_works() -> miette::Result<()> {
 }
 
 #[test]
+fn test_option_iflet() -> miette::Result<()> {
+    #[kernel]
+    pub fn map_add(x: Signal<Option<b8>, Red>) -> Signal<Option<b8>, Red> {
+        let x = x.val();
+        let y = if let Some(v) = x { Some(v + 1) } else { None };
+        signal(y)
+    }
+    let inputs = [signal(Some(b8(0))), signal(Some(b8(1))), signal(None)];
+    test_kernel_vm_and_verilog_synchronous::<map_add, _, _, _>(
+        map_add,
+        inputs.into_iter().map(|x| (x,)),
+    )?;
+    Ok(())
+}
+
+#[test]
 fn test_option_is_kernel_ok() -> miette::Result<()> {
     #[kernel]
     fn validify(i: b8) -> Option<b8> {
@@ -100,14 +116,14 @@ fn test_option_is_kernel_ok() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_no_ice() -> miette::Result<()> {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -151,14 +167,14 @@ fn test_option_result_no_ice() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_match_func() -> miette::Result<()> {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -186,7 +202,7 @@ fn test_option_result_match_func() -> miette::Result<()> {
         signal(d)
     }
 
-    let expect = expect_file!["option_result_match.expect"];
+    let expect = expect_file!["expect/option_result_match.expect"];
     let res = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     let res = res.err().unwrap();
     let report = miette_report(res);
@@ -196,14 +212,14 @@ fn test_option_result_match_func() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_if_let() -> miette::Result<()> {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -242,14 +258,14 @@ fn test_option_result_if_let() -> miette::Result<()> {
 
 #[test]
 fn test_nested_matches() -> miette::Result<()> {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -257,16 +273,22 @@ fn test_nested_matches() -> miette::Result<()> {
         DECERR = 2,
     }
 
-    #[derive(PartialEq, Default, Digital)]
-    pub struct ReadResponse<N: BitWidth> {
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
+    pub struct ReadResponse<const N: usize>
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
         data: Bits<N>,
         resp: ResponseCode,
     }
 
     #[kernel]
-    fn do_stuff<DATA: BitWidth>(
+    fn do_stuff<const DATA: usize>(
         a: Signal<Result<Bits<DATA>, AXI4Error>, Red>,
-    ) -> Signal<Option<ReadResponse<DATA>>, Red> {
+    ) -> Signal<Option<ReadResponse<DATA>>, Red>
+    where
+        rhdl::bits::W<DATA>: BitWidth,
+    {
         let b = match a.val() {
             Ok(data) => ReadResponse::<DATA> {
                 data,
@@ -287,20 +309,20 @@ fn test_nested_matches() -> miette::Result<()> {
         (signal(Err(AXI4Error::SLVERR)),),
         (signal(Err(AXI4Error::DECERR)),),
     ];
-    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, inputs.into_iter())?;
+    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, inputs.into_iter())?;
     Ok(())
 }
 
 #[test]
 fn test_option_result_nested_option_result_destructure() -> miette::Result<()> {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
         DECERR = 1,
     }
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum ResponseCode {
         #[default]
         OKAY = 0,
@@ -324,7 +346,7 @@ fn test_option_result_nested_option_result_destructure() -> miette::Result<()> {
         signal(d)
     }
 
-    let expect = expect_file!["option_result_nested_option_result_destructure.expect"];
+    let expect = expect_file!["expect/option_result_nested_option_result_destructure.expect"];
     let res = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     let res = res.err().unwrap();
     let report = miette_report(res);
@@ -334,7 +356,7 @@ fn test_option_result_nested_option_result_destructure() -> miette::Result<()> {
 
 #[test]
 fn test_option_result_nested_option_result_destructure_simple() -> miette::Result<()> {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum AXI4Error {
         #[default]
         SLVERR = 0,
@@ -354,7 +376,7 @@ fn test_option_result_nested_option_result_destructure_simple() -> miette::Resul
         signal(d)
     }
 
-    let expect_err = expect_file!["option_result_more.expect"];
+    let expect_err = expect_file!["expect/option_result_more.expect"];
     let res = compile_design::<do_stuff>(CompilationMode::Asynchronous);
     let err = res.err().unwrap();
     let report = miette_report(err);
@@ -366,7 +388,7 @@ fn test_option_result_nested_option_result_destructure_simple() -> miette::Resul
 fn test_ok_err_variants_allowed_in_non_result() -> miette::Result<()> {
     // Check that we can use Ok and Err without the
     // compiler erroneously assuming its a standard Result type.
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub enum MyResult {
         Ok(b8),
         AlsoOk(b8),

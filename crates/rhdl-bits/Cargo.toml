@@ -2,7 +2,10 @@
 name = "rhdl-bits"
 version = "0.1.0"
 edition = "2024"
+authors = ["Samit Basu <basu.samit@gmail.com>"]
+license = "MIT"
+description = "Fixed-width and dynamic-width bit vector types for hardware design in RHDL"
+repository = "https://github.com/samitbasu/rhdl"
 
 [dependencies]
-rhdl-typenum = { version = "0.1.0", path = "../rhdl-typenum" }
 seq-macro = "0.3.6"

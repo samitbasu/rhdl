@@ -8,6 +8,7 @@ fn update<T: Digital>(a: T, b: T) -> [T; 2] {
     #[allow(clippy::manual_memcpy)]
     #[forbid(path_statements)]
     #[forbid(unused_variables)]
+    #[allow(unused_doc_comments)]
     #[rhdl(allow_weak_partial)]
     fn inner<T: Digital>(a: T, b: T) -> [T; 2] {
         { [a, b] }
@@ -32,37 +33,34 @@ impl<T: Digital> rhdl::core::digital_fn::DigitalFn2 for update<T> {
 }
 impl<T: Digital> rhdl::core::digital_fn::DigitalFn for update<T> {
     fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
-        let bob = rhdl::core::ast::builder::ASTBuilder::default();
+        use rhdl::core::ast::builder::*;
+        const META_DATA: &'static str = "{\"0\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"1\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"2\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"3\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"4\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"5\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"6\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"7\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"8\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"9\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]}}";
         Some(
-            bob
-                .kernel_fn(
-                    0u32.into(),
-                    stringify!(update),
-                    vec! {
-                        bob.type_pat(7u32.into(), bob.ident_pat(6u32.into(),
-                        stringify!(a), false), < T as rhdl::core::Digital >
-                        ::static_kind()), bob.type_pat(9u32.into(), bob.ident_pat(8u32
-                        .into(), stringify!(b), false), < T as rhdl::core::Digital >
-                        ::static_kind())
-                    },
-                    <[T; 2] as rhdl::core::Digital>::static_kind(),
-                    bob
-                        .block(
-                            5u32.into(),
-                            vec![
-                                bob.expr_stmt(4u32.into(), bob.array_expr(3u32.into(),
-                                vec![bob.path_expr(1u32.into(), bob.path(vec![bob
-                                .path_segment(stringify!(a), bob.path_arguments_none())],)),
-                                bob.path_expr(2u32.into(), bob.path(vec![bob
-                                .path_segment(stringify!(b), bob
-                                .path_arguments_none())],))]))
-                            ],
-                        ),
-                    std::any::TypeId::of::<update<T>>(),
-                    "#[rhdl(allow_weak_partial)]\nfn update<T: Digital>(a: T, b: T) -> [T; 2] {\n    [a, b]\n}\n",
-                    concat!(file!(), ":", line!()),
-                    vec![],
+            kernel_fn(
+                0u32.into(),
+                stringify!(update),
+                vec! {
+                    type_pat(7u32.into(), ident_pat(6u32.into(), stringify!(a), false), <
+                    T as rhdl::core::Digital > ::static_kind()), type_pat(9u32.into(),
+                    ident_pat(8u32.into(), stringify!(b), false), < T as
+                    rhdl::core::Digital > ::static_kind())
+                },
+                <[T; 2] as rhdl::core::Digital>::static_kind(),
+                block(
+                    1u32.into(),
+                    vec![
+                        expr_stmt(2u32.into(), array_expr(3u32.into(),
+                        vec![path_expr(4u32.into(), path(vec![path_segment(stringify!(a),
+                        path_arguments_none())],)), path_expr(5u32.into(),
+                        path(vec![path_segment(stringify!(b),
+                        path_arguments_none())],))]))
+                    ],
                 ),
+                std::any::TypeId::of::<update<T>>(),
+                None,
+                rhdl::serde_json::from_str(META_DATA).unwrap(),
+                vec![],
+            ),
         )
     }
 }

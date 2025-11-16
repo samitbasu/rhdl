@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[kernel]\npub fn generic_kernel<const N: usize>(a: Bits<N>, b: Bits<N>) -> Bits<N> \n    where rhdl::bits::W<N>: BitWidth {\n    a + b\n}\n\n#[kernel]\npub fn kernel(a: b7, b: b7) -> b7 {\n    generic_kernel::<7>(a,b)\n}\n"},{"End":"CodeBlock"}]

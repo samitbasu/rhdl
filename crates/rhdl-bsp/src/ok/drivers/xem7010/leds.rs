@@ -29,7 +29,7 @@ mod tests {
 
     #[test]
     fn test_led_driver() {
-        #[derive(PartialEq, Digital, Timed)]
+        #[derive(PartialEq, Digital, Clone, Copy, Timed)]
         struct O {
             leds: Signal<b8, Red>,
         }
@@ -45,7 +45,7 @@ mod tests {
         impl CircuitIO for U {
             type I = ();
             type O = O;
-            type Kernel = NoKernel2<(), (), (O, ())>;
+            type Kernel = NoCircuitKernel<(), (), (O, ())>;
         }
 
         let led_driver = super::leds::<U>(&path!(.leds.val())).unwrap();

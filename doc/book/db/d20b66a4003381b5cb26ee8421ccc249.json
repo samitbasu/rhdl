@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[kernel]\npub fn kernel((a,b): (b8, b8)) -> b8 {\n    a + b\n}\n"},{"End":"CodeBlock"}]

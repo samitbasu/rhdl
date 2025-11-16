@@ -1,0 +1,32 @@
+function [5:0] kernel_kernel(input reg [15:0] arg_0);
+      reg [3:0] r0;
+      reg [15:0] r1;
+      reg [5:0] r2;
+      reg [5:0] r3;
+      reg [3:0] r4;
+      reg [5:0] r5;
+      reg [5:0] r6;
+      reg [3:0] r7;
+      reg [5:0] r8;
+      reg [5:0] r9;
+      reg [3:0] r10;
+      reg [5:0] r11;
+      reg [5:0] r12;
+      localparam l0 = 6'b000000;
+      begin
+         r1 = arg_0;
+         r0 = r1[3:0];
+         r2 = {{2{1'b0}}, r0};
+         r3 = l0 + r2;
+         r4 = r1[7:4];
+         r5 = {{2{1'b0}}, r4};
+         r6 = r3 + r5;
+         r7 = r1[11:8];
+         r8 = {{2{1'b0}}, r7};
+         r9 = r6 + r8;
+         r10 = r1[15:12];
+         r11 = {{2{1'b0}}, r10};
+         r12 = r9 + r11;
+         kernel_kernel = r12;
+      end
+endfunction

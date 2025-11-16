@@ -10,13 +10,13 @@ mod sub {
         data: dff::DFF<b2>,
     }
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct I {
         pub data: Option<(bool, b2)>,
         pub ready: bool,
     }
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct O {
         pub done: bool,
         pub data: b2,
@@ -52,13 +52,13 @@ mod master {
     #[derive(Clone, Debug, Synchronous, Default)]
     pub struct U {}
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct I {
         pub write: Option<(bool, b2)>,
         pub done: bool,
     }
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct O {
         pub ready: bool,
         pub data: Option<(b2, bool)>,
@@ -141,12 +141,12 @@ fn test_input_stream() -> impl Iterator<Item = TimedSample<(ClockReset, Option<(
 fn test_trace() -> miette::Result<()> {
     let uut = U::default();
     let input = test_input_stream();
-    let vcd = uut.run(input)?.collect::<Vcd>();
+    let vcd = uut.run(input).collect::<Vcd>();
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("vcd")
         .join("lid");
     std::fs::create_dir_all(&root).unwrap();
-    let expect = expect!["5ad56a7a21054339449b4ef2c8f684aa4c97243a84d3224a92c7684c2527bbf6"];
+    let expect = expect!["743de8300cb95e82ec2d28872d9d6ab70f2ecb18e4d8779c3d7095f057bdc18c"];
     let digest = vcd.dump_to_file(root.join("twist.vcd")).unwrap();
     expect.assert_eq(&digest);
     Ok(())
@@ -156,7 +156,7 @@ fn test_trace() -> miette::Result<()> {
 fn test_hdl_generation() -> miette::Result<()> {
     let uut = U::default();
     let input = test_input_stream();
-    let tb = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
+    let tb = uut.run(input).collect::<SynchronousTestBench<_, _>>();
     let tm = tb.rtl(&uut, &Default::default())?;
     tm.run_iverilog()?;
     let tm = tb.ntl(&uut, &Default::default())?;

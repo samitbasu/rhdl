@@ -6,7 +6,10 @@
 //! sink for a stream that can be generated from a closure without
 //! worrying that something that is synthesizable.  
 //!
-use rhdl::prelude::*;
+use rhdl::{
+    core::{ScopedName, SyncKind},
+    prelude::*,
+};
 
 use crate::stream::{ready, Ready};
 
@@ -66,7 +69,7 @@ where
     type I = Option<T>;
     // Ready signal
     type O = Ready<T>;
-    type Kernel = NoKernel3<ClockReset, Option<T>, (), (Ready<T>, ())>;
+    type Kernel = NoSynchronousKernel<ClockReset, Option<T>, (), (Ready<T>, ())>;
 }
 
 impl<T> SynchronousDQ for SinkFromFn<T>
@@ -133,11 +136,8 @@ impl<T: Digital> Synchronous for SinkFromFn<T> {
         trace_pop_path();
         ready(me.ready)
     }
-    fn descriptor(&self, _name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        Err(RHDLError::NotSynthesizable)
-    }
 
-    fn hdl(&self, _name: &str) -> Result<HDLDescriptor, RHDLError> {
+    fn descriptor(&self, _name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError> {
         Err(RHDLError::NotSynthesizable)
     }
 }

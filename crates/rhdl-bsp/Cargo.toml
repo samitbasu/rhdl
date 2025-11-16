@@ -12,6 +12,7 @@ thiserror = "2.0.12"
 quote = "1.0.40"
 syn = "2.0.106"
 proc-macro2 = "1.0.101"
+miette = "7.6.0"
 
 [dev-dependencies]
-miette = "7.6.0"
+rhdl-toolchains = { path = "../rhdl-toolchains" }

@@ -19,7 +19,7 @@ pub struct U {
     reply: sender::U<ReadResponse>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct I {
     // AXI bus side of the bridge
     pub axi: ReadMOSI,
@@ -31,7 +31,7 @@ pub struct I {
     pub cmd_next: bool,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct O {
     // AXI bus side of the bridge
     pub axi: ReadMISO,

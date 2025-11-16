@@ -1,0 +1,10 @@
+[package]
+name = "rhdl-toolchains"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+camino = "1.2.1"
+miette = "7.6.0"
+rhdl-core = { version = "0.1.0", path = "../rhdl-core" }
+rhdl-vlog = { version = "0.1.0", path = "../rhdl-vlog" }

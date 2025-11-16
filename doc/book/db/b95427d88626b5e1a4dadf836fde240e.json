@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"use rhdl::prelude::*;\n\n#[derive(PartialEq, Clone, Copy, Digital, Default)]\n#[repr(i8)] // 👈 Now `i8`, not `u8`\npub enum State {\n    Idle = -5, \n    Processing(b8) = -3,\n    Sending(b1) = 1,\n    Done = 6,\n    Fault = 9,\n    #[default]\n    Reset = 0\n}"},{"End":"CodeBlock"}]

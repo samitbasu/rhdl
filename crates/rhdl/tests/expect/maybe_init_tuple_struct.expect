@@ -1,0 +1,9 @@
+  × RHDL ICE
+  ╰─▶ RHDL Internal Compile Error
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/ast.rs:765:34]
+ 764 │         let y = match p {
+ 765 │             Point { x: Bits::<8>(2), y } => y,
+     ·                                  ┬
+     ·                                  ╰── Unsupported pattern in bind pattern Pat { id: N12, kind: Lit(PatLit { lit: 2 }) }
+ 766 │             Point { x, y: Bits::<8>(4) } => x,
+     ╰────

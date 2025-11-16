@@ -2,18 +2,12 @@ module top(input wire [1:0] cr, input wire [15:0] bitz, input wire [9:0] cmd, ou
    wire [27:0] inner_input;
    wire [26:0] inner_output;
    assign inner_input[1:0] = cr;
-   ;
    assign inner_input[17:2] = bitz;
-   ;
    assign inner_input[27:18] = cmd;
-   ;
    assign bitz = inner_output[15:0];
-   ;
    assign control = inner_output[17:16];
-   ;
    assign data = inner_output[26:18];
-   ;
-   inner_inner inner_inst(.i(inner_input), .o(inner_output));
+   inner inner_inst(.i(inner_input), .o(inner_output));
 endmodule
 module inner(input wire [27:0] i, output wire [26:0] o);
    inner_inner c(.clock_reset(i[1:0]), .i(i[27:2]), .o(o));
@@ -23,202 +17,186 @@ module inner_inner(input wire [1:0] clock_reset, input wire [25:0] i, output wir
    wire [10:0] d;
    wire [10:0] q;
    assign o = od[26:0];
-   inner_inner_reg c0(.clock_reset(clock_reset), .i(d[10:3]), .o(q[10:3]));
-   inner_inner_state c1(.clock_reset(clock_reset), .i(d[2:0]), .o(q[2:0]));
+   inner_inner_state c0(.clock_reset(clock_reset), .i(d[2:0]), .o(q[2:0]));
+   inner_inner_reg c1(.clock_reset(clock_reset), .i(d[10:3]), .o(q[10:3]));
    assign d = od[37:27];
    assign od = kernel_trizsnd(clock_reset, i, q);
    function [37:0] kernel_trizsnd(input reg [1:0] arg_0, input reg [25:0] arg_1, input reg [10:0] arg_2);
-         reg [7:0] or0;
-         reg [10:0] or1;
+         reg [7:0] r0;
+         reg [10:0] r1;
          // d
-         reg [10:0] or2;
-         reg [2:0] or3;
-         reg [9:0] or4;
-         reg [25:0] or5;
-         reg [0:0] or6;
-         reg [8:0] or7;
-         reg [0:0] or8;
-         reg [7:0] or9;
+         reg [10:0] r2;
+         reg [2:0] r3;
+         reg [9:0] r4;
+         reg [25:0] r5;
+         reg [0:0] r6;
+         reg [8:0] r7;
+         reg [0:0] r8;
+         reg [7:0] r9;
          // d
-         reg [10:0] or10;
+         reg [10:0] r10;
          // d
-         reg [10:0] or11;
+         reg [10:0] r11;
          // state
-         reg [2:0] or12;
+         reg [2:0] r12;
          // d
-         reg [10:0] or13;
+         reg [10:0] r13;
          // state
-         reg [2:0] or14;
-         reg [7:0] or15;
+         reg [2:0] r14;
+         reg [7:0] r15;
          // o
-         reg [26:0] or16;
+         reg [26:0] r16;
          // o
-         reg [26:0] or17;
+         reg [26:0] r17;
          // o
-         reg [26:0] or18;
-         reg [15:0] or19;
-         reg [7:0] or20;
+         reg [26:0] r18;
+         reg [15:0] r19;
+         reg [7:0] r20;
          // d
-         reg [10:0] or21;
-         reg [7:0] or22;
-         reg [8:0] or23;
-         reg [7:0] or24;
+         reg [10:0] r21;
+         reg [7:0] r22;
+         reg [8:0] r23;
+         reg [7:0] r24;
          // o
-         reg [26:0] or25;
+         reg [26:0] r25;
          // d
-         reg [10:0] or26;
+         reg [10:0] r26;
          // o
-         reg [26:0] or27;
+         reg [26:0] r27;
          // state
-         reg [2:0] or28;
-         reg [15:0] or29;
-         reg [7:0] or30;
-         reg [15:0] or31;
-         reg [7:0] or32;
-         reg [7:0] or33;
+         reg [2:0] r28;
+         reg [15:0] r29;
+         reg [7:0] r30;
+         reg [15:0] r31;
+         reg [7:0] r32;
+         reg [7:0] r33;
          // o
-         reg [26:0] or34;
-         reg [15:0] or35;
-         reg [7:0] or36;
-         reg [15:0] or37;
-         reg [7:0] or38;
-         reg [15:0] or39;
-         reg [7:0] or40;
-         reg [7:0] or41;
-         reg [7:0] or42;
+         reg [26:0] r34;
+         reg [15:0] r35;
+         reg [7:0] r36;
+         reg [15:0] r37;
+         reg [7:0] r38;
+         reg [15:0] r39;
+         reg [7:0] r40;
+         reg [7:0] r41;
+         reg [7:0] r42;
          // o
-         reg [26:0] or43;
+         reg [26:0] r43;
          // d
-         reg [10:0] or44;
-         reg [37:0] or45;
-         reg [1:0] or46;
-         localparam ol0 = 11'bXXXXXXXXXXX;
-         localparam ol1 = 1'b0;
-         localparam ol2 = 1'b1;
-         localparam ol3 = 3'b001;
-         localparam ol4 = 3'b010;
-         localparam ol5 = 1'b1;
-         localparam ol6 = 27'b000000000000000000000000000;
-         localparam ol7 = 8'b11111111;
-         localparam ol8 = 2'b10;
-         localparam ol9 = 1'b1;
-         localparam ol10 = 3'b000;
-         localparam ol11 = 3'b001;
-         localparam ol12 = 3'b010;
-         localparam ol13 = 3'b011;
-         localparam ol14 = 3'b100;
-         localparam ol15 = 27'b000000000110000000000000000;
-         localparam ol16 = 3'b000;
-         localparam ol17 = 3'b011;
-         localparam ol18 = 3'b100;
-         localparam ol19 = 3'b000;
+         reg [10:0] r44;
+         reg [37:0] r45;
+         reg [1:0] r46;
+         localparam l0 = 11'bXXXXXXXXXXX;
+         localparam l1 = 1'b0;
+         localparam l2 = 1'b1;
+         localparam l3 = 3'b001;
+         localparam l4 = 3'b010;
+         localparam l5 = 1'b1;
+         localparam l6 = 27'b000000000000000000000000000;
+         localparam l7 = 8'b11111111;
+         localparam l8 = 2'b10;
+         localparam l9 = 1'b1;
+         localparam l10 = 3'b000;
+         localparam l11 = 3'b001;
+         localparam l12 = 3'b010;
+         localparam l13 = 3'b011;
+         localparam l14 = 3'b100;
+         localparam l15 = 27'b000000000110000000000000000;
+         localparam l16 = 3'b000;
+         localparam l17 = 3'b011;
+         localparam l18 = 3'b100;
+         localparam l19 = 3'b000;
          begin
-            or46 = arg_0;
-            or5 = arg_1;
-            or1 = arg_2;
-            or0 = or1[10:3];
-            or2 = ol0;
-            or2[10:3] = or0;
-            or3 = or1[2:0];
-            or4 = or5[25:16];
-            or6 = or4[9:9];
-            or7 = or4[8:0];
-            or8 = or7[8:8];
-            or9 = or7[7:0];
-            or10 = or2;
-            or10[10:3] = or9;
-            case (or8)
-               1'b0 : or11 = or10;
-               1'b1 : or11 = or2;
+            r46 = arg_0;
+            r5 = arg_1;
+            r1 = arg_2;
+            r0 = r1[10:3];
+            r2 = l0;
+            r2[10:3] = r0;
+            r3 = r1[2:0];
+            r4 = r5[25:16];
+            r6 = r4[9:9];
+            r7 = r4[8:0];
+            r8 = r7[8:8];
+            r9 = r7[7:0];
+            r10 = r2;
+            r10[10:3] = r9;
+            case (r8)
+               1'b0 : r11 = r10;
+               1'b1 : r11 = r2;
             endcase
-            case (or8)
-               1'b0 : or12 = ol3;
-               1'b1 : or12 = ol4;
+            case (r8)
+               1'b0 : r12 = l3;
+               1'b1 : r12 = l4;
             endcase
-            case (or6)
-               1'b1 : or13 = or11;
-               default : or13 = or2;
+            case (r6)
+               1'b1 : r13 = r11;
+               default : r13 = r2;
             endcase
-            case (or6)
-               1'b1 : or14 = or12;
-               default : or14 = or3;
+            case (r6)
+               1'b1 : r14 = r12;
+               default : r14 = r3;
             endcase
-            or15 = or1[10:3];
-            or16 = ol6;
-            or16[7:0] = or15;
-            or17 = or16;
-            or17[15:8] = ol7;
-            or18 = or17;
-            or18[17:16] = ol8;
-            or19 = or5[15:0];
-            or20 = or19[7:0];
-            or21 = or2;
-            or21[10:3] = or20;
-            or22 = or1[10:3];
-            or24 = or22[7:0];
-            or23 = {ol9, or24};
-            or25 = ol6;
-            or25[26:18] = or23;
-            case (or3)
-               3'b000 : or26 = or13;
-               3'b001 : or26 = or2;
-               3'b010 : or26 = or2;
-               3'b011 : or26 = or21;
-               3'b100 : or26 = or2;
+            r15 = r1[10:3];
+            r16 = l6;
+            r16[7:0] = r15;
+            r17 = r16;
+            r17[15:8] = l7;
+            r18 = r17;
+            r18[17:16] = l8;
+            r19 = r5[15:0];
+            r20 = r19[7:0];
+            r21 = r2;
+            r21[10:3] = r20;
+            r22 = r1[10:3];
+            r24 = r22[7:0];
+            r23 = {l9, r24};
+            r25 = l6;
+            r25[26:18] = r23;
+            case (r3)
+               3'b000 : r26 = r13;
+               3'b001 : r26 = r2;
+               3'b010 : r26 = r2;
+               3'b011 : r26 = r21;
+               3'b100 : r26 = r2;
             endcase
-            case (or3)
-               3'b000 : or27 = ol6;
-               3'b001 : or27 = or18;
-               3'b010 : or27 = ol15;
-               3'b011 : or27 = ol6;
-               3'b100 : or27 = or25;
+            case (r3)
+               3'b000 : r27 = l6;
+               3'b001 : r27 = r18;
+               3'b010 : r27 = l15;
+               3'b011 : r27 = l6;
+               3'b100 : r27 = r25;
             endcase
-            case (or3)
-               3'b000 : or28 = or14;
-               3'b001 : or28 = ol16;
-               3'b010 : or28 = ol17;
-               3'b011 : or28 = ol18;
-               3'b100 : or28 = ol19;
+            case (r3)
+               3'b000 : r28 = r14;
+               3'b001 : r28 = l16;
+               3'b010 : r28 = l17;
+               3'b011 : r28 = l18;
+               3'b100 : r28 = l19;
             endcase
-            or29 = or27[15:0];
-            or30 = or29[15:8];
-            or31 = or5[15:0];
-            or32 = or31[15:8];
-            or33 = or30 | or32;
-            or34 = or27;
-            or34[15:8] = or33;
-            or35 = or34[15:0];
-            or36 = or35[7:0];
-            or37 = or5[15:0];
-            or38 = or37[7:0];
-            or39 = or5[15:0];
-            or40 = or39[15:8];
-            or41 = or38 & or40;
-            or42 = or36 | or41;
-            or43 = or34;
-            or43[7:0] = or42;
-            or44 = or26;
-            or44[2:0] = or28;
-            or45 = {or44, or43};
-            kernel_trizsnd = or45;
+            r29 = r27[15:0];
+            r30 = r29[15:8];
+            r31 = r5[15:0];
+            r32 = r31[15:8];
+            r33 = r30 | r32;
+            r34 = r27;
+            r34[15:8] = r33;
+            r35 = r34[15:0];
+            r36 = r35[7:0];
+            r37 = r5[15:0];
+            r38 = r37[7:0];
+            r39 = r5[15:0];
+            r40 = r39[15:8];
+            r41 = r38 & r40;
+            r42 = r36 | r41;
+            r43 = r34;
+            r43[7:0] = r42;
+            r44 = r26;
+            r44[2:0] = r28;
+            r45 = {r44, r43};
+            kernel_trizsnd = r45;
          end
    endfunction
-endmodule
-module inner_inner_reg(input wire [1:0] clock_reset, input wire [7:0] i, output reg [7:0] o);
-   wire  clock;
-   wire  reset;
-   assign clock = clock_reset[0];
-   assign reset = clock_reset[1];
-   initial begin
-      o = 8'b00000000;
-   end
-   always @(posedge clock) begin
-      if (reset) begin
-         o <= 8'b00000000;
-      end else begin
-         o <= i;
-      end
-   end
 endmodule
 module inner_inner_state(input wire [1:0] clock_reset, input wire [2:0] i, output reg [2:0] o);
    wire  clock;
@@ -231,6 +209,22 @@ module inner_inner_state(input wire [1:0] clock_reset, input wire [2:0] i, outpu
    always @(posedge clock) begin
       if (reset) begin
          o <= 3'b000;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module inner_inner_reg(input wire [1:0] clock_reset, input wire [7:0] i, output reg [7:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 8'b00000000;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 8'b00000000;
       end else begin
          o <= i;
       end

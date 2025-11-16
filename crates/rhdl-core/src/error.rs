@@ -2,10 +2,7 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::{
-    KernelFnKind, TypedBits,
-    circuit::yosys::YosysSynthError,
-    compiler::mir::ty::UnifyError,
-    types::{bit_string::BitString, path::PathError},
+    TypedBits, compiler::mir::ty::UnifyError, kernel::KernelFnKind, types::path::PathError,
 };
 
 #[derive(Error, Debug, Diagnostic)]
@@ -53,10 +50,7 @@ pub enum RHDLError {
     #[error("Cannot convert kernel function to Verilog descriptor {value:?}")]
     CannotConvertKernelFunctionToVerilogDescriptor { value: Box<KernelFnKind> },
     #[error("Verilog Verification Error in RTL: Expected {expected:?} got {actual:?}")]
-    VerilogVerificationErrorRTL {
-        expected: BitString,
-        actual: BitString,
-    },
+    VerilogVerificationErrorRTL { expected: String, actual: String },
     #[error("Verilog verification error: {0}")]
     VerilogVerificationErrorString(String),
     #[error("Testbench Construction Error: {0}")]
@@ -69,8 +63,6 @@ pub enum RHDLError {
     ExportError(#[from] crate::circuit::fixture::ExportError),
     #[error("This module is not synthesizable")]
     NotSynthesizable,
-    #[error("Yosys synthesis error: {0}")]
-    YosysSynthError(#[from] YosysSynthError),
     #[error("Netlist Error")]
     #[diagnostic(transparent)]
     NetListError(#[from] Box<crate::ntl::error::NetListError>),
@@ -80,8 +72,12 @@ pub enum RHDLError {
     #[error("Type Inference Error")]
     #[diagnostic(transparent)]
     TypeInferenceError(#[from] Box<UnifyError>),
-    #[error("Function is not synthesizable")]
-    FunctionNotSynthesizable,
+    #[error("Function {name} is not synthesizable")]
+    FunctionNotSynthesizable { name: String },
+    #[error("HDL not available for circuit {name}")]
+    HDLNotAvailable { name: String },
+    #[error("Netlist not available for circuit {name}")]
+    NetlistNotAvailable { name: String },
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

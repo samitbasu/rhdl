@@ -18,36 +18,12 @@ pub(crate) fn get_fqdn(decl: &DeriveInput) -> TokenStream {
 }
 
 #[cfg(test)]
-pub(crate) fn assert_tokens_eq(
-    expected: &proc_macro2::TokenStream,
-    actual: &proc_macro2::TokenStream,
-) {
-    let expected = expected.to_string();
-    let expected = prettyplease::unparse(
-        &syn::parse_file(&expected).expect("Expected string is not valid rust code"),
-    );
-    let actual = actual.to_string();
-    let actual = prettyplease::unparse(
-        &syn::parse_file(&actual)
-            .unwrap_or_else(|err| panic!("Actual string is not valid rust code: {actual}  {err}")),
-    );
-
-    if expected != actual {
-        println!("expected: {expected}");
-        println!("actual:   {actual}");
-        // Print the lines that are different
-        let expected_lines = expected.lines().collect::<Vec<_>>();
-        let actual_lines = actual.lines().collect::<Vec<_>>();
-        for (i, (expected_line, actual_line)) in
-            expected_lines.iter().zip(actual_lines.iter()).enumerate()
-        {
-            if expected_line != actual_line {
-                println!("line {}: expected: {}", i + 1, expected_line);
-                println!("line {}: actual:   {}", i + 1, actual_line);
-            }
-        }
-        panic!("expected != actual");
-    }
+pub(crate) fn pretty_print(tokens: &proc_macro2::TokenStream) -> String {
+    let tokens_str = tokens.to_string();
+    prettyplease::unparse(
+        &syn::parse_file(&tokens_str)
+            .unwrap_or_else(|err| panic!("Tokens are not valid rust code: {tokens_str}  {err}")),
+    )
 }
 
 pub(crate) fn evaluate_const_expression(expr: &syn::Expr) -> syn::Result<i64> {
@@ -90,12 +66,11 @@ impl<'a> TryFrom<&'a syn::Fields> for FieldSet<'a> {
 
 pub(crate) fn parse_rhdl_skip_attribute(attrs: &[Attribute]) -> bool {
     for attr in attrs {
-        if attr.path().is_ident("rhdl") {
-            if let Ok(Expr::Path(path)) = attr.parse_args() {
-                if path.path.is_ident("skip") {
-                    return true;
-                }
-            }
+        if attr.path().is_ident("rhdl")
+            && let Ok(Expr::Path(path)) = attr.parse_args()
+            && path.path.is_ident("skip")
+        {
+            return true;
         }
     }
     false

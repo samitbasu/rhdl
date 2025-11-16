@@ -1,9 +1,24 @@
+//! Phantom Circuit support
+//!
+//! Sometimes, you want to include generic parameters in your circuit that are present only
+//! to enforce certain constraints on the types used, but do not correspond to any actual
+//! hardware components.  For example, you might want to have a circuit that is generic over
+//! a data type `T`, but does not actually use `T` in any way that requires hardware representation.
+//! In such cases, you can use a phantom circuit.  Simply include a field of type `std::marker::PhantomData<T>`
+//! in your circuit struct.  This will allow you to enforce the type constraint without
+//! generating any hardware for it.
+//!
 use crate::{
-    CircuitDescriptor, ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous,
-    SynchronousDQ, SynchronousIO, digital_fn::NoKernel3, ntl,
+    ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
+    circuit::{
+        descriptor::{Descriptor, SyncKind},
+        scoped_name::ScopedName,
+    },
+    digital_fn::NoSynchronousKernel,
 };
 
 use quote::format_ident;
+use rhdl_vlog as vlog;
 use syn::parse_quote;
 
 impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
@@ -19,40 +34,32 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
     ) -> Self::O {
     }
 
-    fn description(&self) -> String {
-        format!("Phantom (type only) component: {:?}", T::static_kind())
-    }
-
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        let ntl = ntl::Builder::new(name);
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError> {
+        let name = scoped_name.to_string();
+        let module_ident = format_ident!("{name}");
+        let module: vlog::ModuleDef = parse_quote! {
+            module #module_ident;
+            endmodule
+        };
+        // let ntl = ntl::Builder::new(name);
         // It's not exactly clear what the build mode of the NetList Builder
         // should be.  We do not know if the phantom is in a synchronous or
         // asynchronous context, and ideally it shouldn't matter.  So we use
         // the synchronous mode so that the inputs have at least place holders
         // for the clock reset and input vecs (both empty)
-        Ok(CircuitDescriptor {
-            unique_name: format!("{name}_phantom"),
+        Ok(Descriptor::<SyncKind> {
+            name: scoped_name,
             input_kind: Kind::Empty,
             output_kind: Kind::Empty,
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            children: Default::default(),
-            rtl: None,
-            ntl: ntl.build(ntl::builder::BuilderMode::Synchronous)?,
-        })
-    }
-
-    fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
-        let module_name = self.descriptor(name)?.unique_name;
-        let module_ident = format_ident!("{}", module_name);
-        let module = parse_quote! {
-            module #module_ident;
-            endmodule
-        };
-        Ok(HDLDescriptor {
-            name: module_name,
-            body: module,
-            children: Default::default(),
+            kernel: None,
+            netlist: None,
+            hdl: Some(HDLDescriptor {
+                name: name.to_string(),
+                modules: module.into(),
+            }),
+            _phantom: std::marker::PhantomData,
         })
     }
 }
@@ -60,7 +67,7 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
 impl<T: Digital + 'static> SynchronousIO for std::marker::PhantomData<T> {
     type I = ();
     type O = ();
-    type Kernel = NoKernel3<ClockReset, (), (), ((), ())>;
+    type Kernel = NoSynchronousKernel<ClockReset, (), (), ((), ())>;
 }
 
 impl<T: Digital + 'static> SynchronousDQ for std::marker::PhantomData<T> {

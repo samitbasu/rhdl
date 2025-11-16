@@ -31,7 +31,6 @@ module uut(input wire [18:0] arg_0, output reg [7:0] out);
    wire  r287;
    wire  r288;
    uut_inner bb_0(.o({r288, r287, r286, r285, r284, r283, r282, r281}), .i({r59, r58, r57, r56, r55, r41, r54, r53, r52, r51, r50, r49, r48, r47, r46, r200, r199, r198, r197}));
-   ;
    always @(*) begin
       r41 = arg_0[0];
       r42 = arg_0[1];

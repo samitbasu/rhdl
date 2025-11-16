@@ -5,5 +5,18 @@ multilingual = false
 src = "src"
 title = "RHDL Book"
 
+[preprocessor.admonish]
+command = "mdbook-admonish"
+assets_version = "3.1.0"    # do not edit: managed by `mdbook-admonish install`
+
 [preprocessor.badascii]
-formal = true
+
+[preprocessor.rhdl]
+command = "/Users/samitbasu/Devel/rhdl/target/release/mdbook-rhdl"
+
+[output]
+
+[output.html]
+additional-css = ["./mdbook-admonish.css"]
+
+[output.linkcheck]

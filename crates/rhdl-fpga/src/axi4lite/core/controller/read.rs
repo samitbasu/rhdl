@@ -150,7 +150,7 @@ pub fn map_result(_cr: ClockReset, resp: ReadResponse) -> ReadResult {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Input for the [ReadController] core
 pub struct In {
     /// AXI signals from bus
@@ -161,7 +161,7 @@ pub struct In {
     pub resp_ready: Ready<ReadResult>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Output for the [ReadController] core
 pub struct Out {
     /// AXI signals to the bus

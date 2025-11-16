@@ -33,7 +33,7 @@ pub mod tee;
 pub mod testing;
 pub mod xfer;
 pub mod zip;
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 /// A generic Stream IO type that holds a data and ready
 /// signal.  Note that in a Stream interface, these
 /// signals are generally in opposite directions.
@@ -62,7 +62,7 @@ pub struct StreamIO<T: Digital, S: Digital> {
     pub ready: Ready<S>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Clone, Copy, Digital)]
 /// A typed ready signal for a stream of type `T`.
 pub struct Ready<T: Digital> {
     /// A marker that this is a ready signal for a stream of type `T`

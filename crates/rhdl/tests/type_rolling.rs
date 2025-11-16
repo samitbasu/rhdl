@@ -5,12 +5,16 @@
 #![allow(unused_must_use)]
 #![allow(dead_code)]
 
-use rhdl::core::compiler::mir::error::Syntax;
 use rhdl::prelude::*;
+#[cfg(test)]
+mod common;
+
+#[cfg(test)]
+use common::*;
 
 #[test]
 fn test_roll_your_own_binop_fails() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     struct Baz {
         a: b8,
     }
@@ -29,10 +33,12 @@ fn test_roll_your_own_binop_fails() -> miette::Result<()> {
                 signal(j)
             }
 
-            let Err(RHDLError::RHDLSyntaxError(err)) = compile_design::<$kernel>(CompilationMode::Asynchronous) else {
+            let Err(err) = compile_design::<$kernel>(CompilationMode::Asynchronous) else {
                 panic!("Expected syntax error");
             };
-
+            let report = miette_report(err);
+            expect_test::expect_file![concat!("expect/", stringify!($trait), "_binop_fails.expect")]
+                .assert_eq(&report);
         };
     }
 
@@ -47,7 +53,7 @@ fn test_roll_your_own_binop_fails() -> miette::Result<()> {
 
 #[test]
 fn test_roll_your_own_not_fails() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     struct Baz {
         a: b8,
     }
@@ -80,12 +86,11 @@ fn test_roll_your_own_not_fails() -> miette::Result<()> {
     }
 
     // Assert that the compilation fails with a RHDL syntax error
-    let Err(RHDLError::RHDLSyntaxError(err)) =
-        compile_design::<do_stuff>(CompilationMode::Asynchronous)
-    else {
+    let Err(err) = compile_design::<do_stuff>(CompilationMode::Asynchronous) else {
         panic!("Expected syntax error");
     };
-    assert!(matches!(err.cause, Syntax::RollYourOwnUnary { op: _ }));
+    let report = miette_report(err);
+    expect_test::expect_file!["expect/roll_your_own_not_fails.expect"].assert_eq(&report);
 
     #[kernel]
     fn do_stuff_neg(h: Signal<Baz, Red>) -> Signal<Baz, Red> {
@@ -94,22 +99,18 @@ fn test_roll_your_own_not_fails() -> miette::Result<()> {
         signal(j)
     }
     // Assert that the compilation fails with a RHDL syntax error
-    let Err(RHDLError::RHDLSyntaxError(err)) =
-        compile_design::<do_stuff_neg>(CompilationMode::Asynchronous)
-    else {
+    let Err(err) = compile_design::<do_stuff_neg>(CompilationMode::Asynchronous) else {
         panic!("Expected syntax error");
     };
-    assert!(matches!(
-        err.cause,
-        rhdl::core::compiler::mir::error::Syntax::RollYourOwnUnary { op: _ }
-    ));
+    let report = miette_report(err);
+    expect_test::expect_file!["expect/roll_your_own_neg_fails.expect"].assert_eq(&report);
 
     Ok(())
 }
 
 #[test]
 fn test_roll_your_own_val_fails() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     struct Baz {
         a: b8,
     }
@@ -127,18 +128,17 @@ fn test_roll_your_own_val_fails() -> miette::Result<()> {
         signal(j)
     }
 
-    // Assert that the compilation fails with a RHDL syntax error
-    let Err(RHDLError::RHDLSyntaxError(err)) =
-        compile_design::<do_stuff>(CompilationMode::Asynchronous)
-    else {
+    let Err(err) = compile_design::<do_stuff>(CompilationMode::Asynchronous) else {
         panic!("Expected syntax error");
     };
+    let report = miette_report(err);
+    expect_test::expect_file!["expect/roll_your_own_val_fails_original.expect"].assert_eq(&report);
     Ok(())
 }
 
 #[test]
 fn test_method_call_fails_with_roll_your_own() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     struct Baz {
         a: b8,
     }
@@ -206,29 +206,38 @@ fn test_method_call_fails_with_roll_your_own() -> miette::Result<()> {
         signal(j)
     }
 
-    assert!(matches!(
-        compile_design::<do_val>(CompilationMode::Asynchronous),
-        Err(RHDLError::RHDLSyntaxError(err))
-    ));
-    assert!(matches!(
-        compile_design::<do_signed>(CompilationMode::Asynchronous),
-        Err(RHDLError::RHDLSyntaxError(err))
-    ));
-    assert!(matches!(
-        compile_design::<do_unsigned>(CompilationMode::Asynchronous),
-        Err(RHDLError::RHDLSyntaxError(err))
-    ));
-    assert!(matches!(
-        compile_design::<do_xor>(CompilationMode::Asynchronous),
-        Err(RHDLError::RHDLSyntaxError(err))
-    ));
-    assert!(matches!(
-        compile_design::<do_any>(CompilationMode::Asynchronous),
-        Err(RHDLError::RHDLSyntaxError(err))
-    ));
-    assert!(matches!(
-        compile_design::<do_all>(CompilationMode::Asynchronous),
-        Err(RHDLError::RHDLSyntaxError(err))
-    ));
+    let Err(err) = compile_design::<do_val>(CompilationMode::Asynchronous) else {
+        panic!("Expected syntax error");
+    };
+    let report = miette_report(err);
+    expect_test::expect_file!["expect/roll_your_own_val_fails.expect"].assert_eq(&report);
+
+    let Err(err) = compile_design::<do_signed>(CompilationMode::Asynchronous) else {
+        panic!("Expected syntax error");
+    };
+    let report = miette_report(err);
+    expect_test::expect_file!["expect/roll_your_own_signed_fails.expect"].assert_eq(&report);
+
+    let Err(err) = compile_design::<do_unsigned>(CompilationMode::Asynchronous) else {
+        panic!("Expected syntax error");
+    };
+    let report = miette_report(err);
+    expect_test::expect_file!["expect/roll_your_own_unsigned_fails.expect"].assert_eq(&report);
+
+    let Err(err) = compile_design::<do_xor>(CompilationMode::Asynchronous) else {
+        panic!("Expected syntax error");
+    };
+    let report = miette_report(err);
+    expect_test::expect_file!["expect/roll_your_own_xor_fails.expect"].assert_eq(&report);
+    let Err(err) = compile_design::<do_any>(CompilationMode::Asynchronous) else {
+        panic!("Expected syntax error");
+    };
+    let report = miette_report(err);
+    expect_test::expect_file!["expect/roll_your_own_any_fails.expect"].assert_eq(&report);
+    let Err(err) = compile_design::<do_all>(CompilationMode::Asynchronous) else {
+        panic!("Expected syntax error");
+    };
+    let report = miette_report(err);
+    expect_test::expect_file!["expect/roll_your_own_all_fails.expect"].assert_eq(&report);
     Ok(())
 }

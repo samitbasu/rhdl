@@ -27,13 +27,13 @@ impl From<&TypedBits> for vlog::LitVerilog {
     fn from(tb: &TypedBits) -> Self {
         let bits = "b"
             .chars()
-            .chain(tb.bits.iter().rev().map(|b| match b {
+            .chain(tb.iter().rev().map(|b| match b {
                 BitX::Zero => '0',
                 BitX::One => '1',
                 BitX::X => 'X',
             }))
             .collect::<String>();
-        vlog::lit_verilog(tb.bits.len() as u32, &bits)
+        vlog::lit_verilog(tb.len() as u32, &bits)
     }
 }
 
@@ -322,8 +322,8 @@ impl TranslationContext<'_> {
             })
             .collect::<Vec<vlog::Item>>();
         // Add these to the preamble
-        self.func.items.extend(reg_decls.into_iter());
-        self.func.items.extend(lit_decls.into_iter());
+        self.func.items.extend(reg_decls);
+        self.func.items.extend(lit_decls);
         // Bind the argument registers
         for (ndx, reg) in self.rtl.arguments.iter().enumerate() {
             if let Some(reg) = reg {

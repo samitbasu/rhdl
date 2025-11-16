@@ -11,25 +11,28 @@ use super::Gray;
 
 #[kernel]
 /// The gray code decoder.
-pub fn gray_decode<N: BitWidth>(i: Gray<N>) -> Bits<N> {
+pub fn gray_decode<const N: usize>(i: Gray<N>) -> Bits<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     let mut o = i.0;
     o ^= o >> 1;
-    if N::BITS > 2 {
+    if N > 2 {
         o ^= o >> 2;
     }
-    if N::BITS > 4 {
+    if N > 4 {
         o ^= o >> 4;
     }
-    if N::BITS > 8 {
+    if N > 8 {
         o ^= o >> 8;
     }
-    if N::BITS > 16 {
+    if N > 16 {
         o ^= o >> 16;
     }
-    if N::BITS > 32 {
+    if N > 32 {
         o ^= o >> 32;
     }
-    if N::BITS > 64 {
+    if N > 64 {
         o ^= o >> 64;
     }
     o
@@ -42,7 +45,10 @@ mod tests {
 
     use super::*;
 
-    fn test_gray_decode<N: BitWidth>(max_val: u128) {
+    fn test_gray_decode<const N: usize>(max_val: u128)
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
         let values = (0..max_val).map(bits::<N>);
         let gray = values.clone().map(gray_code);
         let bin = gray.map(gray_decode);
@@ -51,36 +57,36 @@ mod tests {
 
     #[test]
     fn test_gray_round_trip_1() {
-        test_gray_decode::<U1>(1 << 1);
+        test_gray_decode::<1>(1 << 1);
     }
 
     #[test]
     fn test_gray_round_trip_2() {
-        test_gray_decode::<U2>(1 << 2);
+        test_gray_decode::<2>(1 << 2);
     }
 
     #[test]
     fn test_gray_round_trip_3() {
-        test_gray_decode::<U3>(1 << 3);
+        test_gray_decode::<3>(1 << 3);
     }
 
     #[test]
     fn test_gray_round_trip_8() {
-        test_gray_decode::<U8>(1 << 8);
+        test_gray_decode::<8>(1 << 8);
     }
 
     #[test]
     fn test_gray_round_trip_16() {
-        test_gray_decode::<U16>(1 << 16);
+        test_gray_decode::<16>(1 << 16);
     }
 
     #[test]
     fn test_gray_round_trip_19() {
-        test_gray_decode::<U19>(1 << 19);
+        test_gray_decode::<19>(1 << 19);
     }
 
     #[test]
     fn test_gray_round_trip_24() {
-        test_gray_decode::<U24>(1 << 24);
+        test_gray_decode::<24>(1 << 24);
     }
 }

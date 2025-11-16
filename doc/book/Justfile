@@ -1,0 +1,14 @@
+clean:
+	just plugin
+	rm -rf src/db/*.json
+
+build:
+	just plugin
+	mdbook build
+
+serve:
+	just plugin
+	RUST_LOG=info mdbook serve
+
+plugin:
+	cd ../mdbook-rhdl && cargo build --release

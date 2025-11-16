@@ -9,9 +9,13 @@ use rhdl::prelude::*;
 #[kernel]
 /// Return the `N` LSBs of a bitvector of length `M`.  If
 /// `N >= M`, then the upper bits will be zero filled.
-pub fn lsbs<N: BitWidth, M: BitWidth>(n: Bits<M>) -> Bits<N> {
+pub fn lsbs<const N: usize, const M: usize>(n: Bits<M>) -> Bits<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+    rhdl::bits::W<M>: BitWidth,
+{
     let mut o = bits(0);
-    for i in 0..N::BITS {
+    for i in 0..N {
         if n & (1 << i) != 0 {
             o |= 1 << i
         }
@@ -23,10 +27,14 @@ pub fn lsbs<N: BitWidth, M: BitWidth>(n: Bits<M>) -> Bits<N> {
 /// Return the `N` MSBs of a bitvector of length `M`.  If
 /// `N >= M`, then the lower bits of the output will be
 /// zero filled.
-pub fn msbs<N: BitWidth, M: BitWidth>(n: Bits<M>) -> Bits<N> {
+pub fn msbs<const N: usize, const M: usize>(n: Bits<M>) -> Bits<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+    rhdl::bits::W<M>: BitWidth,
+{
     let mut o = bits(0);
-    for i in 0..N::BITS {
-        if n & (1 << (M::BITS - N::BITS + i)) != 0 {
+    for i in 0..N {
+        if n & (1 << (M - N + i)) != 0 {
             o |= 1 << i
         }
     }
@@ -41,9 +49,9 @@ mod tests {
     fn test_msbs_works() {
         let n = 0xDEAD_BEEF_u128;
         let n = b32(n);
-        let h = msbs::<U16, U32>(n);
+        let h = msbs::<16, 32>(n);
         assert_eq!(h, 0xDEAD);
-        let l = lsbs::<U16, U32>(n);
+        let l = lsbs::<16, 32>(n);
         assert_eq!(l, 0xBEEF);
     }
 }

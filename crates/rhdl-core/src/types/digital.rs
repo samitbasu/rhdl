@@ -1,18 +1,17 @@
 use std::marker::PhantomData;
 
-use rhdl_bits::{consts::U128, consts::U32, consts::U64, BitWidth, Bits, SignedBits};
+use rhdl_bits::{BitWidth, Bits, SignedBits};
 
 use crate::{
-    bitx::{bitx_vec, BitX},
-    trace::bit::TraceBit,
     DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
+    bitx::{BitX, bitx_vec},
+    trace::bit::TraceBit,
 };
 
 use crate::const_max;
 
 use super::kind::DiscriminantLayout;
 
-use rhdl_trace_type as rtt;
 use seq_macro::seq;
 
 /// This is the core trait for all of `RHDL` data elements.  If you
@@ -30,10 +29,16 @@ use seq_macro::seq;
 /// use [Bits] or [SignedBits] to ensure that the arithmetic
 /// operations model the behavior of the hardware.
 ///
-/// # String, Byte Array, Unit, Unit Struct, Sequence, Map
+/// # Unit and Unit Struct
 ///
-/// These are all unsupported on a hardware target.  They either
-/// have variable size or no size at all.
+/// These are supported as zero sized types.  You can include them in your
+/// data structures, and use them to enforce invariants at compile time.  They
+/// will be removed by RHDL during synthesis.
+///
+/// # Fixed Sized Arrays
+///
+/// You can represent an array of `impl Digital` types provided the size of the
+/// array is known at compile time.
 ///
 /// # Option
 ///
@@ -47,43 +52,56 @@ use seq_macro::seq;
 /// Variants with a payload are represented as a the discriminant
 /// and the payload packed into binary representation.
 ///
-/// # Structs, Tuples, Arrays, Unions
+/// # Structs, Tuples
 ///
 /// These are all supported in `RHDL`.
 ///
 pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
+    /// Associated constant that gives the total number of bits needed to represent the value.
     const BITS: usize;
+    /// Associated constant that gives the total number of bits needed to represent the value in a trace.
     const TRACE_BITS: usize = Self::BITS;
+    /// Returns the [Kind] (run time type descriptor) of the value as a static method
     fn static_kind() -> Kind;
-    fn static_trace_type() -> rhdl_trace_type::TraceType;
+    /// Returns the [TraceType] (run time trace type descriptor) of the value as a static method
+    fn static_trace_type() -> rhdl_trace_type::TraceType {
+        Self::static_kind().into()
+    }
+    /// Returns the number of bits needed to represent the value.
     fn bits() -> usize {
         Self::BITS
     }
+    /// Returns the number of bits needed to represent the value in a trace.
     fn trace_bits() -> usize {
         Self::TRACE_BITS
     }
+    /// Returns the [Kind] (run time type descriptor) of the value.
     fn kind(&self) -> Kind {
         Self::static_kind()
     }
+    /// Returns the [TraceType] (run time trace type descriptor) of the value.
     fn trace_type(&self) -> rhdl_trace_type::TraceType {
         Self::static_trace_type()
     }
-    fn bin(self) -> Vec<BitX>;
-    fn trace(self) -> Vec<TraceBit> {
+    /// Returns the binary representation of the value as a vector of [BitX].
+    fn bin(self) -> Box<[BitX]>;
+    /// Returns the binary representation of the value as a vector of [TraceBit].
+    fn trace(self) -> Box<[TraceBit]> {
         self.bin().into_iter().map(|b| b.into()).collect()
     }
+    /// Returns the value as a [TypedBits], which includes both the bits and the kind.
     fn typed_bits(self) -> TypedBits {
-        TypedBits {
-            bits: self.bin(),
-            kind: self.kind(),
-        }
+        TypedBits::new(self.bin().into(), self.kind())
     }
+    /// Returns the discriminant of the value as a [TypedBits].
     fn discriminant(self) -> TypedBits {
         self.typed_bits()
     }
+    /// Returns the [Kind] of the variant if the value is an enum with variants.
     fn variant_kind(self) -> Kind {
         self.kind()
     }
+    /// Returns the binary representation of the value as a string of '0', '1', and 'X'.
     fn binary_string(self) -> String {
         self.bin()
             .iter()
@@ -94,6 +112,7 @@ pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
             })
             .collect()
     }
+    /// Returns a "don't care" value for the type.
     fn dont_care() -> Self;
 }
 
@@ -104,7 +123,7 @@ impl<T: Digital> Digital for Option<T> {
             &format!("Option::<{}>", std::any::type_name::<T>()),
             vec![
                 Kind::make_variant("None", Kind::Empty, 0),
-                Kind::make_variant("Some", Kind::make_tuple(vec![T::static_kind()]), 1),
+                Kind::make_variant("Some", Kind::make_tuple(vec![T::static_kind()].into()), 1),
             ],
             DiscriminantLayout {
                 width: 1,
@@ -113,21 +132,7 @@ impl<T: Digital> Digital for Option<T> {
             },
         )
     }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::make_enum(
-            &format!("Option::<{}>", std::any::type_name::<T>()),
-            vec![
-                rtt::make_variant("None", crate::TraceType::Empty, 0),
-                rtt::make_variant("Some", rtt::make_tuple(vec![T::static_trace_type()]), 1),
-            ],
-            rtt::DiscriminantLayout {
-                width: 1,
-                alignment: rtt::DiscriminantAlignment::Msb,
-                ty: rtt::DiscriminantType::Unsigned,
-            },
-        )
-    }
-    fn bin(self) -> Vec<BitX> {
+    fn bin(self) -> Box<[BitX]> {
         self.kind().pad(match self {
             Self::None => vec![BitX::Zero],
             Self::Some(t) => {
@@ -164,8 +169,8 @@ impl<O: Digital, E: Digital> Digital for Result<O, E> {
                 std::any::type_name::<E>()
             ),
             vec![
-                Kind::make_variant("Err", Kind::make_tuple(vec![E::static_kind()]), 0),
-                Kind::make_variant("Ok", Kind::make_tuple(vec![O::static_kind()]), 1),
+                Kind::make_variant("Err", Kind::make_tuple(vec![E::static_kind()].into()), 0),
+                Kind::make_variant("Ok", Kind::make_tuple(vec![O::static_kind()].into()), 1),
             ],
             Kind::make_discriminant_layout(
                 1,
@@ -174,25 +179,7 @@ impl<O: Digital, E: Digital> Digital for Result<O, E> {
             ),
         )
     }
-    fn static_trace_type() -> rtt::TraceType {
-        rtt::make_enum(
-            &format!(
-                "Result::<{}, {}>",
-                std::any::type_name::<O>(),
-                std::any::type_name::<E>()
-            ),
-            vec![
-                rtt::make_variant("Err", rtt::make_tuple(vec![E::static_trace_type()]), 0),
-                rtt::make_variant("Ok", rtt::make_tuple(vec![O::static_trace_type()]), 1),
-            ],
-            rtt::DiscriminantLayout {
-                width: 1,
-                alignment: rtt::DiscriminantAlignment::Msb,
-                ty: rtt::DiscriminantType::Unsigned,
-            },
-        )
-    }
-    fn bin(self) -> Vec<BitX> {
+    fn bin(self) -> Box<[BitX]> {
         self.kind().pad(match self {
             Self::Ok(o) => {
                 let mut v = vec![BitX::One];
@@ -228,11 +215,8 @@ impl Digital for () {
     fn static_kind() -> Kind {
         Kind::Empty
     }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Empty
-    }
-    fn bin(self) -> Vec<BitX> {
-        Vec::new()
+    fn bin(self) -> Box<[BitX]> {
+        [].into()
     }
     fn dont_care() -> Self {}
 }
@@ -242,135 +226,21 @@ impl Digital for bool {
     fn static_kind() -> Kind {
         Kind::make_bits(1)
     }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Bits(1)
-    }
-    fn bin(self) -> Vec<BitX> {
-        vec![self.into()]
+    fn bin(self) -> Box<[BitX]> {
+        [self.into()].into()
     }
     fn dont_care() -> Self {
         Self::default()
     }
 }
-/*
-
-impl Digital for u64 {
-    const BITS: usize = 64;
-    fn static_kind() -> Kind {
-        Kind::make_bits(64)
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Bits(64)
-    }
-    fn bin(self) -> Vec<BitX> {
-        bitx_vec(&Bits::<64>::from(self as u128).to_bools())
-    }
-    fn dont_care() -> Self {
-        Self::default()
-    }
-}
-
-impl Digital for u8 {
-    const BITS: usize = 8;
-    fn static_kind() -> Kind {
-        Kind::make_bits(8)
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Bits(8)
-    }
-    fn bin(self) -> Vec<BitX> {
-        bitx_vec(&Bits::<8>::from(self as u128).to_bools())
-    }
-    fn dont_care() -> Self {
-        Self::default()
-    }
-}
-
-impl Digital for u16 {
-    const BITS: usize = 16;
-    fn static_kind() -> Kind {
-        Kind::make_bits(16)
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Bits(16)
-    }
-    fn bin(self) -> Vec<BitX> {
-        bitx_vec(&Bits::<16>::from(self as u128).to_bools())
-    }
-    fn dont_care() -> Self {
-        Self::default()
-    }
-}
-
-
-
-impl Digital for i32 {
-    const BITS: usize = 32;
-    fn static_kind() -> Kind {
-        Kind::Signed(32)
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Signed(32)
-    }
-    fn bin(self) -> Vec<BitX> {
-        bitx_vec(
-            &SignedBits::<32>::from(self as i128)
-                .as_unsigned()
-                .to_bools(),
-        )
-    }
-    fn dont_care() -> Self {
-        Self::default()
-    }
-}
-
-impl Digital for i8 {
-    const BITS: usize = 8;
-    fn static_kind() -> Kind {
-        Kind::Signed(8)
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Signed(8)
-    }
-    fn bin(self) -> Vec<BitX> {
-        bitx_vec(&SignedBits::<8>::from(self as i128).as_unsigned().to_bools())
-    }
-    fn dont_care() -> Self {
-        Self::default()
-    }
-}
-
-impl Digital for i64 {
-    const BITS: usize = 64;
-    fn static_kind() -> Kind {
-        Kind::Signed(64)
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Signed(64)
-    }
-    fn bin(self) -> Vec<BitX> {
-        bitx_vec(
-            &SignedBits::<64>::from(self as i128)
-                .as_unsigned()
-                .to_bools(),
-        )
-    }
-    fn dont_care() -> Self {
-        Self::default()
-    }
-}
-*/
 
 impl Digital for u128 {
     const BITS: usize = 128;
     fn static_kind() -> Kind {
         Kind::make_bits(128)
     }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Bits(128)
-    }
-    fn bin(self) -> Vec<BitX> {
-        bitx_vec(&Bits::<U128>::from(self).to_bools())
+    fn bin(self) -> Box<[BitX]> {
+        bitx_vec(&Bits::<128>::from(self).to_bools())
     }
     fn dont_care() -> Self {
         Self::default()
@@ -382,11 +252,8 @@ impl Digital for i128 {
     fn static_kind() -> Kind {
         Kind::make_signed(128)
     }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Signed(128)
-    }
-    fn bin(self) -> Vec<BitX> {
-        bitx_vec(&SignedBits::<U128>::from(self).as_unsigned().to_bools())
+    fn bin(self) -> Box<[BitX]> {
+        bitx_vec(&SignedBits::<128>::from(self).as_unsigned().to_bools())
     }
     fn dont_care() -> Self {
         Self::default()
@@ -398,13 +265,10 @@ impl Digital for usize {
     fn static_kind() -> Kind {
         Kind::make_bits(usize::BITS as usize)
     }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Bits(usize::BITS as usize)
-    }
-    fn bin(self) -> Vec<BitX> {
+    fn bin(self) -> Box<[BitX]> {
         match usize::BITS {
-            32 => bitx_vec(&Bits::<U32>::from(self as u128).to_bools()),
-            64 => bitx_vec(&Bits::<U64>::from(self as u128).to_bools()),
+            32 => bitx_vec(&Bits::<32>::from(self as u128).to_bools()),
+            64 => bitx_vec(&Bits::<64>::from(self as u128).to_bools()),
             _ => panic!("Unsupported usize bit width"),
         }
     }
@@ -413,15 +277,15 @@ impl Digital for usize {
     }
 }
 
-impl<N: BitWidth> Digital for Bits<N> {
-    const BITS: usize = N::BITS;
+impl<const N: usize> Digital for Bits<N>
+where
+    rhdl_bits::W<N>: BitWidth,
+{
+    const BITS: usize = N;
     fn static_kind() -> Kind {
-        Kind::make_bits(N::BITS)
+        Kind::make_bits(N)
     }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Bits(N::BITS)
-    }
-    fn bin(self) -> Vec<BitX> {
+    fn bin(self) -> Box<[BitX]> {
         bitx_vec(&self.to_bools())
     }
     fn dont_care() -> Self {
@@ -429,15 +293,15 @@ impl<N: BitWidth> Digital for Bits<N> {
     }
 }
 
-impl<N: BitWidth> Digital for SignedBits<N> {
-    const BITS: usize = N::BITS;
+impl<const N: usize> Digital for SignedBits<N>
+where
+    rhdl_bits::W<N>: BitWidth,
+{
+    const BITS: usize = N;
     fn static_kind() -> Kind {
-        Kind::make_signed(N::BITS)
+        Kind::make_signed(N)
     }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Signed(N::BITS)
-    }
-    fn bin(self) -> Vec<BitX> {
+    fn bin(self) -> Box<[BitX]> {
         bitx_vec(&self.as_unsigned().to_bools())
     }
     fn dont_care() -> Self {
@@ -459,19 +323,14 @@ macro_rules! impl_tuple_for_digital {
                 fn static_kind() -> Kind {
                     Kind::make_tuple(vec![
                         #(T~N::static_kind(),)*
-                        ])
+                        ].into())
                 }
-                fn static_trace_type() -> rhdl_trace_type::TraceType {
-                    rtt::make_tuple(vec![
-                        #(T~N::static_trace_type(),)*
-                        ])
-                }
-                fn bin(self) -> Vec<BitX> {
+                fn bin(self) -> Box<[BitX]> {
                     let mut v = Vec::with_capacity(Self::BITS);
                     #(
                         v.extend(self.N.bin());
                     )*
-                    v
+                    v.into()
                 }
                 fn discriminant(self) -> TypedBits {
                     // The discriminant of a tuple is the
@@ -480,13 +339,10 @@ macro_rules! impl_tuple_for_digital {
                     let mut v = Vec::with_capacity(Self::BITS);
                     #(
                         let d = self.N.discriminant();
-                        k.push(d.kind);
-                        v.extend(d.bits);
+                        k.push(d.kind());
+                        v.extend(d.bits());
                     )*
-                    TypedBits {
-                        kind: Kind::make_tuple(k),
-                        bits: v,
-                    }
+                    TypedBits::new(v, Kind::make_tuple(k.into()))
                 }
                 fn dont_care() -> Self {
                     (
@@ -511,55 +367,15 @@ impl_tuple_for_digital!(10);
 impl_tuple_for_digital!(11);
 impl_tuple_for_digital!(12);
 
-// macro to add digital trait for array of size N
-// The following macro is used to generate the implementations for
-// arrays of size N.  This is done because Rust does not allow
-// for the implementation of traits for arrays of arbitrary size.
-/* macro_rules! impl_array {
-    ($N:expr) => {
-        impl<T: Digital> Digital for [T; $N] {
-            fn static_kind() -> Kind {
-                Kind::make_array(T::static_kind(), $N)
-            }
-            fn bin(self) -> Vec<bool> {
-                let mut v = Vec::new();
-                for x in self.iter() {
-                    v.extend(x.bin());
-                }
-                v
-            }
-            fn uninit() -> Self {
-                [T::uninit(); $N]
-            }
-        }
-    };
-}
-
-impl_array!(1);
-impl_array!(2);
-impl_array!(3);
-impl_array!(4);
-impl_array!(5);
-impl_array!(6);
-impl_array!(7);
-impl_array!(8);
- */
-
 impl<T: Digital> Digital for PhantomData<T> {
     const BITS: usize = 0;
 
     fn static_kind() -> Kind {
         Kind::Empty
     }
-
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rtt::TraceType::Empty
+    fn bin(self) -> Box<[BitX]> {
+        [].into()
     }
-
-    fn bin(self) -> Vec<BitX> {
-        vec![]
-    }
-
     fn dont_care() -> Self {
         Self
     }
@@ -570,15 +386,12 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
     fn static_kind() -> Kind {
         Kind::make_array(T::static_kind(), N)
     }
-    fn static_trace_type() -> rtt::TraceType {
-        rtt::make_array(T::static_trace_type(), N)
-    }
-    fn bin(self) -> Vec<BitX> {
+    fn bin(self) -> Box<[BitX]> {
         let mut v = Vec::with_capacity(Self::BITS);
         for x in self.iter() {
             v.extend(x.bin());
         }
-        v
+        v.into()
     }
     fn dont_care() -> Self {
         [T::dont_care(); N]
@@ -589,12 +402,12 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
         if N == 0 {
             return TypedBits::EMPTY;
         }
-        let kind = Kind::make_array(self[0].discriminant().kind, N);
+        let kind = Kind::make_array(self[0].discriminant().kind(), N);
         let mut v = Vec::with_capacity(Self::BITS);
         for x in self.iter() {
-            v.extend(x.discriminant().bits)
+            v.extend(x.discriminant().bits())
         }
-        TypedBits { kind, bits: v }
+        TypedBits::new(v, kind)
     }
 }
 
@@ -602,11 +415,11 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
 mod test {
 
     use super::*;
-    use rhdl_bits::{alias::*, consts::U3};
     use crate::{
         rtt::test::kind_to_trace,
         types::kind::{DiscriminantAlignment, Variant},
     };
+    use rhdl_bits::alias::*;
 
     #[test]
     #[allow(dead_code)]
@@ -616,11 +429,11 @@ mod test {
             #[default]
             None,
             Bool(bool),
-            Tuple(bool, Bits<U3>),
+            Tuple(bool, Bits<3>),
             Array([bool; 3]),
             Strct {
                 a: bool,
-                b: Bits<U3>,
+                b: Bits<3>,
             },
             Invalid,
         }
@@ -644,7 +457,9 @@ mod test {
                         Variant {
                             name: "Tuple".to_string().into(),
                             discriminant: 2,
-                            kind: Kind::make_tuple(vec![Kind::make_bits(1), Kind::make_bits(3)]),
+                            kind: Kind::make_tuple(
+                                vec![Kind::make_bits(1), Kind::make_bits(3)].into(),
+                            ),
                         },
                         Variant {
                             name: "Array".to_string().into(),
@@ -659,7 +474,8 @@ mod test {
                                 vec![
                                     Kind::make_field("a", Kind::make_bits(1)),
                                     Kind::make_field("b", Kind::make_bits(3)),
-                                ],
+                                ]
+                                .into(),
                             ),
                         },
                         Variant {
@@ -678,34 +494,34 @@ mod test {
             fn static_trace_type() -> rhdl_trace_type::TraceType {
                 kind_to_trace(&Self::static_kind())
             }
-            fn bin(self) -> Vec<BitX> {
+            fn bin(self) -> Box<[BitX]> {
                 let raw = match self {
-                    Self::None => bitx_vec(&rhdl_bits::bits::<U3>(0).to_bools()),
+                    Self::None => bitx_vec(&rhdl_bits::bits::<3>(0).to_bools()),
                     Self::Bool(b) => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<U3>(1).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(1).to_bools()).to_vec();
                         v.extend(b.bin());
-                        v
+                        v.into()
                     }
                     Self::Tuple(b, c) => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<U3>(2).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(2).to_bools()).to_vec();
                         v.extend(b.bin());
                         v.extend(c.bin());
-                        v
+                        v.into()
                     }
                     Self::Array([b, c, d]) => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<U3>(3).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(3).to_bools()).to_vec();
                         v.extend(b.bin());
                         v.extend(c.bin());
                         v.extend(d.bin());
-                        v
+                        v.into()
                     }
                     Self::Strct { a, b } => {
-                        let mut v = bitx_vec(&rhdl_bits::bits::<U3>(4).to_bools());
+                        let mut v = bitx_vec(&rhdl_bits::bits::<3>(4).to_bools()).to_vec();
                         v.extend(a.bin());
                         v.extend(b.bin());
-                        v
+                        v.into()
                     }
-                    Self::Invalid => bitx_vec(&rhdl_bits::bits::<U3>(5).to_bools()),
+                    Self::Invalid => bitx_vec(&rhdl_bits::bits::<3>(5).to_bools()),
                 };
                 if raw.len() < self.kind().bits() {
                     let missing = self.kind().bits() - raw.len();
@@ -722,10 +538,8 @@ mod test {
         }
 
         assert_eq!(Mixed::BITS, Mixed::static_kind().bits());
-        println!("{:?}", Mixed::None.bin());
-        println!("{:?}", Mixed::Bool(true).bin());
-        let svg = crate::svg_grid(&Mixed::static_kind(), "val");
-        svg::save("mixed.svg", &svg).unwrap();
+        let svg = Mixed::static_kind().svg("val");
+        expect_test::expect_file!("expect/test_mixed_enum_svg.expect").assert_eq(&svg.to_string());
     }
 
     #[test]
@@ -785,17 +599,14 @@ mod test {
                     ),
                 )
             }
-            fn static_trace_type() -> rhdl_trace_type::TraceType {
-                kind_to_trace(&Self::static_kind())
-            }
-            fn bin(self) -> Vec<BitX> {
+            fn bin(self) -> Box<[BitX]> {
                 bitx_vec(&match self {
-                    Self::Init => rhdl_bits::bits::<U3>(0).to_bools(),
-                    Self::Boot => rhdl_bits::bits::<U3>(1).to_bools(),
-                    Self::Running => rhdl_bits::bits::<U3>(2).to_bools(),
-                    Self::Stop => rhdl_bits::bits::<U3>(3).to_bools(),
-                    Self::Boom => rhdl_bits::bits::<U3>(4).to_bools(),
-                    Self::Invalid => rhdl_bits::bits::<U3>(5).to_bools(),
+                    Self::Init => rhdl_bits::bits::<3>(0).to_bools(),
+                    Self::Boot => rhdl_bits::bits::<3>(1).to_bools(),
+                    Self::Running => rhdl_bits::bits::<3>(2).to_bools(),
+                    Self::Stop => rhdl_bits::bits::<3>(3).to_bools(),
+                    Self::Boom => rhdl_bits::bits::<3>(4).to_bools(),
+                    Self::Invalid => rhdl_bits::bits::<3>(5).to_bools(),
                 })
             }
             fn dont_care() -> Self {
@@ -804,10 +615,7 @@ mod test {
         }
 
         let val = State::Boom;
-        assert_eq!(
-            val.bin(),
-            bitx_vec(&rhdl_bits::bits::<U3>(4).to_bools())
-        );
+        assert_eq!(val.bin(), bitx_vec(&rhdl_bits::bits::<3>(4).to_bools()));
         assert_eq!(
             val.kind(),
             Kind::make_enum(
@@ -878,16 +686,16 @@ mod test {
     #[test]
     fn test_result_discriminant() {
         let x: Result<b8, b8> = Ok(b8(5));
-        assert_eq!(x.discriminant().bits, vec![BitX::One]);
+        assert_eq!(x.discriminant().bits(), vec![BitX::One]);
         let x: Result<b8, b8> = Err(b8(5));
-        assert_eq!(x.discriminant().bits, vec![BitX::Zero]);
+        assert_eq!(x.discriminant().bits(), vec![BitX::Zero]);
     }
 
     #[test]
     fn test_option_discriminant() {
         let x: Option<b8> = Some(b8(5));
-        assert_eq!(x.discriminant().bits, vec![BitX::One]);
+        assert_eq!(x.discriminant().bits(), vec![BitX::One]);
         let x: Option<b8> = None;
-        assert_eq!(x.discriminant().bits, vec![BitX::Zero]);
+        assert_eq!(x.discriminant().bits(), vec![BitX::Zero]);
     }
 }

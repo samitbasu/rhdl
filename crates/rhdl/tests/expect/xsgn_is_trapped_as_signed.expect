@@ -1,0 +1,12 @@
+  × RHDL Type Check Error
+  ╰─▶ RHDL Type Check Error
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/dyn_bits.rs:271:17]
+ 270 │         let b = b.val().dyn_bits();
+ 271 │         let c = a.xsub(b);
+     ·                 ────┬────┬┬
+     ·                     │    │╰── Because of this expression
+     ·                     │    ╰── s_5
+     ·                     ╰── s_4
+ 272 │         let c: s4 = c.as_signed_bits();
+     ╰────
+  help: These two types are not compatible

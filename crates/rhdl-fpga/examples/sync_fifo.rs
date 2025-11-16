@@ -2,7 +2,7 @@ use rhdl::{core::sim::ResetOrData, prelude::*};
 use rhdl_fpga::{doc::write_svg_as_markdown, fifo::synchronous::SyncFIFO};
 
 fn main() -> Result<(), RHDLError> {
-    type Uut = SyncFIFO<Bits<U16>, U4>;
+    type Uut = SyncFIFO<Bits<16>, 4>;
     let uut = Uut::default();
     let mut need_reset = true;
     let test_seq = (0..)

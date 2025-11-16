@@ -1,6 +1,6 @@
 use std::any::type_name;
 
-use crate::{DigitalFn, KernelFnKind, RHDLError};
+use crate::{DigitalFn, RHDLError, kernel::KernelFnKind};
 
 use super::stage1::CompilationMode;
 use anyhow::anyhow;
@@ -8,10 +8,10 @@ use anyhow::anyhow;
 pub fn compile_design_stage1<K: DigitalFn>(
     mode: CompilationMode,
 ) -> Result<crate::rhif::Object, RHDLError> {
-    let Some(KernelFnKind::Kernel(kernel)) = K::kernel_fn() else {
+    let Some(KernelFnKind::AstKernel(kernel)) = K::kernel_fn() else {
         return Err(anyhow!("Missing kernel function provided for {}", type_name::<K>()).into());
     };
-    super::stage1::compile(kernel, mode)
+    super::stage1::compile(&kernel, mode)
 }
 
 pub fn compile_design_stage2(

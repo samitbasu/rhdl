@@ -79,10 +79,14 @@ use rhdl::prelude::*;
 /// of `factor/2^M` where `M` is the number of bits in `factor`.  Note that
 /// `factor/2^M < 1`, so the output cannot equal `upper_value`.  This core is
 /// just a function since it has no state.  It _does_ require a multiplier.
-pub fn lerp_unsigned<N, M>(lower_value: Bits<N>, upper_value: Bits<N>, factor: Bits<M>) -> Bits<N>
+pub fn lerp_unsigned<const N: usize, const M: usize>(
+    lower_value: Bits<N>,
+    upper_value: Bits<N>,
+    factor: Bits<M>,
+) -> Bits<N>
 where
-    N: BitWidth,
-    M: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
+    rhdl::bits::W<M>: BitWidth,
 {
     // Convert them to DynBits so we can manipulate them
     let lower_value = lower_value.dyn_bits(); // Size N
@@ -106,14 +110,14 @@ where
 /// of `factor/2^M` where `M` is the number of bits in `factor`.  Note that
 /// `factor/2^M < 1`, so the output cannot equal `upper_value`.  This core is
 /// just a function since it has no state.  It _does_ require a multiplier.
-pub fn lerp_signed<N, M>(
+pub fn lerp_signed<const N: usize, const M: usize>(
     lower_value: SignedBits<N>,
     upper_value: SignedBits<N>,
     factor: Bits<M>,
 ) -> SignedBits<N>
 where
-    N: BitWidth,
-    M: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
+    rhdl::bits::W<M>: BitWidth,
 {
     let lower_value = lower_value.dyn_bits(); // Size N
     let upper_value = upper_value.dyn_bits(); // Size N
@@ -149,11 +153,7 @@ mod tests {
                     // Compute the "right answer", but use integer arithmetic, not floating point.
                     let expected = lerp_i32(a as i32, b as i32, factor as i32, 5) as u128;
                     let expected = expected as i128;
-                    assert_eq!(
-                        lerp_signed(x, y, f).raw(),
-                        expected,
-                        "{a} {b} {factor}"
-                    );
+                    assert_eq!(lerp_signed(x, y, f).raw(), expected, "{a} {b} {factor}");
                 }
             }
         }
@@ -170,11 +170,7 @@ mod tests {
                     // Compute the "right answer", but use integer arithmetic, not floating point.
                     let expected = lerp_i32(a as i32, b as i32, factor as i32, 5) as u128;
                     let expected = expected as u128;
-                    assert_eq!(
-                        lerp_unsigned(x, y, f).raw(),
-                        expected,
-                        "{a} {b} {factor}"
-                    );
+                    assert_eq!(lerp_unsigned(x, y, f).raw(), expected, "{a} {b} {factor}");
                 }
             }
         }
@@ -186,7 +182,7 @@ mod tests {
             .flat_map(|x| (0..16).map(move |y| (x, b4(y))))
             .flat_map(|(x, y)| (0..32).map(move |f| (x, y, b5(f))))
             .collect::<Vec<_>>();
-        test_kernel_vm_and_verilog_synchronous::<lerp_unsigned<U4, U5>, _, _, _>(
+        test_kernel_vm_and_verilog_synchronous::<lerp_unsigned<4, 5>, _, _, _>(
             lerp_unsigned,
             vals.into_iter(),
         )?;
@@ -200,7 +196,7 @@ mod tests {
             .flat_map(|x| (-8..7).map(move |y| (x, s4(y))))
             .flat_map(|(x, y)| (0..32).map(move |f| (x, y, b5(f))))
             .collect::<Vec<_>>();
-        test_kernel_vm_and_verilog_synchronous::<lerp_signed<U4, U5>, _, _, _>(
+        test_kernel_vm_and_verilog_synchronous::<lerp_signed<4, 5>, _, _, _>(
             lerp_signed,
             vals.into_iter(),
         )?;

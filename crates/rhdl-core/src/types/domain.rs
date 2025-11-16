@@ -1,4 +1,8 @@
+/// Domain types represent different timing domains in the design.
+/// Each domain type implements the Domain trait, which provides a color
+/// marker for the domain.
 pub trait Domain: Copy + PartialEq + 'static + Default {
+    /// Get the color marker for this domain.
     fn color() -> Color;
 }
 
@@ -14,6 +18,15 @@ macro_rules! decl_domains {
 
 macro_rules! decl_domain {
     ($name: ident) => {
+        #[doc = concat!(
+                    "Clock domain marker for the ",
+                    stringify!($name),
+                    " domain.\n\n",
+                    "This is a zero-sized type (ZST) that implements the [`Domain`] trait and ",
+                    "represents the ",
+                    stringify!($name),
+                    " timing domain."
+                )]
         #[derive(Copy, Clone, Debug, PartialEq, Default)]
         pub struct $name;
 
@@ -25,14 +38,27 @@ macro_rules! decl_domain {
     };
 }
 
+/// Color markers for different time domains.
+///
+/// There is no a priori meaning to the colors; they are simply
+/// distinct markers to differentiate domains.  You can organize
+/// them however you like.  One option is to organize based on speed,
+/// so that "Red" is the fastest domain, "Orange" is slower, and so on.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Color {
+    /// Red domain
     Red,
+    /// Orange domain
     Orange,
+    /// Yellow domain
     Yellow,
+    /// Green domain
     Green,
+    /// Blue domain
     Blue,
+    /// Indigo domain
     Indigo,
+    /// Violet domain
     Violet,
 }
 

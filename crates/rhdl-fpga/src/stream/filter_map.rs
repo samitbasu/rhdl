@@ -159,7 +159,7 @@ mod tests {
         if (t & bits(1)).any() {
             None
         } else {
-            Some(lsbs::<U2, U4>(t))
+            Some(lsbs::<2, 4>(t))
         }
     }
 
@@ -177,7 +177,7 @@ mod tests {
             if (x & bits(1)).any() {
                 None
             } else {
-                Some(lsbs::<U2, U4>(x))
+                Some(lsbs::<2, 4>(x))
             }
         });
         let a_rng = stalling(a_rng, 0.23);
@@ -192,7 +192,7 @@ mod tests {
         let uut = single_stage(map, a_rng, consume);
         // Run a few samples through
         let input = repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
-        uut.run_without_synthesis(input)?.for_each(drop);
+        uut.run(input).for_each(drop);
         Ok(())
     }
 }

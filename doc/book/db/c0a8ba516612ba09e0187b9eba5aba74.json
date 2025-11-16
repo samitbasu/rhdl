@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"use rhdl::prelude::*;\n\n#[test]\nfn test_verilog_output() -> miette::Result<()> {\n     let gate = xor::XorGate;\n     let hdl = gate.hdl(\"xor_gate\")?.as_module();\n     let expect = expect_test::expect_file![\"xor.v.expect\"];\n     expect.assert_eq(&hdl.to_string());\n     Ok(())\n}"},{"End":"CodeBlock"}]

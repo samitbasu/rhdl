@@ -44,12 +44,12 @@ fn stream() -> impl Iterator<Item = TimedSample<(ClockReset, Option<(bool, b8)>)
 fn test_trace() -> miette::Result<()> {
     let uut = U::default();
     let input = stream();
-    let vcd = uut.run(input)?.collect::<Vcd>();
+    let vcd = uut.run(input).collect::<Vcd>();
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("vcd")
         .join("flow_graph_if_let");
     std::fs::create_dir_all(&root).unwrap();
-    let expect = expect!["4a38bb60748b7bf521c5f8e862822ec7f09f26244c7c34c6cdf59ff13bba1123"];
+    let expect = expect!["0aa56bb1666358898ac118949d1e288404069aaaadb343ccbf5854a0992ba9a8"];
     let digest = vcd
         .dump_to_file(root.join("flow_graph_if_let.vcd"))
         .unwrap();
@@ -61,7 +61,7 @@ fn test_trace() -> miette::Result<()> {
 fn test_hdl() -> miette::Result<()> {
     let uut = U::default();
     let input = stream();
-    let tb = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
+    let tb = uut.run(input).collect::<SynchronousTestBench<_, _>>();
     let tm = tb.rtl(&uut, &Default::default())?;
     tm.run_iverilog()?;
     let tm = tb.ntl(&uut, &Default::default())?;

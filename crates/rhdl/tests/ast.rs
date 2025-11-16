@@ -12,6 +12,7 @@ mod common;
 use common::*;
 use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 use rhdl::prelude::*;
+use rhdl_bits::W;
 use test_log::test;
 
 #[test]
@@ -32,12 +33,68 @@ fn test_func_with_structured_args() -> miette::Result<()> {
 #[test]
 fn test_basic_cast() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<DATA: BitWidth>(a: Signal<b8, Red>) -> Signal<b8, Red> {
-        let bytes_per_word: Bits<U8> = bits(({ DATA::BITS } >> 3) as u128);
+    fn do_stuff<const DATA: usize>(a: Signal<b8, Red>) -> Signal<b8, Red> {
+        let bytes_per_word: Bits<8> = bits(({ DATA } >> 3) as u128);
         let b = a.val() + bytes_per_word;
         signal(b.resize())
     }
-    test_kernel_vm_and_verilog::<do_stuff<U32>, _, _, _>(do_stuff::<U32>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<32>, _, _, _>(do_stuff::<32>, tuple_exhaustive_red())?;
+    Ok(())
+}
+
+#[test]
+fn test_infallible_args() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff(_cr: ClockReset, (a, b): (b8, b8)) -> b8 {
+        a + b
+    }
+
+    compile_design::<do_stuff>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
+fn test_irrefutable_let() -> miette::Result<()> {
+    #[kernel]
+    fn do_stuff(_cr: ClockReset, a: (b8, b8)) -> b8 {
+        let (x, y) = a;
+        x + y
+    }
+
+    compile_design::<do_stuff>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
+fn test_irrefutable_let_struct() -> miette::Result<()> {
+    #[derive(PartialEq, Clone, Copy, Digital)]
+    struct Foo {
+        a: b8,
+        b: b8,
+    }
+
+    #[kernel]
+    fn do_stuff(_cr: ClockReset, a: Foo) -> b8 {
+        let Foo { a, b } = a;
+        a + b
+    }
+
+    compile_design::<do_stuff>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
+fn test_irrefutable_let_tuple_struct() -> miette::Result<()> {
+    #[derive(PartialEq, Clone, Copy, Digital)]
+    struct Foo(b8);
+
+    #[kernel]
+    fn do_stuff(_cr: ClockReset, a: Foo) -> b8 {
+        let Foo(a) = a;
+        a
+    }
+
+    compile_design::<do_stuff>(CompilationMode::Synchronous)?;
     Ok(())
 }
 
@@ -45,14 +102,14 @@ fn test_basic_cast() -> miette::Result<()> {
 #[allow(clippy::assign_op_pattern)]
 fn test_ast_basic_func() -> miette::Result<()> {
     use rhdl::bits::alias::*;
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub struct Foo {
         a: b8,
         b: b16,
         c: [b8; 3],
     }
 
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum State {
         #[default]
         Init,
@@ -61,7 +118,7 @@ fn test_ast_basic_func() -> miette::Result<()> {
         Unknown,
     }
 
-    #[derive(PartialEq, Digital, Default)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub struct Bar(pub b8, pub b8);
 
     #[kernel]
@@ -139,6 +196,49 @@ fn test_method_call_syntax() -> miette::Result<()> {
 }
 
 #[test]
+fn test_match_pattern_types() -> miette::Result<()> {
+    #[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
+    pub enum Foo {
+        A,
+        B(b4, b4),
+        C {
+            x: b4,
+            y: b4,
+        },
+        D([b4; 3]),
+        #[default]
+        E,
+        F,
+    }
+
+    #[kernel]
+    fn do_stuff(a: Signal<Foo, Red>) -> Signal<b4, Red> {
+        let a = a.val();
+        let b = match a {
+            Foo::A => b4(1),
+            Foo::B(x, _) => x,
+            Foo::C { x, y } => (x + y).resize(),
+            Foo::D(arr) => arr[1],
+            Foo::E => b4(0),
+            _ => b4(14),
+        };
+        signal(b)
+    }
+
+    let test_input = [
+        signal(Foo::A),
+        signal(Foo::B(b4(3), b4(3))),
+        signal(Foo::C { x: b4(2), y: b4(4) }),
+        signal(Foo::D([b4(1), b4(2), b4(3)])),
+    ];
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(
+        do_stuff,
+        test_input.into_iter().map(|x| (x,)),
+    )?;
+    Ok(())
+}
+
+#[test]
 fn test_empty_return_rejected() -> miette::Result<()> {
     #[kernel]
     fn foo(_a: Signal<b8, Red>) {}
@@ -192,7 +292,7 @@ fn test_repeat_with_generic() -> miette::Result<()> {
 
 #[test]
 fn test_if_let_syntax() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Clone, Copy, Digital)]
     pub enum Foo {
         Bar(b8),
         #[default]
@@ -212,6 +312,30 @@ fn test_if_let_syntax() -> miette::Result<()> {
 }
 
 #[test]
+fn test_into_syntax() -> miette::Result<()> {
+    #[kernel]
+    fn get_msb<const N: usize>(a: Bits<N>) -> bool
+    where
+        W<N>: BitWidth,
+    {
+        a & (1 << (N - 1)) != 0
+    }
+
+    #[kernel]
+    fn foo(a: Signal<b8, Red>) -> Signal<s8, Red> {
+        let a = a.val();
+        let _a: b8 = a + bits(42);
+        let _q = !a;
+        let _a: s8 = signed(-42);
+        let a = signed::<8>(-42);
+        signal(a)
+    }
+
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_exhaustive_red())?;
+    Ok(())
+}
+
+#[test]
 fn test_repeat_op() -> miette::Result<()> {
     #[kernel]
     fn foo(a: Signal<b5, Red>, b: Signal<b5, Red>) -> Signal<([b5; 3], [b5; 4]), Red> {
@@ -222,7 +346,7 @@ fn test_repeat_op() -> miette::Result<()> {
         signal((c, d))
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<5>())?;
     Ok(())
 }
 
@@ -244,7 +368,7 @@ fn test_exec_sub_kernel() -> miette::Result<()> {
         signal((c + a.val() + b.val()).resize())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<5>())?;
     Ok(())
 }
 
@@ -275,7 +399,7 @@ fn test_match_value() -> miette::Result<()> {
         }
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U5>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<5>())?;
     Ok(())
 }
 
@@ -283,16 +407,16 @@ fn test_match_value() -> miette::Result<()> {
 fn test_basic_compile() -> miette::Result<()> {
     use itertools::iproduct;
 
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo {
         a: b4,
         b: b4,
     }
 
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct TupStruct(b4, b4);
 
-    #[derive(PartialEq, Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Clone, Copy, Digital)]
     pub enum Bar {
         A,
         B(b4),
@@ -304,7 +428,7 @@ fn test_basic_compile() -> miette::Result<()> {
         D,
     }
 
-    #[derive(PartialEq, Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
     pub enum SimpleEnum {
         #[default]
         Init,
@@ -416,7 +540,7 @@ fn test_generics() -> miette::Result<()> {
 
 #[test]
 fn test_nested_generics() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     struct Foo<T: Digital> {
         a: T,
         b: T,
@@ -450,6 +574,25 @@ fn test_nested_generics() -> miette::Result<()> {
 }
 
 #[test]
+fn test_match_with_identifiers() {
+    const ONE: u8 = 1;
+    const TWO: u8 = 2;
+
+    let x = 2u8;
+    match x {
+        ONE => {
+            eprintln!("X is one!")
+        }
+        TWO => {
+            eprintln!("X is two!")
+        }
+        _ => {
+            eprintln!("X is something else!")
+        }
+    }
+}
+
+#[test]
 fn test_signed_match() -> miette::Result<()> {
     const ONE: s5 = s5(1);
     const TWO: s5 = s5(2);
@@ -463,7 +606,7 @@ fn test_signed_match() -> miette::Result<()> {
         }
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_sn_red::<U5>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_sn_red::<5>())?;
     Ok(())
 }
 
@@ -477,7 +620,7 @@ fn test_assignment_of_if_expression() -> miette::Result<()> {
         c = (if a > b { a + 1 } else { b + 2 }).resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U4>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<4>())?;
     Ok(())
 }
 
@@ -496,10 +639,13 @@ fn test_precomputation() -> miette::Result<()> {
 #[test]
 fn test_for_loop_const_generics() -> miette::Result<()> {
     #[kernel]
-    fn sum_bits<N: BitWidth>(a: Signal<Bits<N>, Red>) -> Signal<bool, Red> {
+    fn sum_bits<const N: usize>(a: Signal<Bits<N>, Red>) -> Signal<bool, Red>
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
         let mut ret = false;
         let a = a.val();
-        for i in 0..N::BITS {
+        for i in 0..N {
             if a & (1 << i) != 0 {
                 ret ^= true;
             }
@@ -507,9 +653,9 @@ fn test_for_loop_const_generics() -> miette::Result<()> {
         trace("a", &a);
         signal(ret)
     }
-    let res = compile_design::<sum_bits<U8>>(CompilationMode::Asynchronous)?;
+    let res = compile_design::<sum_bits<8>>(CompilationMode::Asynchronous)?;
     let inputs = (0..256).map(|x| (signal(bits(x)),));
-    test_kernel_vm_and_verilog::<sum_bits<U8>, _, _, _>(sum_bits::<U8>, inputs)?;
+    test_kernel_vm_and_verilog::<sum_bits<8>, _, _, _>(sum_bits::<8>, inputs)?;
     Ok(())
 }
 
@@ -546,15 +692,12 @@ fn test_error_about_for_loop() -> miette::Result<()> {
             a = (a + b4(ndx)).resize();
         }
     }
-    let Err(RHDLError::RHDLSyntaxError(err)) =
-        compile_design::<do_stuff>(CompilationMode::Asynchronous)
-    else {
+    let Err(err) = compile_design::<do_stuff>(CompilationMode::Asynchronous) else {
         panic!("Expected syntax error");
     };
-    assert!(matches!(
-        err.cause,
-        rhdl::core::compiler::mir::error::Syntax::ForLoopNonIntegerEndValue
-    ));
+
+    let report = miette_report(err);
+    expect_test::expect_file!["expect/for_loop_non_integer_end_value.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -570,7 +713,7 @@ fn test_match_scrutinee_bits() {
 
 #[test]
 fn test_maybe_init_does_not_allow_select() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     struct Foo {
         a: b4,
         b: b4,
@@ -587,7 +730,7 @@ fn test_maybe_init_does_not_allow_select() -> miette::Result<()> {
     let err = compile_design::<do_stuff>(CompilationMode::Asynchronous)
         .expect_err("Expected this to fail with a maybe-init error");
     let report = miette_report(err);
-    expect_test::expect_file!["maybe_init_select.expect"].assert_eq(&report);
+    expect_test::expect_file!["expect/maybe_init_select.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -600,13 +743,41 @@ fn test_multiply() -> miette::Result<()> {
         let c = a * b;
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_pair_bn_red::<U5>())?;
+    test_kernel_vm_and_verilog::<do_stuff, _, _, _>(do_stuff, tuple_pair_bn_red::<5>())?;
+    Ok(())
+}
+
+#[test]
+fn test_match_with_tuple_struct() -> miette::Result<()> {
+    #[derive(Copy, Clone, PartialEq, Digital)]
+    pub struct Point {
+        x: b8,
+        y: b8,
+    }
+
+    #[derive(Copy, Clone, PartialEq, Digital)]
+    pub struct Reflect(pub Point);
+
+    #[kernel]
+    pub fn kernel(x: Signal<Reflect, Red>) -> Signal<b8, Red> {
+        let Reflect(p) = x.val();
+        let y = match p {
+            Point { x: Bits::<8>(2), y } => y,
+            Point { x, y: Bits::<8>(4) } => x,
+            _ => b8(0),
+        };
+        signal(y)
+    }
+    let err = compile_design::<kernel>(CompilationMode::Asynchronous)
+        .expect_err("Expected this to fail with an supported pattern error");
+    let report = miette_report(err);
+    expect_test::expect_file!["expect/maybe_init_tuple_struct.expect"].assert_eq(&report);
     Ok(())
 }
 
 #[test]
 fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     struct Foo {
         a: b4,
         b: b4,
@@ -622,13 +793,13 @@ fn test_maybe_init_escape_causes_error() -> miette::Result<()> {
     let err = compile_design::<do_stuff>(CompilationMode::Asynchronous)
         .expect_err("Expected this to fail with a maybe-init error");
     let report = miette_report(err);
-    expect_test::expect_file!["maybe_init_dont_care.expect"].assert_eq(&report);
+    expect_test::expect_file!["expect/maybe_init_dont_care.expect"].assert_eq(&report);
     Ok(())
 }
 
 #[test]
 fn test_maybe_init_with_enum() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
     enum Foo {
         A,
         B(b4),
@@ -652,7 +823,7 @@ fn test_maybe_init_with_enum() -> miette::Result<()> {
 
 #[test]
 fn test_maybe_init_with_slice() -> miette::Result<()> {
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Foo {
         fields: [b4; 3],
         data: bool,
@@ -670,5 +841,20 @@ fn test_maybe_init_with_slice() -> miette::Result<()> {
     }
 
     compile_design::<do_stuff>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
+fn test_kernel_block() -> miette::Result<()> {
+    #[kernel]
+    fn literals_syntax_kernel(a: b8) -> b8 {
+        let c1 = b8(0xbe); // hexadecimal constant
+        let c2 = b8(0b1101_0110); // binary constant
+        let c3 = b8(0o03_42); // octal constant
+        let c4 = b8(135); // decimal constant
+        a + c4 - c1 + c2 + c3 + 1 + 0xa_1 + 0b10_1010 + 0o1_77
+    }
+
+    compile_design::<literals_syntax_kernel>(CompilationMode::Synchronous)?;
     Ok(())
 }

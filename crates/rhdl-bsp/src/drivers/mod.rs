@@ -1,5 +1,5 @@
 use rhdl::{
-    core::{CircuitIO, RHDLError, Timed},
+    core::{CircuitIO, RHDLError},
     prelude::{bit_range, sub_trace_type, Digital, ExportError, MountPoint, Path},
     rtt::TraceType,
 };
@@ -8,7 +8,7 @@ pub mod lattice;
 pub mod xilinx;
 
 pub fn get_untyped_input<T: CircuitIO>(path: &Path, width: usize) -> Result<MountPoint, RHDLError> {
-    let (bits, _sub) = bit_range(<T::I as Timed>::static_kind(), path)?;
+    let (bits, _sub) = bit_range(<T::I as Digital>::static_kind(), path)?;
     if bits.len() != width {
         return Err(RHDLError::ExportError(
             ExportError::SignalWidthMismatchInput {
@@ -25,7 +25,7 @@ pub fn get_untyped_output<T: CircuitIO>(
     path: &Path,
     width: usize,
 ) -> Result<MountPoint, RHDLError> {
-    let (bits, _sub) = bit_range(<T::O as Timed>::static_kind(), path)?;
+    let (bits, _sub) = bit_range(<T::O as Digital>::static_kind(), path)?;
     if bits.len() != width {
         return Err(RHDLError::ExportError(
             ExportError::SignalWidthMismatchOutput {
@@ -46,7 +46,7 @@ pub fn get_clock_input<T: CircuitIO>(path: &Path) -> Result<MountPoint, RHDLErro
             path.clone(),
         )));
     }
-    let (bits, sub) = bit_range(<T::I as Timed>::static_kind(), path)?;
+    let (bits, sub) = bit_range(<T::I as Digital>::static_kind(), path)?;
     if bits.len() != 1 || sub.is_signal() {
         return Err(RHDLError::ExportError(ExportError::NotAClockInput(
             path.clone(),
@@ -63,7 +63,7 @@ pub fn get_clock_output<T: CircuitIO>(path: &Path) -> Result<MountPoint, RHDLErr
             path.clone(),
         )));
     }
-    let (bits, sub) = bit_range(<T::O as Timed>::static_kind(), path)?;
+    let (bits, sub) = bit_range(<T::O as Digital>::static_kind(), path)?;
     if bits.len() != 1 || sub.is_signal() {
         return Err(RHDLError::ExportError(ExportError::NotAClockOutput(
             path.clone(),

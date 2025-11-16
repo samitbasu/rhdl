@@ -33,7 +33,7 @@ use crate::{
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
-struct TestFixture {
+pub struct TestFixture {
     req_source: SourceFromFn<b32>,
     controller: ReadController,
     endpoint: ReadEndpoint,
@@ -95,7 +95,7 @@ mod tests {
         };
         let input = repeat_n((), 250);
         let input = input.with_reset(1).clock_pos_edge(100);
-        let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         vcd.dump_to_file("axi_read.vcd")?;
         Ok(())
     }

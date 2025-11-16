@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[kernel]\npub fn kernel(a: b32) -> b9 {\n    let mut count = b9(0);\n    for i in 0..32 {\n        if a & (1 << i) != 0 {\n            count += 1;\n        }\n    }\n    count\n}\n"},{"End":"CodeBlock"}]

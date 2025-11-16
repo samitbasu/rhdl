@@ -4,7 +4,7 @@ use rhdl_fpga::{
 };
 
 // Let's assume we are processing a stream of enums
-#[derive(PartialEq, Digital, Default)]
+#[derive(PartialEq, Digital, Default, Clone, Copy)]
 enum Item {
     I(b4),
     Q(b4),
@@ -36,7 +36,7 @@ fn main() -> Result<(), RHDLError> {
     let uut = FilterMap::try_new::<extract_i_values>()?;
     let input = a_rng.with_reset(1).clock_pos_edge(100);
     let vcd = uut
-        .run(input)?
+        .run(input)
         .take_while(|t| t.time < 1500)
         .collect::<Vcd>();
     rhdl_fpga::doc::write_svg_as_markdown(

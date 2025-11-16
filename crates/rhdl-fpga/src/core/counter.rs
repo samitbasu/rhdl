@@ -29,11 +29,17 @@ use super::dff;
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 /// The counter core
 ///   `N` is the bitwidth of the counter
-pub struct Counter<N: BitWidth> {
+pub struct Counter<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     count: dff::DFF<Bits<N>>,
 }
 
-impl<N: BitWidth> Default for Counter<N> {
+impl<const N: usize> Default for Counter<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     fn default() -> Self {
         Self {
             count: dff::DFF::new(Bits::<N>::default()),
@@ -41,7 +47,10 @@ impl<N: BitWidth> Default for Counter<N> {
     }
 }
 
-impl<N: BitWidth> SynchronousIO for Counter<N> {
+impl<const N: usize> SynchronousIO for Counter<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = bool;
     type O = Bits<N>;
     type Kernel = counter<N>;
@@ -49,7 +58,10 @@ impl<N: BitWidth> SynchronousIO for Counter<N> {
 
 #[kernel]
 /// Counter kernel function
-pub fn counter<N: BitWidth>(cr: ClockReset, enable: bool, q: Q<N>) -> (Bits<N>, D<N>) {
+pub fn counter<const N: usize>(cr: ClockReset, enable: bool, q: Q<N>) -> (Bits<N>, D<N>)
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     let next_count = if enable { q.count + 1 } else { q.count };
     let next_count = if cr.reset.any() { bits(0) } else { next_count };
     (q.count, D::<N> { count: next_count })
@@ -69,8 +81,8 @@ mod tests {
         let inputs = inputs.with_reset(4);
         let inputs = inputs.clock_pos_edge(100);
         let inputs = inputs.collect::<Vec<_>>();
-        let uut: Counter<U6> = Counter::default();
-        let output = uut.run(inputs)?.count();
+        let uut: Counter<6> = Counter::default();
+        let output = uut.run(inputs).count();
         assert_eq!(output, 311);
         Ok(())
     }
@@ -81,8 +93,8 @@ mod tests {
         let inputs_2 = inputs_1.clone();
         let input = inputs_1.chain(inputs_2);
         let input = input.clock_pos_edge(100);
-        let uut: Counter<U6> = Counter::default();
-        let vcd: Vcd = uut.run(input)?.collect();
+        let uut: Counter<6> = Counter::default();
+        let vcd: Vcd = uut.run(input).collect();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("counter");
@@ -104,8 +116,8 @@ mod tests {
             .iter()
             .fold(0, |acc, x| acc + if *x { 1 } else { 0 });
         let stream = rand_set.with_reset(4).clock_pos_edge(100);
-        let uut: Counter<U6> = Counter::default();
-        let out_stream = uut.run(stream)?;
+        let uut: Counter<6> = Counter::default();
+        let out_stream = uut.run(stream);
         let output = out_stream.clone().last().map(|x| x.value.2);
         assert_eq!(output, Some(bits(ground_truth)));
         let tb = out_stream.collect::<SynchronousTestBench<_, _>>();

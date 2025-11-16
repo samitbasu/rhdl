@@ -1,0 +1,289 @@
+<svg viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<clipPath id="clip">
+<rect height="420" width="800" x="0" y="0"/>
+</clipPath>
+</defs>
+<rect fill="#0B151D" height="420" stroke="darkblue" width="800" x="0" y="0"/>
+<line stroke="#333333" stroke-width="1" x1="200" x2="200" y1="0" y2="420"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="200" y="10">
+0
+</text>
+<line stroke="#333333" stroke-width="1" x1="300" x2="300" y1="0" y2="420"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="300" y="10">
+100
+</text>
+<line stroke="#333333" stroke-width="1" x1="400" x2="400" y1="0" y2="420"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="400" y="10">
+200
+</text>
+<line stroke="#333333" stroke-width="1" x1="500" x2="500" y1="0" y2="420"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="500" y="10">
+300
+</text>
+<line stroke="#333333" stroke-width="1" x1="600" x2="600" y1="0" y2="420"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="600" y="10">
+400
+</text>
+<line stroke="#333333" stroke-width="1" x1="700" x2="700" y1="0" y2="420"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="700" y="10">
+500
+</text>
+<line stroke="#333333" stroke-width="1" x1="800" x2="800" y1="0" y2="420"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="800" y="10">
+600
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" y="10">
+Time:
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="30">
+.alu.op
+<title>top.alu.op</title>
+</text>
+<path d="M 200 30 L 203 23 L 297 23 L 300 30 L 297 37 L 203 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="250" xml:space="preserve" y="30">
+Sum(0a,...
+<title>Sum(0a, 05)</title>
+</text>
+<path d="M 300 30 L 303 23 L 397 23 L 400 30 L 397 37 L 303 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="350" xml:space="preserve" y="30">
+Diff(14...
+<title>Diff(14, 08)</title>
+</text>
+<path d="M 400 30 L 403 23 L 497 23 L 500 30 L 497 37 L 403 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="450" xml:space="preserve" y="30">
+And(cc,...
+<title>And(cc, 6f)</title>
+</text>
+<path d="M 500 30 L 503 23 L 597 23 L 600 30 L 597 37 L 503 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="550" xml:space="preserve" y="30">
+Or(cf, ba)
+<title>Or(cf, ba)</title>
+</text>
+<path d="M 600 30 L 603 23 L 697 23 L 700 30 L 697 37 L 603 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="650" xml:space="preserve" y="30">
+Xor(fc,...
+<title>Xor(fc, ae)</title>
+</text>
+<path d="M 700 30 L 703 23 L 797 23 L 800 30 L 797 37 L 703 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="750" xml:space="preserve" y="30">
+Noop
+<title>Noop</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="50">
+.alu.op#Sum
+<title>top.alu.op#Sum</title>
+</text>
+<path d="M 200 50 L 203 43 L 297 43 L 300 50 L 297 57 L 203 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="250" xml:space="preserve" y="50">
+(0a, 05)
+<title>(0a, 05)</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
+   .0
+<title>top.alu.op#Sum.0</title>
+</text>
+<path d="M 200 70 L 203 63 L 297 63 L 300 70 L 297 77 L 203 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="250" xml:space="preserve" y="70">
+0a
+<title>0a</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="90">
+   .1
+<title>top.alu.op#Sum.1</title>
+</text>
+<path d="M 200 90 L 203 83 L 297 83 L 300 90 L 297 97 L 203 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="250" xml:space="preserve" y="90">
+05
+<title>05</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="110">
+.alu.op#Diff
+<title>top.alu.op#Diff</title>
+</text>
+<path d="M 300 110 L 303 103 L 397 103 L 400 110 L 397 117 L 303 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="350" xml:space="preserve" y="110">
+(14, 08)
+<title>(14, 08)</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="130">
+   .0
+<title>top.alu.op#Diff.0</title>
+</text>
+<path d="M 300 130 L 303 123 L 397 123 L 400 130 L 397 137 L 303 137 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="350" xml:space="preserve" y="130">
+14
+<title>14</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="150">
+   .1
+<title>top.alu.op#Diff.1</title>
+</text>
+<path d="M 300 150 L 303 143 L 397 143 L 400 150 L 397 157 L 303 157 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="350" xml:space="preserve" y="150">
+08
+<title>08</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="170">
+.alu.op#And
+<title>top.alu.op#And</title>
+</text>
+<path d="M 400 170 L 403 163 L 497 163 L 500 170 L 497 177 L 403 177 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="450" xml:space="preserve" y="170">
+(cc, 6f)
+<title>(cc, 6f)</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="190">
+   .0
+<title>top.alu.op#And.0</title>
+</text>
+<path d="M 400 190 L 403 183 L 497 183 L 500 190 L 497 197 L 403 197 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="450" xml:space="preserve" y="190">
+cc
+<title>cc</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="210">
+   .1
+<title>top.alu.op#And.1</title>
+</text>
+<path d="M 400 210 L 403 203 L 497 203 L 500 210 L 497 217 L 403 217 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="450" xml:space="preserve" y="210">
+6f
+<title>6f</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="230">
+.alu.op#Or
+<title>top.alu.op#Or</title>
+</text>
+<path d="M 500 230 L 503 223 L 597 223 L 600 230 L 597 237 L 503 237 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="550" xml:space="preserve" y="230">
+(cf, ba)
+<title>(cf, ba)</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="250">
+   .0
+<title>top.alu.op#Or.0</title>
+</text>
+<path d="M 500 250 L 503 243 L 597 243 L 600 250 L 597 257 L 503 257 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="550" xml:space="preserve" y="250">
+cf
+<title>cf</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="270">
+   .1
+<title>top.alu.op#Or.1</title>
+</text>
+<path d="M 500 270 L 503 263 L 597 263 L 600 270 L 597 277 L 503 277 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="550" xml:space="preserve" y="270">
+ba
+<title>ba</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="290">
+.alu.op#Xor
+<title>top.alu.op#Xor</title>
+</text>
+<path d="M 600 290 L 603 283 L 697 283 L 700 290 L 697 297 L 603 297 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="650" xml:space="preserve" y="290">
+(fc, ae)
+<title>(fc, ae)</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="310">
+   .0
+<title>top.alu.op#Xor.0</title>
+</text>
+<path d="M 600 310 L 603 303 L 697 303 L 700 310 L 697 317 L 603 317 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="650" xml:space="preserve" y="310">
+fc
+<title>fc</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="330">
+   .1
+<title>top.alu.op#Xor.1</title>
+</text>
+<path d="M 600 330 L 603 323 L 697 323 L 700 330 L 697 337 L 603 337 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="650" xml:space="preserve" y="330">
+ae
+<title>ae</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="350">
+.alu.op#Noop
+<title>top.alu.op#Noop</title>
+</text>
+<path d="M 700 350 L 703 343 L 797 343 L 800 350 L 797 357 L 703 357 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="750" xml:space="preserve" y="350">
+
+<title></title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="370">
+.alu.output
+<title>top.alu.output</title>
+</text>
+<path d="M 200 370 L 203 363 L 297 363 L 300 370 L 297 377 L 203 377 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="250" xml:space="preserve" y="370">
+Some(0f)
+<title>Some(0f)</title>
+</text>
+<path d="M 300 370 L 303 363 L 397 363 L 400 370 L 397 377 L 303 377 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="350" xml:space="preserve" y="370">
+Some(0c)
+<title>Some(0c)</title>
+</text>
+<path d="M 400 370 L 403 363 L 497 363 L 500 370 L 497 377 L 403 377 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="450" xml:space="preserve" y="370">
+Some(4c)
+<title>Some(4c)</title>
+</text>
+<path d="M 500 370 L 503 363 L 597 363 L 600 370 L 597 377 L 503 377 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="550" xml:space="preserve" y="370">
+Some(ff)
+<title>Some(ff)</title>
+</text>
+<path d="M 600 370 L 603 363 L 697 363 L 700 370 L 697 377 L 603 377 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="650" xml:space="preserve" y="370">
+Some(52)
+<title>Some(52)</title>
+</text>
+<path d="M 700 370 L 703 363 L 797 363 L 800 370 L 797 377 L 703 377 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="750" xml:space="preserve" y="370">
+None
+<title>None</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="390">
+   #None
+<title>top.alu.output#None</title>
+</text>
+<path d="M 700 390 L 703 383 L 797 383 L 800 390 L 797 397 L 703 397 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="750" xml:space="preserve" y="390">
+
+<title></title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="410">
+   #Some.0
+<title>top.alu.output#Some.0</title>
+</text>
+<path d="M 200 410 L 203 403 L 297 403 L 300 410 L 297 417 L 203 417 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="250" xml:space="preserve" y="410">
+0f
+<title>0f</title>
+</text>
+<path d="M 300 410 L 303 403 L 397 403 L 400 410 L 397 417 L 303 417 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="350" xml:space="preserve" y="410">
+0c
+<title>0c</title>
+</text>
+<path d="M 400 410 L 403 403 L 497 403 L 500 410 L 497 417 L 403 417 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="450" xml:space="preserve" y="410">
+4c
+<title>4c</title>
+</text>
+<path d="M 500 410 L 503 403 L 597 403 L 600 410 L 597 417 L 503 417 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="550" xml:space="preserve" y="410">
+ff
+<title>ff</title>
+</text>
+<path d="M 600 410 L 603 403 L 697 403 L 700 410 L 697 417 L 603 417 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="650" xml:space="preserve" y="410">
+52
+<title>52</title>
+</text>
+</svg>

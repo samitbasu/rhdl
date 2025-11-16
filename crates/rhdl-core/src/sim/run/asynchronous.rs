@@ -1,5 +1,11 @@
-use crate::{trace_time, Circuit, CircuitIO, RHDLError, TimedSample};
+//! Extension trait and types to provide for iterator-based open loop testing of
+//! asynchronous circuits.
+use crate::{Circuit, CircuitIO, TimedSample, trace_time};
 
+/// An iterator that runs an asynchronous circuit given an iterator of timed inputs.
+///
+/// Generally, you will not construct this type directly, but instead use the
+/// [`RunExt::run`] extension method on the circuit under test.
 #[must_use = "To run the simulation, you must exhaust the iterator or collect it into a VCD"]
 pub struct Run<'a, T, I, S> {
     uut: &'a T,
@@ -23,6 +29,12 @@ where
     }
 }
 
+/// Extension trait to provide a `run` method on asynchronous circuits.
+///
+/// This trait is automatically implemented for all types that implement
+/// [`Circuit`].
+///
+/// See the book for examples of how to use this trait.
 pub fn run<T, I, S>(uut: &T, inputs: I) -> Run<'_, T, I, S> {
     Run {
         uut,
@@ -58,11 +70,10 @@ where
     }
 }
 
+/// Extension trait to provide a `run` method on asynchronous circuits.
 pub trait RunExt<I>: Circuit + Sized {
-    fn run(
-        &self,
-        iter: I,
-    ) -> Result<Run<'_, Self, <I as IntoIterator>::IntoIter, <Self as Circuit>::S>, RHDLError>
+    /// Runs the circuit with the given iterator of timed inputs.
+    fn run(&self, iter: I) -> Run<'_, Self, <I as IntoIterator>::IntoIter, <Self as Circuit>::S>
     where
         I: IntoIterator;
 }
@@ -72,11 +83,7 @@ where
     T: Circuit,
     I: IntoIterator<Item = TimedSample<<T as CircuitIO>::I>>,
 {
-    fn run(
-        &self,
-        iter: I,
-    ) -> Result<Run<'_, Self, <I as IntoIterator>::IntoIter, <Self as Circuit>::S>, RHDLError> {
-        self.yosys_check()?;
-        Ok(run(self, iter.into_iter()))
+    fn run(&self, iter: I) -> Run<'_, Self, <I as IntoIterator>::IntoIter, <Self as Circuit>::S> {
+        run(self, iter.into_iter())
     }
 }

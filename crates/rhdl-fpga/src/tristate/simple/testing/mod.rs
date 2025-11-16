@@ -36,7 +36,7 @@ mod tests {
     use crate::tristate::simple::sender::Cmd;
 
     use super::*;
-    use std::iter::{once, repeat};
+    use std::iter::once;
 
     #[test]
     fn test_basic_trace() -> miette::Result<()> {
@@ -46,12 +46,12 @@ mod tests {
             .chain(once(Some(Cmd::Read)).chain(std::iter::repeat_n(None, 4)));
         let input = input.with_reset(1).clock_pos_edge(100);
         let uut = super::U::default();
-        let vcd = uut.run(input)?.collect::<Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("tristate");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["59a2bf639acc8833b79e00e5168fbe4a451826448fbdea105d9aa395ab9976a9"];
+        let expect = expect!["5eb7cdee70aa877d621a24c8307566e8dfa9b8d711523ce8a69fb31c69062816"];
         let digest = vcd.dump_to_file(root.join("basic.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

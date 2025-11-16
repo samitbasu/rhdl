@@ -1,0 +1,12 @@
+  × RHDL Clock Domain Violation
+  ╰─▶ RHDL Clock Domain Violation
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/clock.rs:384:17]
+ 383 │         let x = x.val();
+ 384 │         let z = x[y.val()];
+     ·                 ─────┬────┬┬
+     ·                      │    │╰── Clock domain mismatch in index operation
+     ·                      │    ╰── Expression belongs to Green clock domain
+     ·                      ╰── Expression belongs to Red clock domain
+ 385 │         signal(z)
+     ╰────
+  help: You cannot index signals from different clock domains

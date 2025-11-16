@@ -154,7 +154,7 @@ mod tests {
 
     #[kernel]
     fn map_item(_cr: ClockReset, t: b4) -> b2 {
-        lsbs::<U2, U4>(t)
+        lsbs::<2, 4>(t)
     }
 
     #[test]
@@ -172,7 +172,7 @@ mod tests {
         let consume = move |data: Option<b2>| {
             if let Some(data) = data {
                 let orig = b_rng.next().unwrap();
-                let orig_lsb = lsbs::<U2, U4>(orig);
+                let orig_lsb = lsbs::<2, 4>(orig);
                 assert_eq!(data, orig_lsb);
             }
             rand::random::<f64>() > 0.2
@@ -181,7 +181,7 @@ mod tests {
         let uut = single_stage(map, a_rng, consume);
         // Run a few samples through
         let input = repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
-        uut.run_without_synthesis(input)?.for_each(drop);
+        uut.run(input).for_each(drop);
         Ok(())
     }
 }

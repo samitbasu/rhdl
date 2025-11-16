@@ -423,14 +423,9 @@ fn test_result_binop(thing1: TestThing, thing2: TestThing, op: Op) -> Option<Tes
         } else {
             TestThing::as_static(output_value)
         }
-    } else if op.is_xop() {
-        if thing1.is_dyn() || thing2.is_dyn() {
-            TestThing::as_dyn(output_value)
-        } else {
-            TestThing::as_static(output_value)
-        }
     } else if (thing1.is_dyn() && (thing2.is_dyn() || thing2.is_lit()))
         || (thing2.is_dyn() && (thing1.is_dyn() || thing1.is_lit()))
+        || op.is_xop()
     {
         TestThing::as_dyn(output_value)
     } else {

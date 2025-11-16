@@ -88,10 +88,7 @@ impl LowerShiftByConstant {
         let source_details = input.symtab[arg1].clone();
         let zero_kind = Kind::Bits(shift_amount);
         let zero_bits = BitString::zeros(shift_amount);
-        let zero_tb = TypedBits {
-            kind: zero_kind,
-            bits: zero_bits.bits().to_vec(),
-        };
+        let zero_tb = TypedBits::new(zero_bits.bits().to_vec(), zero_kind);
         let zero_lit = input.symtab.lit(zero_tb, source_details.clone());
         let lsb_kind = if input.kind(arg1).is_signed() {
             Kind::Signed(arg1_lsbs_len)

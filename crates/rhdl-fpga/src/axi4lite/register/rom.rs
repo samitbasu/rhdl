@@ -83,14 +83,14 @@ impl<const N: usize> AxiRom<N> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Input for the [AxiRegBank]
 pub struct In {
     /// AXI signals from the bus for reading
     pub axi: ReadMOSI,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Output for the [AxiRegBank]
 pub struct Out<const N: usize> {
     /// AXI signals to the bus for reading

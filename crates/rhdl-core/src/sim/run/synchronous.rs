@@ -1,7 +1,8 @@
-use crate::{
-    trace, trace_time, ClockReset, RHDLError, Synchronous, SynchronousIO, TimedSample,
-};
+//! Extension trait and types to provide for iterator-based open loop testing of
+//! synchronous circuits.
+use crate::{ClockReset, Synchronous, SynchronousIO, TimedSample, trace, trace_time};
 
+/// An iterator that runs a synchronous circuit given an iterator of timed inputs.
 #[must_use = "To run the simulation, you must exhaust the iterator or collect it into a VCD"]
 pub struct RunSynchronous<'a, T, I, S> {
     uut: &'a T,
@@ -25,6 +26,7 @@ where
     }
 }
 
+/// Runs the synchronous circuit with the given iterator of timed inputs.
 pub fn run_synchronous<T, I, S>(uut: &T, inputs: I) -> RunSynchronous<'_, T, I, S> {
     RunSynchronous {
         uut,
@@ -62,14 +64,13 @@ where
     }
 }
 
+/// Extension trait to provide a `run` method on synchronous circuits.
 pub trait RunSynchronousExt<I>: Synchronous + Sized {
+    /// Runs the circuit with the given iterator of timed inputs.
     fn run(
         &self,
         iter: I,
-    ) -> Result<
-        RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>,
-        RHDLError,
-    >
+    ) -> RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>
     where
         I: IntoIterator;
 }
@@ -82,42 +83,7 @@ where
     fn run(
         &self,
         iter: I,
-    ) -> Result<
-        RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>,
-        RHDLError,
-    > {
-        self.yosys_check()?;
-        Ok(run_synchronous(self, iter.into_iter()))
-    }
-}
-
-pub trait RunWithoutSynthesisSynchronousExt<I>: Synchronous + Sized {
-    fn run_without_synthesis(
-        &self,
-        iter: I,
-    ) -> Result<
-        RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>,
-        RHDLError,
-    >
-    where
-        I: IntoIterator;
-}
-
-impl<T, I> RunWithoutSynthesisSynchronousExt<I> for T
-where
-    T: Synchronous,
-    I: IntoIterator<Item = TimedSample<(ClockReset, <T as SynchronousIO>::I)>>,
-{
-    fn run_without_synthesis(
-        &self,
-        iter: I,
-    ) -> Result<
-        RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>,
-        RHDLError,
-    >
-    where
-        I: IntoIterator,
-    {
-        Ok(run_synchronous(self, iter.into_iter()))
+    ) -> RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S> {
+        run_synchronous(self, iter.into_iter())
     }
 }

@@ -72,7 +72,7 @@ pub struct Axi2Rhdl<T: Digital> {
     inbuf: Carloni<T>,
 }
 
-#[derive(Debug, PartialEq, Digital)]
+#[derive(Debug, PartialEq, Digital, Clone, Copy)]
 /// Inputs for the [Axi2Rhdl] core
 pub struct In<T: Digital> {
     /// The data signal on the AXI (incoming) side
@@ -83,7 +83,7 @@ pub struct In<T: Digital> {
     pub ready: Ready<T>,
 }
 
-#[derive(Debug, PartialEq, Digital)]
+#[derive(Debug, PartialEq, Digital, Clone, Copy)]
 /// Outputs from the [Axi2Rhdl] core
 pub struct Out<T: Digital> {
     /// The data to the RHDL stream
@@ -168,7 +168,7 @@ mod tests {
             sink: SinkFromFn::new_from_iter(b_rng, 0.2),
         };
         let input = iter::repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
-        uut.run_without_synthesis(input)?.for_each(drop);
+        uut.run(input).for_each(drop);
         Ok(())
     }
 

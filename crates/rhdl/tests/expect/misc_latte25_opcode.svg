@@ -1,0 +1,243 @@
+<svg viewBox="0 -16 1728 432" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#EEEEEE" height="400" stroke="darkblue" width="1728" x="0" y="0"/>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="1536" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1632" y="8">
+1:0
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="1344" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1440" y="8">
+2
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="1152" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1248" y="8">
+4:3
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="960" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1056" y="8">
+9:5
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="768" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="864" y="8">
+10
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="576" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="672" y="8">
+11
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="384" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="480" y="8">
+14:12
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="192" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="288" y="8">
+19:15
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="0" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="96" y="8">
+21:20
+</text>
+<rect fill="#99FFCC" height="16" stroke="gray" width="1728" x="0" y="16"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="864" y="24">
+OpCode|22|
+</text>
+<rect fill="#CCCC99" height="16" stroke="gray" width="192" x="0" y="32"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="96" y="40">
+Nop(00)
+</text>
+<rect fill="#CCCCCC" height="208" stroke="gray" width="192" x="0" y="48"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="96" y="152">
+Add(01)
+</text>
+<rect fill="#CCCCFF" height="16" stroke="gray" width="1536" x="192" y="48"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="960" y="56">
+(Add)
+</text>
+<rect fill="#CCFF99" height="16" stroke="gray" width="768" x="960" y="64"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1344" y="72">
+.0|10|
+</text>
+<rect fill="#CCFFCC" height="16" stroke="gray" width="192" x="1536" y="80"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1632" y="88">
+Zero(00)
+</text>
+<rect fill="#CCFFFF" height="128" stroke="gray" width="192" x="1536" y="96"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1632" y="160">
+Register(01)
+</text>
+<rect fill="#FFCC99" height="16" stroke="gray" width="384" x="1152" y="96"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1344" y="104">
+(Register)
+</text>
+<rect fill="#FFCCCC" height="16" stroke="gray" width="384" x="1152" y="112"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1344" y="120">
+.0|3|
+</text>
+<rect fill="#FFCCFF" height="16" stroke="gray" width="384" x="1152" y="128"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1344" y="136">
+R0(000)
+</text>
+<rect fill="#FFFF99" height="16" stroke="gray" width="384" x="1152" y="144"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1344" y="152">
+R1(001)
+</text>
+<rect fill="#FFFFCC" height="16" stroke="gray" width="384" x="1152" y="160"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1344" y="168">
+R2(010)
+</text>
+<rect fill="#99FFCC" height="16" stroke="gray" width="384" x="1152" y="176"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1344" y="184">
+R3(011)
+</text>
+<rect fill="#CCCC99" height="16" stroke="gray" width="384" x="1152" y="192"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1344" y="200">
+R4(100)
+</text>
+<rect fill="#CCCCCC" height="16" stroke="gray" width="384" x="1152" y="208"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1344" y="216">
+R5(101)
+</text>
+<rect fill="#CCCCFF" height="32" stroke="gray" width="192" x="1536" y="224"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1632" y="240">
+Literal(10)
+</text>
+<rect fill="#CCFF99" height="16" stroke="gray" width="576" x="960" y="224"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1248" y="232">
+(Literal)
+</text>
+<rect fill="#CCFFCC" height="16" stroke="gray" width="576" x="960" y="240"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1248" y="248">
+.0 b8
+</text>
+<rect fill="#CCFFFF" height="16" stroke="gray" width="768" x="192" y="64"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="576" y="72">
+.1|10|
+</text>
+<rect fill="#FFCC99" height="16" stroke="gray" width="384" x="576" y="80"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="768" y="88">
+Zero(00)
+</text>
+<rect fill="#FFCCCC" height="128" stroke="gray" width="384" x="576" y="96"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="768" y="160">
+Register(01)
+</text>
+<rect fill="#FFCCFF" height="16" stroke="gray" width="192" x="384" y="96"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="480" y="104">
+(Register)
+</text>
+<rect fill="#FFFF99" height="16" stroke="gray" width="192" x="384" y="112"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="480" y="120">
+.0|3|
+</text>
+<rect fill="#FFFFCC" height="16" stroke="gray" width="192" x="384" y="128"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="480" y="136">
+R0(000)
+</text>
+<rect fill="#99FFCC" height="16" stroke="gray" width="192" x="384" y="144"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="480" y="152">
+R1(001)
+</text>
+<rect fill="#CCCC99" height="16" stroke="gray" width="192" x="384" y="160"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="480" y="168">
+R2(010)
+</text>
+<rect fill="#CCCCCC" height="16" stroke="gray" width="192" x="384" y="176"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="480" y="184">
+R3(011)
+</text>
+<rect fill="#CCCCFF" height="16" stroke="gray" width="192" x="384" y="192"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="480" y="200">
+R4(100)
+</text>
+<rect fill="#CCFF99" height="16" stroke="gray" width="192" x="384" y="208"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="480" y="216">
+R5(101)
+</text>
+<rect fill="#CCFFCC" height="32" stroke="gray" width="384" x="576" y="224"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="768" y="240">
+Literal(10)
+</text>
+<rect fill="#CCFFFF" height="16" stroke="gray" width="384" x="192" y="224"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="384" y="232">
+(Literal)
+</text>
+<rect fill="#FFCC99" height="16" stroke="gray" width="384" x="192" y="240"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="384" y="248">
+.0 b8
+</text>
+<rect fill="#FFCCCC" height="128" stroke="gray" width="192" x="0" y="256"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="96" y="320">
+Mul(10)
+</text>
+<rect fill="#FFCCFF" height="16" stroke="gray" width="960" x="768" y="256"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1248" y="264">
+(Mul)
+</text>
+<rect fill="#FFFF99" height="16" stroke="gray" width="384" x="1344" y="272"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1536" y="280">
+.0|3|
+</text>
+<rect fill="#FFFFCC" height="16" stroke="gray" width="384" x="1344" y="288"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1536" y="296">
+R0(000)
+</text>
+<rect fill="#99FFCC" height="16" stroke="gray" width="384" x="1344" y="304"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1536" y="312">
+R1(001)
+</text>
+<rect fill="#CCCC99" height="16" stroke="gray" width="384" x="1344" y="320"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1536" y="328">
+R2(010)
+</text>
+<rect fill="#CCCCCC" height="16" stroke="gray" width="384" x="1344" y="336"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1536" y="344">
+R3(011)
+</text>
+<rect fill="#CCCCFF" height="16" stroke="gray" width="384" x="1344" y="352"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1536" y="360">
+R4(100)
+</text>
+<rect fill="#CCFF99" height="16" stroke="gray" width="384" x="1344" y="368"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1536" y="376">
+R5(101)
+</text>
+<rect fill="#CCFFCC" height="16" stroke="gray" width="576" x="768" y="272"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1056" y="280">
+.1 b8
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="1536" y="384"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1632" y="392">
+1:0
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="1344" y="384"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1440" y="392">
+2
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="1152" y="384"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1248" y="392">
+4:3
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="960" y="384"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="1056" y="392">
+9:5
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="768" y="384"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="864" y="392">
+10
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="576" y="384"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="672" y="392">
+11
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="384" y="384"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="480" y="392">
+14:12
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="192" y="384"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="288" y="392">
+19:15
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="192" x="0" y="384"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="96" y="392">
+21:20
+</text>
+</svg>

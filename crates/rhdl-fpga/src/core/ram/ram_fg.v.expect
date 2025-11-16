@@ -1,4 +1,4 @@
-module uut(input wire [18:0] arg_0, output reg [7:0] out);
+module dut(input wire [18:0] arg_0, output reg [7:0] out);
    reg  r0;
    reg  r1;
    reg  r2;
@@ -26,8 +26,7 @@ module uut(input wire [18:0] arg_0, output reg [7:0] out);
    wire  r24;
    wire  r25;
    wire  r26;
-   uut bb_0(.o({r26, r25, r24, r23, r22, r21, r20, r19}), .i({r18, r17, r16, r15, r14, r13, r12, r11, r10, r9, r8, r7, r6, r5, r4, r3, r2, r1, r0}));
-   ;
+   top bb_0(.o({r26, r25, r24, r23, r22, r21, r20, r19}), .i({r18, r17, r16, r15, r14, r13, r12, r11, r10, r9, r8, r7, r6, r5, r4, r3, r2, r1, r0}));
    always @(*) begin
       r0 = arg_0[0];
       r1 = arg_0[1];
@@ -51,7 +50,7 @@ module uut(input wire [18:0] arg_0, output reg [7:0] out);
       out = {r26, r25, r24, r23, r22, r21, r20, r19};
    end
 endmodule
-module uut(input wire [18:0] i, output reg [7:0] o);
+module top(input wire [18:0] i, output reg [7:0] o);
    wire [3:0] read_addr;
    wire [0:0] read_clk;
    wire [3:0] write_addr;

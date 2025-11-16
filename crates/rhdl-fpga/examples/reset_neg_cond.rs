@@ -14,7 +14,7 @@ fn istream() -> impl Iterator<Item = TimedSample<In<Red, Blue>>> {
         .without_reset()
         .clock_pos_edge(100);
     let blue = std::iter::repeat(()).without_reset().clock_pos_edge(79);
-    red.merge(blue, |r, b| In {
+    red.merge_map(blue, |r, b| In {
         reset_n: signal(reset_n(r.1)),
         clock: signal(b.0.clock),
     })
@@ -22,7 +22,7 @@ fn istream() -> impl Iterator<Item = TimedSample<In<Red, Blue>>> {
 
 fn main() -> Result<(), RHDLError> {
     let uut = NegatingConditioner::default();
-    let vcd = uut.run(istream())?.collect::<Vcd>();
+    let vcd = uut.run(istream()).collect::<Vcd>();
     write_svg_as_markdown(vcd, "reset_neg_cond.md", SvgOptions::default())?;
     Ok(())
 }

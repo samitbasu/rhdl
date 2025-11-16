@@ -1,13 +1,22 @@
+//! A combined clock and reset type
 use crate::{Clock, Digital, Kind, Reset, bitx::BitX};
 
 use super::kind::Field;
 
+/// A combined clock and reset type.
+///
+/// Clock and Reset signals are usually passed around together in hardware designs.
+/// This type encapsulates both signals into a single struct.
 #[derive(PartialEq, Clone, Copy, Debug, Default)]
 pub struct ClockReset {
+    /// The clock signal.
     pub clock: Clock,
+    /// The reset signal.
     pub reset: Reset,
 }
 
+/// Create a combined clock and reset from individual signals.
+/// This is not a synthesizable function.  It's for testing.
 pub fn clock_reset(clock: Clock, reset: Reset) -> ClockReset {
     ClockReset { clock, reset }
 }
@@ -26,26 +35,12 @@ impl Digital for ClockReset {
                     name: "reset".to_string().into(),
                     kind: <Reset as Digital>::static_kind(),
                 },
-            ],
+            ]
+            .into(),
         )
     }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rhdl_trace_type::TraceType::Struct(rhdl_trace_type::Struct {
-            name: "ClockReset".into(),
-            fields: vec![
-                rhdl_trace_type::Field {
-                    name: "clock".to_string().into(),
-                    ty: <Clock as Digital>::static_trace_type(),
-                },
-                rhdl_trace_type::Field {
-                    name: "reset".to_string().into(),
-                    ty: <Reset as Digital>::static_trace_type(),
-                },
-            ],
-        })
-    }
-    fn bin(self) -> Vec<BitX> {
-        [self.clock.bin().as_slice(), self.reset.bin().as_slice()].concat()
+    fn bin(self) -> Box<[BitX]> {
+        [self.clock.bin(), self.reset.bin()].concat().into()
     }
     fn dont_care() -> Self {
         Self {

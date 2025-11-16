@@ -47,7 +47,7 @@ use crate::{
 };
 
 /// The state of the switch
-#[derive(PartialEq, Default, Digital)]
+#[derive(PartialEq, Default, Digital, Clone, Copy)]
 pub enum State {
     #[default]
     /// The switch is idle - no channel exists
@@ -117,7 +117,7 @@ pub fn range_check<const N: usize>(_cr: ClockReset, cmd: Command) -> Command {
 }
 
 /// Input for the Read switch
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 pub struct In<const N: usize> {
     /// AXI bus connection to the endpoint (subordinate interface)
     pub endpoint_0: ReadMOSI,
@@ -126,7 +126,7 @@ pub struct In<const N: usize> {
 }
 
 /// Output from the Read Switch
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 pub struct Out<const N: usize> {
     /// AXI bus connection from the endpoint (subordinate interface)
     pub endpoint_0: ReadMISO,
@@ -337,8 +337,8 @@ mod tests {
     impl From<TestCase> for AxilAddr {
         fn from(value: TestCase) -> Self {
             match value {
-                TestCase::Bank0(reg) => ROM0_BASE + (reg.resize::<U32>() << 2),
-                TestCase::Bank1(reg) => ROM1_BASE + (reg.resize::<U32>() << 2),
+                TestCase::Bank0(reg) => ROM0_BASE + (reg.resize::<32>() << 2),
+                TestCase::Bank1(reg) => ROM1_BASE + (reg.resize::<32>() << 2),
                 TestCase::Err0 => ROM0_BASE + bits(100),
                 TestCase::Err1 => ROM1_BASE + bits(100),
                 TestCase::ErrSwitch => bits(0),
@@ -366,10 +366,8 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
         let switch: ReadSwitch<2> = ReadSwitch::try_new::<decode_addr>()?;
-        switch.yosys_check()?;
         drc::no_combinatorial_paths(&switch)?;
         Ok(())
     }
@@ -390,7 +388,7 @@ mod tests {
         };
         let input = repeat_n((), 200).with_reset(1).clock_pos_edge(100);
         let sims = uut
-            .run_without_synthesis(input)?
+            .run(input)
             .synchronous_sample()
             .filter_map(|ts| ts.value.2)
             .collect::<Vec<_>>();

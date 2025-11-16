@@ -1,0 +1,52 @@
+impl<const N: usize> rhdl::core::Circuit for Strobe<N> {
+    type S = (
+        Self::Q,
+        <DFF<Bits<N>> as rhdl::core::Circuit>::S,
+        <Constant<Bits<N>> as rhdl::core::Circuit>::S,
+    );
+    fn init(&self) -> Self::S {
+        (
+            <<Self as rhdl::core::CircuitDQ>::Q as rhdl::core::Digital>::dont_care(),
+            self.strobe.init(),
+            self.value.init(),
+        )
+    }
+    fn children(
+        &self,
+        parent_scope: &rhdl::core::ScopedName,
+    ) -> impl Iterator<
+        Item = Result<
+            rhdl::core::Descriptor<rhdl::core::AsyncKind>,
+            rhdl::core::RHDLError,
+        >,
+    > {
+        [
+            self.strobe.descriptor(parent_scope.with(stringify!(strobe))),
+            self.value.descriptor(parent_scope.with(stringify!(value))),
+        ]
+            .into_iter()
+    }
+    fn sim(
+        &self,
+        input: <Self as rhdl::core::CircuitIO>::I,
+        state: &mut Self::S,
+    ) -> <Self as CircuitIO>::O {
+        let update_fn = <<Self as rhdl::core::CircuitIO>::Kernel as rhdl::core::DigitalFn2>::func();
+        rhdl::core::trace("input", &input);
+        for _ in 0..rhdl::core::MAX_ITERS {
+            let prev_state = state.clone();
+            let (outputs, internal_inputs) = update_fn(input, state.0);
+            rhdl::core::trace_push_path(stringify!(strobe));
+            state.0.strobe = self.strobe.sim(internal_inputs.strobe, &mut state.1);
+            rhdl::core::trace_pop_path();
+            rhdl::core::trace_push_path(stringify!(value));
+            state.0.value = self.value.sim(internal_inputs.value, &mut state.2);
+            rhdl::core::trace_pop_path();
+            if state == &prev_state {
+                rhdl::core::trace("outputs", &outputs);
+                return outputs;
+            }
+        }
+        panic!("Simulation did not converge");
+    }
+}

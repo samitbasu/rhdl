@@ -37,7 +37,7 @@ impl Pass for PrecastIntegerLiteralsInBinops {
             .symtab
             .iter_lit()
             .filter_map(|(k, (v, _loc))| {
-                if matches!(v.kind, Kind::Bits(128) | Kind::Signed(128)) {
+                if matches!(v.kind(), Kind::Bits(128) | Kind::Signed(128)) {
                     Some((
                         Slot::Literal(k),
                         CastCandidate {

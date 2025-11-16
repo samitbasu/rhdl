@@ -1,0 +1,22 @@
+$timescale 1 ps $end
+$comment
+    TraceInfo({"top.packet":Enum((name:"complex_enum::Packet",variants:[(name:"Color",discriminant:1,ty:Struct((name:"_Packet__Color",fields:[(name:"r",ty:Bits(8)),(name:"g",ty:Bits(8)),(name:"b",ty:Bits(8))]))),(name:"Size",discriminant:2,ty:Struct((name:"_Packet__Size",fields:[(name:"w",ty:Bits(16)),(name:"h",ty:Bits(16))]))),(name:"Position",discriminant:4,ty:Tuple((elements:[Bits(4),Bits(4)]))),(name:"State",discriminant:8,ty:Tuple((elements:[Enum((name:"complex_enum::State",variants:[(name:"Init",discriminant:-2,ty:Empty),(name:"Boot",discriminant:-1,ty:Empty),(name:"Running",discriminant:0,ty:Empty),(name:"Stop",discriminant:1,ty:Empty),(name:"Boom",discriminant:2,ty:Empty),(name:"Invalid",discriminant:3,ty:Empty)],discriminant_layout:(width:3,alignment:Msb,ty:Signed)))]))),(name:"Log",discriminant:16,ty:Struct((name:"_Packet__Log",fields:[(name:"msg",ty:Bits(32)),(name:"level",ty:Struct((name:"complex_enum::LogLevel",fields:[(name:"level",ty:Bits(8)),(name:"active",ty:Bits(1))])))]))),(name:"Invalid",discriminant:17,ty:Empty)],discriminant_layout:(width:5,alignment:Msb,ty:Unsigned)))})
+$end
+$scope module top $end
+$var wire 46 ! packet $end
+$upscope $end
+$enddefinitions $end
+#0
+b0000100000000000000000111100001101010110101010 !
+#1000
+b0001000000000010111110111011111101111010101101 !
+#2000
+b0010000000000000000000000000000000000011011010 !
+#3000
+b0100000000000000000000000000000000000000000010 !
+#4000
+b0100000000000000000000000000000000000000000110 !
+#5000
+b1000011011101011001010111111101011111011101111 !
+#6000
+b0100000000000000000000000000000000000000000000 !

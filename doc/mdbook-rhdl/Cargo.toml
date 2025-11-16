@@ -1,0 +1,21 @@
+[package]
+name = "mdbook-rhdl"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ansi-to-html = "0.2.2"
+anyhow = "1.0.100"
+clap = "4.5.48"
+env_logger = "0.11.8"
+heck = "0.5.0"
+log = "0.4.28"
+md5 = "0.8.0"
+mdbook = "0.4.52"
+pulldown-cmark = { version = "0.13.0", features = ["serde"] }
+pulldown-cmark-to-cmark = "21.0.0"
+semver = "1.0.27"
+serde_json = "1.0.145"
+
+[dev-dependencies]
+expect-test = "1.5.1"

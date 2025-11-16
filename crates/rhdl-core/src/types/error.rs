@@ -1,9 +1,11 @@
+//! Errors that can occur during dynamic type operations.
 use internment::Intern;
 use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::{Kind, TypedBits, types::path::Path};
 
+#[allow(missing_docs)]
 #[derive(Error, Debug, Diagnostic)]
 pub enum DynamicTypeError {
     #[error("No field in struct {kind:?} with name {field_name}")]

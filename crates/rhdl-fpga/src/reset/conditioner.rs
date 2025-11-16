@@ -87,7 +87,10 @@ reset (out)  +-----+                  +---------+
 #![doc = include_str!("../../doc/reset_conditioner.md")]
 
 use quote::format_ident;
-use rhdl::prelude::*;
+use rhdl::{
+    core::{circuit::descriptor::AsyncKind, ScopedName},
+    prelude::*,
+};
 use syn::parse_quote;
 
 #[derive(PartialEq, Debug, Clone, Default)]
@@ -100,7 +103,7 @@ pub struct ResetConditioner<W: Domain, R: Domain> {
     _r: std::marker::PhantomData<R>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// The inputs to the [ResetConditioner].
 pub struct In<W: Domain, R: Domain> {
     /// The raw reset signal that is asserted asynchronously
@@ -117,7 +120,7 @@ impl<W: Domain, R: Domain> CircuitDQ for ResetConditioner<W, R> {
 impl<W: Domain, R: Domain> CircuitIO for ResetConditioner<W, R> {
     type I = In<W, R>;
     type O = Signal<Reset, R>;
-    type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
+    type Kernel = NoCircuitKernel<Self::I, (), (Self::O, ())>;
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -143,10 +146,6 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
             reg2_next: false,
             reg2_current: false,
         }
-    }
-
-    fn description(&self) -> String {
-        format!("Reset synchronizer from {:?}->{:?}", W::color(), R::color())
     }
 
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
@@ -179,25 +178,36 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
         signal(reset(state.reg2_current))
     }
 
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        Ok(CircuitDescriptor {
-            unique_name: name.to_string(),
-            input_kind: <Self::I as Timed>::static_kind(),
-            output_kind: <Self::O as Timed>::static_kind(),
-            d_kind: Kind::Empty,
-            q_kind: Kind::Empty,
-            children: Default::default(),
-            rtl: None,
-            ntl: circuit_black_box(self, name)?,
-        })
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
+        let name = scoped_name.to_string();
+        Descriptor::<AsyncKind> {
+            name: scoped_name,
+            input_kind: <Self::I as Digital>::static_kind(),
+            output_kind: <Self::O as Digital>::static_kind(),
+            d_kind: <Self::D as Digital>::static_kind(),
+            q_kind: <Self::Q as Digital>::static_kind(),
+            kernel: None,
+            hdl: Some(self.hdl(&name)?),
+            _phantom: std::marker::PhantomData,
+            netlist: None,
+        }
+        .with_netlist_black_box()
     }
+}
 
+impl<W: Domain, R: Domain> ResetConditioner<W, R> {
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = name.to_owned();
         let module_name = format_ident!("{}", module_name);
-        let reset_index = bit_range(<Self::I as Timed>::static_kind(), &path!(.reset.val()))?;
+        let reset_index = bit_range(
+            <<Self as CircuitIO>::I as Digital>::static_kind(),
+            &path!(.reset.val()),
+        )?;
         let reset_index = syn::Index::from(reset_index.0.start);
-        let clock_index = bit_range(<Self::I as Timed>::static_kind(), &path!(.clock.val()))?;
+        let clock_index = bit_range(
+            <<Self as CircuitIO>::I as Digital>::static_kind(),
+            &path!(.clock.val()),
+        )?;
         let clock_index = syn::Index::from(clock_index.0.start);
         let module: vlog::ModuleDef = parse_quote! {
             module #module_name(input wire [1:0] i, output wire [0:0] o);
@@ -222,8 +232,7 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
         };
         Ok(HDLDescriptor {
             name: name.into(),
-            body: module,
-            children: Default::default(),
+            modules: module.into(),
         })
     }
 }
@@ -243,7 +252,7 @@ mod tests {
             .with_reset(1)
             .clock_pos_edge(100);
         let blue = std::iter::repeat(false).with_reset(1).clock_pos_edge(79);
-        red.merge(blue, |r, g| In {
+        red.merge_map(blue, |r, g| In {
             reset: signal(reset(r.1)),
             clock: signal(g.0.clock),
         })
@@ -272,10 +281,10 @@ mod tests {
             endmodule
         "#]];
         let uut = ResetConditioner::<Red, Blue>::default();
-        let hdl = uut.hdl("top")?.as_module().pretty();
+        let hdl = uut.hdl("top")?.modules.pretty();
         expect.assert_eq(&hdl);
         let input = sync_stream();
-        let tb = uut.run(input)?.collect::<TestBench<_, _>>();
+        let tb = uut.run(input).collect::<TestBench<_, _>>();
         let hdl = tb.rtl(&uut, &TestBenchOptions::default().skip(10))?;
         hdl.run_iverilog()?;
         let fg = tb.ntl(&uut, &TestBenchOptions::default().skip(10))?;
@@ -287,7 +296,7 @@ mod tests {
     fn test_reset_conditioner_function() -> miette::Result<()> {
         let uut = ResetConditioner::<Red, Blue>::default();
         let input = sync_stream();
-        let output = uut.run(input)?.collect::<Vcd>();
+        let output = uut.run(input).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("reset")

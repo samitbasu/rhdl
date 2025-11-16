@@ -26,6 +26,7 @@ fn wrap_pass<P: Pass>(obj: Object) -> Result<Object, RHDLError> {
 pub fn optimize_ntl(mut input: Object) -> Result<Object, RHDLError> {
     let mut hash = input.hash_value();
     input = wrap_pass::<SymbolTableIsComplete>(input)?;
+    input = wrap_pass::<CheckForUndriven>(input)?;
     loop {
         input = wrap_pass::<RemoveExtraLiteralsPass>(input)?;
         input = wrap_pass::<ConstantRegisterElimination>(input)?;

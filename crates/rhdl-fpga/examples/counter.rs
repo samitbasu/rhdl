@@ -6,9 +6,9 @@ fn main() -> Result<(), RHDLError> {
         .map(|_| rand::random::<bool>())
         .with_reset(1)
         .clock_pos_edge(100);
-    let uut = Counter::<U4>::default();
+    let uut = Counter::<4>::default();
     let vcd = uut
-        .run(input)?
+        .run(input)
         .take_while(|t| t.time < 1000)
         .collect::<Vcd>();
     let options = SvgOptions::default();

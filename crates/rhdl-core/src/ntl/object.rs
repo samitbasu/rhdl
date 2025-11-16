@@ -3,7 +3,7 @@ use crate::{
     ast::{SourceLocation, spanned_source::SpannedSourceSet},
     common::symtab::{RegisterId, SymbolTable},
     ntl::{
-        hdl::generate_hdl,
+        hdl::build_hdl,
         spec::{OpCode, Wire, WireKind},
         visit::visit_object_wires_mut,
     },
@@ -69,14 +69,10 @@ impl Object {
         hasher.finish()
     }
     pub fn bitx(&self, wire: Wire) -> Option<BitX> {
-        if let Some(lid) = wire.lit() {
-            Some(self.symtab[lid])
-        } else {
-            None
-        }
+        wire.lit().map(|lid| self.symtab[lid])
     }
-    pub fn as_vlog(&self, name: &str) -> Result<rhdl_vlog::ModuleList, RHDLError> {
-        generate_hdl(name, self)
+    pub fn as_vlog(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
+        build_hdl(name, self)
     }
 }
 

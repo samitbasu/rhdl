@@ -35,7 +35,7 @@ fn main() -> Result<(), RHDLError> {
     // Wrap the source into a stalling iterator to minic starvation
     let stalling_source = stalling(source_rng, 0.2);
     // Create the unit to test
-    let uut = Flatten::<U2, b4, 4>::default();
+    let uut = Flatten::<b4, 2, 4>::default();
     // Create the consumption function.  We should get the elements
     // back in the order they were generated
     let consume = move |data| {
@@ -51,7 +51,7 @@ fn main() -> Result<(), RHDLError> {
     let input = std::iter::repeat_n((), 15)
         .with_reset(1)
         .clock_pos_edge(100);
-    let vcd = uut.run_without_synthesis(input)?.collect::<Vcd>();
+    let vcd = uut.run(input).collect::<Vcd>();
     rhdl_fpga::doc::write_svg_as_markdown(
         vcd,
         "flatten.md",

@@ -24,7 +24,7 @@ impl CostEstimator for TestComputer {
 
 #[test]
 fn test_timing_binary() -> miette::Result<()> {
-    #[derive(Eq, Digital)]
+    #[derive(Eq, Digital, Clone, Copy)]
     struct Far {
         a: b4,
         b: b4,

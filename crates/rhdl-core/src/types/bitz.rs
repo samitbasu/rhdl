@@ -1,18 +1,39 @@
+//! A tristate compatible type.
+//!
+//! Note that RHDL doesn't directly implement tristate logic.  Instead,
+//! it assumes you have binary signals and maybe a tristate buffer somewhere.
+//! This type is provided to help model such tristate buffers and
+//! to help with interfacing to HDL that uses tristate logic.
 use rhdl_bits::{BitWidth, Bits};
 
 use crate::{Digital, Kind, bitx::BitX, trace::bit::TraceBit};
 
 use super::kind::Field;
 
+/// A tristate compatible type with `N` bits.
+///
+/// The `BitZ` type consists of two `N`-bit fields: `value` and `mask`.
+/// The `value` field holds the actual data bits, while the `mask` field
+/// indicates whether each corresponding bit in `value` is valid or high-impedance.
+/// A bit in `value` is considered valid if the corresponding bit in `mask` is `1`,
+/// and high-impedance if the corresponding bit in `mask` is `0`.
 #[derive(Debug, Clone, PartialEq, Copy, Default)]
-pub struct BitZ<N: BitWidth> {
+pub struct BitZ<const N: usize>
+where
+    rhdl_bits::W<N>: BitWidth,
+{
+    /// The value bits.
     pub value: Bits<N>,
+    /// The mask bits.
     pub mask: Bits<N>,
 }
 
-impl<N: BitWidth> Digital for BitZ<N> {
-    const BITS: usize = 2 * N::BITS;
-    const TRACE_BITS: usize = N::BITS;
+impl<const N: usize> Digital for BitZ<N>
+where
+    rhdl_bits::W<N>: BitWidth,
+{
+    const BITS: usize = 2 * N;
+    const TRACE_BITS: usize = N;
     fn static_kind() -> Kind {
         Kind::make_struct(
             "BitZ",
@@ -25,16 +46,17 @@ impl<N: BitWidth> Digital for BitZ<N> {
                     name: "mask".to_string().into(),
                     kind: <Bits<N> as Digital>::static_kind(),
                 },
-            ],
+            ]
+            .into(),
         )
     }
     fn static_trace_type() -> rhdl_trace_type::TraceType {
         rhdl_trace_type::TraceType::Bits(Self::TRACE_BITS)
     }
-    fn bin(self) -> Vec<BitX> {
-        [self.value.bin().as_slice(), self.mask.bin().as_slice()].concat()
+    fn bin(self) -> Box<[BitX]> {
+        [self.value.bin(), self.mask.bin()].concat().into()
     }
-    fn trace(self) -> Vec<TraceBit> {
+    fn trace(self) -> Box<[TraceBit]> {
         self.value
             .bin()
             .into_iter()

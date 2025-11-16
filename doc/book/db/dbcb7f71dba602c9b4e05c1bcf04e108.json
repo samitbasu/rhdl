@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[kernel]\nfn kernel(a: b8) -> b8 {\n    a + 42 // 👈 inferred as a 42 bit constant\n}\n"},{"End":"CodeBlock"}]

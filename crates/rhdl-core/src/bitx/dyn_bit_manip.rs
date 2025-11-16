@@ -1,9 +1,18 @@
+//! Module for dynamic bit manipulation utilities.
+//!
+//! This module provides functions for converting between `BitX` vectors and
+//! `BigInt`/`BigUint`, as well as basic bitwise operations on `BitX` vectors.
+//! It also includes utility functions for shifting, adding, and manipulating
+//! `BitX` vectors.
+//!
 use num_bigint::BigUint;
 use num_bigint::{BigInt, Sign};
 use std::iter::repeat;
 
-use crate::bitx::{bitx_vec, BitX};
+use crate::bitx::{BitX, bitx_vec};
 
+/// Convert a vector of `BitX` to a `BigInt`, interpreting the bits as a signed integer
+/// in two's complement representation. Returns `None` if any bit is `X`.
 pub fn to_bigint(bits: &[BitX]) -> Option<BigInt> {
     let bits = bits
         .iter()
@@ -24,16 +33,19 @@ pub fn to_bigint(bits: &[BitX]) -> Option<BigInt> {
     })
 }
 
-pub fn from_bigint(bi: &BigInt, len: usize) -> Vec<BitX> {
+/// Convert a `BigInt` to a vector of `BitX` with the specified length,
+/// interpreting the integer in two's complement representation.
+pub fn from_bigint(bi: &BigInt, len: usize) -> Box<[BitX]> {
     if bi < &BigInt::ZERO {
         let bi = -bi - 1_i32;
         let bits = from_bigint(&bi, len);
-        bits.into_iter().map(|x| !x).collect::<Vec<_>>()
+        bits.into_iter().map(|x| !x).collect()
     } else {
         bitx_vec(&(0..len as u64).map(|pos| bi.bit(pos)).collect::<Vec<_>>())
     }
 }
 
+/// Convert a vector of `BitX` to a `BigUint`. Returns `None` if any bit is `X`.
 pub fn to_biguint(bits: &[BitX]) -> Option<BigUint> {
     let bits = bits
         .iter()
@@ -46,6 +58,7 @@ pub fn to_biguint(bits: &[BitX]) -> Option<BigUint> {
     Some(BigUint::from_radix_le(&bits, 2).unwrap())
 }
 
+/// Convert a `BigUint` to a vector of `BitX` with the specified length.
 pub fn from_biguint(bi: &BigUint, len: usize) -> Vec<BitX> {
     (0..len as u64).map(|pos| bi.bit(pos).into()).collect()
 }
@@ -122,12 +135,14 @@ pub(crate) fn bits_shr_signed(a: &[BitX], b: i64) -> Vec<BitX> {
         .collect()
 }
 
+/// Move the first `n` bits of the array `a` to the most significant bits (end) of a new vector.
 pub fn move_nbits_to_msb<T: Copy>(a: &[T], n: usize) -> Vec<T> {
     let (left, right) = a.split_at(n);
     [right, left].concat()
 }
 
 #[macro_export]
+/// Macro to compute the maximum of a list of constant expressions at compile time.
 macro_rules! const_max {
     ($x: expr) => ($x);
     ($x: expr, $($z: expr), +) => (

@@ -30,13 +30,13 @@ pub struct Array {
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
 pub struct Tuple {
-    pub elements: Vec<TraceType>,
+    pub elements: Box<[TraceType]>,
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
 pub struct Struct {
     pub name: String,
-    pub fields: Vec<Field>,
+    pub fields: Box<[Field]>,
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
@@ -97,7 +97,7 @@ pub fn make_array(base: TraceType, size: usize) -> TraceType {
     })
 }
 
-pub fn make_tuple(elements: Vec<TraceType>) -> TraceType {
+pub fn make_tuple(elements: Box<[TraceType]>) -> TraceType {
     if elements.is_empty() {
         TraceType::Empty
     } else {
@@ -124,7 +124,7 @@ pub fn make_signal(ty: TraceType, color: Color) -> TraceType {
     TraceType::Signal(Box::new(ty), color)
 }
 
-pub fn make_struct(name: &str, fields: Vec<Field>) -> TraceType {
+pub fn make_struct(name: &str, fields: Box<[Field]>) -> TraceType {
     TraceType::Struct(Struct {
         name: name.to_string(),
         fields,

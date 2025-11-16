@@ -11,7 +11,7 @@ pub fn visit_operands<F: FnMut(Sense, &Operand)>(op: &OpCode, mut f: F) {
             f(Sense::Read, rhs);
         }
         OpCode::Binary(Binary {
-            op: __,
+            op: _,
             lhs,
             arg1,
             arg2,
@@ -95,7 +95,7 @@ pub fn visit_operands_mut<F: FnMut(Sense, &mut Operand)>(op: &mut OpCode, mut f:
             f(Sense::Read, rhs);
         }
         OpCode::Binary(Binary {
-            op: __,
+            op: _,
             lhs,
             arg1,
             arg2,
