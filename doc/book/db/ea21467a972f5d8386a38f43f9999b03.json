@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[derive(Copy, Clone, PartialEq, Digital, Default)]\npub enum MyEnum {\n    Red(b8),\n    Green(b8, b8, b8),\n    #[default]\n    Blue,\n}\n\n#[kernel]\npub fn kernel(data: MyEnum) -> b8 {\n    if let MyEnum::Red(x) = data {\n        x\n    } else {\n        b8(42)\n    }\n}\n"},{"End":"CodeBlock"}]

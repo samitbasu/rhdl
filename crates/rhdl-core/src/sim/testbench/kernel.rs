@@ -358,7 +358,7 @@ where
         let args_for_vm = input.vec_tb();
         let expected = uut.apply(input).typed_bits();
         let actual = crate::rhif::vm::execute(&design, args_for_vm)?;
-        if expected.bits != actual.bits {
+        if expected.bits() != actual.bits() {
             return Err(RHDLError::VerilogVerificationErrorTyped { expected, actual });
         }
     }
@@ -373,7 +373,10 @@ where
         let expected: BitString = uut.apply(input).typed_bits().into();
         let actual = crate::rtl::vm::execute(&rtl, args_for_rtl)?;
         if expected.bits() != actual.bits() {
-            return Err(RHDLError::VerilogVerificationErrorRTL { expected, actual });
+            return Err(RHDLError::VerilogVerificationErrorRTL {
+                expected: expected.to_string(),
+                actual: actual.to_string(),
+            });
         }
     }
     debug!("Generating Verilog to run external checks");
@@ -387,7 +390,7 @@ where
     debug!("{rtl:?}");
     debug!("{ntl:?}");
     let desc = ntl.as_vlog("dut")?;
-    let tm = test_module_for_netlist(uut, desc, vals);
+    let tm = test_module_for_netlist(uut, desc.modules, vals);
     debug!("Running netlist test");
     debug!("{}", tm);
     tm.run_iverilog()?;

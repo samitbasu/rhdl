@@ -17,14 +17,14 @@ use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 #[allow(clippy::assign_op_pattern)]
 fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
     use rhdl::bits::alias::*;
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Foo {
         a: b8,
         b: b16,
         c: [b8; 3],
     }
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum State {
         Init,
         Run(b8),
@@ -33,7 +33,7 @@ fn test_ast_basic_func_inferred_bits() -> miette::Result<()> {
         Unknown,
     }
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Bar(pub b8, pub b8);
 
     #[kernel]
@@ -171,7 +171,7 @@ fn test_signal_ops_inference() -> miette::Result<()> {
     let err = compile_design::<add<Red, Green>>(CompilationMode::Asynchronous)
         .expect_err("Expected this to fail with a clock coherence error");
     let report = miette_report(err);
-    expect_test::expect_file!["signal_ops_inference_cross_clock.expect"].assert_eq(&report);
+    expect_test::expect_file!["expect/signal_ops_inference_cross_clock.expect"].assert_eq(&report);
     Ok(())
 }
 
@@ -213,23 +213,23 @@ fn test_struct_inference_inferred_lengths() -> miette::Result<()> {
     use rhdl::bits::alias::*;
     use rhdl::bits::bits;
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Rad {
         x: b4,
         y: b6,
     }
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Foo {
         a: b8,
         b: s4,
         c: Rad,
     }
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Bar(pub b8, pub b8);
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum NooState {
         #[default]
         Init,
@@ -284,23 +284,23 @@ fn test_struct_inference() -> miette::Result<()> {
     use rhdl::bits::alias::*;
     use rhdl::bits::bits;
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Rad {
         x: b4,
         y: b6,
     }
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Foo {
         a: b8,
         b: s4,
         c: Rad,
     }
 
-    #[derive(PartialEq, Digital)]
+    #[derive(PartialEq, Clone, Copy, Digital)]
     pub struct Bar(pub b8, pub b8);
 
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum NooState {
         #[default]
         Init,
@@ -377,51 +377,57 @@ fn test_bit_inference_with_explicit_length_works() -> miette::Result<()> {
 #[test]
 fn test_resize_unsigned_inference() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<M: BitWidth>(a: Signal<b8, Red>) -> Signal<Bits<M>, Red> {
+    fn do_stuff<const M: usize>(a: Signal<b8, Red>) -> Signal<Bits<M>, Red>
+    where
+        rhdl::bits::W<M>: BitWidth,
+    {
         let a = a.val();
         let b = a + 1;
         let c = b.resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<U12>, _, _, _>(do_stuff::<U12>, tuple_exhaustive_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<U8>, _, _, _>(do_stuff::<U8>, tuple_exhaustive_red())?;
-    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<12>, _, _, _>(do_stuff::<12>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<8>, _, _, _>(do_stuff::<8>, tuple_exhaustive_red())?;
+    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, tuple_exhaustive_red())?;
     Ok(())
 }
 
 #[test]
 fn test_resize_signed_inferred() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<M: BitWidth>(a: Signal<s6, Red>, b: Signal<s6, Red>) -> Signal<SignedBits<M>, Red> {
+    fn do_stuff<const M: usize>(
+        a: Signal<s6, Red>,
+        b: Signal<s6, Red>,
+    ) -> Signal<SignedBits<M>, Red>
+    where
+        rhdl::bits::W<M>: BitWidth,
+    {
         let (a, b) = (a.val(), b.val());
         let c = a + b;
         let c = c.resize();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<U12>, _, _, _>(
-        do_stuff::<U12>,
-        tuple_pair_sn_red::<U6>(),
-    )?;
-    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, tuple_pair_sn_red::<U6>())?;
-    test_kernel_vm_and_verilog::<do_stuff<U6>, _, _, _>(do_stuff::<U6>, tuple_pair_sn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<do_stuff<12>, _, _, _>(do_stuff::<12>, tuple_pair_sn_red::<6>())?;
+    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, tuple_pair_sn_red::<6>())?;
+    test_kernel_vm_and_verilog::<do_stuff<6>, _, _, _>(do_stuff::<6>, tuple_pair_sn_red::<6>())?;
     Ok(())
 }
 
 #[test]
 fn test_resize_signed_explicit() -> miette::Result<()> {
     #[kernel]
-    fn do_stuff<N: BitWidth>(a: Signal<s6, Red>, b: Signal<s6, Red>) -> Signal<s6, Red> {
+    fn do_stuff<const N: usize>(a: Signal<s6, Red>, b: Signal<s6, Red>) -> Signal<s6, Red>
+    where
+        rhdl::bits::W<N>: BitWidth,
+    {
         let (a, b) = (a.val(), b.val());
         let c = a + b;
         let c = c.resize::<N>();
-        let c = c.resize();
+        let c = c.resize::<6>();
         signal(c)
     }
-    test_kernel_vm_and_verilog::<do_stuff<U12>, _, _, _>(
-        do_stuff::<U12>,
-        tuple_pair_sn_red::<U6>(),
-    )?;
-    test_kernel_vm_and_verilog::<do_stuff<U4>, _, _, _>(do_stuff::<U4>, tuple_pair_sn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<do_stuff<12>, _, _, _>(do_stuff::<12>, tuple_pair_sn_red::<6>())?;
+    test_kernel_vm_and_verilog::<do_stuff<4>, _, _, _>(do_stuff::<4>, tuple_pair_sn_red::<6>())?;
     Ok(())
 }
 
@@ -448,6 +454,6 @@ fn test_array_inference() -> miette::Result<()> {
         signal(c)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>())?;
     Ok(())
 }

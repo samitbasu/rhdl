@@ -69,7 +69,10 @@ bool  |                     |
 #![doc = include_str!("../../../doc/sync_bram.md")]
 
 use quote::{format_ident, quote};
-use rhdl::prelude::*;
+use rhdl::{
+    core::{ScopedName, SyncKind},
+    prelude::*,
+};
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 use syn::parse_quote;
 
@@ -80,11 +83,17 @@ use syn::parse_quote;
 /// lines are implied with Synchronous circuits, they do not appear in the
 /// interface.
 #[derive(PartialEq, Debug, Clone)]
-pub struct SyncBRAM<T: Digital, N: BitWidth> {
+pub struct SyncBRAM<T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     initial: BTreeMap<Bits<N>, T>,
 }
 
-impl<T: Digital, N: BitWidth> Default for SyncBRAM<T, N> {
+impl<T: Digital, const N: usize> Default for SyncBRAM<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     fn default() -> Self {
         Self {
             initial: BTreeMap::default(),
@@ -92,19 +101,25 @@ impl<T: Digital, N: BitWidth> Default for SyncBRAM<T, N> {
     }
 }
 
-impl<T: Digital, N: BitWidth> SyncBRAM<T, N> {
+impl<T: Digital, const N: usize> SyncBRAM<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// Create a new [SyncBRAM] with the provided initial contents.
     pub fn new(initial: impl IntoIterator<Item = (Bits<N>, T)>) -> Self {
-        let len = (1 << N::BITS) as usize;
+        let len = (1 << N) as usize;
         Self {
             initial: initial.into_iter().take(len).collect(),
         }
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// A collection of signals for a raw write interface
-pub struct Write<T: Digital, N: BitWidth> {
+pub struct Write<T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// The address for the write operation
     pub addr: Bits<N>,
     /// The value to write in the write operation
@@ -113,29 +128,41 @@ pub struct Write<T: Digital, N: BitWidth> {
     pub enable: bool,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Core inputs
-pub struct In<T: Digital, N: BitWidth> {
+pub struct In<T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     /// The read address to provide to the [SyncBRAM]
     pub read_addr: Bits<N>,
     /// The write parameters as a [Write] struct.
     pub write: Write<T, N>,
 }
 
-impl<T: Digital, N: BitWidth> SynchronousDQ for SyncBRAM<T, N> {
+impl<T: Digital, const N: usize> SynchronousDQ for SyncBRAM<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type D = ();
     type Q = ();
 }
 
-impl<T: Digital, N: BitWidth> SynchronousIO for SyncBRAM<T, N> {
+impl<T: Digital, const N: usize> SynchronousIO for SyncBRAM<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = In<T, N>;
     type O = T;
-    type Kernel = NoKernel3<ClockReset, Self::I, (), (Self::O, ())>;
+    type Kernel = NoSynchronousKernel<ClockReset, Self::I, (), (Self::O, ())>;
 }
 
 #[derive(PartialEq, Debug, Clone)]
 #[doc(hidden)]
-pub struct S<T: Digital, N: BitWidth> {
+pub struct S<T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     clock: Clock,
     contents: BTreeMap<Bits<N>, T>,
     output_current: T,
@@ -143,7 +170,10 @@ pub struct S<T: Digital, N: BitWidth> {
     write_prev: Write<T, N>,
 }
 
-impl<T: Digital, N: BitWidth> Synchronous for SyncBRAM<T, N> {
+impl<T: Digital, const N: usize> Synchronous for SyncBRAM<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type S = Rc<RefCell<S<T, N>>>;
 
     fn init(&self) -> Self::S {
@@ -154,14 +184,6 @@ impl<T: Digital, N: BitWidth> Synchronous for SyncBRAM<T, N> {
             output_next: T::dont_care(),
             write_prev: Write::dont_care(),
         }))
-    }
-
-    fn description(&self) -> String {
-        format!(
-            "Synchronous RAM with {} entries of type {}",
-            1 << N::BITS,
-            std::any::type_name::<T>()
-        )
     }
 
     fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O {
@@ -191,32 +213,41 @@ impl<T: Digital, N: BitWidth> Synchronous for SyncBRAM<T, N> {
         state.output_current
     }
 
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        Ok(CircuitDescriptor {
-            unique_name: name.to_string(),
-            input_kind: <Self::I as Digital>::static_kind(),
-            output_kind: <Self::O as Digital>::static_kind(),
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError> {
+        let name = scoped_name.to_string();
+        Descriptor::<SyncKind> {
+            name: scoped_name,
+            input_kind: <<Self as SynchronousIO>::I as Digital>::static_kind(),
+            output_kind: <<Self as SynchronousIO>::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            children: Default::default(),
-            rtl: None,
-            ntl: synchronous_black_box(self, name)?,
-        })
+            kernel: None,
+            netlist: None,
+            hdl: Some(self.hdl(&name)?),
+            _phantom: std::marker::PhantomData,
+        }
+        .with_netlist_black_box()
     }
+}
 
+impl<T: Digital, const N: usize> SyncBRAM<T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = name.to_owned();
         let module = format_ident!("{}", module_name);
-        let input_bits: vlog::BitRange = (0..(<Self::I as Digital>::BITS)).into();
-        let address_bits: vlog::BitRange = (0..(N::BITS)).into();
+        let input_bits: vlog::BitRange =
+            (0..(<<Self as SynchronousIO>::I as Digital>::BITS)).into();
+        let address_bits: vlog::BitRange = (0..N).into();
         let data_bits: vlog::BitRange = (0..(T::BITS)).into();
-        let memory_size: vlog::BitRange = (0..(1 << N::BITS)).into();
+        let memory_size: vlog::BitRange = (0..(1 << N)).into();
         let initial_values = self.initial.iter().map(|(addr, val)| {
             let val: vlog::LitVerilog = val.typed_bits().into();
             let addr = syn::Index::from(addr.raw() as usize);
             quote! {mem[#addr] = #val;}
         });
-        let i_kind = <Self::I as Digital>::static_kind();
+        let i_kind = <<Self as SynchronousIO>::I as Digital>::static_kind();
         let read_addr_index: vlog::BitRange = bit_range(i_kind, &path!(.read_addr))?.0.into();
         let write_addr_index: vlog::BitRange = bit_range(i_kind, &path!(.write.addr))?.0.into();
         let write_value_index: vlog::BitRange = bit_range(i_kind, &path!(.write.value))?.0.into();
@@ -257,8 +288,7 @@ impl<T: Digital, N: BitWidth> Synchronous for SyncBRAM<T, N> {
         };
         Ok(HDLDescriptor {
             name: module_name,
-            body: module,
-            children: Default::default(),
+            modules: module.into(),
         })
     }
 }
@@ -290,7 +320,7 @@ mod tests {
 
     struct TestItem(Cmd, b8);
 
-    impl From<Cmd> for In<b8, U4> {
+    impl From<Cmd> for In<b8, 4> {
         fn from(cmd: Cmd) -> Self {
             match cmd {
                 Cmd::Write(addr, value) => In {
@@ -311,7 +341,7 @@ mod tests {
 
     #[test]
     fn test_scan_out_ram() -> miette::Result<()> {
-        type UC = SyncBRAM<b8, U4>;
+        type UC = SyncBRAM<b8, 4>;
         let uut: UC = SyncBRAM::new(
             (0..)
                 .enumerate()
@@ -324,14 +354,14 @@ mod tests {
         let inputs = test.clone().map(|item| item.0.into());
         let expected = test.map(|item| item.1).take(16);
         let stream = inputs.with_reset(1).clock_pos_edge(100);
-        let sim = uut.run(stream)?;
+        let sim = uut.run(stream);
         let vcd = sim.clone().collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("ram")
             .join("synchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["fe218c2f15e6bf52f67fe13383d9ce2e62f979fc6e284e7f5195c165ef0c83fe"];
+        let expect = expect!["5def5c54395ba2862fc22ba74776d05afd9b013a1600fab6a7b0d78a6da9ba72"];
         let digest = vcd
             .dump_to_file(root.join("test_scan_out_ram.vcd"))
             .unwrap();
@@ -347,14 +377,14 @@ mod tests {
 
     fn random_command_stream(
         len: usize,
-    ) -> impl Iterator<Item = TimedSample<(ClockReset, In<b8, U4>)>> {
+    ) -> impl Iterator<Item = TimedSample<(ClockReset, In<b8, 4>)>> {
         let inputs = (0..).map(|_| rand_cmd().into()).take(len);
         inputs.with_reset(1).clock_pos_edge(100)
     }
 
     #[test]
     fn test_hdl_output() -> miette::Result<()> {
-        type UC = SyncBRAM<b8, U4>;
+        type UC = SyncBRAM<b8, 4>;
         let uut: UC = SyncBRAM::new((0..).map(|ndx| (bits(ndx), bits(0))));
         let expect = expect_test::expect![[r#"
             module top(input wire [1:0] clock_reset, input wire [16:0] i, output reg [7:0] o);
@@ -397,10 +427,10 @@ mod tests {
                end
             endmodule
         "#]];
-        let hdl = uut.hdl("top")?.as_module().pretty();
+        let hdl = uut.hdl("top")?.modules.pretty();
         expect.assert_eq(&hdl);
         let stream = random_command_stream(1000);
-        let test_bench = uut.run(stream)?.collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(stream).collect::<SynchronousTestBench<_, _>>();
         let test_mod = test_bench.ntl(&uut, &TestBenchOptions::default().skip(2))?;
         test_mod.run_iverilog()?;
         let test_mod = test_bench.rtl(&uut, &TestBenchOptions::default().skip(2))?;
@@ -410,7 +440,7 @@ mod tests {
 
     #[test]
     fn test_ram_write_then_read() -> miette::Result<()> {
-        type UC = SyncBRAM<b8, U4>;
+        type UC = SyncBRAM<b8, 4>;
         let uut: UC = SyncBRAM::new(std::iter::repeat_n((bits(0), b8::from(0)), 16));
         let test = vec![
             Cmd::Write(bits(0), bits(72)),
@@ -426,7 +456,7 @@ mod tests {
             .map(|x| x.into())
             .with_reset(1)
             .clock_pos_edge(100);
-        let sim = uut.run(inputs)?;
+        let sim = uut.run(inputs);
         let outputs = sim
             .glitch_check(|x| (x.value.0.clock, x.value.2))
             .synchronous_sample()

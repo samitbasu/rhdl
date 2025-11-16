@@ -51,21 +51,21 @@ pub struct Stmt {
 
 #[derive(Debug, Clone, Hash)]
 pub enum StmtKind {
-    Local(Box<Local>),
-    Expr(Box<Expr>),
-    Semi(Box<Expr>),
+    Local(Local),
+    Expr(Expr),
+    Semi(Expr),
 }
 
 #[derive(Debug, Clone, Hash)]
 pub struct Block {
     pub id: NodeId,
-    pub stmts: Vec<Box<Stmt>>,
+    pub stmts: Vec<Stmt>,
 }
 
 #[derive(Debug, Clone, Hash)]
 pub struct Local {
     pub id: NodeId,
-    pub pat: Box<Pat>,
+    pub pat: Pat,
     pub init: Option<Box<Expr>>,
 }
 
@@ -109,18 +109,18 @@ pub struct PatIdent {
 
 #[derive(Debug, Clone, Hash)]
 pub struct PatTuple {
-    pub elements: Vec<Box<Pat>>,
+    pub elements: Vec<Pat>,
 }
 
 #[derive(Debug, Clone, Hash)]
 pub struct PatSlice {
-    pub elems: Vec<Box<Pat>>,
+    pub elems: Vec<Pat>,
 }
 
 #[derive(Debug, Clone, Hash)]
 pub struct PatTupleStruct {
-    pub path: Box<Path>,
-    pub elems: Vec<Box<Pat>>,
+    pub path: Path,
+    pub elems: Vec<Pat>,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -130,7 +130,7 @@ pub struct PatLit {
 
 #[derive(Debug, Clone, Hash)]
 pub struct PatOr {
-    pub segments: Vec<Box<Pat>>,
+    pub segments: Vec<Pat>,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -140,13 +140,13 @@ pub struct PatParen {
 
 #[derive(Debug, Clone, Hash)]
 pub struct PatPath {
-    pub path: Box<Path>,
+    pub path: Path,
 }
 
 #[derive(Debug, Clone, Hash)]
 pub struct PatStruct {
-    pub path: Box<Path>,
-    pub fields: Vec<Box<FieldPat>>,
+    pub path: Path,
+    pub fields: Vec<FieldPat>,
     pub rest: bool,
 }
 
@@ -182,7 +182,6 @@ pub enum ExprKind {
     Array(ExprArray),
     Range(ExprRange),
     Path(ExprPath),
-    Let(ExprLet),
     Repeat(ExprRepeat),
     Struct(ExprStruct),
     Call(ExprCall),
@@ -225,7 +224,7 @@ pub struct ExprUnary {
 #[derive(Debug, Clone, Hash)]
 pub struct ExprMatch {
     pub expr: Box<Expr>,
-    pub arms: Vec<Box<Arm>>,
+    pub arms: Vec<Arm>,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -261,12 +260,12 @@ pub struct ExprParen {
 
 #[derive(Debug, Clone, Hash)]
 pub struct ExprTuple {
-    pub elements: Vec<Box<Expr>>,
+    pub elements: Vec<Expr>,
 }
 
 #[derive(Debug, Clone, Hash)]
 pub struct ExprForLoop {
-    pub pat: Box<Pat>,
+    pub pat: Pat,
     pub expr: Box<Expr>,
     pub body: Box<Block>,
 }
@@ -295,7 +294,7 @@ pub struct ExprBlock {
 
 #[derive(Debug, Clone, Hash)]
 pub struct ExprArray {
-    pub elems: Vec<Box<Expr>>,
+    pub elems: Vec<Expr>,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -307,13 +306,7 @@ pub struct ExprRange {
 
 #[derive(Debug, Clone, Hash)]
 pub struct ExprPath {
-    pub path: Box<Path>,
-}
-
-#[derive(Debug, Clone, Hash)]
-pub struct ExprLet {
-    pub pattern: Box<Pat>,
-    pub value: Box<Expr>,
+    pub path: Path,
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -324,8 +317,8 @@ pub struct ExprRepeat {
 
 #[derive(Debug, Clone, Hash)]
 pub struct ExprStruct {
-    pub path: Box<Path>,
-    pub fields: Vec<Box<FieldValue>>,
+    pub path: Path,
+    pub fields: Vec<FieldValue>,
     pub rest: Option<Box<Expr>>,
     pub template: TypedBits,
 }
@@ -345,8 +338,8 @@ pub enum BitsKind {
 
 #[derive(Debug, Clone, Hash)]
 pub struct ExprCall {
-    pub path: Box<Path>,
-    pub args: Vec<Box<Expr>>,
+    pub path: Path,
+    pub args: Vec<Expr>,
     pub signature: Option<DigitalSignature>,
     pub code: Option<KernelFnKind>,
 }
@@ -354,7 +347,7 @@ pub struct ExprCall {
 #[derive(Debug, Clone, Hash)]
 pub struct ExprMethodCall {
     pub receiver: Box<Expr>,
-    pub args: Vec<Box<Expr>>,
+    pub args: Vec<Expr>,
     pub method: &'static str,
     pub turbo: Option<usize>,
 }
@@ -366,34 +359,63 @@ pub struct FieldValue {
 }
 
 #[derive(Debug, Clone, Copy, Hash)]
+/// Binary operators
 pub enum BinOp {
+    /// Addition
     Add,
+    /// Subtraction
     Sub,
+    /// Multiplication
     Mul,
+    /// Logical AND
     And,
+    /// Logical OR
     Or,
+    /// Bitwise XOR
     BitXor,
+    /// Bitwise AND
     BitAnd,
+    /// Bitwise OR
     BitOr,
+    /// Shift left
     Shl,
+    /// Shift right
     Shr,
+    /// Equality Comparison
     Eq,
+    /// Less than Comparison
     Lt,
+    /// Less than or Equal Comparison
     Le,
+    /// Not Equal Comparison
     Ne,
+    /// Greater than or Equal Comparison
     Ge,
+    /// Greater than Comparison
     Gt,
+    /// Addition Assignment
     AddAssign,
+    /// Subtraction Assignment
     SubAssign,
+    /// Multiplication Assignment
     MulAssign,
+    /// Bitwise XOR Assignment
     BitXorAssign,
+    /// Bitwise AND Assignment
     BitAndAssign,
+    /// Bitwise OR Assignment
     BitOrAssign,
+    /// Shift left Assignment
     ShlAssign,
+    /// Shift right Assignment
     ShrAssign,
 }
 
 impl BinOp {
+    /// Check if the binary operator is a self-assignment operator
+    ///
+    /// Self-assignment operators are those that modify the left-hand side variable
+    /// in place, such as `+=`, `-=`, etc.
     pub fn is_self_assign(&self) -> bool {
         matches!(
             self,
@@ -410,8 +432,11 @@ impl BinOp {
 }
 
 #[derive(Debug, Clone, Copy, Hash)]
+/// Unary operators
 pub enum UnOp {
+    /// Negation
     Neg,
+    /// Logical NOT
     Not,
 }
 
@@ -436,7 +461,7 @@ pub struct ArmConstant {
 
 #[derive(Debug, Clone, Hash)]
 pub struct ArmEnum {
-    pub pat: Box<Pat>,
+    pub pat: Pat,
     pub discriminant: TypedBits,
 }
 
@@ -461,7 +486,7 @@ impl std::fmt::Debug for ExprLit {
 
 #[derive(Clone, Hash)]
 pub struct ExprTypedBits {
-    pub path: Box<Path>,
+    pub path: Path,
     pub value: TypedBits,
     pub code: String,
 }
@@ -499,8 +524,11 @@ impl std::fmt::LowerHex for FunctionId {
     }
 }
 
+/// Flags for kernel functions
+/// These flags can be used to modify the behavior of kernel functions.
 #[derive(Copy, Clone, Debug, PartialEq, Hash)]
 pub enum KernelFlags {
+    /// Allow weak partial initialization checking
     AllowWeakPartial,
 }
 
@@ -508,9 +536,9 @@ pub enum KernelFlags {
 pub struct KernelFn {
     pub id: NodeId,
     pub name: &'static str,
-    pub inputs: Vec<Box<Pat>>,
+    pub inputs: Vec<Pat>,
     pub ret: Kind,
-    pub body: Box<Block>,
+    pub body: Block,
     pub fn_id: FunctionId,
     pub text: Option<&'static str>,
     pub meta_db: MetaDB,

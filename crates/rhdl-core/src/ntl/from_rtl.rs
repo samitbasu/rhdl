@@ -96,8 +96,7 @@ impl<'a> NtlBuilder<'a> {
         let operands = match operand {
             tl::Operand::Literal(literal_id) => {
                 let bs = &self.object.symtab[&literal_id];
-                bs.bits
-                    .iter()
+                bs.iter()
                     .enumerate()
                     .map(|(ndx, &b)| {
                         let wd = WireDetails {

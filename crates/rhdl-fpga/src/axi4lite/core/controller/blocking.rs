@@ -85,7 +85,7 @@ use crate::{
 
 use super::{read::ReadController, write::WriteController};
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 /// Make a blocking read or write request on an AXI bus
 pub enum BlockRequest {
     /// Make a blocking write request with the given [WriteCommand]
@@ -106,7 +106,7 @@ impl Default for BlockRequest {
     }
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 /// The response to a [BlockRequest]
 pub enum BlockResponse {
     /// The response to a write [BlockRequest] in the form of a [WriteResult]
@@ -121,7 +121,7 @@ impl Default for BlockResponse {
     }
 }
 
-#[derive(PartialEq, Digital, Default)]
+#[derive(PartialEq, Digital, Clone, Copy, Default)]
 #[doc(hidden)]
 pub enum State {
     #[default]
@@ -144,7 +144,7 @@ pub struct BlockReadWriteController {
     state: DFF<State>,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 /// Input for the [BlockReadWriteController]
 pub struct In {
     /// The [BlockRequest] input for the request stream
@@ -157,7 +157,7 @@ pub struct In {
     pub read_axi: ReadMISO,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 /// Output for the [BlockReadWriteController]
 pub struct Out {
     /// The [BlockResponse] stream output
@@ -246,15 +246,16 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
 
 #[cfg(test)]
 mod tests {
-    use rhdl::prelude::vlog::Pretty;
+    use rhdl::{core::circuit::scoped_name::ScopedName, prelude::vlog::Pretty};
 
     use super::*;
 
     #[test]
     fn no_combinatorial_paths() -> miette::Result<()> {
         let uut = BlockReadWriteController::default();
-        let descriptor = uut.hdl("top")?;
-        let module = descriptor.as_module().pretty();
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        let hdl = descriptor.hdl()?;
+        let module = hdl.modules.pretty();
         expect_test::expect_file!["blocking_controller.vlog"].assert_eq(&module);
         drc::no_combinatorial_paths(&uut)?;
         Ok(())

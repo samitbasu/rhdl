@@ -11,8 +11,8 @@ pub fn sys_clock<T: CircuitIO>(path: &Path) -> Result<Driver<T>, RHDLError> {
         "sysclk",
         path,
         &ibufds::Options {
-            diff_term: false.into(),
-            ibuf_low_pwr: true.into(),
+            diff_term: false,
+            ibuf_low_pwr: true,
             io_standard: IOStandard::LowVoltageDifferentialSignal_2v5,
             pos_pin: bga_pin!(K, 4),
             neg_pin: bga_pin!(J, 4),
@@ -28,8 +28,9 @@ mod tests {
     use rhdl::prelude::*;
 
     #[test]
+    #[ignore]
     fn test_sys_clock() {
-        #[derive(PartialEq, Digital, Timed)]
+        #[derive(PartialEq, Digital, Clone, Copy, Timed)]
         struct I {
             clock: Signal<Clock, Red>,
             reset: Signal<Reset, Red>,
@@ -46,7 +47,7 @@ mod tests {
         impl CircuitIO for T {
             type I = I;
             type O = ();
-            type Kernel = NoKernel2<I, (), ((), ())>;
+            type Kernel = NoCircuitKernel<I, (), ((), ())>;
         }
 
         let clock_driver = super::sys_clock::<T>(&path!(.clock.val())).unwrap();

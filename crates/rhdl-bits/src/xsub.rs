@@ -1,24 +1,67 @@
-use std::ops::Add;
+//! Extending Subtraction (XSub) trait and implementations
+//!
+//! The `XSub` trait provides a way to perform subtraction operations that preserve the bit width of the operands,
+//! resulting in an output that is one bit larger than the larger of the two inputs. This is particularly useful
+//! in scenarios where overflow needs to be avoided.
+//!
+//! Because of limitations in stable Rust, the application of applying the `.xsub()` method to a [Bits] or [SignedBits]
+//! value will always return a [SignedDynBits] value.  This is because the output
+//! size is not expressible at compile time using const generics.
+//!
+//!```
+//!# use rhdl_bits::*;
+//!# use rhdl_bits::alias::*;
+//! let a: Bits<8> = 100.into();
+//! let b: Bits<8> = 200.into();
+//! let c = a.xsub(b); // -100, which fits in 9 bits
+//! assert_eq!(c.as_signed_bits::<9>(), s9(-100)); // c is a SignedDynBits with 9 bits
+//!```
+//!
+//! Note that the sizes of the inputs do not need to be the same.  The output size is always
+//! one bit larger than the larger of the two input sizes:
+//!
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! let a: Bits<8> = 100.into();
+//! let b: Bits<7> = 50.into();
+//! let c = a.xsub(b); // 50, which fits in 9 bits
+//! assert_eq!(c.as_signed_bits::<9>(), s9(50)); // c is a SignedDynBits with 9 bits
+//! ```
+//!
+//! If the arguments are already [DynBits] the output will also be [SignedDynBits]:
+//!
+//! ```
+//! # use rhdl_bits::*;
+//! # use rhdl_bits::alias::*;
+//! # let a: Bits<8> = 100.into();
+//! # let b: Bits<7> = 50.into();
+//! let a = a.dyn_bits();
+//! let b = b.dyn_bits();
+//! let c = a.xsub(b); // 50, which fits in 9 bits
+//! assert_eq!(c, s9(50).dyn_bits()); // c is a SignedDynBits with 9 bits
+//! ```
+//!
+use super::{BitWidth, Bits, SignedBits, dyn_bits::DynBits, signed_dyn_bits::SignedDynBits};
+use crate::bitwidth::W;
 
-use rhdl_typenum::prelude::*;
-
-use super::{
-    BitWidth, Bits, SignedBits, dyn_bits::DynBits, signed, signed_dyn_bits::SignedDynBits,
-};
-
+/// Extended subtraction trait.  Represents a bit-preserving subtraction
+/// of two values (either signed or unsigned) where the output
+/// size is one bit larger than the larger of the two inputs.
+/// This is useful for avoiding overflow in subtraction operations.
 pub trait XSub<Rhs = Self> {
+    /// The output type of the subtraction.
     type Output;
+    /// Perform the extended subtraction operation.
     fn xsub(self, rhs: Rhs) -> Self::Output;
 }
 
-impl<N, M> XSub<Bits<M>> for Bits<N>
+impl<const N: usize, const M: usize> XSub<Bits<M>> for Bits<N>
 where
-    M: BitWidth,
-    N: Max<M> + BitWidth,
-    Maximum<N, M>: Add<U1>,
-    op!(max(N, M) + U1): BitWidth,
+    W<N>: BitWidth,
+    W<M>: BitWidth,
 {
-    type Output = SignedBits<op!(max(N, M) + U1)>;
+    type Output = SignedDynBits;
     fn xsub(self, rhs: Bits<M>) -> Self::Output {
         // The rationale here is as follows.
         // If
@@ -36,35 +79,39 @@ where
         //    k-1 >= n
         // Or equivalently,
         //    k >= max(m,n) + 1
-        let a = self.raw() as i128;
-        let b = rhs.raw() as i128;
-        signed(a.wrapping_sub(b))
+        self.dyn_bits().xsub(rhs)
     }
 }
 
-impl<N: BitWidth> XSub<Bits<N>> for DynBits {
+impl<const N: usize> XSub<Bits<N>> for DynBits
+where
+    W<N>: BitWidth,
+{
     type Output = SignedDynBits;
     fn xsub(self, rhs: Bits<N>) -> Self::Output {
-        assert!(self.bits.max(N::BITS) < 128);
+        assert!(self.bits.max(N) < 128);
         let a = self.val as i128;
         let b = rhs.raw() as i128;
         SignedDynBits {
             val: a.wrapping_sub(b),
-            bits: self.bits.max(N::BITS) + 1,
+            bits: self.bits.max(N) + 1,
         }
         .wrapped()
     }
 }
 
-impl<N: BitWidth> XSub<DynBits> for Bits<N> {
+impl<const N: usize> XSub<DynBits> for Bits<N>
+where
+    W<N>: BitWidth,
+{
     type Output = SignedDynBits;
     fn xsub(self, rhs: DynBits) -> Self::Output {
-        assert!(N::BITS.max(rhs.bits) < 128);
+        assert!(N.max(rhs.bits) < 128);
         let a = self.raw() as i128;
         let b = rhs.val as i128;
         SignedDynBits {
             val: a.wrapping_sub(b),
-            bits: N::BITS.max(rhs.bits) + 1,
+            bits: N.max(rhs.bits) + 1,
         }
         .wrapped()
     }
@@ -82,14 +129,12 @@ impl XSub<DynBits> for DynBits {
     }
 }
 
-impl<N, M> XSub<SignedBits<M>> for SignedBits<N>
+impl<const N: usize, const M: usize> XSub<SignedBits<M>> for SignedBits<N>
 where
-    N: Max<M> + BitWidth,
-    M: BitWidth,
-    Maximum<N, M>: Add<U1>,
-    op!(max(N, M) + U1): BitWidth,
+    W<N>: BitWidth,
+    W<M>: BitWidth,
 {
-    type Output = SignedBits<op!(max(N, M) + U1)>;
+    type Output = SignedDynBits;
     // The rationale here is as follows.
     //    A in [-2^(n-1), 2^(n-1)-1]
     //    B in [-2^(m-1), 2^(m-1)-1]
@@ -113,29 +158,35 @@ where
     // the difference, we need
     //    k-1 >= p, or k >= max(m,n) + 1
     fn xsub(self, rhs: SignedBits<M>) -> Self::Output {
-        signed(self.val.wrapping_sub(rhs.val))
+        self.dyn_bits().xsub(rhs)
     }
 }
 
-impl<N: BitWidth> XSub<SignedDynBits> for SignedBits<N> {
+impl<const N: usize> XSub<SignedDynBits> for SignedBits<N>
+where
+    W<N>: BitWidth,
+{
     type Output = SignedDynBits;
     fn xsub(self, rhs: SignedDynBits) -> Self::Output {
-        assert!(N::BITS.max(rhs.bits) < 128);
+        assert!(N.max(rhs.bits) < 128);
         SignedDynBits {
-            val: self.val.wrapping_sub(rhs.val),
-            bits: N::BITS.max(rhs.bits) + 1,
+            val: self.raw().wrapping_sub(rhs.val),
+            bits: N.max(rhs.bits) + 1,
         }
         .wrapped()
     }
 }
 
-impl<N: BitWidth> XSub<SignedBits<N>> for SignedDynBits {
+impl<const N: usize> XSub<SignedBits<N>> for SignedDynBits
+where
+    W<N>: BitWidth,
+{
     type Output = SignedDynBits;
     fn xsub(self, rhs: SignedBits<N>) -> Self::Output {
-        assert!(self.bits.max(N::BITS) < 128);
+        assert!(self.bits.max(N) < 128);
         SignedDynBits {
-            val: self.val.wrapping_sub(rhs.val),
-            bits: self.bits.max(N::BITS) + 1,
+            val: self.val.wrapping_sub(rhs.raw()),
+            bits: self.bits.max(N) + 1,
         }
         .wrapped()
     }
@@ -156,55 +207,29 @@ impl XSub<SignedDynBits> for SignedDynBits {
 #[cfg(test)]
 mod tests {
 
-    use crate::bits;
+    use crate::{bits, signed};
 
     use super::*;
 
-    /*    fn xsub_trait<N>()
-        where
-            N: BitWidth,
-            op!(N + U1): BitWidth,
-            op!(max(N, N) + U1): BitWidth,
-        {
-            let a = bits::<N>(42);
-            let b = bits::<N>(36);
-            let c = a.xsub(b);
-            assert_eq!(c.raw(), signed::<Sum<N, U1>>(42 - 36).raw());
-        }
-
-        #[test]
-        fn test_xsub_trait() {
-            xsub_trait::<U8>();
-        }
-    */
     #[test]
     fn test_xsub() {
-        let a = bits::<U32>(0x1234_5678);
-        let b = bits::<U32>(0x8765_4321);
+        let a = bits::<32>(0x1234_5678);
+        let b = bits::<32>(0x8765_4321);
         let c = a.xsub(b);
-        assert_eq!(c, signed(0x1234_5678 - 0x8765_4321));
-        let a = bits::<U8>(0);
-        let b = bits::<U8>(255);
+        assert_eq!(c.as_signed_bits::<33>(), signed(0x1234_5678 - 0x8765_4321));
+        let a = bits::<8>(0);
+        let b = bits::<8>(255);
         let c = a.xsub(b);
-        assert_eq!(c, signed(-255));
-        let a = bits::<U8>(255);
-        let b = bits::<U8>(0);
+        assert_eq!(c.as_signed_bits::<9>(), signed(-255));
+        let a = bits::<8>(255);
+        let b = bits::<8>(0);
         let c = a.xsub(b);
-        assert_eq!(c, signed(255));
-        let a = signed::<U8>(127);
-        let b = signed::<U8>(-128);
+        assert_eq!(c.as_signed_bits::<9>(), signed(255));
+        let a = signed::<8>(127);
+        let b = signed::<8>(-128);
         let c = a.xsub(b);
-        assert_eq!(c, signed(127 + 128));
+        assert_eq!(c.as_signed_bits::<9>(), signed(127 + 128));
         let c = b.xsub(a);
-        assert_eq!(c, signed(-127 - 128));
-    }
-
-    #[test]
-    fn test_xsub_size_trait() {
-        let a = signed::<U4>(7);
-        let b: SignedBits<U8> = signed::<U8>(3);
-        let _c: SignedBits<U9> = a.xsub(b);
-        let w = Maximum::<U4, U8>::BITS;
-        assert_eq!(w, 8);
+        assert_eq!(c.as_signed_bits::<9>(), signed(-127 - 128));
     }
 }

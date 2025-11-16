@@ -6,7 +6,7 @@ pub fn visit_slots<F: FnMut(Sense, &Slot)>(op: &OpCode, mut f: F) {
     match op {
         OpCode::Noop => {}
         OpCode::Binary(Binary {
-            op: __,
+            op: _,
             lhs,
             arg1,
             arg2,
@@ -68,7 +68,9 @@ pub fn visit_slots<F: FnMut(Sense, &Slot)>(op: &OpCode, mut f: F) {
             for val in fields {
                 f(Sense::Read, &val.value);
             }
-            rest.as_ref().map(|x| f(Sense::Read, x));
+            if let Some(x) = rest.as_ref() {
+                f(Sense::Read, x)
+            }
         }
         OpCode::Tuple(Tuple { lhs, fields }) => {
             f(Sense::Write, lhs);
@@ -123,7 +125,7 @@ pub fn visit_slots<F: FnMut(Sense, &Slot)>(op: &OpCode, mut f: F) {
             f(Sense::Read, arg);
         }
         OpCode::Wrap(Wrap {
-            op: __,
+            op: _,
             lhs,
             arg,
             kind: _,
@@ -138,7 +140,7 @@ pub fn visit_slots_mut<F: FnMut(Sense, &mut Slot)>(op: &mut OpCode, mut f: F) {
     match op {
         OpCode::Noop => {}
         OpCode::Binary(Binary {
-            op: __,
+            op: _,
             lhs,
             arg1,
             arg2,
@@ -200,7 +202,9 @@ pub fn visit_slots_mut<F: FnMut(Sense, &mut Slot)>(op: &mut OpCode, mut f: F) {
             for val in fields {
                 f(Sense::Read, &mut val.value);
             }
-            rest.as_mut().map(|x| f(Sense::Read, x));
+            if let Some(x) = rest.as_mut() {
+                f(Sense::Read, x)
+            }
         }
         OpCode::Tuple(Tuple { lhs, fields }) => {
             f(Sense::Write, lhs);
@@ -255,7 +259,7 @@ pub fn visit_slots_mut<F: FnMut(Sense, &mut Slot)>(op: &mut OpCode, mut f: F) {
             f(Sense::Read, arg);
         }
         OpCode::Wrap(Wrap {
-            op: __,
+            op: _,
             lhs,
             arg,
             kind: _,

@@ -7,7 +7,7 @@
 
 use rhdl::prelude::*;
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 #[repr(i8)]
 enum Packet {
     Color { r: b8, g: b8, b: b8 } = 1,
@@ -36,7 +36,7 @@ fn test_packet_random() {
     }
 }
 
-#[derive(PartialEq, Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
 enum State {
     #[default]
     Init = -2,
@@ -47,7 +47,7 @@ enum State {
     Invalid,
 }
 
-#[derive(PartialEq, Debug, Digital, Default)]
+#[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
 struct LogLevel {
     level: b8,
     active: bool,
@@ -65,26 +65,29 @@ fn test_color_case() {
         foo_test
             .path(&Path::default().payload("Color").field("g"))
             .unwrap()
-            .bits,
-        b8::from(0b11010101).bin()
+            .bits(),
+        b8::from(0b11010101).bin().to_vec()
     );
     assert_eq!(
         foo_test
             .path(&Path::default().payload("Color").field("g"))
             .unwrap()
-            .kind,
+            .kind(),
         Kind::make_bits(8)
     );
     assert_eq!(
         foo_test
             .path(&Path::default().payload("Color").field("r"))
             .unwrap()
-            .bits,
-        b8::from(0b10101010).bin()
+            .bits(),
+        b8::from(0b10101010).bin().to_vec()
     );
     assert_eq!(
-        foo_test.path(&Path::default().discriminant()).unwrap().bits,
-        b5::from(0b00001).bin()
+        foo_test
+            .path(&Path::default().discriminant())
+            .unwrap()
+            .bits(),
+        b5::from(0b00001).bin().to_vec()
     );
 }
 
@@ -99,26 +102,29 @@ fn test_size_case() {
         foo_test
             .path(&Path::default().payload("Size").field("w"))
             .unwrap()
-            .bits,
-        b16::from(0b1010101010101010).bin()
+            .bits(),
+        b16::from(0b1010101010101010).bin().to_vec()
     );
     assert_eq!(
         foo_test
             .path(&Path::default().payload("Size").field("w"))
             .unwrap()
-            .kind,
+            .kind(),
         Kind::make_bits(16)
     );
     assert_eq!(
         foo_test
             .path(&Path::default().payload("Size").field("h"))
             .unwrap()
-            .bits,
-        b16::from(0b1101010110101010).bin()
+            .bits(),
+        b16::from(0b1101010110101010).bin().to_vec()
     );
     assert_eq!(
-        foo_test.path(&Path::default().discriminant()).unwrap().bits,
-        b5::from(0b00010).bin()
+        foo_test
+            .path(&Path::default().discriminant())
+            .unwrap()
+            .bits(),
+        b5::from(0b00010).bin().to_vec()
     );
 }
 
@@ -129,26 +135,29 @@ fn test_position_case() {
         foo_test
             .path(&Path::default().payload("Position").tuple_index(0))
             .unwrap()
-            .bits,
-        b4::from(0b1010).bin()
+            .bits(),
+        b4::from(0b1010).bin().to_vec()
     );
     assert_eq!(
         foo_test
             .path(&Path::default().payload("Position").tuple_index(0))
             .unwrap()
-            .kind,
+            .kind(),
         Kind::make_bits(4)
     );
     assert_eq!(
         foo_test
             .path(&Path::default().payload("Position").tuple_index(1))
             .unwrap()
-            .bits,
-        b4::from(0b1101).bin()
+            .bits(),
+        b4::from(0b1101).bin().to_vec()
     );
     assert_eq!(
-        foo_test.path(&Path::default().discriminant()).unwrap().bits,
-        b5::from(0b00100).bin()
+        foo_test
+            .path(&Path::default().discriminant())
+            .unwrap()
+            .bits(),
+        b5::from(0b00100).bin().to_vec()
     );
 }
 
@@ -164,12 +173,12 @@ fn test_state_case() {
                     .discriminant()
             )
             .unwrap()
-            .bits,
-        s3::from(2).bin()
+            .bits(),
+        s3::from(2).bin().to_vec()
     );
     assert_eq!(
-        packet.path(&Path::default().discriminant()).unwrap().bits,
-        b5::from(0b01000).bin()
+        packet.path(&Path::default().discriminant()).unwrap().bits(),
+        b5::from(0b01000).bin().to_vec()
     );
     let packet = Packet::State(State::Init).typed_bits();
     assert_eq!(
@@ -181,8 +190,8 @@ fn test_state_case() {
                     .discriminant()
             )
             .unwrap()
-            .bits,
-        s3::from(-2).bin()
+            .bits(),
+        s3::from(-2).bin().to_vec()
     );
 }
 
@@ -200,8 +209,8 @@ fn test_nested_struct_case() {
         packet
             .path(&Path::default().payload("Log").field("msg"))
             .unwrap()
-            .bits,
-        b32::from(0xDEAD_BEEF).bin()
+            .bits(),
+        b32::from(0xDEAD_BEEF).bin().to_vec()
     );
     assert_eq!(
         packet
@@ -212,22 +221,22 @@ fn test_nested_struct_case() {
                     .field("active")
             )
             .unwrap()
-            .bits,
-        b1::from(1).bin()
+            .bits(),
+        b1::from(1).bin().to_vec()
     );
     assert_eq!(
         packet
             .path(&Path::default().payload("Log").field("level").field("level"))
             .unwrap()
-            .bits,
-        b8::from(0xBA).bin()
+            .bits(),
+        b8::from(0xBA).bin().to_vec()
     )
 }
 
 #[test]
 fn test_documentation_svgs() {
-    let svg = rhdl::core::svg_grid(&Packet::static_kind(), "Packet");
-    svg::save("packets.svg", &svg).unwrap();
+    let svg = Packet::static_kind().svg("Packet");
+    expect_test::expect_file!["expect/complex_enum_packet.svg"].assert_eq(&svg.to_string());
 }
 
 #[test]
@@ -269,6 +278,8 @@ fn test_vcd_generation() {
     );
     trace_time(6_000);
     trace("packet", &Packet::State(State::Running));
-    let mut vcd_file = std::fs::File::create("packet.vcd").unwrap();
-    guard.take().dump_vcd(vcd_file, None).unwrap();
+    let mut vcd_file = vec![];
+    guard.take().dump_vcd(&mut vcd_file, None).unwrap();
+    expect_test::expect_file!["expect/complex_enum_packet_vcd.expect"]
+        .assert_eq(&String::from_utf8(vcd_file).unwrap());
 }

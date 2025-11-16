@@ -127,7 +127,7 @@ use crate::{
     stream::StreamIO,
 };
 
-#[derive(PartialEq, Digital, Default, Debug)]
+#[derive(PartialEq, Digital, Copy, Default, Debug, Clone)]
 #[doc(hidden)]
 pub enum State {
     #[default]
@@ -176,7 +176,7 @@ impl<T: Digital> Default for FIFOToStream<T> {
 /// and vice versa.
 pub type In<T> = StreamIO<T, T>;
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Outputs from the [FIFOToStream] buffer
 pub struct Out<T: Digital> {
     /// The consumers data

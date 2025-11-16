@@ -15,8 +15,28 @@ use rhdl::core::sim::testbench::kernel::test_kernel_vm_and_verilog;
 use test_log::test;
 
 #[test]
+fn test_array_kernel() -> miette::Result<()> {
+    #[kernel]
+    fn kernel() -> [b4; 4] {
+        [b4(3); 4]
+    }
+    let _ = compile_design::<kernel>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
+fn test_const_kernel() -> miette::Result<()> {
+    #[kernel]
+    fn kernel() -> b8 {
+        b8(42)
+    }
+    let _ = compile_design::<kernel>(CompilationMode::Synchronous)?;
+    Ok(())
+}
+
+#[test]
 fn test_tuple_struct_indexing() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo(b6, b6);
 
     #[kernel]
@@ -27,13 +47,13 @@ fn test_tuple_struct_indexing() -> miette::Result<()> {
         signal(c.0 + c.1)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>())?;
     Ok(())
 }
 
 #[test]
 fn test_struct_field_indexing() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo {
         a: (b6, b6),
         b: b6,
@@ -48,7 +68,7 @@ fn test_struct_field_indexing() -> miette::Result<()> {
         signal(c.a.0 + c.a.1 + c.b)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>())?;
     Ok(())
 }
 
@@ -80,7 +100,7 @@ fn test_array_indexing() -> miette::Result<()> {
         signal([(c[0] + c[1]).resize(), c[1]])
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>())?;
     Ok(())
 }
 
@@ -94,18 +114,21 @@ fn test_array_indexing_2() -> miette::Result<()> {
         signal([c[0], c[1]])
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>())?;
     Ok(())
 }
 
 #[cfg(test)]
-fn rand_bits<N: BitWidth>() -> Bits<N> {
+fn rand_bits<const N: usize>() -> Bits<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     Bits::<N>::default()
 }
 
 #[test]
 fn test_3d_array_dynamic_indexing() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital, Default)]
+    #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
     pub struct VolumeBits {
         data: [[[b1; 8]; 8]; 8],
     }
@@ -152,7 +175,7 @@ fn test_3d_array_dynamic_indexing() -> miette::Result<()> {
 
 #[test]
 fn test_complex_array_dynamic_indexing() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo {
         a: bool,
         b: [b4; 4],
@@ -169,7 +192,7 @@ fn test_complex_array_dynamic_indexing() -> miette::Result<()> {
         }
     }
 
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Bar {
         a: b9,
         b: [Foo; 8],
@@ -288,7 +311,7 @@ fn test_array_dynamic_indexing_on_write() -> miette::Result<()> {
 
 #[test]
 fn test_field_indexing_is_order_independent() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo {
         a: b6,
         b: b6,
@@ -302,13 +325,13 @@ fn test_field_indexing_is_order_independent() -> miette::Result<()> {
         signal(c)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>())?;
     Ok(())
 }
 
 #[test]
 fn test_field_indexing() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo {
         a: b6,
         b: b6,
@@ -322,7 +345,7 @@ fn test_field_indexing() -> miette::Result<()> {
         signal(c.a + c.b)
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>())?;
     Ok(())
 }
 
@@ -333,16 +356,16 @@ fn test_simple_if_expression() -> miette::Result<()> {
         let (a, b) = (a.val(), b.val());
         signal(if a > b { a + 1 } else { b + 2 })
     }
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>())?;
     Ok(())
 }
 
 #[test]
 fn test_link_to_bits_fn() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     struct Tuplo(b4, s6);
 
-    #[derive(PartialEq, Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Clone, Copy, Digital)]
     enum NooState {
         #[default]
         Init,

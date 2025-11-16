@@ -71,7 +71,7 @@ pub struct Rhdl2Axi<T: Digital> {
     outbuf: Carloni<T>,
 }
 
-#[derive(Debug, PartialEq, Digital)]
+#[derive(Debug, PartialEq, Digital, Clone, Copy)]
 /// Inputs for the [Rhdl2Axi] core
 pub struct In<T: Digital> {
     /// The data signal on the RHDL upstream
@@ -80,7 +80,7 @@ pub struct In<T: Digital> {
     pub tready: bool,
 }
 
-#[derive(Debug, PartialEq, Digital)]
+#[derive(Debug, PartialEq, Digital, Clone, Copy)]
 /// Outputs from the [Rhdl2Axi] core
 pub struct Out<T: Digital> {
     /// The data signal on the AXI downstream
@@ -177,7 +177,7 @@ mod tests {
         let input = std::iter::repeat_n((), 10_000)
             .with_reset(1)
             .clock_pos_edge(100);
-        uut.run_without_synthesis(input)?.for_each(drop);
+        uut.run(input).for_each(drop);
         Ok(())
     }
 }

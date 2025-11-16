@@ -39,7 +39,10 @@ resetN++--->| +○+--+>reset
 //!
 
 use quote::format_ident;
-use rhdl::prelude::*;
+use rhdl::{
+    core::{AsyncKind, ScopedName},
+    prelude::*,
+};
 use syn::parse_quote;
 
 #[derive(PartialEq, Debug, Clone, Default)]
@@ -58,20 +61,13 @@ impl<C: Domain> CircuitDQ for ResetNegation<C> {
 impl<C: Domain> CircuitIO for ResetNegation<C> {
     type I = Signal<ResetN, C>;
     type O = Signal<Reset, C>;
-    type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
+    type Kernel = NoCircuitKernel<Self::I, (), (Self::O, ())>;
 }
 
 impl<C: Domain> Circuit for ResetNegation<C> {
     type S = ();
 
     fn init(&self) -> Self::S {}
-
-    fn description(&self) -> String {
-        format!(
-            "Reset inversion (active low to active high) in domain {:?}",
-            C::color()
-        )
-    }
 
     fn sim(&self, input: Self::I, _state: &mut Self::S) -> Self::O {
         trace_push_path("reset_negation");
@@ -86,19 +82,24 @@ impl<C: Domain> Circuit for ResetNegation<C> {
         signal(out)
     }
 
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        Ok(CircuitDescriptor {
-            unique_name: name.into(),
-            input_kind: <Self::I as Timed>::static_kind(),
-            output_kind: <Self::O as Timed>::static_kind(),
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
+        let name = scoped_name.to_string();
+        Descriptor::<AsyncKind> {
+            name: scoped_name,
+            input_kind: <Self::I as Digital>::static_kind(),
+            output_kind: <Self::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            children: Default::default(),
-            rtl: None,
-            ntl: rhdl::core::ntl::builder::circuit_black_box(self, name)?,
-        })
+            kernel: None,
+            netlist: None,
+            hdl: Some(self.hdl(&name)?),
+            _phantom: std::marker::PhantomData,
+        }
+        .with_netlist_black_box()
     }
+}
 
+impl<C: Domain> ResetNegation<C> {
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = format_ident!("{}", name);
         let module: vlog::ModuleDef = parse_quote! {
@@ -108,8 +109,7 @@ impl<C: Domain> Circuit for ResetNegation<C> {
         };
         Ok(HDLDescriptor {
             name: name.into(),
-            body: module,
-            children: Default::default(),
+            modules: module.into(),
         })
     }
 }

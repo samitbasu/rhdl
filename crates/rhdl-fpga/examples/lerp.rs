@@ -8,11 +8,11 @@ use rhdl_fpga::dsp::lerp::fixed::lerp_unsigned;
 // need to fit the type signature of that function, so the
 // inputs of the `lerp` function need to be put into a single
 // struct.
-#[derive(PartialEq, Digital)]
-pub struct LerpIn<N, M>
+#[derive(PartialEq, Clone, Copy, Digital)]
+pub struct LerpIn<const N: usize, const M: usize>
 where
-    N: BitWidth,
-    M: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
+    rhdl::bits::W<M>: BitWidth,
 {
     pub lower_value: Bits<N>,
     pub upper_value: Bits<N>,
@@ -21,17 +21,17 @@ where
 
 // An wrapper function to call the `lerp_unsigned`
 #[kernel]
-pub fn wrap_lerp<N, M>(_cr: ClockReset, i: LerpIn<N, M>) -> Bits<N>
+pub fn wrap_lerp<const N: usize, const M: usize>(_cr: ClockReset, i: LerpIn<N, M>) -> Bits<N>
 where
-    N: BitWidth,
-    M: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
+    rhdl::bits::W<M>: BitWidth,
 {
     lerp_unsigned::<N, M>(i.lower_value, i.upper_value, i.factor)
 }
 
 fn main() -> Result<(), RHDLError> {
     // The [Func] wrapper gives us a core we can simulate
-    let uut: Func<LerpIn<U8, U4>, Bits<U8>> = Func::try_new::<wrap_lerp<U8, U4>>()?;
+    let uut: Func<LerpIn<8, 4>, Bits<8>> = Func::try_new::<wrap_lerp<8, 4>>()?;
     // Simulate a ramp
     let ramp = (0..15)
         .map(|x| LerpIn {
@@ -41,7 +41,7 @@ fn main() -> Result<(), RHDLError> {
         })
         .without_reset()
         .clock_pos_edge(100);
-    let vcd = uut.run(ramp)?.collect::<Vcd>();
+    let vcd = uut.run(ramp).collect::<Vcd>();
     write_svg_as_markdown(vcd, "lerp.md", SvgOptions::default())?;
     Ok(())
 }

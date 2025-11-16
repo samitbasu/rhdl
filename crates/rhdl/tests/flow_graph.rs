@@ -132,7 +132,7 @@ where
     T: Synchronous,
     I: Iterator<Item = TimedSample<(ClockReset, T::I)>>,
 {
-    let test_bench = uut.run(inputs)?.collect::<SynchronousTestBench<_, _>>();
+    let test_bench = uut.run(inputs).collect::<SynchronousTestBench<_, _>>();
     let tm_rtl = test_bench.rtl(uut, &TestBenchOptions::default())?;
     tm_rtl.run_iverilog()?;
     let tm_fg = test_bench.ntl(uut, &TestBenchOptions::default())?;
@@ -145,7 +145,7 @@ where
     T: Circuit,
     I: Iterator<Item = TimedSample<T::I>>,
 {
-    let test_bench = uut.run(inputs)?.collect::<TestBench<_, _>>();
+    let test_bench = uut.run(inputs).collect::<TestBench<_, _>>();
     let tm_rtl = test_bench.rtl(uut, &TestBenchOptions::default())?;
     tm_rtl.run_iverilog()?;
     let tm_fg = test_bench.ntl(uut, &TestBenchOptions::default())?;
@@ -179,15 +179,15 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = exhaustive::<U4>()
+    let inputs = exhaustive::<4>()
         .into_iter()
-        .flat_map(|x| exhaustive::<U4>().into_iter().map(move |y| (x, y)));
+        .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
     let inputs = inputs.with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let desc = uut.descriptor("uut")?;
+    let desc = uut.descriptor("uut".into())?;
+    let netlist = desc.netlist()?;
     assert!(
-        !desc
-            .ntl
+        !netlist
             .ops
             .iter()
             .any(|w| matches!(w.op, OpCode::Select(_)))
@@ -221,9 +221,9 @@ fn test_add_inline() -> miette::Result<()> {
     }
 
     let uut = parent::Parent::default();
-    let inputs = exhaustive::<U4>()
+    let inputs = exhaustive::<4>()
         .into_iter()
-        .flat_map(|x| exhaustive::<U4>().into_iter().map(move |y| (x, y)));
+        .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
     let inputs = inputs.with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     Ok(())
@@ -257,14 +257,9 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = std::iter::once(()).with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let desc = uut.descriptor("uut")?;
-    assert!(
-        !desc
-            .ntl
-            .ops
-            .iter()
-            .any(|w| matches!(w.op, OpCode::Unary(_)))
-    );
+    let desc = uut.descriptor("uut".into())?;
+    let netlist = desc.netlist()?;
+    assert!(!netlist.ops.iter().any(|w| matches!(w.op, OpCode::Unary(_))));
     Ok(())
 }
 
@@ -294,9 +289,9 @@ fn test_async_add() -> miette::Result<()> {
     }
 
     let uut = U::default();
-    let inputs = exhaustive::<U4>()
+    let inputs = exhaustive::<4>()
         .into_iter()
-        .flat_map(|x| exhaustive::<U4>().into_iter().map(move |y| (x, y)))
+        .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)))
         .map(signal::<_, Red>)
         .enumerate()
         .map(|(ndx, val)| timed_sample((ndx * 100) as u64, val));
@@ -333,10 +328,10 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = std::iter::once(()).with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let desc = uut.descriptor("uut")?;
+    let desc = uut.descriptor("uut".into())?;
+    let netlist = desc.netlist()?;
     assert!(
-        !desc
-            .ntl
+        !netlist
             .ops
             .iter()
             .any(|w| matches!(w.op, OpCode::Vector(_)))
@@ -372,7 +367,7 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = [false, true].with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let _desc = uut.descriptor("uut")?;
+    let _desc = uut.descriptor("uut".into())?;
     Ok(())
 }
 
@@ -406,6 +401,6 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = [false, true].with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let _desc = uut.descriptor("uut")?;
+    let _desc = uut.descriptor("uut".into())?;
     Ok(())
 }

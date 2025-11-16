@@ -59,7 +59,7 @@ impl VMState<'_> {
                     let ndx = slot.as_i64()?;
                     result = result.index(ndx as usize);
                 }
-                _ => result.push(element.clone()),
+                _ => result.push(*element),
             }
         }
         Ok(result)
@@ -97,7 +97,7 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
                 let cond = state.read(*cond, loc)?;
                 let true_value = state.read(*true_value, loc)?;
                 let false_value = state.read(*false_value, loc)?;
-                match cond.bits[0] {
+                match cond.bits()[0] {
                     BitX::Zero => state.write(*lhs, false_value, loc)?,
                     BitX::One => state.write(*lhs, true_value, loc)?,
                     BitX::X => state.write(*lhs, true_value.dont_care(), loc)?,
@@ -222,7 +222,8 @@ fn execute_block(ops: &[LocatedOpCode], state: &mut VMState) -> Result<()> {
             OpCode::Retime(Retime { lhs, arg, color }) => {
                 let mut arg = state.read(*arg, loc)?;
                 if let Some(color) = color {
-                    arg.kind = Kind::make_signal(arg.kind, *color);
+                    arg =
+                        TypedBits::new(arg.bits().to_vec(), Kind::make_signal(arg.kind(), *color));
                 }
                 state.write(*lhs, arg, loc)?;
             }
@@ -275,13 +276,13 @@ pub fn execute(obj: &Object, arguments: Vec<TypedBits>) -> Result<TypedBits> {
         }));
     }
     for (ndx, arg) in arguments.iter().enumerate() {
-        let arg_kind = &arg.kind;
-        let obj_kind = &obj.symtab[obj.arguments[ndx]];
+        let arg_kind = arg.kind();
+        let obj_kind = obj.symtab[obj.arguments[ndx]];
         if obj_kind != arg_kind {
             return Err(rhdl_error(RHDLCompileError {
                 cause: ICE::ArgumentTypeMismatchOnCall {
-                    arg: *arg_kind,
-                    expected: *obj_kind,
+                    arg: arg_kind,
+                    expected: obj_kind,
                 },
                 src: symbols.source(),
                 err_span: symbols.span(loc).into(),

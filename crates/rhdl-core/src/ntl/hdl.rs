@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 use std::collections::HashSet;
 
 use crate::BitX;
+use crate::HDLDescriptor;
 use crate::RHDLError;
 use crate::ast::SourceLocation;
 use crate::error::rhdl_error;
@@ -343,7 +344,7 @@ impl<'a> NetListHDLBuilder<'a> {
             .ntl
             .black_boxes
             .iter()
-            .flat_map(|bb| bb.code.as_module().into_iter())
+            .flat_map(|bb| bb.code.modules.modules.iter().cloned())
             .collect::<Vec<vlog::ModuleDef>>();
         for lop in &self.ntl.ops {
             self.op_code(&lop.op, None)?;
@@ -357,10 +358,11 @@ impl<'a> NetListHDLBuilder<'a> {
         let inputs_used = self.ntl.ops.iter().any(|lop| {
             let mut uses_input = false;
             visit_wires(&lop.op, |sense, op| {
-                if let Some(reg_id) = op.reg() {
-                    if sense.is_read() && input_set.contains(&reg_id) {
-                        uses_input = true;
-                    }
+                if let Some(reg_id) = op.reg()
+                    && sense.is_read()
+                    && input_set.contains(&reg_id)
+                {
+                    uses_input = true;
                 }
             });
             uses_input
@@ -400,6 +402,10 @@ impl<'a> NetListHDLBuilder<'a> {
     }
 }
 
-pub(crate) fn generate_hdl(module_name: &str, ntl: &Object) -> Result<vlog::ModuleList, RHDLError> {
-    NetListHDLBuilder::new(module_name, ntl).build()
+pub(crate) fn build_hdl(module_name: &str, ntl: &Object) -> Result<HDLDescriptor, RHDLError> {
+    let modules = NetListHDLBuilder::new(module_name, ntl).build()?;
+    Ok(HDLDescriptor {
+        name: module_name.to_string(),
+        modules,
+    })
 }

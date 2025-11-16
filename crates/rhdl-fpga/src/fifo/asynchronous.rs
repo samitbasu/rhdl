@@ -68,16 +68,16 @@ use super::write_logic;
 #[derive(Clone, Circuit, CircuitDQ, Default)]
 pub struct AsyncFIFO<T: Digital, W: Domain, R: Domain, const N: usize>
 where
-    Const<N>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
-    write_logic: Adapter<write_logic::FIFOWriteCore<Const<N>>, W>,
-    read_logic: Adapter<read_logic::FIFOReadCore<Const<N>>, R>,
-    ram: ram::option_async::OptionAsyncBRAM<T, W, R, Const<N>>,
+    write_logic: Adapter<write_logic::FIFOWriteCore<N>, W>,
+    read_logic: Adapter<read_logic::FIFOReadCore<N>, R>,
+    ram: ram::option_async::OptionAsyncBRAM<T, W, R, N>,
     read_count_for_write_logic: cross_counter::CrossCounter<R, W, N>,
     write_count_for_read_logic: cross_counter::CrossCounter<W, R, N>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// Inputs for the FIFO
 pub struct In<T: Digital, W: Domain, R: Domain> {
     /// The data to be written to the FIFO in the W domain
@@ -90,7 +90,7 @@ pub struct In<T: Digital, W: Domain, R: Domain> {
     pub cr_r: Signal<ClockReset, R>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// Outputs from the FIFO
 pub struct Out<T: Digital, W: Domain, R: Domain> {
     /// The data read from the FIFO in the R domain
@@ -109,7 +109,7 @@ pub struct Out<T: Digital, W: Domain, R: Domain> {
 
 impl<T: Digital, W: Domain, R: Domain, const N: usize> CircuitIO for AsyncFIFO<T, W, R, N>
 where
-    Const<N>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     type I = In<T, W, R>;
     type O = Out<T, W, R>;
@@ -123,7 +123,7 @@ pub fn async_fifo_kernel<T: Digital, W: Domain, R: Domain, const N: usize>(
     q: Q<T, W, R, N>,
 ) -> (Out<T, W, R>, D<T, W, R, N>)
 where
-    Const<N>: BitWidth,
+    rhdl::bits::W<N>: BitWidth,
 {
     let mut d = D::<T, W, R, N>::dont_care();
     // Clock the various components
@@ -132,7 +132,7 @@ where
     // Create a struct to drive the inputs of the RAM on the
     // write side.  These signals are all clocked in the write
     // domain.
-    let mut ram_write = ram::option_async::WriteI::<T, Const<N>>::dont_care();
+    let mut ram_write = ram::option_async::WriteI::<T, N>::dont_care();
     let ram_write_addr = q.write_logic.val().ram_write_address;
     ram_write.clock = i.cr_w.val().clock;
     let mut write_enable = false;
@@ -144,19 +144,19 @@ where
     };
     d.ram.write = signal(ram_write);
     // Do the same thing for the read side of the RAM.
-    let mut ram_read = ram::asynchronous::ReadI::<Const<N>>::dont_care();
+    let mut ram_read = ram::asynchronous::ReadI::<N>::dont_care();
     ram_read.clock = i.cr_r.val().clock;
     ram_read.addr = q.read_logic.val().ram_read_address;
     d.ram.read = signal(ram_read);
     // Provide the write logic with the enable and the
     // read address as determined by the split counter.
-    d.write_logic.input = signal(write_logic::In::<Const<N>> {
+    d.write_logic.input = signal(write_logic::In::<N> {
         read_address: q.read_count_for_write_logic.count.val(),
         write_enable,
     });
     // Provide the read logic with the next signal and the
     // write address as determined by the split counter.
-    d.read_logic.input = signal(read_logic::In::<Const<N>> {
+    d.read_logic.input = signal(read_logic::In::<N> {
         next: i.next.val(),
         write_address: q.write_count_for_read_logic.count.val(),
     });
@@ -201,26 +201,26 @@ mod tests {
             .chain(std::iter::repeat_n(true, 16))
             .with_reset(1)
             .clock_pos_edge(75);
-        let input = write.merge(read, |w, r| In {
+        let input = write.merge_map(read, |w, r| In {
             data: signal(w.1),
             next: signal(r.1),
             cr_w: signal(w.0),
             cr_r: signal(r.0),
         });
         //        let input = test_stream();
-        let uut = AsyncFIFO::<Bits<U8>, Red, Blue, 5>::default();
-        let vcd = uut.run(input.clone())?.collect::<Vcd>();
+        let uut = AsyncFIFO::<Bits<8>, Red, Blue, 5>::default();
+        let vcd = uut.run(input.clone()).collect::<Vcd>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo")
             .join("asynchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["ae4eb2d25a3424831f5217372db1c76702815b266d0770ef4251d5bb41d25ab5"];
+        let expect = expect!["3b1df4fc872013dd6a0984a5eceaceb373518734d3f3f02b146d658bc86fe4e9"];
         let digest = vcd
             .dump_to_file(root.join("async_fifo_write_test.vcd"))
             .unwrap();
         expect.assert_eq(&digest);
-        let test_bench = uut.run(input)?.collect::<TestBench<_, _>>();
+        let test_bench = uut.run(input).collect::<TestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.ntl(&uut, &TestBenchOptions::default())?;

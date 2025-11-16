@@ -23,6 +23,23 @@ fn test_const_match_finite_bits() -> miette::Result<()> {
 }
 
 #[test]
+fn test_const_literal_match_not_raw() {
+    #[kernel]
+    pub fn kernel(x: Signal<b8, Red>) -> Signal<b3, Red> {
+        let x = x.val();
+        let y = match x {
+            Bits::<8>(0) => b3(0),
+            Bits::<8>(1) => b3(1),
+            Bits::<8>(2) => b3(1),
+            Bits::<8>(3) => b3(2),
+            _ => b3(4),
+        };
+        signal(y)
+    }
+    test_kernel_vm_and_verilog::<kernel, _, _, _>(kernel, tuple_b8()).unwrap();
+}
+
+#[test]
 fn test_const_literal_match() {
     #[kernel]
     fn add<C: Domain>(a: Signal<b8, C>) -> Signal<b8, C> {
@@ -57,7 +74,7 @@ fn test_const_literal_captured_match() {
 // to re-enable the ability to use literals in match arms.
 #[test]
 fn test_struct_literal_match() -> miette::Result<()> {
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     pub struct Foo {
         a: b8,
         b: b8,
@@ -98,7 +115,7 @@ fn test_plain_literals() -> miette::Result<()> {
         signal((a.val() + 2 + b.val()).resize())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<U6>())?;
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_bn_red::<6>())?;
     Ok(())
 }
 
@@ -109,5 +126,5 @@ fn test_plain_literals_signed_context() {
         signal(a.val() + 2 + b.val())
     }
 
-    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_sn_red::<U6>()).unwrap();
+    test_kernel_vm_and_verilog::<foo, _, _, _>(foo, tuple_pair_sn_red::<6>()).unwrap();
 }

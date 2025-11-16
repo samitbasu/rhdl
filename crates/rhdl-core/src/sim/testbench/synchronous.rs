@@ -185,15 +185,18 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
         T: Synchronous,
         T: SynchronousIO<I = I, O = O>,
     {
-        let module = uut.hdl("uut")?.as_module();
-        self.build_test_module(&module, options)
+        let desc = uut.descriptor("uut".into())?;
+        let module = &desc.hdl()?.modules;
+        self.build_test_module(module, options)
     }
     pub fn ntl<T>(&self, uut: &T, options: &TestBenchOptions) -> Result<TestModule, RHDLError>
     where
         T: Synchronous,
         T: SynchronousIO<I = I, O = O>,
     {
-        let module = crate::ntl::hdl::generate_hdl("dut", &uut.descriptor("uut")?.ntl)?;
-        self.build_test_module(&module, options)
+        let desc = uut.descriptor("uut".into())?;
+        let ntl = desc.netlist()?;
+        let hdl = crate::ntl::hdl::build_hdl("dut", ntl)?;
+        self.build_test_module(&hdl.modules, options)
     }
 }

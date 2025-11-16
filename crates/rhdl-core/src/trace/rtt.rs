@@ -1,6 +1,6 @@
-// Given a Kind, attempt to translate it into a RHDL Trace Type
-// This is the "Default" implementation, which can be overridden
-// by a particular DIGITAL type as needed.
+//! Given a [Kind], attempt to translate it into a RHDL Trace Type
+//! This is the "Default" implementation, which can be overridden
+//! by a particular [Digital] type as needed.
 use crate::types::kind;
 use rhdl_trace_type as rtt;
 

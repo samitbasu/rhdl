@@ -1,0 +1,24 @@
+module adder_top(input wire [3:0] a, input wire [3:0] b, output wire [3:0] sum);
+   wire [7:0] inner_input;
+   wire [3:0] inner_output;
+   assign inner_input[3:0] = a;
+   assign inner_input[7:4] = b;
+   assign sum = inner_output[3:0];
+   inner inner_inst(.i(inner_input), .o(inner_output));
+endmodule
+module inner(input wire [7:0] i, output wire [3:0] o);
+   assign o = kernel_adder(i);
+   function [3:0] kernel_adder(input reg [7:0] arg_0);
+         reg [7:0] r0;
+         reg [3:0] r1;
+         reg [3:0] r2;
+         reg [3:0] r3;
+         begin
+            r0 = arg_0;
+            r1 = r0[3:0];
+            r2 = r0[7:4];
+            r3 = r1 + r2;
+            kernel_adder = r3;
+         end
+   endfunction
+endmodule

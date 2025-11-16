@@ -14,7 +14,6 @@ use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use crate::KernelFnKind;
 use crate::Kind;
 use crate::TypedBits;
 use crate::ast::SpannedSource;
@@ -33,7 +32,7 @@ use crate::common::symtab::SymbolTable;
 use crate::compiler::stage1::CompilationMode;
 use crate::compiler::stage1::compile;
 use crate::error::RHDLError;
-use crate::kernel::Kernel;
+use crate::kernel::KernelFnKind;
 use crate::rhif;
 use crate::rhif::Object;
 use crate::rhif::object::LocatedOpCode;
@@ -267,7 +266,7 @@ impl<'a> MirContext<'a> {
         }
         Ok(())
     }
-    fn unpack_arguments(&mut self, args: &[Box<Pat>], id: NodeId) -> Result<()> {
+    fn unpack_arguments(&mut self, args: &[Pat], id: NodeId) -> Result<()> {
         for arg in args {
             let slot = self.reg(arg.id);
             let PatKind::Type(ty) = &arg.kind else {
@@ -332,7 +331,7 @@ impl<'a> MirContext<'a> {
         self.lit(
             id,
             ExprLit::TypedBits(ExprTypedBits {
-                path: Box::new(ast_impl::Path { segments: vec![] }),
+                path: ast_impl::Path { segments: vec![] },
                 value: place_holder.clone(),
                 code: String::new(),
             }),
@@ -445,9 +444,9 @@ impl<'a> MirContext<'a> {
                 .into()),
         }
     }
-    fn stash(&mut self, kernel: &Kernel) -> Result<FuncId> {
+    fn stash(&mut self, kernel: &ast_impl::KernelFn) -> Result<FuncId> {
         let ndx = self.stash.len().into();
-        let object = compile(kernel.clone(), self.mode)?;
+        let object = compile(kernel, self.mode)?;
         self.stash.insert(ndx, Box::new(object));
         Ok(ndx)
     }
@@ -566,7 +565,7 @@ impl<'a> MirContext<'a> {
                 let discriminant_slot = self.lit(
                     arm.id,
                     ExprLit::TypedBits(ast_impl::ExprTypedBits {
-                        path: Box::new(ast_impl::Path { segments: vec![] }),
+                        path: ast_impl::Path { segments: vec![] },
                         value: discriminant.clone(),
                         code: String::new(),
                     }),
@@ -837,18 +836,12 @@ impl<'a> MirContext<'a> {
                     .collect();
                 self.op(op_enum(lhs, fields, template.clone()), id);
             }
-            KernelFnKind::Kernel(kernel) => {
+            KernelFnKind::AstKernel(kernel) => {
                 let func = self.stash(kernel)?;
                 self.op(op_exec(lhs, func, args), id);
             }
             KernelFnKind::SignalConstructor(color) => {
                 self.op(op_retime(lhs, args[0], *color), id);
-            }
-            KernelFnKind::BitCast(to) => {
-                self.op(op_as_bits(lhs, args[0], *to), id);
-            }
-            KernelFnKind::SignedCast(to) => {
-                self.op(op_as_signed(lhs, args[0], *to), id);
             }
             KernelFnKind::Wrap(wrap_op) => {
                 let empty = self.lit_empty(id);
@@ -861,7 +854,7 @@ impl<'a> MirContext<'a> {
         Ok(lhs)
     }
 
-    fn expr_list(&mut self, exprs: &[Box<Expr>]) -> Result<Vec<Slot>> {
+    fn expr_list(&mut self, exprs: &[Expr]) -> Result<Vec<Slot>> {
         exprs.iter().map(|expr| self.expr(expr)).collect()
     }
     fn expr(&mut self, expr: &Expr) -> Result<Slot> {
@@ -889,9 +882,6 @@ impl<'a> MirContext<'a> {
             ExprKind::Assign(assign) => self.assign(expr.id, assign),
             ExprKind::Range(_) => Err(self
                 .raise_syntax_error(Syntax::RangesInForLoopsOnly, expr.id)
-                .into()),
-            ExprKind::Let(_) => Err(self
-                .raise_syntax_error(Syntax::FallibleLetExpr, expr.id)
                 .into()),
             ExprKind::Repeat(repeat) => self.repeat(expr.id, repeat),
             ExprKind::Call(call) => self.call(expr.id, call),
@@ -1053,7 +1043,7 @@ impl<'a> MirContext<'a> {
         };
         let my_match = ExprMatch {
             expr: if_let_expr.test.clone(),
-            arms: vec![Box::new(active_arm), Box::new(else_arm)],
+            arms: vec![active_arm, else_arm],
         };
         self.match_expr(id, &my_match)
     }
@@ -1450,7 +1440,7 @@ impl<'a> MirContext<'a> {
             .map(|x| self.field_value(x))
             .collect::<Result<_>>()?;
         let rest = strukt.rest.as_ref().map(|x| self.expr(x)).transpose()?;
-        if let Kind::Enum(_enum) = &strukt.template.kind {
+        if let Kind::Enum(_enum) = strukt.template.kind() {
             debug!("Emitting enum opcode");
             self.op(op_enum(lhs, fields, strukt.template.clone()), id);
         } else {
@@ -1552,29 +1542,29 @@ impl Visitor for MirContext<'_> {
     }
 }
 
-pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
-    let source = func.inner().sources()?;
-    for id in 0..func.inner().id.as_u32() {
+pub fn compile_mir(func: &ast_impl::KernelFn, mode: CompilationMode) -> Result<Mir> {
+    let source = func.sources()?;
+    for id in 0..func.id.as_u32() {
         let node = NodeId::new(id);
         if !source.span_map.contains_key(&node) {
             panic!("Missing span for node {node:?}");
         }
     }
     let copy_source = source.clone();
-    let mut compiler = MirContext::new(&source, mode, func.inner().fn_id);
-    compiler.visit_kernel_fn(func.inner())?;
+    let mut compiler = MirContext::new(&source, mode, func.fn_id);
+    compiler.visit_kernel_fn(func)?;
     let Some(return_slot) = compiler.return_slot else {
         return Err(compiler
-            .raise_ice(ICE::ReturnSlotNotInitialized, func.inner().id)
+            .raise_ice(ICE::ReturnSlotNotInitialized, func.id)
             .into());
     };
-    compiler.bind_slot_to_type(return_slot, func.inner().ret);
-    if let Some(kind) = compiler.ty.get(&return_slot) {
-        if kind.is_empty() {
-            return Err(compiler
-                .raise_syntax_error(Syntax::EmptyReturnForFunction, func.inner().id)
-                .into());
-        }
+    compiler.bind_slot_to_type(return_slot, func.ret);
+    if let Some(kind) = compiler.ty.get(&return_slot)
+        && kind.is_empty()
+    {
+        return Err(compiler
+            .raise_syntax_error(Syntax::EmptyReturnForFunction, func.id)
+            .into());
     }
     let fn_id = compiler.fn_id;
     let symtab = compiler
@@ -1593,6 +1583,6 @@ pub fn compile_mir(func: Kernel, mode: CompilationMode) -> Result<Mir> {
         ty_equate: compiler.ty_equate,
         stash: compiler.stash,
         name: compiler.name.to_string(),
-        flags: func.inner().flags.clone(),
+        flags: func.flags.clone(),
     })
 }

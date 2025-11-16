@@ -7,6 +7,7 @@ fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
     #[allow(clippy::manual_memcpy)]
     #[forbid(path_statements)]
     #[forbid(unused_variables)]
+    #[allow(unused_doc_comments)]
     fn inner<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {
         {
             let c = x.a;
@@ -36,62 +37,55 @@ impl<T: Digital, S: Digital> rhdl::core::digital_fn::DigitalFn2 for do_stuff<T, 
 }
 impl<T: Digital, S: Digital> rhdl::core::digital_fn::DigitalFn for do_stuff<T, S> {
     fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
-        let bob = rhdl::core::ast::builder::ASTBuilder::default();
+        use rhdl::core::ast::builder::*;
+        const META_DATA: &'static str = "{\"0\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"1\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"2\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"3\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"4\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"5\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"6\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"7\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"8\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"9\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"10\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"11\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"12\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"13\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"14\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"15\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"16\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"17\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"18\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"19\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"20\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"21\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"22\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"23\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"24\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]},\"25\":{\"span\":{\"start_line\":1,\"start_col\":0,\"end_line\":1,\"end_col\":0},\"attributes\":[]}}";
         Some(
-            bob
-                .kernel_fn(
-                    0u32.into(),
-                    stringify!(do_stuff),
-                    vec! {
-                        bob.type_pat(26u32.into(), bob.ident_pat(25u32.into(),
-                        stringify!(x), false), < Foo < T > as rhdl::core::Digital >
-                        ::static_kind()), bob.type_pat(28u32.into(), bob.ident_pat(27u32
-                        .into(), stringify!(y), false), < Foo < S > as
-                        rhdl::core::Digital > ::static_kind())
-                    },
-                    <bool as rhdl::core::Digital>::static_kind(),
-                    bob
-                        .block(
-                            24u32.into(),
-                            vec![
-                                bob.local_stmt(4u32.into(), 5u32.into(), bob.ident_pat(1u32
-                                .into(), stringify!(c), false), Some(bob.field_expr(2u32
-                                .into(), bob.path_expr(3u32.into(), bob.path(vec![bob
-                                .path_segment(stringify!(x), bob.path_arguments_none())],)),
-                                bob.member_named(stringify!(a))))), bob.local_stmt(12u32
-                                .into(), 13u32.into(), bob.ident_pat(6u32.into(),
-                                stringify!(d), false), Some(bob.tuple_expr(11u32.into(),
-                                vec![bob.field_expr(7u32.into(), bob.path_expr(8u32.into(),
-                                bob.path(vec![bob.path_segment(stringify!(x), bob
-                                .path_arguments_none())],)), bob
-                                .member_named(stringify!(a))), bob.field_expr(9u32.into(),
-                                bob.path_expr(10u32.into(), bob.path(vec![bob
-                                .path_segment(stringify!(y), bob.path_arguments_none())],)),
-                                bob.member_named(stringify!(b)))]))), bob.local_stmt(18u32
-                                .into(), 19u32.into(), bob.ident_pat(14u32.into(),
-                                stringify!(e), false), Some(bob.struct_expr(17u32.into(),
-                                bob.path(vec![bob.path_segment(stringify!(Foo),
-                                vec![stringify!(T)])],), vec![bob.field_value(bob
-                                .member_named(stringify!(a)), bob.path_expr(15u32.into(),
-                                bob.path(vec![bob.path_segment(stringify!(c), bob
-                                .path_arguments_none())],))), bob.field_value(bob
-                                .member_named(stringify!(b)), bob.path_expr(16u32.into(),
-                                bob.path(vec![bob.path_segment(stringify!(c), bob
-                                .path_arguments_none())],)))], None, < Foo:: < T > as
-                                rhdl::core::Digital > ::static_kind().place_holder()))), bob
-                                .expr_stmt(23u32.into(), bob.binary_expr(20u32.into(),
-                                rhdl::core::ast::builder::BinOp::Eq, bob.path_expr(21u32
-                                .into(), bob.path(vec![bob.path_segment(stringify!(e), bob
-                                .path_arguments_none())],)), bob.path_expr(22u32.into(), bob
-                                .path(vec![bob.path_segment(stringify!(x), bob
-                                .path_arguments_none())],))))
-                            ],
-                        ),
-                    std::any::TypeId::of::<do_stuff<T, S>>(),
-                    "fn do_stuff<T: Digital, S: Digital>(x: Foo<T>, y: Foo<S>) -> bool {\n    let c = x.a;\n    let d = (x.a, y.b);\n    let e = Foo::<T> { a: c, b: c };\n    e == x\n}\n",
-                    concat!(file!(), ":", line!()),
-                    vec![],
+            kernel_fn(
+                0u32.into(),
+                stringify!(do_stuff),
+                vec! {
+                    type_pat(23u32.into(), ident_pat(22u32.into(), stringify!(x), false),
+                    < Foo < T > as rhdl::core::Digital > ::static_kind()), type_pat(25u32
+                    .into(), ident_pat(24u32.into(), stringify!(y), false), < Foo < S >
+                    as rhdl::core::Digital > ::static_kind())
+                },
+                <bool as rhdl::core::Digital>::static_kind(),
+                block(
+                    1u32.into(),
+                    vec![
+                        local_stmt(5u32.into(), ident_pat(2u32.into(), stringify!(c),
+                        false), Some(field_expr(3u32.into(), path_expr(4u32.into(),
+                        path(vec![path_segment(stringify!(x), path_arguments_none())],)),
+                        member_named(stringify!(a))))), local_stmt(12u32.into(),
+                        ident_pat(6u32.into(), stringify!(d), false),
+                        Some(tuple_expr(7u32.into(), vec![field_expr(8u32.into(),
+                        path_expr(9u32.into(), path(vec![path_segment(stringify!(x),
+                        path_arguments_none())],)), member_named(stringify!(a))),
+                        field_expr(10u32.into(), path_expr(11u32.into(),
+                        path(vec![path_segment(stringify!(y), path_arguments_none())],)),
+                        member_named(stringify!(b)))]))), local_stmt(17u32.into(),
+                        ident_pat(13u32.into(), stringify!(e), false),
+                        Some(struct_expr(14u32.into(),
+                        path(vec![path_segment(stringify!(Foo), vec![stringify!(T)])],),
+                        vec![field_value(member_named(stringify!(a)), path_expr(15u32
+                        .into(), path(vec![path_segment(stringify!(c),
+                        path_arguments_none())],))),
+                        field_value(member_named(stringify!(b)), path_expr(16u32.into(),
+                        path(vec![path_segment(stringify!(c),
+                        path_arguments_none())],)))], None, < Foo:: < T > as
+                        rhdl::core::Digital > ::static_kind().place_holder()))),
+                        expr_stmt(18u32.into(), binary_expr(19u32.into(),
+                        rhdl::core::ast::builder::BinOp::Eq, path_expr(20u32.into(),
+                        path(vec![path_segment(stringify!(e), path_arguments_none())],)),
+                        path_expr(21u32.into(), path(vec![path_segment(stringify!(x),
+                        path_arguments_none())],))))
+                    ],
                 ),
+                std::any::TypeId::of::<do_stuff<T, S>>(),
+                None,
+                rhdl::serde_json::from_str(META_DATA).unwrap(),
+                vec![],
+            ),
         )
     }
 }

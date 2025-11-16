@@ -1,3 +1,29 @@
+#![warn(missing_docs)]
+//! A Verilog HDL Abstract Syntax Tree (AST) library for parsing, representing, and generating Verilog code.
+//! It provides structures and functions to create, manipulate, and serialize Verilog modules,
+//! including support for synthesis attributes and documentation comments.
+//!
+//! The library is designed to be used in conjunction with the `rhdl` crate to generate
+//! Verilog code from Rust code.  It is not intended to be a full Verilog parser or generator.
+//!
+//! This library works using the `syn` crate for parsing and the `quote` crate for code generation.
+//! It also uses `serde` for serialization and deserialization of the AST structures.
+//!
+//! It can be used with `quote!` macros to generate Verilog code from Rust code.
+//!
+//! # Example
+//!
+//! ```rust
+//! use rhdl_vlog::*;
+//! use quote::quote;
+//!
+//! let module: ModuleDef = parse_quote! {
+//!    module my_module (input wire a, input wire b, output wire c);
+//!    endmodule
+//! };
+//! ```
+//!
+
 pub mod atoms;
 pub mod builder;
 pub mod expr;
@@ -34,9 +60,13 @@ use syn::{
 
 use kw_ops::kw;
 
+/// A synthesis attribute in Verilog HDL.
+
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct SynthesisAttribute {
+    /// The name of the synthesis attribute.
     pub name: String,
+    /// The value of the synthesis attribute.
     pub value: ConstExpr,
 }
 
@@ -67,8 +97,10 @@ impl Pretty for SynthesisAttribute {
     }
 }
 
+/// A list of synthesis attributes in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct SynthesisAttributeList {
+    /// The list of synthesis attributes.
     pub attributes: Vec<SynthesisAttribute>,
 }
 
@@ -79,9 +111,12 @@ impl ToTokens for SynthesisAttributeList {
     }
 }
 
+/// A Verilog HDL attribute, either a documentation string or synthesis attributes.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub enum Attribute {
+    /// A documentation string attribute.
     Doc(String),
+    /// A synthesis attribute list.
     Synthesis(SynthesisAttributeList),
 }
 
@@ -152,9 +187,12 @@ impl ToTokens for Attribute {
     }
 }
 
+/// An item in Verilog HDL, such as a statement, declaration, or function definition.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Item {
+    /// The list of attributes associated with the item.
     pub attributes: Vec<Attribute>,
+    /// The kind of item.
     pub kind: ItemKind,
 }
 
@@ -187,11 +225,16 @@ impl ToTokens for Item {
     }
 }
 
+/// The kind of item in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub enum ItemKind {
+    /// A statement item.
     Statement(Stmt),
+    /// A declaration item.
     Declaration(DeclarationList),
+    /// A function definition item.
     FunctionDef(FunctionDef),
+    /// An initial block item.
     Initial(Initial),
 }
 
@@ -231,8 +274,10 @@ impl ToTokens for ItemKind {
     }
 }
 
+/// A list of items in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize, Default)]
 pub struct ItemList {
+    /// The list of items.
     pub items: Vec<Item>,
 }
 
@@ -259,8 +304,10 @@ impl Pretty for ItemList {
     }
 }
 
+/// An initial block in Verilog HDL.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Initial {
+    /// The statement inside the initial block.
     pub statement: Stmt,
 }
 
@@ -314,13 +361,48 @@ impl<T: Parse> Parse for Parenthesized<T> {
     }
 }
 
+/// A list of Verilog HDL modules.
 #[derive(Clone, PartialEq, Hash, Serialize, Deserialize)]
 pub struct ModuleList {
+    /// The list of modules.
     pub modules: Vec<ModuleDef>,
 }
 
 impl ModuleList {
-    pub fn into_iter(self) -> impl Iterator<Item = ModuleDef> {
+    /// Check the module list for syntactic correctness using Icarus Verilog.
+    pub fn checked(&self) -> anyhow::Result<()> {
+        let d = tempfile::tempdir()?;
+        // Write the test bench to a file
+        let d_path = d.path();
+        std::fs::write(d_path.join("top.v"), self.to_string())?;
+        // Compile the test bench
+        let mut cmd = std::process::Command::new("iverilog");
+        cmd.arg("-t").arg("null").arg(d_path.join("top.v"));
+        let status = cmd
+            .status()
+            .expect("Icarus Verilog should be installed and in your PATH.");
+        if !status.success() {
+            return Err(anyhow::anyhow!(
+                "Failed to compile testbench with {}",
+                status
+            ));
+        }
+        Ok(())
+    }
+}
+
+impl From<ModuleDef> for ModuleList {
+    fn from(module: ModuleDef) -> Self {
+        Self {
+            modules: vec![module],
+        }
+    }
+}
+
+impl IntoIterator for ModuleList {
+    type Item = ModuleDef;
+    type IntoIter = std::vec::IntoIter<ModuleDef>;
+    fn into_iter(self) -> Self::IntoIter {
         self.modules.into_iter()
     }
 }
@@ -362,10 +444,22 @@ impl std::fmt::Display for ModuleList {
     }
 }
 
+impl std::fmt::Debug for ModuleList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut fmt = crate::formatter::Formatter::new();
+        self.pretty_print(&mut fmt);
+        write!(f, "{}", fmt.finish())
+    }
+}
+
+/// A Verilog HDL module definition.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ModuleDef {
+    /// The name of the module.    
     pub name: String,
+    /// The ports of the module.
     pub args: Vec<Port>,
+    /// The items inside the module.
     pub items: Vec<Item>,
 }
 
@@ -420,11 +514,16 @@ impl ToTokens for ModuleDef {
     }
 }
 
+/// A Verilog HDL function definition.
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 pub struct FunctionDef {
+    /// The signed width of the function's return value.
     pub signed_width: SignedWidth,
+    /// The name of the function.
     pub name: String,
+    /// The ports (arguments) of the function.
     pub args: Vec<Port>,
+    /// The items inside the function.
     pub items: Vec<Item>,
 }
 
@@ -451,7 +550,7 @@ impl Parse for FunctionDef {
 
 impl Pretty for FunctionDef {
     fn pretty_print(&self, formatter: &mut Formatter) {
-        formatter.write(&format!("function "));
+        formatter.write("function ");
         formatter.scoped(|formatter| {
             self.signed_width.pretty_print(formatter);
             formatter.write(&format!(" {}", self.name));
@@ -482,12 +581,14 @@ impl ToTokens for FunctionDef {
 
 #[derive(Debug, Error)]
 #[error("Parse Error in Verilog code")]
+/// A parse error that includes source code context for better error reporting.
 pub struct ParseError {
     source_code: std::sync::Arc<String>,
     syn_error: syn::Error,
 }
 
 impl ParseError {
+    /// Create a new ParseError with the given syn::Error and source code.
     pub fn new(syn_err: syn::Error, source_code: &str) -> Self {
         Self {
             source_code: std::sync::Arc::new(source_code.into()),
@@ -546,6 +647,7 @@ impl miette::Diagnostic for ParseError {
 }
 
 #[macro_export]
+/// A macro to parse Verilog code with enhanced error reporting.
 macro_rules! parse_quote_miette {
     ($($tt:tt)*) => {{
         let tokens = ::quote::quote! { $($tt)* };

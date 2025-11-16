@@ -9,7 +9,10 @@
 //! be included in your simulations and test fixtures.
 //!
 
-use rhdl::prelude::*;
+use rhdl::{
+    core::{ScopedName, SyncKind},
+    prelude::*,
+};
 
 use crate::stream::Ready;
 
@@ -48,7 +51,7 @@ where
     type I = Ready<T>;
     // data element
     type O = Option<T>;
-    type Kernel = NoKernel3<ClockReset, Ready<T>, (), (Option<T>, ())>;
+    type Kernel = NoSynchronousKernel<ClockReset, Ready<T>, (), (Option<T>, ())>;
 }
 
 impl<T> SynchronousDQ for SourceFromFn<T>
@@ -143,11 +146,7 @@ impl<T: Digital> Synchronous for SourceFromFn<T> {
         me.value
     }
 
-    fn descriptor(&self, _name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        Err(RHDLError::NotSynthesizable)
-    }
-
-    fn hdl(&self, _name: &str) -> Result<HDLDescriptor, RHDLError> {
+    fn descriptor(&self, _name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError> {
         Err(RHDLError::NotSynthesizable)
     }
 }

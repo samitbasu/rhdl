@@ -1,18 +1,24 @@
 use rhdl::prelude::*;
 use rhdl_fpga::core::{constant, dff};
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct I {
     pub enable: bool,
 }
 
 #[derive(Clone, Debug, Synchronous)]
-pub struct U<N: BitWidth> {
+pub struct U<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     counter: dff::DFF<Bits<N>>,
     threshold: constant::Constant<Bits<N>>,
 }
 
-impl<N: BitWidth> U<N> {
+impl<const N: usize> U<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     pub fn new(threshold: Bits<N>) -> Self {
         Self {
             counter: dff::DFF::new(Bits::ZERO),
@@ -21,30 +27,45 @@ impl<N: BitWidth> U<N> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
-pub struct D<N: BitWidth> {
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
+pub struct D<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     counter: Bits<N>,
     threshold: (),
 }
 
-#[derive(PartialEq, Debug, Digital)]
-pub struct Q<N: BitWidth> {
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
+pub struct Q<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     counter: Bits<N>,
     threshold: Bits<N>,
 }
 
-impl<N: BitWidth> SynchronousIO for U<N> {
+impl<const N: usize> SynchronousIO for U<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = I;
     type O = bool;
     type Kernel = strobe<N>;
 }
 
-impl<N: BitWidth> SynchronousDQ for U<N> {
+impl<const N: usize> SynchronousDQ for U<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type D = D<N>;
     type Q = Q<N>;
 }
 
-impl<N: BitWidth> Default for D<N> {
+impl<const N: usize> Default for D<N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     fn default() -> Self {
         Self {
             counter: bits(0),
@@ -54,7 +75,10 @@ impl<N: BitWidth> Default for D<N> {
 }
 
 #[kernel]
-pub fn strobe<N: BitWidth>(cr: ClockReset, i: I, q: Q<N>) -> (bool, D<N>) {
+pub fn strobe<const N: usize>(cr: ClockReset, i: I, q: Q<N>) -> (bool, D<N>)
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     let mut d = D::<N>::default();
     let count_next = if i.enable { q.counter + 1 } else { q.counter };
     let strobe = i.enable & (q.counter == q.threshold);
@@ -73,7 +97,7 @@ mod tests {
 
     #[test]
     fn test_strobe_timing() -> miette::Result<()> {
-        let uut: U<U4> = U::new(bits(12));
+        let _uut: U<4> = U::new(bits(12));
         //let fg = uut.flow_graph("top")?;
         //eprintln!("{:?}", fg.timing_reports(trivial_cost).first().unwrap());
         //Ok(())

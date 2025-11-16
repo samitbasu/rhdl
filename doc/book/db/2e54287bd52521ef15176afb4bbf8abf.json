@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[kernel]\npub fn kernel(a: (b8, b8)) -> bool {\n    let (c, d) = a;\n    c == d\n}\n"},{"End":"CodeBlock"}]

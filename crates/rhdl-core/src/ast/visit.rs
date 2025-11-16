@@ -189,10 +189,6 @@ where
                 visitor.visit_expr(end)?;
             }
         }
-        ExprKind::Let(expr) => {
-            visitor.visit_pat(&expr.pattern)?;
-            visitor.visit_expr(&expr.value)?;
-        }
         ExprKind::Repeat(expr) => {
             visitor.visit_expr(&expr.value)?;
         }

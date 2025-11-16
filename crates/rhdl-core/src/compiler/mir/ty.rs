@@ -233,7 +233,7 @@ impl AppTypeKind for AppStruct {
             fields: self
                 .fields
                 .iter()
-                .map(|(f, t)| (f.clone(), context.apply(*t)))
+                .map(|(f, t)| (*f, context.apply(*t)))
                 .collect(),
             ..self
         }
@@ -244,10 +244,7 @@ impl AppTypeKind for AppStruct {
             .into_iter()
             .map(|(name, t)| {
                 let kind = context.into_kind(t)?;
-                Ok(Field {
-                    name: name.into(),
-                    kind,
-                })
+                Ok(Field { name, kind })
             })
             .collect::<Result<_, RHDLError>>()?;
         Ok(Kind::make_struct(&self.name, fields))
@@ -290,7 +287,7 @@ impl AppTypeKind for AppEnum {
             .map(|(v, t)| {
                 let kind = context.into_kind(t)?;
                 Ok(crate::types::kind::Variant {
-                    name: v.name.into(),
+                    name: v.name,
                     kind,
                     discriminant: v.discriminant,
                 })
@@ -333,7 +330,7 @@ impl AppTypeKind for AppTuple {
             .into_iter()
             .map(|t| context.into_kind(t))
             .collect::<Result<Vec<_>, RHDLError>>()?;
-        Ok(Kind::make_tuple(elements))
+        Ok(Kind::make_tuple(elements.into()))
     }
 }
 
@@ -575,7 +572,7 @@ impl UnifyContext {
             .variants
             .iter()
             .map(|variant| {
-                let name = variant.name.clone();
+                let name = variant.name;
                 let ty = self.from_kind(loc, variant.kind);
                 let tag = VariantTag {
                     name,
@@ -585,7 +582,7 @@ impl UnifyContext {
             })
             .collect();
         let discriminant = self.ty_discriminant(loc, enumerate.discriminant_layout);
-        let name = self.ty_const(loc, Const::String(enumerate.name.clone()));
+        let name = self.ty_const(loc, Const::String(enumerate.name));
         self.ty_app(
             loc,
             AppType::Enum(AppEnum {
@@ -769,18 +766,14 @@ impl UnifyContext {
     pub fn into_kind(&mut self, ty: TypeId) -> Result<Kind, RHDLError> {
         let x = self.apply(ty);
         match x.kind.as_ref() {
-            TypeKind::Var(_) => {
-                return Err(self.raise_type_error(UnifyError::UnboundVariable {
-                    kind: x.kind.as_ref().clone(),
-                }));
-            }
+            TypeKind::Var(_) => Err(self.raise_type_error(UnifyError::UnboundVariable {
+                kind: x.kind.as_ref().clone(),
+            })),
             TypeKind::Const(c) => match c {
                 Const::Empty => Ok(Kind::Empty),
-                _ => {
-                    return Err(self.raise_type_error(UnifyError::ExpectedConstant {
-                        kind: x.kind.as_ref().clone(),
-                    }));
-                }
+                _ => Err(self.raise_type_error(UnifyError::ExpectedConstant {
+                    kind: x.kind.as_ref().clone(),
+                })),
             },
             TypeKind::App(app) => app.clone().into_kind(self),
         }
@@ -824,7 +817,7 @@ impl UnifyContext {
         matches!(ty.kind.as_ref(), TypeKind::Var(_))
     }
 
-    pub fn desc(&self, ty: TypeId) -> String {
+    fn desc(ty: TypeId) -> String {
         match ty.kind.as_ref() {
             TypeKind::Var(v) => format!("V{}", v.0),
             TypeKind::Const(c) => match c {
@@ -848,7 +841,7 @@ impl UnifyContext {
                     strukt
                         .fields
                         .iter()
-                        .map(|(f, t)| format!("{}:{}", f, self.desc(*t)))
+                        .map(|(f, t)| format!("{}:{}", f, Self::desc(*t)))
                         .collect::<Vec<_>>()
                         .join(", ")
                 ),
@@ -858,41 +851,47 @@ impl UnifyContext {
                         tuple
                             .elements
                             .iter()
-                            .map(|t| self.desc(*t))
+                            .map(|t| Self::desc(*t))
                             .collect::<Vec<_>>()
                             .join(", ")
                     )
                 }
                 AppType::Enum(enumerate) => format!(
                     "enum {}<{}>",
-                    self.desc(enumerate.name),
+                    Self::desc(enumerate.name),
                     enumerate
                         .variants
                         .iter()
-                        .map(|(v, t)| format!("{}:{}", v.name, self.desc(*t)))
+                        .map(|(v, t)| format!("{}:{}", v.name, Self::desc(*t)))
                         .collect::<Vec<_>>()
                         .join(", ")
                 ),
                 AppType::Bits(bits) => {
-                    format!("{}_{}", self.desc(bits.sign_flag), self.desc(bits.len))
+                    format!("{}_{}", Self::desc(bits.sign_flag), Self::desc(bits.len))
                 }
                 AppType::Signal(signal) => format!(
                     "signal<{}, {}>",
-                    self.desc(signal.data),
-                    self.desc(signal.clock)
+                    Self::desc(signal.data),
+                    Self::desc(signal.clock)
                 ),
                 AppType::Array(array) => {
-                    format!("[{}; {}]", self.desc(array.base), self.desc(array.len))
+                    format!("[{}; {}]", Self::desc(array.base), Self::desc(array.len))
                 }
             },
         }
     }
 }
 
+impl Display for TypeId {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", UnifyContext::desc(*self))
+    }
+}
+
 impl Display for UnifyContext {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         for (v, t) in &self.substitution_map {
-            writeln!(f, "V{} -> {}", v.0, self.desc(*t))?;
+            writeln!(f, "V{} -> {}", v.0, UnifyContext::desc(*t))?;
         }
         Ok(())
     }
@@ -917,7 +916,7 @@ impl UnifyContext {
                 kind: ty.kind.as_ref().clone(),
             }));
         };
-        if let Some(t) = self.substitution_map.get(&v) {
+        if let Some(t) = self.substitution_map.get(v) {
             return Ok(Some(*t));
         }
         Ok(None)
@@ -1108,12 +1107,8 @@ impl UnifyContext {
         }
         for (a, b) in x.fields.iter().zip(y.fields.iter()) {
             if a.0 != b.0 {
-                return Err(
-                    self.raise_type_error(UnifyError::CannotUnifyFieldsWithNames {
-                        x: a.0.clone(),
-                        y: b.0.clone(),
-                    }),
-                );
+                return Err(self
+                    .raise_type_error(UnifyError::CannotUnifyFieldsWithNames { x: a.0, y: b.0 }));
             }
             self.unify(a.1, b.1)?;
         }

@@ -2,14 +2,14 @@ use rhdl::prelude::*;
 
 #[cfg(test)]
 mod common;
-use rhdl_core::circuit::{async_func::AsyncFunc, fixture::Fixture};
+use rhdl_core::circuit::{fixture::Fixture, function::asynchronous::AsyncFunc};
 use rhdl_vlog::formatter::Pretty;
 
 // Unified macro for binding inputs and outputs to a fixture
 
 #[test]
 fn test_simple_fixture_example() -> miette::Result<()> {
-    let expect = expect_test::expect_file!["fixture_adder.expect"];
+    let expect = expect_test::expect_file!["expect/fixture_adder.expect"];
     #[kernel]
     fn adder(a: Signal<(b4, b4), Red>) -> Signal<b4, Red> {
         let (a, b) = a.val();

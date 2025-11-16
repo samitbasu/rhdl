@@ -1,0 +1,1 @@
+[{"Start":"HtmlBlock"},{"Html":"<pre><code class=\"hljs hide-boring\"><span style='color:var(--cyan,#0aa)'>xor ❯</span> <b>cargo add --dev expect-test</b>\n<b><span style='color:var(--green,#0a0)'>    Updating</span></b> crates.io index\n<b><span style='color:var(--green,#0a0)'>      Adding</span></b> expect-test v1.5.1 to dev-dependencies\n</code></pre>"},{"End":"HtmlBlock"}]

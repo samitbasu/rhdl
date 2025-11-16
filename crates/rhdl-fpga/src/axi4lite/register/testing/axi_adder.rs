@@ -23,12 +23,12 @@ impl Default for Adder {
     }
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 pub struct In {
     pub cmd: Option<BlockRequest>,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 pub struct Out {
     pub reply: Option<BlockResponse>,
     pub cmd_ready: Ready<BlockRequest>,
@@ -91,7 +91,8 @@ mod tests {
     #[test]
     fn test_synthesizable() -> miette::Result<()> {
         let uut = Adder::default();
-        let _ = uut.hdl("top")?;
+        let descriptor = uut.descriptor("top".into())?;
+        let _ = descriptor.hdl()?;
         Ok(())
     }
 
@@ -129,7 +130,7 @@ mod tests {
             .join("axi4lite")
             .join("bank");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["2f3d1a58fd31be1b11ac419838423a9d21318a6288a34a60e9fc6388acfcfd48"];
+        let expect = expect!["e29d2bbebc54e6f7ba5c122cace6da5ef0f1e1c967b08a50bd4649f9314f7225"];
         let digest = vcd.dump_to_file(root.join("adder.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

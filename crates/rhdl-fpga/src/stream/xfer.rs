@@ -69,7 +69,7 @@ impl<T: Digital> Default for Xfer<T> {
 }
 
 /// Output of the [Xfer] core
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 pub struct Out<T: Digital> {
     /// The data flowing out of the core
     pub data: Option<T>,
@@ -154,7 +154,7 @@ mod tests {
             sink: SinkFromFn::new_from_iter(b_rng, 0.3),
         };
         let input = repeat_n((), 1000).with_reset(1).clock_pos_edge(100);
-        let last_output = uut.run_without_synthesis(input)?.last().unwrap();
+        let last_output = uut.run(input).last().unwrap();
         let last_count = last_output.value.2.raw();
         assert_eq!(last_count, 10);
         Ok(())

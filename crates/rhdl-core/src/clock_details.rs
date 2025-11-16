@@ -21,7 +21,7 @@ impl ClockDetails {
         }
         let time = time - self.offset_in_fs;
         let period = self.period_in_fs;
-        time % period == 0
+        time.is_multiple_of(period)
     }
     pub fn neg_edge_at(&self, time: u64) -> bool {
         if time < self.offset_in_fs {

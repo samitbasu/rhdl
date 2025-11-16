@@ -85,7 +85,7 @@ mod tests {
         impl CircuitIO for U {
             type I = (Signal<Clock, Red>,);
             type O = Signal<b2, Red>;
-            type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
+            type Kernel = NoCircuitKernel<Self::I, (), (Self::O, ())>;
         }
 
         let driver = build::<U>("clk", &path!(.0.val()), &options)?;

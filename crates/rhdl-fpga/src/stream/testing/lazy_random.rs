@@ -70,7 +70,7 @@ use rhdl::prelude::*;
 /// Lazy, bursty random number generator as
 /// a stream.
 pub struct LazyRng {
-    filler: FIFOFiller<U32>,
+    filler: FIFOFiller<32>,
     buffer: FIFOToStream<b32>,
 }
 
@@ -85,7 +85,7 @@ impl LazyRng {
     }
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 /// Input for the [LazyRng] the `ready` signal
 /// provides backpressure.
 pub struct In {
@@ -93,7 +93,7 @@ pub struct In {
     pub ready: Ready<b32>,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 /// Data from the [LazyRng] stream.
 /// Will be [None] if the source is stalling.
 pub struct Out {
@@ -135,7 +135,7 @@ mod tests {
             .clock_pos_edge(100)
             .take(1000);
         let uut = LazyRng::default();
-        let vcd = uut.run(input)?.collect::<Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         vcd.dump_to_file("lazy_rng.vcd")?;
         Ok(())
     }

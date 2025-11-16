@@ -24,24 +24,27 @@ use crate::{
     *,
 };
 
-// Atom constructors
-
+/// Bit range specification in Verilog HDL: `start:end`
 pub fn bit_range(start: u32, end: u32) -> BitRange {
     BitRange { start, end }
 }
 
+/// Width specification in Verilog HDL: `[bit_range]`
 pub fn width_spec(bit_range: BitRange) -> WidthSpec {
     WidthSpec { bit_range }
 }
 
+/// Signed width specification in Verilog HDL: `signed width_spec`
 pub fn signed_width_spec(width_spec: WidthSpec) -> SignedWidth {
     SignedWidth::Signed(width_spec)
 }
 
+/// Unsigned width specification in Verilog HDL: `width_spec`
 pub fn unsigned_width_spec(width_spec: WidthSpec) -> SignedWidth {
     SignedWidth::Unsigned(width_spec)
 }
 
+/// Construct a declaration kind with an optional width.
 pub fn decl_kind(name: &str, width: Option<SignedWidth>) -> DeclKind {
     DeclKind {
         name: name.to_string(),
@@ -49,6 +52,7 @@ pub fn decl_kind(name: &str, width: Option<SignedWidth>) -> DeclKind {
     }
 }
 
+/// Construct a connection for module instantiation.
 pub fn connection(target: &str, local: Expr) -> Connection {
     Connection {
         target: target.to_string(),
@@ -56,6 +60,7 @@ pub fn connection(target: &str, local: Expr) -> Connection {
     }
 }
 
+/// A literal value in Verilog HDL.
 pub fn lit_verilog(width: u32, value: &str) -> LitVerilog {
     LitVerilog {
         width,
@@ -63,6 +68,7 @@ pub fn lit_verilog(width: u32, value: &str) -> LitVerilog {
     }
 }
 
+/// Create an unsigned width specification from a bit width.
 pub fn unsigned_width(width: usize) -> SignedWidth {
     SignedWidth::Unsigned(WidthSpec {
         bit_range: BitRange {
@@ -72,6 +78,7 @@ pub fn unsigned_width(width: usize) -> SignedWidth {
     })
 }
 
+/// Create a signed width specification from a bit width.
 pub fn signed_width(width: usize) -> SignedWidth {
     SignedWidth::Signed(WidthSpec {
         bit_range: BitRange {
@@ -85,42 +92,49 @@ pub fn signed_width(width: usize) -> SignedWidth {
 // Impl From traits for idiomatic conversions
 // =============================================================================
 
+/// Convert a string slice into an expression identifier.
 impl From<&str> for Expr {
     fn from(name: &str) -> Self {
         Expr::Ident(name.to_string())
     }
 }
 
+/// Convert a String into an expression identifier.
 impl From<String> for Expr {
     fn from(name: String) -> Self {
         Expr::Ident(name)
     }
 }
 
+/// Convert a LitVerilog into an expression constant.
 impl From<LitVerilog> for Expr {
     fn from(value: LitVerilog) -> Self {
         Expr::Constant(value)
     }
 }
 
+/// Convert a `StmtKind` into a `Stmt`.
 impl From<StmtKind> for Stmt {
     fn from(kind: StmtKind) -> Self {
         Stmt { kind }
     }
 }
 
+/// Convert a `Stmt` into an `Initial` block.
 impl From<Stmt> for Initial {
     fn from(statement: Stmt) -> Self {
         Initial { statement }
     }
 }
 
+/// Convert a u64 into a Delay statement.
 impl From<u64> for Delay {
     fn from(length: u64) -> Self {
         Delay { length }
     }
 }
 
+/// Convert a `Stmt` into an `ElseBranch`.
 impl From<Stmt> for ElseBranch {
     fn from(stmt: Stmt) -> Self {
         ElseBranch {
@@ -129,18 +143,21 @@ impl From<Stmt> for ElseBranch {
     }
 }
 
+/// Convert a `BitRange` into a `WidthSpec`.
 impl From<BitRange> for WidthSpec {
     fn from(bit_range: BitRange) -> Self {
         WidthSpec { bit_range }
     }
 }
 
+/// Convert a `WidthSpec` into an unsigned `SignedWidth`.
 impl From<WidthSpec> for SignedWidth {
     fn from(width_spec: WidthSpec) -> Self {
         SignedWidth::Unsigned(width_spec)
     }
 }
 
+/// Convert a `std::ops::Range<usize>` into a `BitRange`.
 impl From<std::ops::Range<usize>> for BitRange {
     fn from(value: std::ops::Range<usize>) -> Self {
         BitRange {
@@ -152,6 +169,7 @@ impl From<std::ops::Range<usize>> for BitRange {
 
 // Declaration constructors
 
+/// Creates a declaration in Verilog HDL.
 pub fn declaration(kind: HDLKind, signed_width: Option<SignedWidth>, name: &str) -> Declaration {
     Declaration {
         kind,
@@ -160,6 +178,7 @@ pub fn declaration(kind: HDLKind, signed_width: Option<SignedWidth>, name: &str)
     }
 }
 
+/// Creates a wire declaration in Verilog HDL.
 pub fn wire_decl(name: &str, width: SignedWidth) -> Declaration {
     Declaration {
         kind: HDLKind::Wire,
@@ -168,6 +187,7 @@ pub fn wire_decl(name: &str, width: SignedWidth) -> Declaration {
     }
 }
 
+/// Creates a reg declaration in Verilog HDL.
 pub fn reg_decl(name: &str, width: SignedWidth) -> Declaration {
     Declaration {
         kind: HDLKind::Reg,
@@ -176,6 +196,7 @@ pub fn reg_decl(name: &str, width: SignedWidth) -> Declaration {
     }
 }
 
+/// Creates a declaration list in Verilog HDL.
 pub fn declaration_list(
     kind: HDLKind,
     signed_width: Option<SignedWidth>,
@@ -188,28 +209,33 @@ pub fn declaration_list(
     }
 }
 
+/// Creates a port in Verilog HDL.
 pub fn port(direction: Direction, decl: Declaration) -> Port {
     Port { direction, decl }
 }
 
+/// Creates a positive edge sensitivity in Verilog HDL.
 pub fn posedge(ident: &str) -> PosEdgeSensitivity {
     PosEdgeSensitivity {
         ident: ident.to_string(),
     }
 }
 
+/// Creates a negative edge sensitivity in Verilog HDL.
 pub fn negedge(ident: &str) -> NegEdgeSensitivity {
     NegEdgeSensitivity {
         ident: ident.to_string(),
     }
 }
 
+/// Creates a sensitivity list in Verilog HDL.
 pub fn sensitivity_list(elements: impl IntoIterator<Item = Sensitivity>) -> SensitivityList {
     SensitivityList {
         elements: elements.into_iter().collect(),
     }
 }
 
+/// Create a port if the number of bits is non-zero.
 pub fn maybe_port_wire(dir: Direction, num_bits: usize, name: &str) -> Option<Port> {
     (num_bits != 0).then(|| Port {
         direction: dir,
@@ -221,6 +247,7 @@ pub fn maybe_port_wire(dir: Direction, num_bits: usize, name: &str) -> Option<Po
     })
 }
 
+/// Create a wire declaration if the number of bits is non-zero.
 pub fn maybe_decl_wire(num_bits: usize, name: &str) -> Option<Declaration> {
     (num_bits != 0).then(|| Declaration {
         kind: HDLKind::Wire,
@@ -229,6 +256,7 @@ pub fn maybe_decl_wire(num_bits: usize, name: &str) -> Option<Declaration> {
     })
 }
 
+/// Create a reg declaration if the number of bits is non-zero.
 pub fn maybe_decl_reg(num_bits: usize, name: &str) -> Option<Declaration> {
     (num_bits != 0).then(|| Declaration {
         kind: HDLKind::Reg,
@@ -237,6 +265,7 @@ pub fn maybe_decl_reg(num_bits: usize, name: &str) -> Option<Declaration> {
     })
 }
 
+/// Create a connection if the specified range is non-empty.
 pub fn maybe_connect(
     target: &str,
     source: &str,
@@ -266,7 +295,7 @@ pub fn repeat(target: Expr, count: usize) -> Expr {
     })
 }
 
-/// Creates a single bit index expression target[bit]
+/// Creates a single bit index expression `target[bit]`
 pub fn index_bit(target: &str, bit: usize) -> Expr {
     Expr::Index(ExprIndex {
         target: target.to_string(),
@@ -377,6 +406,7 @@ pub fn string_expr(value: &str) -> Expr {
     Expr::String(value.to_string())
 }
 
+/// Creates a case line in Verilog HDL.
 pub fn case_line(item: CaseItem, stmt: Stmt) -> CaseLine {
     CaseLine {
         item,
@@ -388,6 +418,7 @@ pub fn case_line(item: CaseItem, stmt: Stmt) -> CaseLine {
 // Statement constructor functions
 // =============================================================================
 
+/// Creates an assign target from an identifier
 pub fn target_name(name: &str) -> AssignTarget {
     AssignTarget::Ident(name.to_string())
 }
@@ -506,6 +537,7 @@ pub fn noop_stmt() -> StmtKind {
     StmtKind::Noop
 }
 
+/// Creates a function call statement
 pub fn function_call(name: &str, args: impl IntoIterator<Item = Expr>) -> FunctionCall {
     FunctionCall {
         name: name.to_string(),
@@ -513,14 +545,14 @@ pub fn function_call(name: &str, args: impl IntoIterator<Item = Expr>) -> Functi
     }
 }
 
-// Module functions
-
+/// Creates a module list in Verilog HDL.
 pub fn module_list(modules: impl IntoIterator<Item = ModuleDef>) -> ModuleList {
     ModuleList {
         modules: modules.into_iter().collect(),
     }
 }
 
+/// Creates a module definition in Verilog HDL.
 pub fn module_def(
     name: &str,
     args: impl IntoIterator<Item = Port>,
@@ -533,6 +565,7 @@ pub fn module_def(
     }
 }
 
+/// Creates a function definition in Verilog HDL.
 pub fn function_def(
     signed_width: SignedWidth,
     name: &str,

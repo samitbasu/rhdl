@@ -22,7 +22,7 @@ impl Pass for RemoveUselessCastsPass {
                     if let Some(literal) = cast.arg.lit() {
                         let literal_val = &input.symtab[literal];
                         if let Some(len) = cast.len {
-                            if literal_val.kind.is_unsigned() && literal_val.bits.len() == len {
+                            if literal_val.kind().is_unsigned() && literal_val.len() == len {
                                 lop.op = OpCode::Assign(Assign {
                                     lhs: cast.lhs,
                                     rhs: cast.arg,
@@ -35,7 +35,7 @@ impl Pass for RemoveUselessCastsPass {
                     if let Some(literal) = cast.arg.lit() {
                         let literal_val = &input.symtab[literal];
                         if let Some(len) = cast.len {
-                            if literal_val.kind.is_signed() && literal_val.bits.len() == len {
+                            if literal_val.kind().is_signed() && literal_val.len() == len {
                                 lop.op = OpCode::Assign(Assign {
                                     lhs: cast.lhs,
                                     rhs: cast.arg,

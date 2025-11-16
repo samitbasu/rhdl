@@ -1,36 +1,31 @@
 fn jnk() -> Vec<Stmt> {
-    bob.block_expr(
-        23u32.into(),
-        bob
-            .block(
-                22u32.into(),
-                vec![
-                    bob.local_stmt(2u32.into(), 3u32.into(), bob.ident_pat(0u32.into(),
-                    stringify!(l), false), Some(bob.lit_expr(1u32.into(), bob
-                    .expr_lit_int(stringify!(3))))), bob.expr_stmt(21u32.into(), bob
-                    .match_expr(20u32.into(), bob.path_expr(19u32.into(), bob
-                    .path(vec![bob.path_segment(stringify!(l), bob
-                    .path_arguments_none())],)), vec![bob.arm(6u32.into(), bob
-                    .arm_kind_constant(bob
-                    .expr_lit_typed_bits(rhdl::core::Digital::typed_bits(State::Init),
-                    stringify!(State::Init))), bob.block_expr(5u32.into(), bob.block(4u32
-                    .into(), vec![],))), bob.arm(15u32.into(), bob.arm_kind_enum(bob
-                    .tuple_struct_pat(14u32.into(), bob.path(vec![bob
-                    .path_segment(stringify!(State), bob.path_arguments_none()), bob
-                    .path_segment(stringify!(Run), bob.path_arguments_none())],),
-                    vec![bob.ident_pat(13u32.into(), stringify!(a), false)]),
-                    rhdl::core::Digital::discriminant(State::Run(Digital::dont_care(),))),
-                    bob.block_expr(12u32.into(), bob.block(11u32.into(), vec![bob
-                    .semi_stmt(10u32.into(), bob.assign_expr(7u32.into(), bob
-                    .path_expr(8u32.into(), bob.path(vec![bob.path_segment(stringify!(l),
-                    bob.path_arguments_none())],)), bob.path_expr(9u32.into(), bob
-                    .path(vec![bob.path_segment(stringify!(a), bob
-                    .path_arguments_none())],))))],))), bob.arm(18u32.into(), bob
-                    .arm_kind_constant(bob
-                    .expr_lit_typed_bits(rhdl::core::Digital::typed_bits(State::Boom),
-                    stringify!(State::Boom))), bob.block_expr(17u32.into(), bob
-                    .block(16u32.into(), vec![],)))]))
-                ],
-            ),
+    block_expr(
+        0u32.into(),
+        block(
+            1u32.into(),
+            vec![
+                local_stmt(4u32.into(), ident_pat(2u32.into(), stringify!(l), false),
+                Some(lit_expr(3u32.into(), expr_lit_int(stringify!(3))))), expr_stmt(5u32
+                .into(), match_expr(6u32.into(), path_expr(22u32.into(),
+                path(vec![path_segment(stringify!(l), path_arguments_none())],)),
+                vec![arm(7u32.into(),
+                arm_kind_constant(expr_lit_typed_bits(rhdl::core::Digital::typed_bits(State::Init),
+                stringify!(State::Init))), block_expr(8u32.into(), block(9u32.into(),
+                vec![],))), arm(10u32.into(), arm_kind_enum(tuple_struct_pat(18u32
+                .into(), path(vec![path_segment(stringify!(State),
+                path_arguments_none()), path_segment(stringify!(Run),
+                path_arguments_none())],), vec![ident_pat(17u32.into(), stringify!(a),
+                false)]),
+                rhdl::core::Digital::discriminant(State::Run(Digital::dont_care(),))),
+                block_expr(11u32.into(), block(12u32.into(), vec![semi_stmt(13u32.into(),
+                assign_expr(14u32.into(), path_expr(15u32.into(),
+                path(vec![path_segment(stringify!(l), path_arguments_none())],)),
+                path_expr(16u32.into(), path(vec![path_segment(stringify!(a),
+                path_arguments_none())],))))],))), arm(19u32.into(),
+                arm_kind_constant(expr_lit_typed_bits(rhdl::core::Digital::typed_bits(State::Boom),
+                stringify!(State::Boom))), block_expr(20u32.into(), block(21u32.into(),
+                vec![],)))]))
+            ],
+        ),
     )
 }

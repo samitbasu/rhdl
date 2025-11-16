@@ -38,7 +38,7 @@ fn approximate_dynamic_paths(path: &Path) -> Path {
     path.iter()
         .map(|e| match e {
             PathElement::DynamicIndex(_) => PathElement::Index(0),
-            _ => e.clone(),
+            _ => *e,
         })
         .collect()
 }
@@ -332,7 +332,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
                 let ty = fields.iter().map(slot_type).collect::<Vec<_>>();
-                eq_kinds(slot_type(lhs), Kind::make_tuple(ty), loc)?;
+                eq_kinds(slot_type(lhs), Kind::make_tuple(ty.into()), loc)?;
             }
             OpCode::Index(Index { lhs, arg, path }) => {
                 let ty = slot_type(arg).signal_data();
@@ -355,7 +355,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                 template,
             }) => {
                 let ty = slot_type(lhs);
-                eq_kinds(ty, template.kind, loc)?;
+                eq_kinds(ty, template.kind(), loc)?;
                 if let Some(rest) = rest {
                     let rest_ty = slot_type(rest);
                     eq_kinds(ty, rest_ty, loc)?;
@@ -418,7 +418,7 @@ fn check_type_correctness(obj: &Object) -> Result<(), RHDLError> {
                         obj.symtab[lhs].location,
                     ));
                 };
-                eq_kinds(ty, Kind::make_array(*array_ty.base.clone(), *len as _), loc)?;
+                eq_kinds(ty, Kind::make_array(*array_ty.base, *len as _), loc)?;
             }
             OpCode::Case(Case {
                 lhs,

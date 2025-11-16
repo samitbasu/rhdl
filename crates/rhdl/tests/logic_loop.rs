@@ -30,13 +30,13 @@ pub struct U {
     right: inverter::U,
 }
 
-#[derive(PartialEq, Digital, Default)]
+#[derive(PartialEq, Default, Clone, Copy, Digital)]
 pub struct D {
     left: bool,
     right: bool,
 }
 
-#[derive(PartialEq, Digital, Default)]
+#[derive(PartialEq, Default, Clone, Copy, Digital)]
 pub struct Q {
     left: bool,
     right: bool,
@@ -74,11 +74,11 @@ mod tests {
     #[test]
     fn test_logic_loop() -> miette::Result<()> {
         let uut = U::default();
-        let Err(err) = uut.descriptor("uut") else {
+        let Err(err) = uut.descriptor("uut".into()) else {
             panic!("Expected this to fail with a logic loop error");
         };
         let report = miette_report(err);
-        expect_test::expect_file!["logic_loop.expect"].assert_eq(&report);
+        expect_test::expect_file!["expect/logic_loop.expect"].assert_eq(&report);
         Ok(())
     }
 }

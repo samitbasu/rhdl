@@ -2,7 +2,7 @@ use rhdl::prelude::*;
 use rhdl_fpga::{doc::write_svg_as_markdown, fifo::asynchronous::AsyncFIFO};
 
 fn main() -> Result<(), RHDLError> {
-    let uut = AsyncFIFO::<Bits<U16>, Red, Blue, 3>::default();
+    let uut = AsyncFIFO::<Bits<16>, Red, Blue, 3>::default();
     let test_seq = (0..)
         .map(|_| b16(rand::random::<u16>() as u128))
         .take(100)

@@ -45,7 +45,7 @@ pub struct NegatingConditioner<W: Domain, R: Domain> {
     cond: super::conditioner::ResetConditioner<W, R>,
 }
 
-#[derive(PartialEq, Digital, Timed)]
+#[derive(PartialEq, Digital, Copy, Timed, Clone)]
 /// Inputs for the [NegatingConditioner].
 pub struct In<W: Domain, R: Domain> {
     /// The active-low reset signal
@@ -89,7 +89,7 @@ mod tests {
             .without_reset()
             .clock_pos_edge(100);
         let blue = std::iter::repeat(()).without_reset().clock_pos_edge(79);
-        red.merge(blue, |r, b| In {
+        red.merge_map(blue, |r, b| In {
             reset_n: signal(reset_n(r.1)),
             clock: signal(b.0.clock),
         })
@@ -99,13 +99,13 @@ mod tests {
     fn test_stream_function() -> miette::Result<()> {
         let uut = NegatingConditioner::<Red, Blue>::default();
         let stream = istream();
-        let vcd = uut.run(stream)?.collect::<Vcd>();
+        let vcd = uut.run(stream).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("reset")
             .join("negating_conditioner");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["4a44c223925c8409bf648c99b6b98994f89760b12db7ffd114295f95d640eae6"];
+        let expect = expect!["c04cca7cff216750ac453291da72e2f23196e1764e7c73616c8abaad6897224a"];
         let digest = vcd
             .dump_to_file(root.join("negating_conditioner.vcd"))
             .unwrap();
@@ -115,78 +115,12 @@ mod tests {
 
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
-        let expect = expect_test::expect![[r#"
-            module top(input wire [1:0] i, output wire [0:0] o);
-               wire [3:0] od;
-               wire [2:0] d;
-               wire [1:0] q;
-               assign o = od[0:0];
-               top_cond c0(.i(d[2:1]), .o(q[1:1]));
-               ;
-               top_neg c1(.i(d[0:0]), .o(q[0:0]));
-               ;
-               assign d = od[3:1];
-               assign od = kernel_negating_conditioner_kernel(i, q);
-               function [3:0] kernel_negating_conditioner_kernel(input reg [1:0] arg_0, input reg [1:0] arg_1);
-                     reg [0:0] or0;
-                     reg [1:0] or1;
-                     // d
-                     reg [2:0] or2;
-                     reg [0:0] or3;
-                     reg [1:0] or4;
-                     // d
-                     reg [2:0] or5;
-                     reg [0:0] or6;
-                     // d
-                     reg [2:0] or7;
-                     reg [0:0] or8;
-                     reg [3:0] or9;
-                     localparam ol0 = 3'bXXX;
-                     begin
-                        or1 = arg_0;
-                        or4 = arg_1;
-                        or0 = or1[0:0];
-                        or2 = ol0;
-                        or2[0:0] = or0;
-                        or3 = or4[0:0];
-                        or5 = or2;
-                        or5[1:1] = or3;
-                        or6 = or1[1:1];
-                        or7 = or5;
-                        or7[2:2] = or6;
-                        or8 = or4[1:1];
-                        or9 = {or7, or8};
-                        kernel_negating_conditioner_kernel = or9;
-                     end
-               endfunction
-            endmodule
-            module top_cond(input wire [1:0] i, output wire [0:0] o);
-               wire [0:0] i_reset;
-               wire [0:0] clock;
-               reg [0:0] reg1;
-               reg [0:0] reg2;
-               assign i_reset = i[0];
-               assign clock = i[1];
-               assign o = reg2;
-               always @(posedge clock, posedge i_reset) begin
-                  if (i_reset) begin
-                     reg1 <= 1'b1;
-                     reg2 <= 1'b1;
-                  end else begin
-                     reg1 <= 1'b0;
-                     reg2 <= reg1;
-                  end
-               end
-            endmodule
-            module top_neg(input wire [0:0] i, output wire [0:0] o);
-               assign o = ~i;
-            endmodule
-        "#]];
+        let expect = expect_test::expect_file!["negating_conditioner.v.expect"];
         let uut = NegatingConditioner::<Red, Blue>::default();
-        let hdl = uut.hdl("top")?.as_module().pretty();
+        let hdl = uut.descriptor("top".into())?.hdl()?.modules.pretty();
         expect.assert_eq(&hdl);
         let stream = istream();
-        let tb = uut.run(stream)?.collect::<TestBench<_, _>>();
+        let tb = uut.run(stream).collect::<TestBench<_, _>>();
         let hdl = tb.rtl(&uut, &TestBenchOptions::default().skip(10))?;
         hdl.run_iverilog()?;
         let fg = tb.ntl(&uut, &TestBenchOptions::default().skip(10))?;

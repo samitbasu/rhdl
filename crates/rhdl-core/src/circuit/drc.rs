@@ -1,6 +1,17 @@
+//! Design Rule Checking for Circuits
+//!
+//! Eventually this module will contain various design rule checking functions to apply to RHDL circuits.
+//! For now, it contains a single check for combinatorial paths in synchronous circuits.
+//!
+//! A combinatorial path is a path from an input to an output that does not terminate on any flip flops or
+//! other black box components.  Some specifications discourage or even forbid combinatorial paths, as they can
+//! lead to timing issues.  This module provides a function to check for such paths and report them.
+//!
+//! See the book for an example of how to use it.
 use crate::{
     Synchronous,
     ast::SourcePool,
+    circuit::scoped_name::ScopedName,
     ntl::{
         graph::{GraphMode, WriteSource, make_net_graph},
         spec::Wire,
@@ -11,11 +22,12 @@ use petgraph::algo::DfsSpace;
 use std::collections::hash_map::RandomState;
 use thiserror::Error;
 
+/// Diagnostic for combinatorial paths in synchronous circuits.
 #[derive(Debug, Error)]
 #[error("RHDL Combinatorial Path")]
 pub struct CombinatorialPath {
-    pub src: SourcePool,
-    pub elements: Vec<SourceSpan>,
+    src: SourcePool,
+    elements: Vec<SourceSpan>,
 }
 
 impl Diagnostic for CombinatorialPath {
@@ -39,15 +51,22 @@ impl Diagnostic for CombinatorialPath {
     }
 }
 
+/// Check that the given synchronous circuit has no combinatorial paths from inputs to outputs.
+///
+/// This function analyzes the netlist of the circuit and looks for paths from inputs to outputs
+/// that do not pass through any flip flops or black box components.  If such paths are found,
+/// it returns an error with a diagnostic that includes the source locations of the elements
+/// involved in the path.
+///
 pub fn no_combinatorial_paths<T: Synchronous>(uut: &T) -> miette::Result<()> {
-    let descriptor = uut.descriptor("uut")?;
-    let ntl = &descriptor.ntl;
+    let descriptor = uut.descriptor(ScopedName::top())?;
+    let ntl = descriptor.netlist()?;
     let dep = make_net_graph(ntl, GraphMode::Synchronous);
     // Get the graph node that represents the inputs for the device
     let input_node = dep.input_node;
     let mut space = DfsSpace::new(&dep.graph);
-    let code = &descriptor.ntl.code;
-    for output in descriptor.ntl.outputs.iter().copied().flat_map(Wire::reg) {
+    let code = &ntl.code;
+    for output in ntl.outputs.iter().copied().flat_map(Wire::reg) {
         let source = dep.reg_map[&output];
         match source {
             WriteSource::ClockReset => {}

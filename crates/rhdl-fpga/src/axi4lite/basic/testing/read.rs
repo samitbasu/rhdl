@@ -16,7 +16,7 @@ type RAM_ADDR = U8;
 pub struct U {
     manager: manager::read::U,
     subordinate: bridge::read::U,
-    memory: ram::synchronous::U<Bits<U32>, RAM_ADDR>,
+    memory: ram::synchronous::U<Bits<32>, RAM_ADDR>,
     read_pending: dff::U<bool>,
 }
 
@@ -31,14 +31,14 @@ impl Default for U {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct I {
     pub cmd: Option<b32>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 pub struct O {
-    pub data: Option<Result<Bits<U32>, AXI4Error>>,
+    pub data: Option<Result<Bits<32>, AXI4Error>>,
     pub full: bool,
 }
 
@@ -69,7 +69,7 @@ pub fn basic_test_kernel(cr: ClockReset, i: I, q: Q) -> (O, D) {
     // The read bridge uses a read strobe, but we will ignore that
     // for this test case, since the RAM does not care how many times
     // we read it.
-    let (read_request, axi_addr) = unpack::<Bits<U32>>(q.subordinate.cmd);
+    let (read_request, axi_addr) = unpack::<Bits<32>>(q.subordinate.cmd);
     let will_issue_read_request = read_request && slot_will_be_free;
     if will_issue_read_request {
         d.read_pending = true;
@@ -107,7 +107,7 @@ mod tests {
     fn test_transaction_trace() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream();
-        let vcd = uut.run(input)?.collect::<Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("axi4lite")
@@ -123,7 +123,7 @@ mod tests {
     fn test_that_reads_are_correct() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream();
-        let io = uut.run(input)?;
+        let io = uut.run(input);
         let io = io
             .synchronous_sample()
             .flat_map(|x| x.value.2.data)
@@ -137,7 +137,7 @@ mod tests {
     fn test_hdl_generation() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream();
-        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
         let tm = test_bench.flow_graph(&uut, &Default::default())?;

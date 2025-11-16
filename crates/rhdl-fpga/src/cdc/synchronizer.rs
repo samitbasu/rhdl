@@ -89,8 +89,9 @@ clk   +----+    +----+    +----+    +----+
 //! Finally, if you only want to cross data relatively slowly, use
 //! a multi-bit handshake based method, like the [SlowCrosser].
 //!
-//! For more detail, see [this doc]!  It has lots of great detail.
+//! For more detail, see [this doc]
 //! (http://cva.stanford.edu/people/davidbbs/classes/ee108a/winter0607%20labs/lect.9.Metastability-blackschaffer.ppt)
+//! from Stanford University.  It has a lot of great detail on the phenomenon.
 //!
 //! And just in case you think I am exaggerating the danger here (which
 //! is very analogous to a memory safety issue), here we end up
@@ -166,7 +167,10 @@ clk   +----+    +----+    +----+
 #![doc = include_str!("../../doc/sync_cross.md")]
 
 use quote::format_ident;
-use rhdl::prelude::*;
+use rhdl::{
+    core::{circuit::descriptor::AsyncKind, ScopedName},
+    prelude::*,
+};
 use syn::parse_quote;
 
 /// A simple two-register synchronizer for crossing
@@ -177,7 +181,7 @@ pub struct Sync1Bit<W: Domain, R: Domain> {
     _r: std::marker::PhantomData<R>,
 }
 
-#[derive(PartialEq, Debug, Digital, Timed)]
+#[derive(PartialEq, Debug, Digital, Copy, Timed, Clone)]
 /// Input to the synchronizer
 pub struct In<W: Domain, R: Domain> {
     /// The data signal (comes from the input clock domain)
@@ -194,10 +198,10 @@ impl<W: Domain, R: Domain> CircuitDQ for Sync1Bit<W, R> {
 impl<W: Domain, R: Domain> CircuitIO for Sync1Bit<W, R> {
     type I = In<W, R>;
     type O = Signal<bool, R>;
-    type Kernel = NoKernel2<Self::I, (), (Self::O, ())>;
+    type Kernel = NoCircuitKernel<Self::I, (), (Self::O, ())>;
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 #[doc(hidden)]
 pub struct S {
     clock: Clock,
@@ -218,10 +222,6 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
             reg2_next: false,
             reg2_current: false,
         }
-    }
-
-    fn description(&self) -> String {
-        format!("Synchronizer from {:?}->{:?}", W::color(), R::color())
     }
 
     fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O {
@@ -247,23 +247,28 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
         signal(state.reg2_current)
     }
 
-    fn descriptor(&self, name: &str) -> Result<CircuitDescriptor, RHDLError> {
-        Ok(CircuitDescriptor {
-            unique_name: name.to_string(),
-            input_kind: <Self::I as Timed>::static_kind(),
-            output_kind: <Self::O as Timed>::static_kind(),
-            d_kind: Kind::Empty,
-            q_kind: Kind::Empty,
-            children: Default::default(),
-            rtl: None,
-            ntl: rhdl::core::ntl::builder::circuit_black_box(self, name)?,
-        })
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
+        let name = scoped_name.to_string();
+        Descriptor::<AsyncKind> {
+            name: scoped_name,
+            input_kind: <<Self as CircuitIO>::I as Digital>::static_kind(),
+            output_kind: <<Self as CircuitIO>::O as Digital>::static_kind(),
+            d_kind: <<Self as CircuitDQ>::D as Digital>::static_kind(),
+            q_kind: <<Self as CircuitDQ>::Q as Digital>::static_kind(),
+            kernel: None,
+            netlist: None,
+            hdl: Some(self.hdl(&name)?),
+            _phantom: std::marker::PhantomData,
+        }
+        .with_netlist_black_box()
     }
+}
 
+impl<W: Domain, R: Domain> Sync1Bit<W, R> {
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = name.to_owned();
         let module_ident = format_ident!("{}", module_name);
-        let i_kind = <Self::I as Timed>::static_kind();
+        let i_kind = <<Self as CircuitIO>::I as Digital>::static_kind();
         let reset_index = bit_range(i_kind, &path!(.cr.val().reset))?;
         let reset_index = syn::Index::from(reset_index.0.start);
         let clock_index = bit_range(i_kind, &path!(.cr.val().clock))?;
@@ -297,8 +302,7 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
         };
         Ok(HDLDescriptor {
             name: name.into(),
-            body: module,
-            children: Default::default(),
+            modules: module.into(),
         })
     }
 }
@@ -320,7 +324,7 @@ mod tests {
             .with_reset(1)
             .clock_pos_edge(100);
         let blue = std::iter::repeat(false).with_reset(1).clock_pos_edge(79);
-        red.merge(blue, |r, g| In {
+        red.merge_map(blue, |r, g| In {
             data: signal(r.1),
             cr: signal(g.0),
         })
@@ -354,7 +358,7 @@ mod tests {
     #[test]
     fn test_hdl_generation() -> miette::Result<()> {
         let uut = Sync1Bit::<Red, Blue>::default();
-        let hdl = uut.hdl("top")?.as_module().pretty();
+        let hdl = uut.hdl("top")?.modules.pretty();
         let expect = expect_test::expect![[r#"
             module top(input wire [2:0] i, output wire [0:0] o);
                wire [0:0] data;
@@ -382,7 +386,7 @@ mod tests {
         "#]];
         expect.assert_eq(&hdl);
         let stream = sync_stream();
-        let test_bench = uut.run(stream)?.collect::<TestBench<_, _>>();
+        let test_bench = uut.run(stream).collect::<TestBench<_, _>>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("synchronizer");
@@ -403,7 +407,7 @@ mod tests {
         // Assume the Blue stuff comes on the edges of a clock
         let input = sync_stream();
         let _ = uut
-            .run(input)?
+            .run(input)
             .glitch_check(|i| (i.value.0.cr.val().clock, i.value.1.val()))
             .last();
         Ok(())
@@ -413,7 +417,7 @@ mod tests {
     fn test_synchronizer_function() -> miette::Result<()> {
         let uut = Sync1Bit::<Red, Blue>::default();
         let input = sync_stream();
-        let vcd = uut.run(input)?.collect::<vcd::Vcd>();
+        let vcd = uut.run(input).collect::<vcd::Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("synchronizer");

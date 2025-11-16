@@ -14,8 +14,8 @@ fn main() -> Result<(), RHDLError> {
         write: w,
     });
     let inputs = inputs.with_reset(1).clock_pos_edge(100);
-    let uut = OptionSyncBRAM::<b8, U4>::new((0..).map(|ndx| (b4(ndx), b8(ndx))));
-    let vcd = uut.run(inputs)?.collect::<Vcd>();
+    let uut = OptionSyncBRAM::<b8, 4>::new((0..).map(|ndx| (b4(ndx), b8(ndx))));
+    let vcd = uut.run(inputs).collect::<Vcd>();
     let options = SvgOptions {
         label_width: 20,
         ..Default::default()

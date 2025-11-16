@@ -96,9 +96,6 @@ fn path_is_enum_tuple_struct_by_convention(path: &Path) -> bool {
         return false;
     }
     let last = &path.segments[1];
-    if last.ident == "UPDATE" {
-        return false;
-    }
     let second_to_last = &path.segments[0];
     ident_starts_with_capital_letter(&last.ident)
         && ident_starts_with_capital_letter(&second_to_last.ident)
@@ -130,10 +127,10 @@ fn split_path_into_base_and_variant(path: &Path) -> Result<(Path, Ident)> {
 }
 
 fn get_pattern_option_or_result_discriminant(pat: &syn::Pat) -> Option<bool> {
-    if let syn::Pat::Path(path) = pat {
-        if path.path.is_ident("None") {
-            return Some(false);
-        }
+    if let syn::Pat::Path(path) = pat
+        && path.path.is_ident("None")
+    {
+        return Some(false);
     }
     if let syn::Pat::TupleStruct(path) = pat {
         if path.path.is_ident("Err") {
@@ -204,10 +201,10 @@ fn pat_is_none(pat: &syn::Pat) -> bool {
 }
 
 fn map_expression_value(expr: &syn::Expr) -> Option<String> {
-    if let syn::Expr::Lit(lit) = expr {
-        if let syn::Lit::Str(s) = &lit.lit {
-            return Some(s.value());
-        }
+    if let syn::Expr::Lit(lit) = expr
+        && let syn::Lit::Str(s) = &lit.lit
+    {
+        return Some(s.value());
     }
     None
 }
@@ -366,16 +363,22 @@ impl Context {
     fn rewrite_pattern_as_typed_bits(&mut self, pat: &syn::Pat) -> syn::Result<TS> {
         match pat {
             Pat::Lit(lit) => match &lit.lit {
-                syn::Lit::Bool(b) => Ok(quote! {bob.expr_lit_bool(#b)}),
-                syn::Lit::Int(i) => Ok(quote! {bob.expr_lit_int(stringify!(#i))}),
+                syn::Lit::Bool(b) => Ok(quote! {expr_lit_bool(#b)}),
+                syn::Lit::Int(i) => Ok(quote! {expr_lit_int(stringify!(#i))}),
                 _ => Err(syn::Error::new(
                     lit.span(),
                     "Unsupported literal in rhdl kernel function",
                 )),
             },
-            _ => Ok(
-                quote! { bob.expr_lit_typed_bits(rhdl::core::Digital::typed_bits(#pat), stringify!(#pat)) },
-            ),
+            Pat::Ident(_) | Pat::Path(_) | Pat::Struct(_) | Pat::TupleStruct(_) | Pat::Tuple(_) => {
+                Ok(quote! {
+                    expr_lit_typed_bits(rhdl::core::Digital::typed_bits(#pat), stringify!(#pat))
+                })
+            }
+            _ => Err(syn::Error::new(
+                pat.span(),
+                "Unsupported pattern in rhdl kernel function",
+            )),
         }
     }
 }
@@ -672,7 +675,7 @@ impl Context {
                     let pat = self.pat(&pat.pat)?;
                     let kind = quote! {<#ty as rhdl::core::Digital>::static_kind()};
                     let id = self.id(&arg, &[]);
-                    Ok(quote! { bob.type_pat(#id.into(), #pat, #kind)})
+                    Ok(quote! { type_pat(#id.into(), #pat, #kind)})
                 }
             })
             .collect::<Result<Vec<_>>>()?;
@@ -690,9 +693,9 @@ impl Context {
 
             impl #impl_generics rhdl::core::digital_fn::DigitalFn for #name #ty_generics #where_clause {
                 fn kernel_fn() -> Option<rhdl::core::digital_fn::KernelFnKind> {
+                    use rhdl::core::ast::builder::*;
                     const META_DATA: &'static str = #json_data;
-                    let bob = rhdl::core::ast::builder::ASTBuilder::default();
-                    Some(bob.kernel_fn(
+                    Some(kernel_fn(
                         #root_id.into(),
                         stringify!(#orig_name),
                         vec!{#(#args),*},
@@ -714,7 +717,7 @@ impl Context {
         let block = self.block_inner(block)?;
         self.end_scope();
         Ok(quote! {
-            bob.block_expr(#id.into(), #block)
+            block_expr(#id.into(), #block)
         })
     }
 
@@ -726,7 +729,7 @@ impl Context {
             .map(|x| self.stmt(x))
             .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
-            bob.block(#id.into(), vec![#(#stmts),*],)
+            block(#id.into(), vec![#(#stmts),*],)
         })
     }
 
@@ -738,11 +741,11 @@ impl Context {
                 let expr = self.expr(expr)?;
                 if semi.is_some() {
                     Ok(quote! {
-                        bob.semi_stmt(#id.into(), #expr)
+                        semi_stmt(#id.into(), #expr)
                     })
                 } else {
                     Ok(quote! {
-                        bob.expr_stmt(#id.into(), #expr)
+                        expr_stmt(#id.into(), #expr)
                     })
                 }
             }
@@ -765,7 +768,7 @@ impl Context {
             .unwrap_or(quote! {None});
         let local_id = self.id(&local, &local.attrs);
         Ok(quote! {
-                bob.local_stmt(#local_id.into(), #pattern, #local_init)
+                local_stmt(#local_id.into(), #pattern, #local_init)
         })
     }
 
@@ -791,7 +794,7 @@ impl Context {
                 }
                 let id = self.id(&ident, &ident.attrs);
                 Ok(quote! {
-                    bob.ident_pat(#id.into(), stringify!(#name),#mutability)
+                    ident_pat(#id.into(), stringify!(#name),#mutability)
                 })
             }
             syn::Pat::TupleStruct(tuple) => {
@@ -803,7 +806,7 @@ impl Context {
                     .collect::<Result<Vec<_>>>()?;
                 let id = self.id(&tuple, &tuple.attrs);
                 Ok(quote! {
-                    bob.tuple_struct_pat(#id.into(), #path, vec![#(#elems),*])
+                    tuple_struct_pat(#id.into(), #path, vec![#(#elems),*])
                 })
             }
             syn::Pat::Tuple(tuple) => {
@@ -814,7 +817,7 @@ impl Context {
                     .collect::<Result<Vec<_>>>()?;
                 let id = self.id(&tuple, &tuple.attrs);
                 Ok(quote! {
-                    bob.tuple_pat(#id.into(), vec![#(#elems),*])
+                    tuple_pat(#id.into(), vec![#(#elems),*])
                 })
             }
             syn::Pat::Slice(slice) => {
@@ -825,14 +828,14 @@ impl Context {
                     .collect::<Result<Vec<_>>>()?;
                 let id = self.id(&slice, &slice.attrs);
                 Ok(quote! {
-                    bob.slice_pat(#id.into(), vec![#(#elems),*])
+                    slice_pat(#id.into(), vec![#(#elems),*])
                 })
             }
             syn::Pat::Path(path) => {
                 let id = self.id(&path, &path.attrs);
                 let path = self.path_inner(&path.path)?;
                 Ok(quote! {
-                    bob.path_pat(#id.into(), #path)
+                    path_pat(#id.into(), #path)
                 })
             }
             syn::Pat::Struct(structure) => {
@@ -851,7 +854,7 @@ impl Context {
                 }
                 let rest = structure.rest.is_some();
                 Ok(quote! {
-                    bob.struct_pat(#id.into(), #path, vec![#(#fields),*], #rest)
+                    struct_pat(#id.into(), #path, vec![#(#fields),*], #rest)
                 })
             }
             syn::Pat::Type(pat) => {
@@ -860,20 +863,20 @@ impl Context {
                 let pat = self.pat(&pat.pat)?;
                 let kind = quote! {<#ty as rhdl::core::Digital>::static_kind()};
                 Ok(quote! {
-                    bob.type_pat(#id.into(), #pat, #kind)
+                    type_pat(#id.into(), #pat, #kind)
                 })
             }
             syn::Pat::Lit(pat) => {
                 let id = self.id(&pat, &pat.attrs);
                 let lit = self.lit_inner(pat)?;
                 Ok(quote! {
-                    bob.lit_pat(#id.into(), #lit)
+                    lit_pat(#id.into(), #lit)
                 })
             }
             syn::Pat::Wild(wild) => {
                 let id = self.id(&wild, &wild.attrs);
                 Ok(quote! {
-                    bob.wild_pat(#id.into())
+                    wild_pat(#id.into())
                 })
             }
             _ => Err(syn::Error::new(pat.span(), "Unsupported pattern type")),
@@ -884,7 +887,7 @@ impl Context {
         let member = self.member(&expr.member)?;
         let pat = self.pat(&expr.pat)?;
         Ok(quote! {
-            bob.field_pat(#member, #pat)
+            field_pat(#member, #pat)
         })
     }
 
@@ -901,7 +904,6 @@ impl Context {
             syn::Expr::Block(expr) => self.block(&expr.block),
             syn::Expr::Field(expr) => self.field_expression(expr),
             syn::Expr::If(expr) => self.if_ex(expr),
-            syn::Expr::Let(expr) => self.let_ex(expr),
             syn::Expr::Match(expr) => self.match_ex(expr),
             syn::Expr::Range(expr) => self.range(expr),
             syn::Expr::Try(expr) => self.try_ex(expr),
@@ -909,7 +911,6 @@ impl Context {
             syn::Expr::Tuple(expr) => self.tuple(expr),
             syn::Expr::Repeat(expr) => self.repeat(expr),
             syn::Expr::ForLoop(expr) => self.for_loop(expr),
-            syn::Expr::While(expr) => self.while_loop(expr),
             syn::Expr::Call(expr) => self.call(expr),
             syn::Expr::Array(expr) => self.array(expr),
             syn::Expr::Index(expr) => self.index(expr),
@@ -931,7 +932,7 @@ impl Context {
         let len = quote! {<#ty as rhdl::core::Digital>::BITS};
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
-            bob.expr_cast(#id.into(), #expr, #len)
+            expr_cast(#id.into(), #expr, #len)
         })
     }
 
@@ -986,12 +987,12 @@ impl Context {
                 ));
             }
             let x = x.args.iter().next().unwrap();
-            quote!(Some(<#x as rhdl::bits::BitWidth>::BITS))
+            quote!(Some(#x))
         } else {
             quote!(None)
         };
         Ok(quote! {
-            bob.method_expr(#id.into(), #receiver, vec![#(#args),*], stringify!(#method), #turbo)
+            method_expr(#id.into(), #receiver, vec![#(#args),*], stringify!(#method), #turbo)
         })
     }
 
@@ -1000,7 +1001,7 @@ impl Context {
         let index = self.expr(&expr.index)?;
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
-            bob.index_expr(#id.into(), #expr, #index)
+            index_expr(#id.into(), #expr, #index)
         })
     }
 
@@ -1012,18 +1013,18 @@ impl Context {
             .map(|x| self.expr(x))
             .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
-            bob.array_expr(#id.into(), vec![#(#elems),*])
+            array_expr(#id.into(), vec![#(#elems),*])
         })
     }
 
     fn special_case_call(&mut self, expr: &syn::ExprCall) -> Result<Option<TS>> {
         let id = self.id(&expr, &expr.attrs);
         let special_cases = [
-            ("bits", quote!(bob.expr_bits)),
-            ("signed", quote!(bob.expr_signed)),
-            ("Ok", quote!(bob.expr_ok)),
-            ("Err", quote!(bob.expr_err)),
-            ("Some", quote!(bob.expr_some)),
+            ("bits", quote!(expr_bits)),
+            ("signed", quote!(expr_signed)),
+            ("Ok", quote!(expr_ok)),
+            ("Err", quote!(expr_err)),
+            ("Some", quote!(expr_some)),
         ];
         let syn::Expr::Path(func_path) = expr.func.as_ref() else {
             return Err(syn::Error::new(
@@ -1047,7 +1048,7 @@ impl Context {
         if name.ident == "None" && expr.args.is_empty() {
             let id = self.id(&name, &[]);
             return Ok(Some(quote! {
-                bob.expr_none(#id.into())
+                expr_none(#id.into())
             }));
         }
 
@@ -1056,21 +1057,21 @@ impl Context {
         }
         // Check for the name being equal to `b{num}` where num is a number from 1 to 128.  If that is the
         // case, then capture the number, and use the expr_bits_with_length function.
-        if let Some(num) = name.ident.to_string().strip_prefix("b") {
-            if let Ok(num) = num.parse::<usize>() {
-                let args = self.expr(&expr.args[0])?;
-                return Ok(Some(quote! {
-                    bob.expr_bits_with_length(#id.into(), #args, #num)
-                }));
-            }
+        if let Some(num) = name.ident.to_string().strip_prefix("b")
+            && let Ok(num) = num.parse::<usize>()
+        {
+            let args = self.expr(&expr.args[0])?;
+            return Ok(Some(quote! {
+                expr_bits_with_length(#id.into(), #args, #num)
+            }));
         }
-        if let Some(num) = name.ident.to_string().strip_prefix("s") {
-            if let Ok(num) = num.parse::<usize>() {
-                let args = self.expr(&expr.args[0])?;
-                return Ok(Some(quote! {
-                    bob.expr_signed_with_length(#id.into(), #args, #num)
-                }));
-            }
+        if let Some(num) = name.ident.to_string().strip_prefix("s")
+            && let Ok(num) = num.parse::<usize>()
+        {
+            let args = self.expr(&expr.args[0])?;
+            return Ok(Some(quote! {
+                expr_signed_with_length(#id.into(), #args, #num)
+            }));
         }
         if let Some((_, special_code)) = special_cases.iter().find(|(n, _)| name.ident == n) {
             let args = self.expr(&expr.args[0])?;
@@ -1105,13 +1106,13 @@ impl Context {
         if let Some(name) = func_path.path.segments.last() {
             if name.ident == "trace" {
                 return Ok(quote! {
-                    bob.block_expr(#id.into(), bob.block(#id.into(), vec![]))
+                    block_expr(#id.into(), block(#id.into(), vec![]))
                 });
             } else if name.ident == "default" {
                 return Ok(quote! {
-                    bob.lit_expr(
+                    lit_expr(
                         #id.into(),
-                        bob.expr_lit_typed_bits(
+                        expr_lit_typed_bits(
                             rhdl::core::Digital::typed_bits(#expr),
                             stringify!(#expr)
                         )
@@ -1119,9 +1120,9 @@ impl Context {
                 });
             } else if name.ident == "dont_care" {
                 return Ok(quote! {
-                    bob.lit_expr(
+                    lit_expr(
                         #id.into(),
-                        bob.expr_lit_typed_bits(
+                        expr_lit_typed_bits(
                             rhdl::core::Digital::typed_bits(#expr).dont_care(),
                             stringify!(#expr)
                         )
@@ -1138,11 +1139,11 @@ impl Context {
                     };
                     let clock = quote!(<#clock as rhdl::core::Domain>::color());
                     return Ok(quote! {
-                        bob.expr_signal(#id.into(), #args, Some(#clock))
+                        expr_signal(#id.into(), #args, Some(#clock))
                     });
                 } else {
                     return Ok(quote! {
-                        bob.expr_signal(#id.into(), #args, None)
+                        expr_signal(#id.into(), #args, None)
                     });
                 }
             }
@@ -1181,7 +1182,7 @@ impl Context {
             .map(|x| self.expr(x))
             .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
-            bob.call_expr(#id.into(), #path, vec![#(#args),*], #call_to_get_type, #code)
+            call_expr(#id.into(), #path, vec![#(#args),*], #call_to_get_type, #code)
         })
     }
 
@@ -1204,16 +1205,8 @@ impl Context {
         let expr = self.expr(&expr.expr)?;
         self.end_scope();
         Ok(quote! {
-            bob.for_expr(#id.into(), #pat, #expr, #body)
+            for_expr(#id.into(), #pat, #expr, #body)
         })
-    }
-
-    fn while_loop(&mut self, expr: &syn::ExprWhile) -> Result<TS> {
-        // In version 2.0...
-        Err(syn::Error::new(
-            expr.span(),
-            "Unsupported while loop in rhdl kernel function",
-        ))
     }
 
     fn repeat(&mut self, expr: &syn::ExprRepeat) -> Result<TS> {
@@ -1222,7 +1215,7 @@ impl Context {
         let len = quote!(<usize as rhdl::core::Digital>::typed_bits(#expr_len).as_i64().unwrap());
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
-            bob.repeat_expr(#id.into(), #expr, #len)
+            repeat_expr(#id.into(), #expr, #len)
         })
     }
 
@@ -1234,7 +1227,7 @@ impl Context {
             .map(|x| self.expr(x))
             .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
-            bob.tuple_expr(#id.into(), vec![#(#elems),*])
+            tuple_expr(#id.into(), vec![#(#elems),*])
         })
     }
 
@@ -1242,7 +1235,7 @@ impl Context {
         let id = self.id(&expr, &expr.attrs);
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
-            bob.group_expr(#id.into(), #expr)
+            group_expr(#id.into(), #expr)
         })
     }
 
@@ -1250,7 +1243,7 @@ impl Context {
         let id = self.id(&expr, &expr.attrs);
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
-            bob.paren_expr(#id.into(), #expr)
+            paren_expr(#id.into(), #expr)
         })
     }
 
@@ -1264,7 +1257,7 @@ impl Context {
             .map(|x| quote! {Some(#x)})
             .unwrap_or_else(|| quote! {None});
         Ok(quote! {
-            bob.return_expr(#id.into(), #expr)
+            return_expr(#id.into(), #expr)
         })
     }
 
@@ -1272,7 +1265,7 @@ impl Context {
         let id = self.id(&expr, &expr.attrs);
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
-            bob.expr_try(#id.into(), #expr)
+            expr_try(#id.into(), #expr)
         })
     }
 
@@ -1294,17 +1287,25 @@ impl Context {
             .unwrap_or_else(|| quote! {None});
         let limits = match expr.limits {
             syn::RangeLimits::HalfOpen(_) => {
-                quote!(bob.range_limits_half_open())
+                quote!(range_limits_half_open())
             }
-            syn::RangeLimits::Closed(_) => quote!(bob.range_limits_closed()),
+            syn::RangeLimits::Closed(_) => quote!(range_limits_closed()),
         };
         Ok(quote! {
-            bob.range_expr(#id.into(), #start, #limits, #end)
+            range_expr(#id.into(), #start, #limits, #end)
         })
     }
 
     fn match_ex(&mut self, expr: &syn::ExprMatch) -> Result<TS> {
         let id = self.id(&expr, &expr.attrs);
+        for arm in &expr.arms {
+            if let Some(guard) = &arm.guard {
+                return Err(syn::Error::new(
+                    guard.1.span(),
+                    "Guards are not supported in rhdl kernel function match expressions",
+                ));
+            }
+        }
         let arms = expr
             .arms
             .iter()
@@ -1312,7 +1313,7 @@ impl Context {
             .collect::<Result<Vec<_>>>()?;
         let expr = self.expr(&expr.expr)?;
         Ok(quote! {
-            bob.match_expr(#id.into(), #expr, vec![#(#arms),*])
+            match_expr(#id.into(), #expr, vec![#(#arms),*])
         })
     }
     fn arm(&mut self, pat: &syn::Pat, body: &syn::Expr) -> Result<TS> {
@@ -1322,14 +1323,14 @@ impl Context {
         let arm = if !pattern_has_bindings(pat) && option_or_result_discriminant.is_none() {
             let body = self.expr(body)?;
             let kind = if let syn::Pat::Wild(_) = &pat {
-                quote! {bob.arm_kind_wild()}
+                quote! {arm_kind_wild()}
             } else if pat_is_none(pat) {
-                quote! {bob.arm_kind_none(#id.into())}
+                quote! {arm_kind_none(#id.into())}
             } else {
                 let pat = self.rewrite_pattern_as_typed_bits(pat)?;
-                quote! {bob.arm_kind_constant(#pat)}
+                quote! {arm_kind_constant(#pat)}
             };
-            quote! {bob.arm(#id.into(), #kind, #body)}
+            quote! {arm(#id.into(), #kind, #body)}
         } else {
             self.add_scoped_binding(pat)?;
             let body = self.expr(body)?;
@@ -1345,20 +1346,11 @@ impl Context {
                 ));
             }
             let inner = self.pat(pat)?;
-            let kind = quote! {bob.arm_kind_enum(#inner, #discriminant)};
-            quote! {bob.arm(#id.into(), #kind, #body)}
+            let kind = quote! {arm_kind_enum(#inner, #discriminant)};
+            quote! {arm(#id.into(), #kind, #body)}
         };
         self.end_scope();
         Ok(arm)
-    }
-
-    fn let_ex(&mut self, expr: &syn::ExprLet) -> Result<TS> {
-        let id = self.id(&expr, &expr.attrs);
-        let pattern = self.pat(&expr.pat)?;
-        let value = self.expr(&expr.expr)?;
-        Ok(quote! {
-            bob.let_expr(#id.into(), #pattern, #value)
-        })
     }
 
     fn if_let_ex(
@@ -1377,12 +1369,12 @@ impl Context {
         {
             let body = self.block_inner(then_branch)?;
             let kind = if let syn::Pat::Wild(_) = pat {
-                quote! {bob.arm_kind_wild()}
+                quote! {arm_kind_wild()}
             } else if pat_is_none(pat) {
-                quote! {bob.arm_kind_none(#id.into())}
+                quote! {arm_kind_none(#id.into())}
             } else {
                 let pat = self.rewrite_pattern_as_typed_bits(pat)?;
-                quote! {bob.arm_kind_constant(#pat)}
+                quote! {arm_kind_constant(#pat)}
             };
             (kind, body)
         } else {
@@ -1400,7 +1392,7 @@ impl Context {
                 ));
             }
             let inner = self.pat(pat)?;
-            let kind = quote! {bob.arm_kind_enum(#inner, #discriminant)};
+            let kind = quote! {arm_kind_enum(#inner, #discriminant)};
             (kind, body)
         };
         let else_ = else_branch
@@ -1410,7 +1402,7 @@ impl Context {
             .unwrap_or(quote! {None});
         self.end_scope();
         Ok(quote! {
-            bob.if_let_expr(#id.into(), #test, #kind, #body, #else_)
+            if_let_expr(#id.into(), #test, #kind, #body, #else_)
         })
     }
 
@@ -1430,7 +1422,7 @@ impl Context {
             .map(|x| quote! {Some(#x)})
             .unwrap_or(quote! {None});
         Ok(quote! {
-            bob.if_expr(#id.into(), #cond, #then, #else_)
+            if_expr(#id.into(), #cond, #then, #else_)
         })
     }
 
@@ -1484,9 +1476,7 @@ impl Context {
             // The presence of a rest means we know that path -> struct
             let path = &structure.path;
             let template = quote!(< #path as rhdl::core::Digital>::static_kind().place_holder());
-            Ok(
-                quote! {bob.struct_expr(#id.into(), #path_inner, vec![#(#fields),*], #rest, #template)},
-            )
+            Ok(quote! {struct_expr(#id.into(), #path_inner, vec![#(#fields),*], #rest, #template)})
         } else if path_is_enum_tuple_struct_by_convention(&structure.path) {
             // This is an enum struct construction (we assume) since it has
             // the form of Foo::Bar{}, and by convention in RHDL, this is an
@@ -1495,13 +1485,13 @@ impl Context {
             // Not sure what to do about the unwrap here.
             let template = quote!(< #base as rhdl::core::Digital>::static_kind().enum_template(stringify!(#variant)).unwrap());
             Ok(quote! {
-                bob.struct_expr(#id.into(), #path_inner, vec![#(#fields),*], #rest, #template)
+                struct_expr(#id.into(), #path_inner, vec![#(#fields),*], #rest, #template)
             })
         } else {
             let path = &structure.path;
             let obj = quote!(<#path as rhdl::core::Digital>::static_kind().place_holder());
             Ok(quote! {
-                bob.struct_expr(#id.into(), #path_inner, vec![#(#fields),*], #rest, #obj)
+                struct_expr(#id.into(), #path_inner, vec![#(#fields),*], #rest, #obj)
             })
         }
     }
@@ -1510,18 +1500,18 @@ impl Context {
         let id = self.id(&path, &[]);
         if path.is_ident("None") {
             return Ok(quote! {
-                bob.expr_none(#id.into())
+                expr_none(#id.into())
             });
         }
         // Check for a locally defined path
         let inner = self.path_inner(path)?;
         if !self.is_scoped_binding(path) {
             return Ok(quote! {
-                bob.expr_typed_bits(#id.into(), #inner, rhdl::core::Digital::typed_bits(#path), stringify!(#path))
+                expr_typed_bits(#id.into(), #inner, rhdl::core::Digital::typed_bits(#path), stringify!(#path))
             });
         }
         Ok(quote! {
-            bob.path_expr(#id.into(), #inner)
+            path_expr(#id.into(), #inner)
         })
     }
 
@@ -1532,7 +1522,7 @@ impl Context {
             .map(|x| self.path_segment(x))
             .collect::<Result<Vec<_>>>()?;
         Ok(quote! {
-            bob.path(vec![#(#segments),*],)
+            path(vec![#(#segments),*],)
         })
     }
 
@@ -1540,14 +1530,14 @@ impl Context {
         let ident = &segment.ident;
         let args = self.path_arguments(&segment.arguments)?;
         Ok(quote! {
-            bob.path_segment(stringify!(#ident), #args)
+            path_segment(stringify!(#ident), #args)
         })
     }
 
     fn path_arguments(&mut self, arguments: &syn::PathArguments) -> Result<TS> {
         // We only allow Const arguments.
         let args = match arguments {
-            syn::PathArguments::None => quote! {bob.path_arguments_none()},
+            syn::PathArguments::None => quote! {path_arguments_none()},
             syn::PathArguments::AngleBracketed(args) => {
                 let args = args
                     .args
@@ -1591,7 +1581,7 @@ impl Context {
         let left = self.expr(&assign.left)?;
         let right = self.expr(&assign.right)?;
         Ok(quote! {
-            bob.assign_expr(#id.into(), #left, #right)
+            assign_expr(#id.into(), #left, #right)
         })
     }
 
@@ -1600,7 +1590,7 @@ impl Context {
         let expr = self.expr(&field.base)?;
         let member = self.member(&field.member)?;
         Ok(quote! {
-            bob.field_expr(#id.into(), #expr, #member)
+            field_expr(#id.into(), #expr, #member)
         })
     }
 
@@ -1608,19 +1598,19 @@ impl Context {
         let member = self.member(&field.member)?;
         let value = self.expr(&field.expr)?;
         Ok(quote! {
-            bob.field_value(#member, #value)
+            field_value(#member, #value)
         })
     }
 
     fn member(&mut self, member: &syn::Member) -> Result<TS> {
         Ok(match member {
             syn::Member::Named(ident) => quote! {
-                bob.member_named(stringify!(#ident))
+                member_named(stringify!(#ident))
             },
             syn::Member::Unnamed(index) => {
                 let index = index.index;
                 quote! {
-                    bob.member_unnamed(#index)
+                    member_unnamed(#index)
                 }
             }
         })
@@ -1640,7 +1630,7 @@ impl Context {
         };
         let expr = self.expr(&unary.expr)?;
         Ok(quote! {
-            bob.unary_expr(#id.into(), #op, #expr)
+            unary_expr(#id.into(), #op, #expr)
         })
     }
 
@@ -1681,7 +1671,7 @@ impl Context {
         let left = self.expr(&binary.left)?;
         let right = self.expr(&binary.right)?;
         Ok(quote! {
-                bob.binary_expr(#id.into(), #op, #left, #right)
+                binary_expr(#id.into(), #op, #left, #right)
         })
     }
 
@@ -1689,7 +1679,7 @@ impl Context {
         let id = self.id(&lit, &lit.attrs);
         let inner = self.lit_inner(lit)?;
         Ok(quote! {
-            bob.lit_expr(#id.into(), #inner)
+            lit_expr(#id.into(), #inner)
         })
     }
 
@@ -1699,13 +1689,13 @@ impl Context {
             syn::Lit::Int(int) => {
                 let value = int.token();
                 Ok(quote! {
-                        bob.expr_lit_int(stringify!(#value))
+                        expr_lit_int(stringify!(#value))
                 })
             }
             syn::Lit::Bool(boolean) => {
                 let value = boolean.value;
                 Ok(quote! {
-                        bob.expr_lit_bool(#value)
+                        expr_lit_bool(#value)
                 })
             }
             _ => Err(syn::Error::new(

@@ -135,14 +135,20 @@ use super::Ready;
 /// carries elements of type `S` and the pipeline is assumed to produce elements
 /// of type `T`.  This core assumes a 1-1 relationship, i.e., each `Some(S)` will
 /// produce exactly one `Some(T)`.
-pub struct PipeWrapper<S: Digital, T: Digital, N: BitWidth> {
+pub struct PipeWrapper<S: Digital, T: Digital, const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     in_buffer: StreamToFIFO<S>,
     fifo: SyncFIFO<T, N>,
     out_buffer: FIFOToStream<T>,
     counter: DFF<Bits<N>>,
 }
 
-impl<S: Digital, T: Digital, N: BitWidth> Default for PipeWrapper<S, T, N> {
+impl<S: Digital, T: Digital, const N: usize> Default for PipeWrapper<S, T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     fn default() -> Self {
         Self {
             in_buffer: StreamToFIFO::default(),
@@ -153,7 +159,7 @@ impl<S: Digital, T: Digital, N: BitWidth> Default for PipeWrapper<S, T, N> {
     }
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 /// Inputs for the [PipeWrapper]
 pub struct In<S: Digital, T: Digital> {
     /// Input data for the upstream
@@ -164,7 +170,7 @@ pub struct In<S: Digital, T: Digital> {
     pub from_pipe: Option<T>,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 /// Outputs from the [PipeWrapper]
 pub struct Out<S: Digital, T: Digital> {
     /// Output data for the downstream
@@ -175,7 +181,10 @@ pub struct Out<S: Digital, T: Digital> {
     pub to_pipe: Option<S>,
 }
 
-impl<S: Digital, T: Digital, N: BitWidth> SynchronousIO for PipeWrapper<S, T, N> {
+impl<S: Digital, T: Digital, const N: usize> SynchronousIO for PipeWrapper<S, T, N>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     type I = In<S, T>;
     type O = Out<S, T>;
     type Kernel = kernel<S, T, N>;
@@ -183,11 +192,14 @@ impl<S: Digital, T: Digital, N: BitWidth> SynchronousIO for PipeWrapper<S, T, N>
 
 #[kernel]
 #[doc(hidden)]
-pub fn kernel<S: Digital, T: Digital, N: BitWidth>(
+pub fn kernel<S: Digital, T: Digital, const N: usize>(
     _cr: ClockReset,
     i: In<S, T>,
     q: Q<S, T, N>,
-) -> (Out<S, T>, D<S, T, N>) {
+) -> (Out<S, T>, D<S, T, N>)
+where
+    rhdl::bits::W<N>: BitWidth,
+{
     let mut d = D::<S, T, N>::dont_care();
     // Is there a slot available?
     let is_slot_available = (q.counter > 0) && !q.out_buffer.full;
@@ -259,7 +271,7 @@ mod tests {
             d.stage_0 = i;
             d.stage_1 = q.stage_0;
             let (tag, data) = unpack::<b6>(q.stage_1, bits(0));
-            let data = lsbs::<U4, U6>(data);
+            let data = lsbs::<4, 6>(data);
             d.stage_2 = pack::<b4>(tag, data);
             (q.stage_2, d)
         }
@@ -284,7 +296,7 @@ mod tests {
     struct TestFixture {
         source: SourceFromFn<b6>,
         delay: DelayLine,
-        wrapper: PipeWrapper<b6, b4, U2>,
+        wrapper: PipeWrapper<b6, b4, 2>,
         sink: SinkFromFn<b4>,
     }
 
@@ -314,7 +326,7 @@ mod tests {
         let b_rng = stalling(b_rng, 0.13);
         let consume = move |data| {
             if let Some(data) = data {
-                let validation = lsbs::<U4, U6>(c_rng.next().unwrap());
+                let validation = lsbs::<4, 6>(c_rng.next().unwrap());
                 assert_eq!(data, validation);
             }
             rand::random::<f64>() > 0.2
@@ -327,7 +339,7 @@ mod tests {
         };
         // Run a few samples through
         let input = repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
-        uut.run_without_synthesis(input)?.for_each(drop);
+        uut.run(input).for_each(drop);
         Ok(())
     }
 }

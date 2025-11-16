@@ -93,7 +93,7 @@ impl<const N: usize> AxiRegBank<N> {
     }
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Input for the [AxiRegBank]
 pub struct In {
     /// AXI signals from the bus for reading
@@ -104,7 +104,7 @@ pub struct In {
     pub data: Option<(b8, AxilData)>,
 }
 
-#[derive(PartialEq, Debug, Digital)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
 /// Output for the [AxiRegBank]
 pub struct Out<const N: usize> {
     /// AXI signals to the bus for reading
@@ -181,7 +181,7 @@ mod tests {
     fn test_compile_times() -> miette::Result<()> {
         let tic = std::time::Instant::now();
         let uut: AxiRegBank<4> = AxiRegBank::new(bits(0x4_000_000), Default::default());
-        let _hdl = uut.descriptor("top")?;
+        let _hdl = uut.descriptor("top".into())?;
         let toc = tic.elapsed();
         println!("HDL generation took {toc:?}");
         Ok(())

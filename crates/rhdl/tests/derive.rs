@@ -11,13 +11,13 @@ use rhdl::prelude::*;
 #[allow(dead_code)]
 #[allow(clippy::just_underscores_and_digits)]
 fn test_derive() {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     enum Test {
         A,
-        B(Bits<U16>),
+        B(Bits<16>),
         C {
-            a: Bits<U32>,
-            b: Bits<U8>,
+            a: Bits<32>,
+            b: Bits<8>,
         },
         #[default]
         D,
@@ -28,7 +28,7 @@ fn test_derive() {
 #[test]
 #[allow(dead_code)]
 fn test_derive_no_payload() {
-    #[derive(PartialEq, Default, Digital)]
+    #[derive(PartialEq, Default, Clone, Copy, Digital)]
     pub enum State {
         Init,
         Boot,
@@ -45,7 +45,7 @@ fn test_derive_no_payload() {
 fn test_derive_digital_simple_struct() {
     use rhdl::bits::alias::*;
 
-    #[derive(PartialEq, Debug, Digital)]
+    #[derive(PartialEq, Debug, Digital, Clone, Copy)]
     struct Test {
         a: bool,
         b: b8,
@@ -67,8 +67,8 @@ fn test_derive_digital_simple_struct() {
     let bits = &bits[range];
     assert_eq!(bits.len(), 8);
     assert_eq!(
-        bits,
-        bitx_vec(&[true, true, false, true, false, true, false, true])
+        *bits,
+        *bitx_vec(&[true, true, false, true, false, true, false, true])
     );
 }
 
@@ -78,7 +78,7 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
     use rhdl::bits::alias::*;
     use rhdl::core::types::path::*;
 
-    #[derive(PartialEq, Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Clone, Copy, Digital)]
     enum Test {
         A,
         B(b2, b3),
@@ -110,7 +110,7 @@ fn test_derive_complex_enum_and_decode_with_path() -> anyhow::Result<()> {
 fn test_derive_digital_complex_enum() {
     use rhdl::bits::alias::*;
 
-    #[derive(PartialEq, Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Clone, Copy, Digital)]
     enum Test {
         A,
         B(b2, b3),
@@ -143,15 +143,17 @@ fn test_derive_digital_complex_enum() {
     trace("test", &foo_3);
     trace_time(3_000);
     trace("test", &foo_1);
-    let mut vcd_file = std::fs::File::create("test_enum.vcd").unwrap();
-    guard.take().dump_vcd(&mut vcd_file, None).unwrap();
+    let mut vcd = vec![];
+    guard.take().dump_vcd(&mut vcd, None).unwrap();
+    expect_test::expect_file!["expect/derive_enum_vcd.expect"]
+        .assert_eq(&String::from_utf8(vcd).unwrap());
 }
 
 #[test]
 fn test_derive_enum_explicit_discriminant_width() {
     use rhdl::bits::alias::*;
 
-    #[derive(PartialEq, Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Clone, Copy, Digital)]
     #[rhdl(discriminant_width = 4)]
     enum Test {
         A,
@@ -173,7 +175,7 @@ fn test_derive_enum_explicit_discriminant_width() {
 fn test_derive_enum_alignment_lsb() {
     use rhdl::bits::alias::*;
 
-    #[derive(PartialEq, Debug, Default, Digital)]
+    #[derive(PartialEq, Debug, Default, Clone, Copy, Digital)]
     #[rhdl(discriminant_align = "lsb")]
     enum Test {
         A,
@@ -188,4 +190,17 @@ fn test_derive_enum_alignment_lsb() {
     let (range, kind) = bit_range(Test::static_kind(), &Path::default().discriminant()).unwrap();
     assert_eq!(range, 0..2);
     assert_eq!(kind, Kind::make_bits(2));
+}
+
+#[test]
+fn test_derive_generic_struct() {
+    #[derive(Copy, Clone, PartialEq, Digital)]
+    pub struct Request<T, const N: usize>
+    where
+        T: Digital,
+        rhdl_bits::W<N>: BitWidth,
+    {
+        data: T,
+        address: Bits<N>,
+    }
 }

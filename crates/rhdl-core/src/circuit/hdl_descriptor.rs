@@ -1,19 +1,21 @@
+//! A runtime hardware description of a [Circuit](crate::Circuit) or [Synchronous](crate::Synchronous) circuit.
+//!
+//! This module defines the `HDLDescriptor` struct, which captures
+//! the HDL representation of a circuit, including its name, body,
+//! and any child circuits it may have.  It also includes a method
+//! to convert the descriptor into a flat list of Verilog modules.
+//!
+//! You typically don't create `HDLDescriptor` instances directly.
 use rhdl_vlog;
-use std::collections::BTreeMap;
 
-#[derive(Clone, Hash)]
+/// A hardware description of a circuit.
+///
+/// This struct captures the HDL representation of a circuit,
+/// including its name, body, and any child circuits it may have.
+#[derive(Clone, Hash, Debug)]
 pub struct HDLDescriptor {
+    /// The unique name of the circuit.
     pub name: String,
-    pub body: rhdl_vlog::ModuleDef,
-    pub children: BTreeMap<String, HDLDescriptor>,
-}
-
-impl HDLDescriptor {
-    pub fn as_module(&self) -> rhdl_vlog::ModuleList {
-        let mut modules = vec![self.body.clone()];
-        for child in self.children.values() {
-            modules.extend(child.as_module().into_iter());
-        }
-        rhdl_vlog::ModuleList { modules }
-    }
+    /// The list of modules that make up this circuit.
+    pub modules: rhdl_vlog::ModuleList,
 }

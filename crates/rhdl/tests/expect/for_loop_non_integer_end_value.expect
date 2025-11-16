@@ -1,0 +1,10 @@
+  × RHDL Syntax Error
+  ╰─▶ RHDL Syntax Error
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/ast.rs:691:23]
+ 690 │         let c = 5;
+ 691 │         for ndx in 0..c {
+     ·                       ┬
+     ·                       ╰── For loop with non-integer end value is not supported
+ 692 │             a = (a + b4(ndx)).resize();
+     ╰────
+  help: Use a literal integer range like 0..5 for the for loop range

@@ -1,0 +1,32 @@
+Object kernel
+  fn_id FnID(8073e51c5defe01)
+  arguments [Some(or1)]
+  return_register r12
+  reg r0 : b4 //  b4
+  reg r1 : b16 //  [b4; 4]
+  reg r2 : b6 //  b6
+  reg r3 : b6 //  b6
+  reg r4 : b4 //  b4
+  reg r5 : b6 //  b6
+  reg r6 : b6 //  b6
+  reg r7 : b4 //  b4
+  reg r8 : b6 //  b6
+  reg r9 : b6 //  b6
+  reg r10 : b4 //  b4
+  reg r11 : b6 //  b6
+  reg r12 : b6 //  b6
+  lit l0 : b000000 // b6
+  r0 <- r1[0..4] // [[0]]
+  r2 <- r0 as x6
+  r3 <- l0 + r2
+  r4 <- r1[4..8] // [[1]]
+  r5 <- r4 as x6
+  r6 <- r3 + r5
+  r7 <- r1[8..12] // [[2]]
+  r8 <- r7 as x6
+  r9 <- r6 + r8
+  r10 <- r1[12..16] // [[3]]
+  r11 <- r10 as x6
+  r12 <- r9 + r11
+Done
+

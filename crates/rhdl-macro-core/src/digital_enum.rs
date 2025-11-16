@@ -2,16 +2,15 @@ use proc_macro2::Span;
 use proc_macro2::TokenStream;
 use quote::format_ident;
 use quote::quote;
-use syn::spanned::Spanned;
 use syn::Attribute;
 use syn::Expr;
 use syn::ExprLit;
 use syn::Ident;
 use syn::Lit;
 use syn::Variant;
+use syn::spanned::Spanned;
 use syn::{Data, DeriveInput};
 
-use crate::clone::derive_clone_from_inner;
 use crate::utils::evaluate_const_expression;
 
 // To determine the number of bits needed to represent the discriminant, we
@@ -55,13 +54,23 @@ pub(crate) fn override_width(
         match width {
             DiscriminantType::Unsigned(old_width) => {
                 if old_width > new_width {
-                    return Err(syn::Error::new(span, format!("Override discriminant width of {new_width} is too small.  At least {old_width} bits are required.")));
+                    return Err(syn::Error::new(
+                        span,
+                        format!(
+                            "Override discriminant width of {new_width} is too small.  At least {old_width} bits are required."
+                        ),
+                    ));
                 }
                 Ok(DiscriminantType::Unsigned(new_width))
             }
             DiscriminantType::Signed(old_width) => {
                 if old_width > new_width {
-                    return Err(syn::Error::new(span, format!("Override discriminant width of {new_width} is too small.  At least {old_width} bits are required.")));
+                    return Err(syn::Error::new(
+                        span,
+                        format!(
+                            "Override discriminant width of {new_width} is too small.  At least {old_width} bits are required."
+                        ),
+                    ));
                 }
                 Ok(DiscriminantType::Signed(new_width))
             }
@@ -75,31 +84,28 @@ fn parse_discriminant_alignment_attribute(
     attrs: &[Attribute],
 ) -> syn::Result<Option<DiscriminantAlignment>> {
     for attr in attrs {
-        if attr.path().is_ident("rhdl") {
-            if let Ok(Expr::Assign(assign)) = attr.parse_args::<Expr>() {
-                if let Expr::Path(path) = *assign.left {
-                    if path.path.is_ident("discriminant_align") {
-                        if let Expr::Lit(ExprLit {
-                            lit: Lit::Str(value),
-                            ..
-                        }) = *assign.right
-                        {
-                            if value.value() == "lsb" {
-                                return Ok(Some(DiscriminantAlignment::Lsb));
-                            } else if value.value() == "msb" {
-                                return Ok(Some(DiscriminantAlignment::Msb));
-                            } else {
-                                return Err(syn::Error::new(
-                                    value.span(),
-                                    "Unknown discriminant alignment value (expected either lsb or msb)",
-                                ));
-                            }
-                        }
-                    }
-                }
+        if attr.path().is_ident("rhdl")
+            && let Ok(Expr::Assign(assign)) = attr.parse_args::<Expr>()
+            && let Expr::Path(path) = *assign.left
+            && path.path.is_ident("discriminant_align")
+            && let Expr::Lit(ExprLit {
+                lit: Lit::Str(value),
+                ..
+            }) = *assign.right
+        {
+            if value.value() == "lsb" {
+                return Ok(Some(DiscriminantAlignment::Lsb));
+            } else if value.value() == "msb" {
+                return Ok(Some(DiscriminantAlignment::Msb));
+            } else {
+                return Err(syn::Error::new(
+                    value.span(),
+                    "Unknown discriminant alignment value (expected either lsb or msb)",
+                ));
             }
         }
     }
+
     Ok(None)
 }
 
@@ -107,20 +113,16 @@ pub(crate) fn parse_discriminant_width_attribute(
     attrs: &[Attribute],
 ) -> syn::Result<Option<(usize, Span)>> {
     for attr in attrs {
-        if attr.path().is_ident("rhdl") {
-            if let Ok(Expr::Assign(assign)) = attr.parse_args::<Expr>() {
-                if let Expr::Path(path) = *assign.left {
-                    if path.path.is_ident("discriminant_width") {
-                        if let Expr::Lit(ExprLit {
-                            lit: Lit::Int(value),
-                            ..
-                        }) = *assign.right
-                        {
-                            return Ok(Some((value.base10_parse::<usize>()?, value.span())));
-                        }
-                    }
-                }
-            }
+        if attr.path().is_ident("rhdl")
+            && let Ok(Expr::Assign(assign)) = attr.parse_args::<Expr>()
+            && let Expr::Path(path) = *assign.left
+            && path.path.is_ident("discriminant_width")
+            && let Expr::Lit(ExprLit {
+                lit: Lit::Int(value),
+                ..
+            }) = *assign.right
+        {
+            return Ok(Some((value.base10_parse::<usize>()?, value.span())));
         }
     }
     Ok(None)
@@ -162,42 +164,15 @@ pub(crate) fn allocate_discriminants(discriminants: &[Option<i64>]) -> Vec<i64> 
         .collect()
 }
 
-fn variant_trace_mapping(enum_name: &Ident, variant: &Variant) -> TokenStream {
-    match &variant.fields {
-        syn::Fields::Unit => quote! {rhdl::rtt::TraceType::Empty},
-        syn::Fields::Unnamed(fields) => {
-            let field_types = fields.unnamed.iter().map(|f| &f.ty);
-            quote! {
-                rhdl::rtt::make_tuple(vec![#(
-                    <#field_types as rhdl::core::Digital>::static_trace_type()
-                ),*])
-            }
-        }
-        syn::Fields::Named(fields) => {
-            let field_names = fields.named.iter().map(|f| &f.ident);
-            let field_types = fields.named.iter().map(|f| &f.ty);
-            let struct_name = format_ident!("_{}__{}", enum_name, variant.ident);
-            quote! {
-                rhdl::rtt::make_struct(
-                    stringify!(#struct_name),
-                    vec![#(
-                        rhdl::rtt::make_field(stringify!(#field_names), <#field_types as rhdl::core::Digital>::static_trace_type())
-                    ),*]
-                )
-            }
-        }
-    }
-}
-
 fn variant_kind_mapping(enum_name: &Ident, variant: &Variant) -> TokenStream {
     match &variant.fields {
         syn::Fields::Unit => quote! {rhdl::core::Kind::Empty},
         syn::Fields::Unnamed(fields) => {
             let field_types = fields.unnamed.iter().map(|f| &f.ty);
             quote! {
-                rhdl::core::Kind::make_tuple(vec![#(
+                rhdl::core::Kind::make_tuple([#(
                     <#field_types as rhdl::core::Digital>::static_kind()
-                ),*])
+                ),*].into())
             }
         }
         syn::Fields::Named(fields) => {
@@ -207,9 +182,9 @@ fn variant_kind_mapping(enum_name: &Ident, variant: &Variant) -> TokenStream {
             quote! {
                 rhdl::core::Kind::make_struct(
                     stringify!(#struct_name),
-                    vec![#(
+                    [#(
                     rhdl::core::Kind::make_field(stringify!(#field_names), <#field_types as rhdl::core::Digital>::static_kind())
-                ),*]
+                ),*].into()
             )
             }
         }
@@ -234,93 +209,25 @@ fn variant_bits_mapping(variant: &Variant) -> TokenStream {
     }
 }
 
-fn variant_trace_bits_mapping(variant: &Variant) -> TokenStream {
-    match &variant.fields {
-        syn::Fields::Unit => quote! {0_usize},
-        syn::Fields::Unnamed(fields) => {
-            let field_types = fields.unnamed.iter().map(|f| &f.ty);
-            quote! {
-                #(<#field_types as rhdl::core::Digital>::TRACE_BITS)+*
-            }
-        }
-        syn::Fields::Named(fields) => {
-            let field_types = fields.named.iter().map(|f| &f.ty);
-            quote! {
-                #(<#field_types as rhdl::core::Digital>::TRACE_BITS)+*
-            }
-        }
-    }
-}
-
 fn make_discriminant_values_into_typed_bits(
     kind: DiscriminantType,
     values: &[i64],
 ) -> impl Iterator<Item = TokenStream> + '_ {
     values.iter().map(move |x| match kind {
         DiscriminantType::Unsigned(width) => {
-            let width = format_ident!("U{width}");
+            let width = syn::Index::from(width);
             quote! {
                 rhdl::bits::bits::<#width>(#x as u128).typed_bits()
             }
         }
         DiscriminantType::Signed(width) => {
             let x = *x as i128;
-            let width = format_ident!("U{width}");
+            let width = syn::Index::from(width);
             quote! {
                 rhdl::bits::signed::<#width>(#x).typed_bits()
             }
         }
     })
-}
-
-fn variant_payload_trace(
-    variant: &Variant,
-    kind: DiscriminantType,
-    discriminant: i64,
-) -> TokenStream {
-    let discriminant = match kind {
-        DiscriminantType::Unsigned(x) => {
-            let x = format_ident!("U{x}");
-            quote! {
-                rhdl::bits::bits::<#x>(#discriminant as u128).trace()
-            }
-        }
-        DiscriminantType::Signed(x) => {
-            let x = format_ident!("U{x}");
-            quote! {
-                rhdl::bits::signed::<#x>(#discriminant as i128).trace()
-            }
-        }
-    };
-    match &variant.fields {
-        syn::Fields::Unit => quote! {
-            #discriminant
-        },
-        syn::Fields::Unnamed(fields) => {
-            let field_names = fields
-                .unnamed
-                .iter()
-                .enumerate()
-                .map(|(i, _)| format_ident!("_{}", i));
-            quote! {
-                let mut v = #discriminant;
-                #(
-                    v.extend(#field_names.trace());
-                )*
-                v
-            }
-        }
-        syn::Fields::Named(fields) => {
-            let field_names = fields.named.iter().map(|f| &f.ident);
-            quote! {
-                let mut v = #discriminant;
-                #(
-                    v.extend(#field_names.trace());
-                )*
-                v
-            }
-        }
-    }
 }
 
 fn variant_payload_bin(
@@ -330,13 +237,13 @@ fn variant_payload_bin(
 ) -> TokenStream {
     let discriminant = match kind {
         DiscriminantType::Unsigned(x) => {
-            let x = format_ident!("U{x}");
+            let x = syn::Index::from(x);
             quote! {
                 rhdl::core::bitx_vec(&rhdl::bits::bits::<#x>(#discriminant as u128).to_bools())
             }
         }
         DiscriminantType::Signed(x) => {
-            let x = format_ident!("U{x}");
+            let x = syn::Index::from(x);
             quote! {
                 rhdl::core::bitx_vec(&rhdl::bits::signed::<#x>(#discriminant as i128).to_bools())
             }
@@ -344,7 +251,7 @@ fn variant_payload_bin(
     };
     match &variant.fields {
         syn::Fields::Unit => quote! {
-            #discriminant
+            #discriminant.to_vec()
         },
         syn::Fields::Unnamed(fields) => {
             let field_names = fields
@@ -353,7 +260,7 @@ fn variant_payload_bin(
                 .enumerate()
                 .map(|(i, _)| format_ident!("_{}", i));
             quote! {
-                let mut v = #discriminant;
+                let mut v = #discriminant.to_vec();
                 #(
                     v.extend(#field_names.bin());
                 )*
@@ -363,7 +270,7 @@ fn variant_payload_bin(
         syn::Fields::Named(fields) => {
             let field_names = fields.named.iter().map(|f| &f.ident);
             quote! {
-                let mut v = #discriminant;
+                let mut v = #discriminant.to_vec();
                 #(
                     v.extend(#field_names.bin());
                 )*
@@ -414,8 +321,6 @@ pub const fn clog2(t: u128) -> usize {
 }
 
 pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
-    let clone = derive_clone_from_inner(decl.clone())?;
-    //let partial_eq = derive_partial_eq_from_inner(decl.clone())?;
     let enum_name = &decl.ident;
     let fqdn = crate::utils::get_fqdn(&decl);
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
@@ -452,13 +357,8 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .variants
         .iter()
         .map(|v| variant_kind_mapping(enum_name, v));
-    let trace_mapping = e
-        .variants
-        .iter()
-        .map(|v| variant_trace_mapping(enum_name, v));
     let variant_kind_mapping = kind_mapping.clone();
     let variant_bits_mapping = e.variants.iter().map(variant_bits_mapping);
-    let variant_trace_bits_mapping = e.variants.iter().map(variant_trace_bits_mapping);
     let kind = discriminant_kind(&discriminants_values);
     let width_override = parse_discriminant_width_attribute(&decl.attrs)?;
     let kind = override_width(kind, width_override)?;
@@ -477,11 +377,6 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         .iter()
         .zip(discriminants_values.iter())
         .map(|(variant, discriminant)| variant_payload_bin(variant, kind, *discriminant));
-    let trace_bin_fns = e
-        .variants
-        .iter()
-        .zip(discriminants_values.iter())
-        .map(|(variant, discriminant)| variant_payload_trace(variant, kind, *discriminant));
     let discriminants_as_typed_bits =
         make_discriminant_values_into_typed_bits(kind, &discriminants_values);
     let discriminant_ty = match kind {
@@ -489,86 +384,55 @@ pub fn derive_digital_enum(decl: DeriveInput) -> syn::Result<TokenStream> {
         DiscriminantType::Signed(_) => quote! { rhdl::core::DiscriminantType::Signed },
     };
     Ok(quote! {
-        impl #impl_generics core::marker::Copy for #enum_name #ty_generics #where_clause {}
-
-        #clone
-
-        //#partial_eq
-
-        impl #impl_generics rhdl::core::Digital for #enum_name #ty_generics #where_clause {
-            // BITS is the width of the discriminant (#width_bits) plus the maximum width
-            // of the variant payloads.  This is calculated by taking the maximum width of
-            // all the variant payloads and adding #width_bits.
-            const BITS: usize = #width_bits + rhdl::const_max!(#(#variant_bits_mapping),*);
-            const TRACE_BITS: usize = #width_bits + rhdl::const_max!(#(#variant_trace_bits_mapping),*);
-            fn static_kind() -> rhdl::core::Kind {
-                rhdl::core::Kind::make_enum(
-                    #fqdn,
-                    vec![
-                        #(
-                            rhdl::core::Kind::make_variant(stringify!(#variant_names), #kind_mapping, #discriminants)
-                        ),*
-                    ],
-                    rhdl::core::Kind::make_discriminant_layout(
-                        #width_bits,
-                        #discriminant_alignment_expr,
-                        #discriminant_ty
-                    )
+    #[allow(unused_variables)]
+    impl #impl_generics rhdl::core::Digital for #enum_name #ty_generics #where_clause {
+        // BITS is the width of the discriminant (#width_bits) plus the maximum width
+        // of the variant payloads.  This is calculated by taking the maximum width of
+        // all the variant payloads and adding #width_bits.
+        const BITS: usize = #width_bits + rhdl::const_max!(#(#variant_bits_mapping),*);
+        fn static_kind() -> rhdl::core::Kind {
+            rhdl::core::Kind::make_enum(
+                #fqdn,
+                [
+                    #(
+                        rhdl::core::Kind::make_variant(stringify!(#variant_names), #kind_mapping, #discriminants)
+                    ),*
+                ].into(),
+                rhdl::core::Kind::make_discriminant_layout(
+                    #width_bits,
+                    #discriminant_alignment_expr,
+                    #discriminant_ty
                 )
-            }
-            fn static_trace_type() -> rhdl::core::TraceType {
-                rhdl::rtt::make_enum(
-                    #fqdn,
-                    vec![
-                        #(
-                            rhdl::rtt::make_variant(stringify!(#variant_names), #trace_mapping, #discriminants)
-                        ),*
-                    ],
-                    rhdl::rtt::make_discriminant_layout(
-                        #width_bits,
-                        #discriminant_alignment_expr.into(),
-                        #discriminant_ty.into()
-                    )
-                )
-            }
-            fn bin(self) -> Vec<rhdl::core::BitX> {
-                let mut raw =
-                    match self {
-                    #(
-                        Self::#variant_names #variant_destructure_args => {#bin_fns}
-                    )*
-                };
-                raw.resize(Self::BITS, rhdl::core::BitX::Zero);
-                #swap_endian_fn
-            }
-            fn trace(self) -> Vec<rhdl::core::TraceBit> {
-                let mut raw =
+            )
+        }
+        fn bin(self) -> Box<[rhdl::core::BitX]> {
+            let mut raw =
                 match self {
-                    #(
-                        Self::#variant_names #variant_destructure_args => {#trace_bin_fns}
-                    )*
-                };
-                raw.resize(Self::TRACE_BITS, rhdl::core::TraceBit::Zero);
-                #swap_endian_fn
-            }
-            fn discriminant(self) -> rhdl::core::TypedBits {
-                match self {
-                    #(
-                        Self::#variant_names #variant_destructure_args => {#discriminants_as_typed_bits}
-                    )*
-                }
-            }
-            fn variant_kind(self) -> rhdl::core::Kind {
-                match self {
-                    #(
-                        Self::#variant_names #variant_destructure_args => {#variant_kind_mapping}
-                    )*
-                }
-            }
-            fn dont_care() -> Self {
-                <Self as Default>::default()
+                #(
+                    Self::#variant_names #variant_destructure_args => {#bin_fns}
+                )*
+            }.to_vec();
+            raw.resize(Self::BITS, rhdl::core::BitX::Zero);
+            (#swap_endian_fn).into()
+        }
+        fn discriminant(self) -> rhdl::core::TypedBits {
+            match self {
+                #(
+                    Self::#variant_names #variant_destructure_args => {#discriminants_as_typed_bits}
+                )*
             }
         }
+        fn variant_kind(self) -> rhdl::core::Kind {
+            match self {
+                #(
+                    Self::#variant_names #variant_destructure_args => {#variant_kind_mapping}
+                )*
+            }
+        }
+        fn dont_care() -> Self {
+            <Self as Default>::default()
+        }
+    }
     })
 }
 

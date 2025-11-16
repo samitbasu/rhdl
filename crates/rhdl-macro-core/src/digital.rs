@@ -1,11 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{spanned::Spanned, Data, DeriveInput};
+use syn::{Data, DeriveInput, spanned::Spanned};
 
-use crate::{
-    clone::derive_clone_from_inner, digital_enum::derive_digital_enum,
-    utils::parse_rhdl_skip_attribute,
-};
+use crate::{digital_enum::derive_digital_enum, utils::parse_rhdl_skip_attribute};
 
 pub fn derive_digital(input: TokenStream) -> syn::Result<TokenStream> {
     let decl = syn::parse2::<syn::DeriveInput>(input)?;
@@ -39,8 +36,6 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
     let fqdn = crate::utils::get_fqdn(&decl);
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
-    let clone = derive_clone_from_inner(decl.clone())?;
-    //let partial_eq = derive_partial_eq_from_inner(decl.clone())?;
     match decl.data {
         Data::Struct(s) => {
             let fields = s
@@ -57,50 +52,26 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 .map(|x| &x.ty)
                 .collect::<Vec<_>>();
             Ok(quote! {
-                impl #impl_generics core::marker::Copy for #struct_name #ty_generics #where_clause {}
-
-                #clone
-
                 impl #impl_generics rhdl::core::Digital for #struct_name #ty_generics #where_clause {
                     const BITS: usize = #(
                         <#field_types as rhdl::core::Digital>::BITS
                     )+*;
-                    const TRACE_BITS: usize = #(
-                        <#field_types as rhdl::core::Digital>::TRACE_BITS
-                    )+*;
                     fn static_kind() -> rhdl::core::Kind {
                         rhdl::core::Kind::make_struct(
                             #fqdn,
-                            vec![
+                            [
                             #(
                                 rhdl::core::Kind::make_field(stringify!(#fields), <#field_types as rhdl::core::Digital>::static_kind()),
                             )*
-                            ]
+                            ].into()
                         )
                     }
-                    fn static_trace_type() -> rhdl::rtt::TraceType {
-                        rhdl::rtt::make_struct(
-                            #fqdn,
-                            vec![
-                            #(
-                                rhdl::rtt::make_field(stringify!(#fields), <#field_types as rhdl::core::Digital>::static_trace_type()),
-                            )*
-                        ]
-                    )
-                    }
-                    fn bin(self) -> Vec<rhdl::core::BitX> {
+                     fn bin(self) -> Box<[rhdl::core::BitX]> {
                         [
                         #(
-                            self.#fields.bin().as_slice(),
+                            self.#fields.bin(),
                         )*
-                        ].concat()
-                    }
-                    fn trace(self) -> Vec<rhdl::core::TraceBit> {
-                        [
-                        #(
-                            self.#fields.trace().as_slice(),
-                        )*
-                        ].concat()
+                        ].concat().into()
                     }
                     fn dont_care() -> Self {
                         Self(
@@ -124,7 +95,6 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
 fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
-    let clone = derive_clone_from_inner(decl.clone())?;
     let fqdn = crate::utils::get_fqdn(&decl);
     match decl.data {
         Data::Struct(s) => {
@@ -141,50 +111,26 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 .map(|x| &x.ty)
                 .collect::<Vec<_>>();
             Ok(quote! {
-                impl #impl_generics core::marker::Copy for #struct_name #ty_generics #where_clause {}
-
-                #clone
-
                 impl #impl_generics rhdl::core::Digital for #struct_name #ty_generics #where_clause {
                     const BITS: usize = #(
                         <#field_types as rhdl::core::Digital>::BITS
                     )+*;
-                    const TRACE_BITS: usize = #(
-                        <#field_types as rhdl::core::Digital>::TRACE_BITS
-                    )+*;
                     fn static_kind() -> rhdl::core::Kind {
                         rhdl::core::Kind::make_struct(
                             #fqdn,
-                            vec![
+                            [
                             #(
                                 rhdl::core::Kind::make_field(stringify!(#fields), <#field_types as rhdl::core::Digital>::static_kind()),
                             )*
-                        ],
+                        ].into(),
                         )
                     }
-                    fn static_trace_type() -> rhdl::core::TraceType {
-                        rhdl::rtt::make_struct(
-                            #fqdn,
-                            vec![
-                            #(
-                                rhdl::rtt::make_field(stringify!(#fields), <#field_types as rhdl::core::Digital>::static_trace_type()),
-                            )*
-                        ],
-                        )
-                    }
-                    fn bin(self) -> Vec<rhdl::core::BitX> {
+                    fn bin(self) -> Box<[rhdl::core::BitX]> {
                         [
                         #(
-                            self.#fields.bin().as_slice(),
+                            self.#fields.bin(),
                         )*
-                        ].concat()
-                    }
-                    fn trace(self) -> Vec<rhdl::core::TraceBit> {
-                        [
-                        #(
-                            self.#fields.trace().as_slice(),
-                        )*
-                        ].concat()
+                        ].concat().into()
                     }
                     fn dont_care() -> Self {
                         Self {

@@ -1,0 +1,12 @@
+  × RHDL Type Check Error
+  ╰─▶ RHDL Type Check Error
+     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/dyn_bits.rs:187:17]
+ 186 │         let c = a1.xadd(a2);
+ 187 │         let d = c.xadd(b4(1));
+     ·                 ──────┬──────┬┬
+     ·                       │      │╰── Because of this expression
+     ·                       │      ╰── b_6
+     ·                       ╰── b_5
+ 188 │         let e: b5 = d.as_bits();
+     ╰────
+  help: These two types are not compatible

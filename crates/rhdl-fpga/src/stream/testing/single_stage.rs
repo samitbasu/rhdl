@@ -24,7 +24,10 @@ use crate::stream::{Ready, StreamIO};
 
 use super::{sink_from_fn::SinkFromFn, source_from_fn::SourceFromFn};
 use badascii_doc::badascii;
-use rhdl::prelude::*;
+use rhdl::{
+    core::{ScopedName, SyncKind},
+    prelude::*,
+};
 
 #[derive(Clone)]
 /// The [SingleStage] test fixture
@@ -42,7 +45,7 @@ where
     sink: SinkFromFn<T>,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 #[doc(hidden)]
 pub struct D<S, T>
 where
@@ -54,7 +57,7 @@ where
     sink: Option<T>,
 }
 
-#[derive(PartialEq, Digital)]
+#[derive(PartialEq, Clone, Copy, Digital)]
 #[doc(hidden)]
 pub struct Q<S, T>
 where
@@ -110,7 +113,7 @@ where
 {
     type I = ();
     type O = ();
-    type Kernel = NoKernel3<ClockReset, (), Q<S, T>, ((), D<S, T>)>;
+    type Kernel = NoSynchronousKernel<ClockReset, (), Q<S, T>, ((), D<S, T>)>;
 }
 
 impl<S, T, C> Synchronous for SingleStage<S, T, C>
@@ -135,11 +138,8 @@ where
     }
     fn descriptor(
         &self,
-        _name: &str,
-    ) -> Result<rhdl::core::CircuitDescriptor, rhdl::core::RHDLError> {
-        Err(RHDLError::NotSynthesizable)
-    }
-    fn hdl(&self, _name: &str) -> Result<rhdl::core::HDLDescriptor, rhdl::core::RHDLError> {
+        _name: ScopedName,
+    ) -> Result<rhdl::core::Descriptor<SyncKind>, rhdl::core::RHDLError> {
         Err(RHDLError::NotSynthesizable)
     }
     fn sim(

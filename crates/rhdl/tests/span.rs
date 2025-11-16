@@ -23,18 +23,12 @@ fn test_func_with_structured_args() -> miette::Result<()> {
         // Invisible comment
         signal(a.val() + b.val())
     }
-    let foo = <do_stuff as DigitalFn>::kernel_fn().unwrap();
-    let rhdl_core::KernelFnKind::Kernel(k) = foo else {
-        panic!("Expected kernel function");
-    };
-    let k = k.inner();
-    let metadb = &k.meta_db;
     let err = test_kernel_vm_and_verilog::<do_stuff, _, _, _>(
         do_stuff,
         [((signal(b8(0)), signal(b8(3))),)].into_iter(),
     )
     .expect_err("Expected this to fail with a clock domain violation");
     let report = miette_report(err);
-    expect_test::expect_file!["span_test.expect"].assert_eq(&report);
+    expect_test::expect_file!["expect/span_test.expect"].assert_eq(&report);
     Ok(())
 }

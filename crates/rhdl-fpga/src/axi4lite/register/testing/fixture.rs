@@ -13,14 +13,14 @@ pub struct U<
     pub register: Adapter<crate::axi4lite::register::single::U, R>,
 }
 
-#[derive(PartialEq, Digital, Timed)]
+#[derive(PartialEq, Digital, Copy, Timed, Clone)]
 pub struct I<W: Domain, R: Domain> {
     pub reset_n: Signal<ResetN, W>,
     pub clock: Signal<Clock, R>,
     pub axi: Signal<MOSI, R>,
 }
 
-#[derive(PartialEq, Digital, Timed)]
+#[derive(PartialEq, Digital, Copy, Timed, Clone)]
 pub struct O<R: Domain> {
     pub axi: Signal<MISO, R>,
     pub read_data: Signal<AxilData, R>,
@@ -151,7 +151,7 @@ mod tests {
     fn test_trace() -> miette::Result<()> {
         let uut = U::<Red, Blue>::default();
         let stream = test_stream();
-        let vcd = uut.run(stream)?.collect::<Vcd>();
+        let vcd = uut.run(stream).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("axi4lite")

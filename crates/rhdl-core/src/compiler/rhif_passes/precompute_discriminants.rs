@@ -25,7 +25,7 @@ impl Pass for PrecomputeDiscriminantPass {
                 if index.path == Path::default().discriminant() {
                     let kind = match index.arg {
                         Slot::Register(rid) => registers[rid].0,
-                        Slot::Literal(lid) => literals[lid].0.kind,
+                        Slot::Literal(lid) => literals[lid].0.kind(),
                     };
                     if !kind.is_enum() {
                         lop.op = OpCode::Assign(Assign {

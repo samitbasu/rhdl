@@ -1,27 +1,38 @@
-pub use rhdl_typenum::prelude::*;
+//! # Bit width marker trait and type
+//!
+//! This module provides a marker trait and a type-level representation for bit widths
+//! in the range 1..=128. This is used to ensure that the number of bits in a [Bits](crate::Bits) or
+//! [SignedBits](crate::SignedBits) value is in a valid range.
+//! ```
+//! use rhdl_bits::*;
+//! fn takes_variable_bit_widths<const N: usize>(value: Bits<N>) where W<N> : BitWidth {}
+//! ```
+//! This is a work around for the constraint `where N >= 1 && N <= 128` which is not
+//! currently supported in Rust.
 
-pub trait BitWidth: Copy + Clone + Default + PartialEq + Eq + 'static {
-    const BITS: usize;
-}
+/// A marker trait used to constrain a const generic parameter to the range `1..=128`
+/// This is used to ensure that the number of bits in a [Bits](crate::Bits) or [SignedBits](crate::SignedBits)
+/// value is in a valid range.
+/// ```
+/// use rhdl_bits::*;
+/// fn takes_variable_bit_widths<const N: usize>(value: Bits<N>) where W<N> : BitWidth {}
+/// ```
+/// This is a work around for the constraint `where N >= 1 && N <= 128` which is not
+/// currently supported in Rust.
+///
+pub trait BitWidth {}
 
-impl<N> BitWidth for N
-where
-    N: Unsigned + Copy + Clone + Default + PartialEq + Eq + 'static,
-{
-    const BITS: usize = N::USIZE;
-}
+/// A type-level representation of a bit width.  This is used to constrain
+/// const generic parameters to the range `1..=128`.
+///
+/// This is a work around for the constraint `where N >= 1 && N <= 128` which is not
+/// currently supported in Rust.  So instead, you write `W<N>: BitWidth`, which is only
+/// valid if `N` is in the range `1..=128``.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct W<const N: usize>;
 
-#[cfg(test)]
-mod tests {
-    use super::BitWidth;
-    use rhdl_typenum::prelude::*;
-    use seq_macro::seq;
-
-    // Check that Const<N> : BitWidth for all N s.t. N <= 128
-    #[test]
-    fn test_const_bitwidth() {
-        seq!(N in 1..=128 {
-            assert_eq!(<Const<N> as BitWidth>::BITS, N);
-        });
-    }
-}
+seq_macro::seq!(N in 1..=128 {
+    #(
+        impl BitWidth for W<N> {}
+    )*
+});

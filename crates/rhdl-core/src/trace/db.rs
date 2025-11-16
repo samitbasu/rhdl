@@ -1,3 +1,32 @@
+//! Trace database for storing and exporting signal traces.
+//!
+//! This module defines a [TraceDB] struct that holds traced signals
+//! and their time series data.  It provides methods to trace signals,
+//! dump the traces to VCD files, and render them as SVG documents.
+//! The trace database is stored in a thread-local variable,
+//! allowing access from kernels without passing it explicitly.  
+//!
+//! To use the trace database explicitly, call [trace_init_db] to create
+//! a [TraceDBGuard], which will initialize the database for the current thread.
+//! The guard can be used to take ownership of the [TraceDB] when needed.
+//! Dropping the guard will clean up the database.
+//!
+//! # Example
+//!
+//! ```
+//! use rhdl::prelude::*;
+//!
+//! let guard = rhdl::core::trace::db::trace_init_db();
+//! trace_time(0);
+//! trace("signal1", &b8(42));
+//! trace_time(1000);
+//! trace("signal1", &b8(43));
+//! let db = guard.take();
+//! let mut vcd_file = std::fs::File::create("output.vcd").unwrap();
+//! db.dump_vcd(&mut vcd_file, None).unwrap();
+//! ```
+//!
+
 use std::{
     any::Any,
     cell::RefCell,
@@ -9,12 +38,12 @@ use std::{
 use rhdl_trace_type::{RTT, TraceType};
 use smallvec::SmallVec;
 
-use crate::Digital;
+use crate::{Digital, trace::svg::Trace};
 
 use super::{
     bit::TraceBit,
     key::TraceKey,
-    svg::{SvgOptions, Trace, render_traces_as_svg_document, trace_out},
+    svg::{SvgOptions, render_traces_as_svg_document, trace_out},
     vcd::VCDWrite,
 };
 
@@ -71,10 +100,10 @@ impl<T: Digital> TimeSeries<T> {
         TimeSeries(values)
     }
     fn push_if_changed(&mut self, time: u64, value: T) {
-        if let Some((_, last_value)) = self.0.last() {
-            if last_value == &value {
-                return;
-            }
+        if let Some((_, last_value)) = self.0.last()
+            && last_value == &value
+        {
+            return;
         }
         self.0.push((time, value));
     }
@@ -157,6 +186,9 @@ impl<T: Digital> TimeSeriesWalk for TimeSeries<T> {
     }
 }
 
+/// Trace database for storing and exporting signal traces.
+///
+/// Stored in a thread local variable for easy access from kernels.
 #[derive(Default)]
 pub struct TraceDB {
     db: fnv::FnvHashMap<TimeSeriesHash, Box<dyn AnyTimeSeries>>,
@@ -261,6 +293,7 @@ impl TraceDB {
                 .collect(),
         )
     }
+    /// Dump the trace database as an SVG document.
     pub fn dump_svg(
         &self,
         time_set: std::ops::RangeInclusive<u64>,
@@ -287,6 +320,7 @@ impl TraceDB {
             .collect::<Box<_>>();
         render_traces_as_svg_document(*time_set.start(), traces, options)
     }
+    /// Dump the trace database as a VCD file.
     pub fn dump_vcd<W: Write>(
         &self,
         w: W,
@@ -372,9 +406,16 @@ fn hierarchical_walk<'a>(paths: impl Iterator<Item = TSItem<'a>>) -> Scope {
 thread_local! {
     static DB: RefCell<Option<TraceDB>> = const { RefCell::new(None) };
 }
+/// A guard for the trace database.
+///
+/// As long as the guard is alive, the trace database is available
+/// for the current thread.  Dropping the guard will clean up the database.
 pub struct TraceDBGuard;
 
 impl TraceDBGuard {
+    /// Take ownership of the trace database.
+    ///
+    /// This consumes the guard and returns the trace database.
     pub fn take(self) -> TraceDB {
         let opt = DB.with(|db| db.borrow_mut().take());
         opt.unwrap_or_default()
@@ -390,12 +431,14 @@ impl Drop for TraceDBGuard {
     }
 }
 
+/// Initialize the trace database for the current thread.
 #[must_use]
 pub fn trace_init_db() -> TraceDBGuard {
     DB.replace(Some(TraceDB::default()));
     TraceDBGuard {}
 }
 
+/// Access the trace database for the current thread.
 pub fn with_trace_db<F: FnMut(&TraceDB)>(mut f: F) {
     DB.with(|db| {
         let db = db.borrow();
@@ -405,6 +448,7 @@ pub fn with_trace_db<F: FnMut(&TraceDB)>(mut f: F) {
     })
 }
 
+/// Push a name onto the current trace path.
 pub fn trace_push_path(name: &'static str) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
@@ -414,6 +458,7 @@ pub fn trace_push_path(name: &'static str) {
     })
 }
 
+/// Pop a name from the current trace path.
 pub fn trace_pop_path() {
     DB.with(|db| {
         let mut db = db.borrow_mut();
@@ -423,6 +468,7 @@ pub fn trace_pop_path() {
     })
 }
 
+/// Set the current trace time.
 pub fn trace_time(time: u64) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
@@ -432,6 +478,7 @@ pub fn trace_time(time: u64) {
     })
 }
 
+/// Trace a signal value at the current time.
 pub fn trace(key: impl TraceKey, value: &impl Digital) {
     DB.with(|db| {
         let mut db = db.borrow_mut();
@@ -448,7 +495,6 @@ mod tests {
     use crate::{
         Digital, DiscriminantAlignment, Kind,
         bitx::{BitX, bitx_vec},
-        rtt::test::kind_to_trace,
         types::kind::Variant,
     };
 
@@ -465,7 +511,8 @@ mod tests {
         let mut vcd = vec![];
         let db = guard.take();
         db.dump_vcd(&mut vcd, None).unwrap();
-        std::fs::write("test.vcd", vcd).unwrap();
+        expect_test::expect_file!["expect/test_vcd.expect"]
+            .assert_eq(&String::from_utf8(vcd).unwrap());
     }
 
     #[test]
@@ -502,7 +549,9 @@ mod tests {
                         Variant {
                             name: "Tuple".to_string().into(),
                             discriminant: 2,
-                            kind: Kind::make_tuple(vec![Kind::make_bits(1), Kind::make_bits(3)]),
+                            kind: Kind::make_tuple(
+                                vec![Kind::make_bits(1), Kind::make_bits(3)].into(),
+                            ),
                         },
                         Variant {
                             name: "Array".to_string().into(),
@@ -517,7 +566,8 @@ mod tests {
                                 vec![
                                     Kind::make_field("a", Kind::make_bits(1)),
                                     Kind::make_field("b", Kind::make_bits(3)),
-                                ],
+                                ]
+                                .into(),
                             ),
                         },
                     ],
@@ -528,35 +578,32 @@ mod tests {
                     ),
                 )
             }
-            fn static_trace_type() -> rhdl_trace_type::TraceType {
-                kind_to_trace(&Self::static_kind())
-            }
-            fn bin(self) -> Vec<BitX> {
+            fn bin(self) -> Box<[BitX]> {
                 let raw = match self {
                     Self::None => bitx_vec(&b3(0).to_bools()),
                     Self::Bool(b) => {
-                        let mut v = bitx_vec(&b3(1).to_bools());
+                        let mut v = bitx_vec(&b3(1).to_bools()).to_vec();
                         v.extend(b.bin());
-                        v
+                        v.into()
                     }
                     Self::Tuple(b, c) => {
-                        let mut v = bitx_vec(&b3(2).to_bools());
+                        let mut v = bitx_vec(&b3(2).to_bools()).to_vec();
                         v.extend(b.bin());
                         v.extend(c.bin());
-                        v
+                        v.into()
                     }
                     Self::Array([b, c, d]) => {
-                        let mut v = bitx_vec(&b3(3).to_bools());
+                        let mut v = bitx_vec(&b3(3).to_bools()).to_vec();
                         v.extend(b.bin());
                         v.extend(c.bin());
                         v.extend(d.bin());
-                        v
+                        v.into()
                     }
                     Self::Strct { a, b } => {
-                        let mut v = bitx_vec(&b3(4).to_bools());
+                        let mut v = bitx_vec(&b3(4).to_bools()).to_vec();
                         v.extend(a.bin());
                         v.extend(b.bin());
-                        v
+                        v.into()
                     }
                 };
                 if raw.len() < self.kind().bits() {
@@ -597,7 +644,8 @@ mod tests {
         let mut vcd = vec![];
         let db = guard.take();
         db.dump_vcd(&mut vcd, None).unwrap();
-        std::fs::write("test_enum.vcd", vcd).unwrap();
+        expect_test::expect_file!["expect/test_enum_vcd.expect"]
+            .assert_eq(&String::from_utf8(vcd).unwrap());
     }
 
     #[test]
@@ -615,6 +663,7 @@ mod tests {
         let mut vcd = vec![];
         let db = guard.take();
         db.dump_vcd(&mut vcd, None).unwrap();
-        std::fs::write("test_nested_paths.vcd", vcd).unwrap();
+        expect_test::expect_file!["expect/test_nested_paths.expect"]
+            .assert_eq(&String::from_utf8(vcd).unwrap());
     }
 }

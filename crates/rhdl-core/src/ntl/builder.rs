@@ -1,9 +1,10 @@
 use crate::ast::spanned_source::SpannedSourceSet;
+use crate::circuit::descriptor::{AsyncKind, SyncKind};
 use crate::common::symtab::RegisterId;
 use crate::ntl::object::WireDetails;
 use crate::ntl::spec::{self, Assign, BlackBoxId, WireKind};
 use crate::types::digital::Digital;
-use crate::{Circuit, ClockReset, Kind, RHDLError, Synchronous};
+use crate::{ClockReset, Descriptor, Kind, RHDLError};
 use crate::{
     compiler::optimize_ntl,
     ntl::{
@@ -93,13 +94,14 @@ impl Builder {
     }
 }
 
-pub fn circuit_black_box<C: Circuit>(circuit: &C, name: &str) -> Result<Object, RHDLError> {
-    let mut builder = Builder::new(name);
-    let hdl = circuit.hdl(name)?;
-    let arg0 = builder.add_input(C::I::static_kind());
-    let out = builder.allocate_outputs(C::O::static_kind());
+pub fn circuit_black_box(descriptor: &Descriptor<AsyncKind>) -> Result<Object, RHDLError> {
+    let flat_name = descriptor.name.to_string();
+    let mut builder = Builder::new(&flat_name);
+    let hdl = descriptor.hdl()?;
+    let arg0 = builder.add_input(descriptor.input_kind);
+    let out = builder.allocate_outputs(descriptor.output_kind);
     builder.object.black_boxes.push(BlackBox {
-        code: hdl,
+        code: hdl.clone(),
         mode: BlackBoxMode::Asynchronous,
     });
     let arg0 = arg0.into_iter().map(Wire::Register).collect();
@@ -115,15 +117,16 @@ pub fn circuit_black_box<C: Circuit>(circuit: &C, name: &str) -> Result<Object, 
     builder.build(BuilderMode::Asynchronous)
 }
 
-pub fn synchronous_black_box<S: Synchronous>(circuit: &S, name: &str) -> Result<Object, RHDLError> {
-    let mut builder = Builder::new(name);
-    let hdl = circuit.hdl(name)?;
+pub fn synchronous_black_box(descriptor: &Descriptor<SyncKind>) -> Result<Object, RHDLError> {
+    let flat_name = descriptor.name.to_string();
+    let mut builder = Builder::new(&flat_name);
+    let hdl = descriptor.hdl()?;
     // This is the Clock/Reset input
     let arg0 = builder.add_input(ClockReset::static_kind());
-    let arg1 = builder.add_input(S::I::static_kind());
-    let out = builder.allocate_outputs(S::O::static_kind());
+    let arg1 = builder.add_input(descriptor.input_kind);
+    let out = builder.allocate_outputs(descriptor.output_kind);
     builder.object.black_boxes.push(BlackBox {
-        code: hdl,
+        code: hdl.clone(),
         mode: BlackBoxMode::Synchronous,
     });
     let arg0 = arg0.into_iter().map(Wire::Register).collect();

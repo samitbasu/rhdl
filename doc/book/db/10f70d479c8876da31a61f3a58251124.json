@@ -1,0 +1,1 @@
+[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[derive(Copy, Clone, PartialEq, Digital)]\npub struct MyStruct {\n    a: b8,\n    b: b4,\n    c: bool\n}\n\n#[kernel]\npub fn kernel(t: MyStruct) -> b4 {\n    let MyStruct {a, b, c} = t;\n    if c {\n        b\n    } else {\n        a.resize::<4>()\n    }\n}\n"},{"End":"CodeBlock"}]
