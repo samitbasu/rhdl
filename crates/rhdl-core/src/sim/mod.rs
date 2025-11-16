@@ -21,7 +21,7 @@ pub enum ResetOrData<T> {
 /// Extension traits to provide easy access to simulation utilities with iterators.
 pub mod extension {
     pub use crate::sim::iter::clock_pos_edge::ClockPosEdgeExt;
-    pub use crate::sim::iter::merge::MergeExt;
+    pub use crate::sim::iter::merge_map::MergeMapExt;
     pub use crate::sim::iter::reset::ResetExt;
     pub use crate::sim::iter::uniform::UniformExt;
 }

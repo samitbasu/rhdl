@@ -95,7 +95,7 @@ mod tests {
         };
         let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
         let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(78);
-        let input = red_input.merge(blue_input, |r, b| In {
+        let input = red_input.merge_map(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
@@ -116,7 +116,7 @@ mod tests {
         };
         let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
         let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(78);
-        let input = red_input.merge(blue_input, |r, b| In {
+        let input = red_input.merge_map(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
@@ -136,7 +136,7 @@ mod tests {
         let uut: AsyncFIFOTester<Red, Blue, 16, 4> = Default::default();
         let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
         let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(26);
-        let input = red_input.merge(blue_input, |r, b| In {
+        let input = red_input.merge_map(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
@@ -150,7 +150,7 @@ mod tests {
         let uut: AsyncFIFOTester<Red, Blue, 16, 4> = Default::default();
         let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
         let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(126);
-        let input = red_input.merge(blue_input, |r, b| In {
+        let input = red_input.merge_map(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
@@ -164,7 +164,7 @@ mod tests {
         let uut: AsyncFIFOTester<Red, Blue, 16, 4> = Default::default();
         let red_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(50);
         let blue_input = std::iter::repeat(()).with_reset(1).clock_pos_edge(126);
-        let input = red_input.merge(blue_input, |r, b| In {
+        let input = red_input.merge_map(blue_input, |r, b| In {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });

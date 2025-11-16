@@ -90,7 +90,7 @@ pub use rhdl_core::ntl::builder::constant;
 pub use rhdl_core::ntl::builder::synchronous_black_box;
 pub use rhdl_core::sim::extension::*;
 pub use rhdl_core::sim::iter::clock_pos_edge::clock_pos_edge;
-pub use rhdl_core::sim::iter::merge::merge;
+pub use rhdl_core::sim::iter::merge_map::merge_map;
 pub use rhdl_core::sim::iter::reset::with_reset;
 pub use rhdl_core::sim::iter::reset::without_reset;
 pub use rhdl_core::sim::iter::uniform::uniform;

@@ -1,3 +1,4 @@
+//! Convert a sequence of values into [TimedSample]s at uniform time intervals.
 use crate::{Digital, TimedSample, timed_sample};
 
 /// An iterator that produces samples at uniform time intervals.

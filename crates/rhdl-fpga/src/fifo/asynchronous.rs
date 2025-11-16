@@ -201,7 +201,7 @@ mod tests {
             .chain(std::iter::repeat_n(true, 16))
             .with_reset(1)
             .clock_pos_edge(75);
-        let input = write.merge(read, |w, r| In {
+        let input = write.merge_map(read, |w, r| In {
             data: signal(w.1),
             next: signal(r.1),
             cr_w: signal(w.0),

@@ -14,7 +14,7 @@ fn sync_stream() -> impl Iterator<Item = TimedSample<In<Red, Blue>>> {
         .with_reset(1)
         .clock_pos_edge(50);
     let blue = std::iter::repeat(false).with_reset(1).clock_pos_edge(79);
-    red.merge(blue, |r, g| In {
+    red.merge_map(blue, |r, g| In {
         reset: signal(reset(r.1)),
         clock: signal(g.0.clock),
     })

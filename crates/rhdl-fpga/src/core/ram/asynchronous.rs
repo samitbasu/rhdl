@@ -504,7 +504,7 @@ mod tests {
         // The write interface will be dormant
         let stream_write = get_write_stream(70, std::iter::repeat_n(None, 50));
         // Stitch the two streams together
-        let stream = stream_read.merge(stream_write, |r, w| In {
+        let stream = stream_read.merge_map(stream_write, |r, w| In {
             read: signal(r),
             write: signal(w),
         });
@@ -530,7 +530,7 @@ mod tests {
         ];
         let stream_read = get_scan_out_stream(100, 32);
         let stream_write = get_write_stream(70, writes.into_iter().chain(std::iter::repeat(None)));
-        let stream = stream_read.merge(stream_write, |r, w| In {
+        let stream = stream_read.merge_map(stream_write, |r, w| In {
             read: signal(r),
             write: signal(w),
         });
@@ -571,7 +571,7 @@ mod tests {
         // The write interface will be dormant
         let stream_write = get_write_stream(70, std::iter::repeat_n(None, 50));
         // Stitch the two streams together
-        let stream = merge(stream_read, stream_write, |r, w| In {
+        let stream = merge_map(stream_read, stream_write, |r, w| In {
             read: signal(r),
             write: signal(w),
         });

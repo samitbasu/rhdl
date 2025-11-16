@@ -13,7 +13,7 @@ fn main() -> Result<(), RHDLError> {
     // Create an empty stream on the blue domain
     let blue = std::iter::repeat(()).with_reset(1).clock_pos_edge(79);
     // Merge them
-    let inputs = merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, ())| In {
+    let inputs = merge_map(red, blue, |r: (ClockReset, bool), b: (ClockReset, ())| In {
         data: signal(r.1),
         cr: signal(b.0),
     });

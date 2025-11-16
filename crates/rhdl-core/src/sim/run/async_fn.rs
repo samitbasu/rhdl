@@ -45,7 +45,7 @@ where
     let blue_input = std::iter::repeat(())
         .with_reset(1)
         .clock_pos_edge(blue_period);
-    let mut sequence = red_input.merge(blue_input, |r, b| (r, b));
+    let mut sequence = red_input.merge_map(blue_input, |r, b| (r, b));
     std::iter::from_fn(move || {
         if let Some(event) = sequence.next() {
             trace_time(event.time);

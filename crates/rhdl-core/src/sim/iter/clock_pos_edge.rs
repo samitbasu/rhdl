@@ -1,3 +1,28 @@
+//! An iterator adaptor that clocks out a data/reset stream on the positive edge of a clock.
+//!
+//! Details are in the book.  But generally, given an iterator that generates a sequence of data
+//! values `x1, x2, x3, ...`, this adaptor will produce a timed sequence of clock and reset
+//! that looks like this:
+//!
+#![doc = badascii_doc::badascii!(
+r#"
+data     +----------+--------------------------------+-----+
+            x1      |              x2                |  x3  
+         +----------+--------------------------------+-----+
+                +>|δ|<+                          +>|δ|<+    
+                  +---------------+                +-------+
+clk               | :             |                | :      
+         +--------+ :             +----------------+ :      
+                                                            
+         ^        ^ ^             ^                ^ ^      
+         +        + +             +                + +      
+                                                            
+ data   x1       x1 x2           x2               x2 x3     
+ clk     F        T T             F                T T      
+"#
+)]
+//!
+//! The hold time `δ` is one time unit, and the clock period is configurable.
 use crate::{
     Clock, ClockReset, Digital, TimedSample, clock::clock, clock_reset, sim::ResetOrData,
     timed_sample, types::reset::reset,
