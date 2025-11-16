@@ -324,7 +324,7 @@ mod tests {
             .with_reset(1)
             .clock_pos_edge(100);
         let blue = std::iter::repeat(false).with_reset(1).clock_pos_edge(79);
-        red.merge(blue, |r, g| In {
+        red.merge_map(blue, |r, g| In {
             data: signal(r.1),
             cr: signal(g.0),
         })

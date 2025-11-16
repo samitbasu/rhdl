@@ -38,7 +38,7 @@ fn main() -> Result<(), RHDLError> {
             })
         });
     // Merge them
-    let input = merge(read, write, |r, w| In {
+    let input = merge_map(read, write, |r, w| In {
         read: signal(r),
         write: signal(w),
     });

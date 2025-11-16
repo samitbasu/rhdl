@@ -93,3 +93,4 @@ Note the "extra" sampels at times `6, 16, 26`.  These are the result of the need
 ```admonish warning
 To ensure correct behavior, make sure that all inputs to the circuit change at some time `t` that is strictly greater than the time at which the clock edge transitions. This extra "hold" time is not strictly required by RHDL.  But there are instances in which RHDL generates test benches run through external simulation tools.  Adding the hold of 1 time unit improves the simulation of those test benches.
 ```
+

@@ -1,9 +1,10 @@
+//! Merge two timed streams into one and apply a mapping function.
 use crate::{Digital, TimedSample};
 
 /// An iterator that merges two timed streams into one, using a provided merging function.
 ///
 /// Generally, you will create this with the `merge` method on the `MergeExt` trait.
-pub struct Merge<A, B, S: Digital, T: Digital, F> {
+pub struct MergeMap<A, B, S: Digital, T: Digital, F> {
     stream1: A,
     stream2: B,
     merge_fn: F,
@@ -13,7 +14,7 @@ pub struct Merge<A, B, S: Digital, T: Digital, F> {
     last2: T,
 }
 
-impl<A, B, S, T, F> Clone for Merge<A, B, S, T, F>
+impl<A, B, S, T, F> Clone for MergeMap<A, B, S, T, F>
 where
     A: Clone,
     B: Clone,
@@ -22,7 +23,7 @@ where
     T: Clone + Digital,
 {
     fn clone(&self) -> Self {
-        Merge {
+        MergeMap {
             stream1: self.stream1.clone(),
             stream2: self.stream2.clone(),
             merge_fn: self.merge_fn.clone(),
@@ -35,18 +36,18 @@ where
 }
 
 /// Creates a Merge iterator that merges two timed streams using the provided merging function.
-pub fn merge<A, B, S: Digital, T: Digital, F>(
+pub fn merge_map<A, B, S: Digital, T: Digital, F>(
     mut stream1: A,
     mut stream2: B,
     merge_fn: F,
-) -> Merge<A, B, S, T, F>
+) -> MergeMap<A, B, S, T, F>
 where
     A: Iterator<Item = TimedSample<S>>,
     B: Iterator<Item = TimedSample<T>>,
 {
     let data1 = stream1.next();
     let data2 = stream2.next();
-    Merge {
+    MergeMap {
         data1,
         data2,
         stream1,
@@ -57,7 +58,8 @@ where
     }
 }
 
-impl<A, B, S: Digital, T: Digital, F: Fn(S, T) -> U, U: Digital> Iterator for Merge<A, B, S, T, F>
+impl<A, B, S: Digital, T: Digital, F: Fn(S, T) -> U, U: Digital> Iterator
+    for MergeMap<A, B, S, T, F>
 where
     A: Iterator<Item = TimedSample<S>>,
     B: Iterator<Item = TimedSample<T>>,
@@ -104,13 +106,13 @@ where
 }
 
 /// Extension trait to provide a `merge` method on iterators.
-pub trait MergeExt<I, S, T>: IntoIterator + Sized {
+pub trait MergeMapExt<I, S, T>: IntoIterator + Sized {
     /// Creates a Merge iterator that merges two timed streams using the provided merging function.
-    fn merge<F, U>(
+    fn merge_map<F, U>(
         self,
         other: I,
         merge_fn: F,
-    ) -> Merge<<Self as IntoIterator>::IntoIter, <I as IntoIterator>::IntoIter, S, T, F>
+    ) -> MergeMap<<Self as IntoIterator>::IntoIter, <I as IntoIterator>::IntoIter, S, T, F>
     where
         I: IntoIterator,
         F: Fn(S, T) -> U,
@@ -119,23 +121,23 @@ pub trait MergeExt<I, S, T>: IntoIterator + Sized {
         U: Digital;
 }
 
-impl<I, O, S, T> MergeExt<O, S, T> for I
+impl<I, O, S, T> MergeMapExt<O, S, T> for I
 where
     I: IntoIterator<Item = TimedSample<S>>,
     O: IntoIterator<Item = TimedSample<T>>,
     S: Digital,
     T: Digital,
 {
-    fn merge<F, U>(
+    fn merge_map<F, U>(
         self,
         other: O,
         merge_fn: F,
-    ) -> Merge<<Self as IntoIterator>::IntoIter, <O as IntoIterator>::IntoIter, S, T, F>
+    ) -> MergeMap<<Self as IntoIterator>::IntoIter, <O as IntoIterator>::IntoIter, S, T, F>
     where
         F: Fn(S, T) -> U,
         U: Digital,
     {
-        merge(self.into_iter(), other.into_iter(), merge_fn)
+        merge_map(self.into_iter(), other.into_iter(), merge_fn)
     }
 }
 
@@ -214,7 +216,7 @@ mod tests {
             timed_sample(10, b8(0xb4)),
         ];
         let merged = stream1
-            .merge(stream2, |a: b8, b: b8| (a, b))
+            .merge_map(stream2, |a: b8, b: b8| (a, b))
             .collect::<Vec<_>>();
         let stream_merged: Vec<TimedSample<(b8, b8)>> = vec![
             timed_sample(0, (b8(0xa0), b8(0))),

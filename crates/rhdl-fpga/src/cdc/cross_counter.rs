@@ -207,7 +207,7 @@ mod tests {
         // Create an empty stream on the red domain
         let blue = std::iter::repeat(()).with_reset(1).clock_pos_edge(79);
         // Merge them
-        merge(red, blue, |r: (ClockReset, bool), b: (ClockReset, ())| In {
+        merge_map(red, blue, |r: (ClockReset, bool), b: (ClockReset, ())| In {
             incr: signal(r.1),
             incr_cr: signal(r.0),
             cr: signal(b.0),

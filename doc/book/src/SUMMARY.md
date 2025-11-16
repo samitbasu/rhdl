@@ -81,7 +81,7 @@
 		- [Uniform](simulations/extensions/uniform.md)
 		- [With Reset](simulations/extensions/with_reset.md)
 		- [Clock Pos Edge](simulations/extensions/clock_pos_edge.md)
-		- [Merge](simulations/extensions/merge.md)
+		- [Merge Map](simulations/extensions/merge_map.md)
 	- [Roll Your Own](simulations/roll_your_own.md)
 	- [Probes](simulations/probes.md)
 	- [Tracing](simulations/tracing.md)
