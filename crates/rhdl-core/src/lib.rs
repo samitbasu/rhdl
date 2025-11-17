@@ -74,3 +74,4 @@ pub use bitx::bitx_vec;
 pub mod common;
 pub mod ntl;
 pub use circuit::scoped_name::ScopedName;
+pub mod trace2;
