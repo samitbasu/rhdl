@@ -5,7 +5,7 @@ use rhdl_bits::{BitWidth, Bits, SignedBits};
 use crate::{
     DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
     bitx::{BitX, bitx_vec},
-    trace::bit::TraceBit,
+    trace::{bit::TraceBit, svg::Trace},
 };
 
 use crate::const_max;

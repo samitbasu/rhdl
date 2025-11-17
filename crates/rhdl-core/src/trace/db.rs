@@ -666,4 +666,30 @@ mod tests {
         expect_test::expect_file!["expect/test_nested_paths.expect"]
             .assert_eq(&String::from_utf8(vcd).unwrap());
     }
+
+    #[test]
+    fn test_crude_db_benchmark() {
+        let guard = trace_init_db();
+        let mut page_count = 0;
+        let tic = std::time::Instant::now();
+        let mut serialized_bits = 0;
+        for i in 0..1_000_000 {
+            trace("sig1", &b32(i));
+            trace("sig2", &b1((i % 2 == 0) as u128));
+            trace_push_path("inner");
+            trace("sig3", &b8(i * 3 % 256));
+            trace_pop_path();
+            page_count += 1;
+            serialized_bits += 32 + 1 + 8;
+        }
+        let _ = guard.take();
+        let elapsed = tic.elapsed();
+        eprintln!(
+            "Traced {} pages in {:?} ({:.2} pages/sec, {:.2} Mbits/sec)",
+            page_count,
+            elapsed,
+            page_count as f64 / elapsed.as_secs_f64(),
+            serialized_bits as f64 / 1_000_000.0 / elapsed.as_secs_f64()
+        );
+    }
 }
