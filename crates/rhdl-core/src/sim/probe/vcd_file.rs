@@ -2,8 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     Digital, TimedSample,
-    trace::db::{TraceDBGuard, with_trace_db},
-    trace_init_db,
+    trace::db::{TraceDBGuard, trace_init_db, with_trace_db},
 };
 
 pub struct VCDFile<I> {

@@ -1,5 +1,6 @@
 use rhdl::prelude::*;
 
+use rhdl_core::trace::db::{trace_init_db, trace_time};
 use test_log::test;
 
 #[derive(Circuit, Clone)]

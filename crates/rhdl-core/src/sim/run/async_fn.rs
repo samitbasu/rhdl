@@ -4,7 +4,7 @@ use crate::types::reset::reset;
 use crate::types::signal::signal;
 use crate::{Circuit, CircuitIO, TimedSample};
 use crate::{ClockReset, Digital};
-use crate::{Domain, Signal, clock::clock, trace_time};
+use crate::{Domain, Signal, clock::clock, trace::db::trace_time};
 
 fn neg_edge<D: Domain>(prev_cr: Signal<ClockReset, D>, curr_cr: Signal<ClockReset, D>) -> bool {
     let prev_cr = prev_cr.val();

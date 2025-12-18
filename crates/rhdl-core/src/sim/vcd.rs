@@ -3,8 +3,11 @@ use std::{io::Write, path::Path};
 use sha2::Digest;
 
 use crate::{
-    trace::svg::SvgOptions,
-    {Digital, TimedSample, trace::db::TraceDBGuard, trace_init_db},
+    Digital, TimedSample,
+    trace::{
+        db::{TraceDBGuard, trace_init_db},
+        svg::SvgOptions,
+    },
 };
 
 pub struct Vcd {

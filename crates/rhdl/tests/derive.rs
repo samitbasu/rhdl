@@ -6,6 +6,7 @@
 #![allow(dead_code)]
 
 use rhdl::prelude::*;
+use rhdl_core::trace::db::{trace_init_db, trace_time};
 
 #[test]
 #[allow(dead_code)]

@@ -1,4 +1,4 @@
-use crate::{BitX, Digital, Kind, TraceBit};
+use crate::{BitX, Digital, Kind, TraceBit, TypedBits};
 
 /// This trait captures the [Digital] interface that is dyn-compatible.
 /// It is used internally by the tracing system to handle traced values
@@ -17,6 +17,8 @@ pub trait Traceable {
     fn bin(&self) -> Box<[BitX]>;
     /// Get the binary representation of the stored value as a vector of [TraceBit]
     fn trace(&self) -> Box<[TraceBit]>;
+    /// Get the [TypedBits] representation of the stored value
+    fn typed_bits(&self) -> TypedBits;
 }
 
 impl<T: Digital> Traceable for T {
@@ -34,5 +36,8 @@ impl<T: Digital> Traceable for T {
     }
     fn trace(&self) -> Box<[TraceBit]> {
         Digital::trace(*self)
+    }
+    fn typed_bits(&self) -> TypedBits {
+        Digital::typed_bits(*self)
     }
 }

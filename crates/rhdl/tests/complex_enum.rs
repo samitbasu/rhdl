@@ -6,6 +6,7 @@
 #![allow(dead_code)]
 
 use rhdl::prelude::*;
+use rhdl_core::trace::db::{trace_init_db, trace_time};
 
 #[derive(PartialEq, Debug, Digital, Clone, Copy)]
 #[repr(i8)]

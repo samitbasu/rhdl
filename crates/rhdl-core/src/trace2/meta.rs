@@ -1,6 +1,6 @@
 use rhdl_trace_type::{RTT, TraceType};
 
-use crate::trace2::trace_tree::TraceTree;
+use crate::{Kind, trace2::trace_tree::TraceTree};
 
 /// Details about a traced value.
 pub struct TraceDetails {
@@ -12,6 +12,10 @@ pub struct TraceDetails {
     pub path: Vec<&'static str>,
     /// The name of the recorded value.
     pub key: String,
+    /// The number of trace bits allocated to this value
+    pub width: usize,
+    /// The [Kind](crate::Kind) of this value.
+    pub kind: Kind,
 }
 
 /// The trace details stores an ID for each trace location.  

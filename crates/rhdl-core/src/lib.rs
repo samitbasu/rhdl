@@ -35,12 +35,12 @@ pub mod util;
 pub use util::id;
 
 pub use compiler::compile_design;
-pub use trace::db::TraceDB;
+//pub use trace::db::TraceDB;
 pub use trace::db::trace;
-pub use trace::db::trace_init_db;
+//pub use trace::db::trace_init_db;
 pub use trace::db::trace_pop_path;
 pub use trace::db::trace_push_path;
-pub use trace::db::trace_time;
+//pub use trace::db::trace_time;
 pub use trace::key::TraceKey;
 pub use types::kind::DiscriminantType;
 pub use types::typed_bits::TypedBits;
