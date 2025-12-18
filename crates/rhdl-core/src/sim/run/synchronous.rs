@@ -1,6 +1,8 @@
 //! Extension trait and types to provide for iterator-based open loop testing of
 //! synchronous circuits.
-use crate::{ClockReset, Synchronous, SynchronousIO, TimedSample, trace, trace_time};
+use crate::{
+    ClockReset, Synchronous, SynchronousIO, TimedSample, trace::db::trace, trace::db::trace_time,
+};
 
 /// An iterator that runs a synchronous circuit given an iterator of timed inputs.
 #[must_use = "To run the simulation, you must exhaust the iterator or collect it into a VCD"]

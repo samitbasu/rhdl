@@ -5,6 +5,200 @@
 #![allow(unused_must_use)]
 #![allow(dead_code)]
 use rhdl::prelude::*;
+use rhdl_core::{
+    trace::db::{trace_init_db, trace_time},
+    trace2::{TraceContainer, session::Session, svg::SvgFile, vcd::VcdFile},
+};
+
+#[test]
+fn test_svg_ng_enum() {
+    use rhdl_core::trace2::page::trace;
+    #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
+    enum Enum {
+        #[default]
+        None,
+        A(b8, b16),
+        B {
+            name: b8,
+        },
+        C(bool),
+    }
+    let mut svg = SvgFile::default();
+    let trace_session = Session::default();
+    let t0 = TimedSample { time: 0, value: () };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::None);
+    trace("color", &b8(0b10101010));
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 1_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::A(bits(42), bits(1024)));
+    trace("color", &b8(0b10101010));
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 2_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::B { name: bits(67) });
+    trace("color", &b8(0b10111010));
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 3_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::C(true));
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 4_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::C(false));
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 5_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::B { name: bits(65) });
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 6_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::A(bits(21), bits(512)));
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 7_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::None);
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 8_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::None);
+    svg.record(&guard.release());
+    let mut buf = vec![];
+    svg.finalize(
+        &rhdl_core::trace2::svg::options::SvgOptions::default(),
+        &mut buf,
+    )
+    .unwrap();
+    expect_test::expect_file!["expect/svg_ng_enum_svg.expect"]
+        .assert_eq(&String::from_utf8(buf).unwrap());
+}
+
+#[test]
+fn test_vcd_ng_enum() {
+    use rhdl_core::trace2::page::trace;
+    #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
+    enum Enum {
+        #[default]
+        None,
+        A(b8, b16),
+        B {
+            name: b8,
+        },
+        C(bool),
+    }
+    let mut vcd = VcdFile::default();
+    let trace_session = Session::default();
+    let t0 = TimedSample { time: 0, value: () };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::None);
+    trace("color", &b8(0b10101010));
+    vcd.record(&guard.release());
+    let t0 = TimedSample {
+        time: 1_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::A(bits(42), bits(1024)));
+    trace("color", &b8(0b10101010));
+    vcd.record(&guard.release());
+    let t0 = TimedSample {
+        time: 2_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::B { name: bits(67) });
+    trace("color", &b8(0b10111010));
+    vcd.record(&guard.release());
+    let t0 = TimedSample {
+        time: 3_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::C(true));
+    vcd.record(&guard.release());
+    let t0 = TimedSample {
+        time: 4_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::C(false));
+    vcd.record(&guard.release());
+    let t0 = TimedSample {
+        time: 5_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::B { name: bits(65) });
+    vcd.record(&guard.release());
+    let t0 = TimedSample {
+        time: 6_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::A(bits(21), bits(512)));
+    vcd.record(&guard.release());
+    let t0 = TimedSample {
+        time: 7_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::None);
+    vcd.record(&guard.release());
+    let t0 = TimedSample {
+        time: 8_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::None);
+    vcd.record(&guard.release());
+    let mut buf = vec![];
+    vcd.finalize(&mut buf).unwrap();
+    expect_test::expect_file!["expect/vcd_ng_enum_vcd.expect"]
+        .assert_eq(&String::from_utf8(buf).unwrap());
+}
 
 #[test]
 fn test_vcd_enum() {

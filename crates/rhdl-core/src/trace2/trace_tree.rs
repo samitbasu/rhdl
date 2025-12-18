@@ -35,8 +35,8 @@ pub(crate) struct TSItem<'a> {
 
 #[derive(Default)]
 pub(crate) struct TraceTree {
-    children: BTreeMap<&'static str, Box<TraceTree>>,
-    signals: BTreeMap<String, TraceId>,
+    pub(crate) children: BTreeMap<&'static str, Box<TraceTree>>,
+    pub(crate) signals: BTreeMap<String, TraceId>,
 }
 
 impl TraceTree {

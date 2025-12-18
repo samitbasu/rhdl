@@ -1,6 +1,11 @@
 use crate::{
-    clock::clock, clock_reset, sim::ResetOrData, timed_sample, trace, trace_time,
-    types::reset::reset, Clock, ClockReset, Digital, Synchronous, SynchronousIO, TimedSample,
+    Clock, ClockReset, Digital, Synchronous, SynchronousIO, TimedSample,
+    clock::clock,
+    clock_reset,
+    sim::ResetOrData,
+    timed_sample,
+    trace::{db::trace, db::trace_time},
+    types::reset::reset,
 };
 
 #[derive(Clone)]

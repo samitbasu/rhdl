@@ -1,6 +1,6 @@
 //! Extension trait and types to provide for iterator-based open loop testing of
 //! asynchronous circuits.
-use crate::{Circuit, CircuitIO, TimedSample, trace_time};
+use crate::{Circuit, CircuitIO, TimedSample, trace::db::trace_time};
 
 /// An iterator that runs an asynchronous circuit given an iterator of timed inputs.
 ///

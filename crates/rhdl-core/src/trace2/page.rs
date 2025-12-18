@@ -28,7 +28,7 @@ pub struct TracePage {
     /// The shared details about the trace.  We hold these
     /// in a RwLock to allow sharing of the details across
     /// threads and across pages.
-    details: Arc<RwLock<TraceMetadata>>,
+    pub(crate) details: Arc<RwLock<TraceMetadata>>,
 }
 
 impl std::fmt::Display for TracePage {
@@ -76,7 +76,7 @@ impl TracePage {
     }
     /// Record a traced value onto the page.  The key is combined
     /// with the current path to produce a unique trace ID.
-    pub fn trace(&mut self, key: impl TraceKey, value: &impl Digital) {
+    pub fn trace<T: Digital>(&mut self, key: impl TraceKey, value: &T) {
         let trace_id = self.key_hash(&key);
         // Check if we have already recorded this key.
         let has_key = self.details.read().unwrap().has_key(trace_id);
@@ -87,6 +87,8 @@ impl TracePage {
                 trace_type: value.trace_type(),
                 path: self.path.clone(),
                 key: key.as_string().to_string(),
+                width: (T::TRACE_BITS as u32).max(1) as usize,
+                kind: value.kind(),
             };
             self.details.write().unwrap().insert(trace_id, details);
         }
@@ -95,10 +97,22 @@ impl TracePage {
             data: Box::new(*value),
         });
     }
+    pub fn records(&self) -> impl Iterator<Item = &Record> {
+        self.records.iter()
+    }
 }
 
 thread_local! {
-    static PAGE: RefCell<Option<TracePage>> = const {RefCell::new(None)};
+    static PAGE: RefCell<Option<Box<TracePage>>> = const {RefCell::new(None)};
+}
+
+/// Set the current trace page for tracing in this thread
+pub fn set_trace_page(page: Option<Box<TracePage>>) {
+    PAGE.replace(page);
+}
+
+pub fn take_trace_page() -> Option<Box<TracePage>> {
+    PAGE.take()
 }
 
 /// Push a name onto the current trace path
@@ -138,7 +152,7 @@ mod tests {
         // Add test cases here
         let db = Arc::new(RwLock::new(TraceMetadata::default()));
         // Set the current trace page.
-        PAGE.replace(Some(TracePage::new(db.clone())));
+        PAGE.replace(Some(Box::new(TracePage::new(db.clone()))));
         trace_push_path("fn1");
         trace_push_path("fn2");
         trace("a", &true);
@@ -158,7 +172,7 @@ mod tests {
         let tic = std::time::Instant::now();
         let mut serialized_bits = 0;
         for i in 0..100_000 {
-            PAGE.replace(Some(TracePage::new(db.clone())));
+            PAGE.replace(Some(Box::new(TracePage::new(db.clone()))));
             // Set the current trace page.
             trace("sig1", &b32(i));
             trace("sig2", &b1((i % 2 == 0) as u128));
