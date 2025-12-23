@@ -2,8 +2,9 @@ use crate::{
     Color,
     trace2::svg::{
         color::TraceColor,
+        drawable::{DrawableList, RegionKind},
+        gap::GapList,
         options::SvgOptions,
-        region::{RegionKind, SvgWaveform},
     },
 };
 
@@ -35,8 +36,9 @@ fn fill_color(color: TraceColor) -> &'static str {
 }
 
 pub(crate) fn make_svg_document(
-    waveforms: &[SvgWaveform],
+    waveforms: &[DrawableList],
     times: &[u64],
+    gaps: &GapList,
     options: &SvgOptions,
 ) -> svg::Document {
     let time_delta = options.select_time_delta();
@@ -45,7 +47,6 @@ pub(crate) fn make_svg_document(
         return svg::Document::new();
     };
     let Some(end_time) = times.last().copied() else {
-        // No times, return empty document
         return svg::Document::new();
     };
     let width = waveforms.iter().map(|w| w.width()).max().unwrap_or(0);
@@ -85,13 +86,18 @@ pub(crate) fn make_svg_document(
         } else {
             0
         };
-    let mut ndx = grid_start;
     let label_end = options.label_width as f32 * options.font_size_in_pixels;
-    while (ndx * time_delta - start_time) as f32 * options.pixels_per_time_unit
-        <= width as f32 - label_end
-    {
-        let x = (ndx * time_delta - start_time) as f32 * options.pixels_per_time_unit + label_end;
-        let text = svg::node::element::Text::new(format!("{}", ndx * time_delta));
+    let times = (0..)
+        .map(|ndx| ndx * time_delta - start_time)
+        .take_while(|t| *t <= end_time)
+        .filter(|t| !gaps.dropped_time(*t));
+    let time_to_pixel = |time: u64| {
+        gaps.gap_time(time + start_time, options.gap_space) as f32 * options.pixels_per_time_unit
+            + label_end
+    };
+    for time in times {
+        let x = time_to_pixel(time);
+        let text = svg::node::element::Text::new(format!("{}", time + start_time));
         document = document.add(
             svg::node::element::Line::new()
                 .set("x1", x)
@@ -101,17 +107,35 @@ pub(crate) fn make_svg_document(
                 .set("stroke", "#333333")
                 .set("stroke-width", 1.0),
         );
+        let anchor = if gaps.is_gap_start(time) || end_time == time {
+            "end"
+        } else if gaps.is_gap_end(time) {
+            "start"
+        } else {
+            "middle"
+        };
         document = document.add(
             text.set("x", x)
                 .set("y", options.spacing() / 2)
                 .set("font-family", "monospace")
                 .set("font-size", "10px")
-                .set("text-anchor", "middle")
+                .set("text-anchor", anchor)
                 .set("dominant-baseline", "middle")
                 .set("fill", "#D4D4D4")
                 .set("clip-path", "url(#clip)"),
         );
-        ndx += 1;
+    }
+    for gap in gaps.iter() {
+        let x_start = time_to_pixel(*gap.start());
+        let x_end = time_to_pixel(*gap.end());
+        document = document.add(
+            svg::node::element::Rectangle::new()
+                .set("x", x_start)
+                .set("y", 0)
+                .set("width", x_end - x_start)
+                .set("height", height)
+                .set("fill", "#333333"),
+        );
     }
 
     document = document.add(
@@ -128,7 +152,7 @@ pub(crate) fn make_svg_document(
     // For each cell, add a rectangle to the SVG with the
     // name of the cell centered in the rectangle
     for waveform in waveforms {
-        for region in &waveform.data {
+        for region in &waveform.0 {
             let x = region.start_x;
             let y = region.start_y;
             let width = region.width;

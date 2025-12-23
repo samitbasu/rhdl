@@ -1,0 +1,191 @@
+<svg viewBox="0 0 1000 200" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<clipPath id="clip">
+<rect height="200" width="1000" x="0" y="0"/>
+</clipPath>
+</defs>
+<rect fill="#0B151D" height="200" stroke="darkblue" width="1000" x="0" y="0"/>
+<line stroke="#333333" stroke-width="1" x1="200" x2="200" y1="0" y2="200"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="200" y="10">
+0
+</text>
+<line stroke="#333333" stroke-width="1" x1="300" x2="300" y1="0" y2="200"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="300" y="10">
+1000
+</text>
+<line stroke="#333333" stroke-width="1" x1="400" x2="400" y1="0" y2="200"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="400" y="10">
+2000
+</text>
+<line stroke="#333333" stroke-width="1" x1="500" x2="500" y1="0" y2="200"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="500" y="10">
+3000
+</text>
+<line stroke="#333333" stroke-width="1" x1="600" x2="600" y1="0" y2="200"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="600" y="10">
+4000
+</text>
+<line stroke="#333333" stroke-width="1" x1="700" x2="700" y1="0" y2="200"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="700" y="10">
+5000
+</text>
+<line stroke="#333333" stroke-width="1" x1="800" x2="800" y1="0" y2="200"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="800" y="10">
+6000
+</text>
+<line stroke="#333333" stroke-width="1" x1="900" x2="900" y1="0" y2="200"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="900" y="10">
+7000
+</text>
+<line stroke="#333333" stroke-width="1" x1="1000" x2="1000" y1="0" y2="200"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1000" y="10">
+8000
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" y="10">
+Time:
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="30">
+color
+<title>color</title>
+</text>
+<path d="M 200 30 L 203 23 L 397 23 L 400 30 L 397 37 L 203 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="300" xml:space="preserve" y="30">
+aa
+<title>aa</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="50">
+enum
+<title>enum</title>
+</text>
+<path d="M 200 50 L 203 43 L 297 43 L 300 50 L 297 57 L 203 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="250" xml:space="preserve" y="50">
+None
+<title>None</title>
+</text>
+<path d="M 300 50 L 303 43 L 397 43 L 400 50 L 397 57 L 303 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="350" xml:space="preserve" y="50">
+A(2a, 0...
+<title>A(2a, 0400)</title>
+</text>
+<path d="M 400 50 L 403 43 L 497 43 L 500 50 L 497 57 L 403 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="450" xml:space="preserve" y="50">
+B{name:...
+<title>B{name: 43}</title>
+</text>
+<path d="M 500 50 L 503 43 L 597 43 L 600 50 L 597 57 L 503 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="550" xml:space="preserve" y="50">
+C(1)
+<title>C(1)</title>
+</text>
+<path d="M 600 50 L 603 43 L 697 43 L 700 50 L 697 57 L 603 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="650" xml:space="preserve" y="50">
+C(0)
+<title>C(0)</title>
+</text>
+<path d="M 700 50 L 703 43 L 797 43 L 800 50 L 797 57 L 703 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="750" xml:space="preserve" y="50">
+B{name:...
+<title>B{name: 41}</title>
+</text>
+<path d="M 800 50 L 803 43 L 897 43 L 900 50 L 897 57 L 803 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="850" xml:space="preserve" y="50">
+A(15, 0...
+<title>A(15, 0200)</title>
+</text>
+<path d="M 900 50 L 903 43 L 997 43 L 1000 50 L 997 57 L 903 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="950" xml:space="preserve" y="50">
+None
+<title>None</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
+   #None
+<title>enum#None</title>
+</text>
+<path d="M 200 70 L 203 63 L 297 63 L 300 70 L 297 77 L 203 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="250" xml:space="preserve" y="70">
+
+<title></title>
+</text>
+<path d="M 900 70 L 903 63 L 997 63 L 1000 70 L 997 77 L 903 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="950" xml:space="preserve" y="70">
+
+<title></title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="90">
+   #A
+<title>enum#A</title>
+</text>
+<path d="M 300 90 L 303 83 L 397 83 L 400 90 L 397 97 L 303 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="350" xml:space="preserve" y="90">
+(2a, 0400)
+<title>(2a, 0400)</title>
+</text>
+<path d="M 800 90 L 803 83 L 897 83 L 900 90 L 897 97 L 803 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="850" xml:space="preserve" y="90">
+(15, 0200)
+<title>(15, 0200)</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="110">
+      .0
+<title>enum#A.0</title>
+</text>
+<path d="M 300 110 L 303 103 L 397 103 L 400 110 L 397 117 L 303 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="350" xml:space="preserve" y="110">
+2a
+<title>2a</title>
+</text>
+<path d="M 800 110 L 803 103 L 897 103 L 900 110 L 897 117 L 803 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="850" xml:space="preserve" y="110">
+15
+<title>15</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="130">
+      .1
+<title>enum#A.1</title>
+</text>
+<path d="M 300 130 L 303 123 L 397 123 L 400 130 L 397 137 L 303 137 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="350" xml:space="preserve" y="130">
+0400
+<title>0400</title>
+</text>
+<path d="M 800 130 L 803 123 L 897 123 L 900 130 L 897 137 L 803 137 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="850" xml:space="preserve" y="130">
+0200
+<title>0200</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="150">
+   #B
+<title>enum#B</title>
+</text>
+<path d="M 400 150 L 403 143 L 497 143 L 500 150 L 497 157 L 403 157 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="450" xml:space="preserve" y="150">
+{name: 43}
+<title>{name: 43}</title>
+</text>
+<path d="M 700 150 L 703 143 L 797 143 L 800 150 L 797 157 L 703 157 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="750" xml:space="preserve" y="150">
+{name: 41}
+<title>{name: 41}</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="170">
+      .name
+<title>enum#B.name</title>
+</text>
+<path d="M 400 170 L 403 163 L 497 163 L 500 170 L 497 177 L 403 177 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="450" xml:space="preserve" y="170">
+43
+<title>43</title>
+</text>
+<path d="M 700 170 L 703 163 L 797 163 L 800 170 L 797 177 L 703 177 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="750" xml:space="preserve" y="170">
+41
+<title>41</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="190">
+   #C.0
+<title>enum#C.0</title>
+</text>
+<rect fill="#1C400C" height="14" stroke="none" width="98" x="501" y="183"/>
+<path d="M 500 190 L 500 183 L 600 183 L 600 190" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 600 190 L 600 197 L 700 197 L 700 190" fill="none" stroke="#56C126" stroke-width="1"/>
+</svg>

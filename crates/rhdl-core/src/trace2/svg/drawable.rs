@@ -1,7 +1,7 @@
 use crate::trace2::svg::color::TraceColor;
 
 #[derive(Clone, Debug)]
-pub(crate) struct SvgRegion {
+pub(crate) struct Drawable {
     pub(crate) start_x: i32,
     pub(crate) start_y: i32,
     pub(crate) width: i32,
@@ -20,27 +20,23 @@ pub(crate) enum RegionKind {
 }
 
 /// A waveform that has been converted into SVG regions for rendering.
-pub(crate) struct SvgWaveform {
-    pub(crate) label: String,
-    pub(crate) hint: String,
-    pub(crate) data: Box<[SvgRegion]>,
-}
+pub(crate) struct DrawableList(pub Box<[Drawable]>);
 
-impl SvgWaveform {
+impl DrawableList {
     pub(crate) fn set_start_y(&mut self, start_y: i32) {
-        for region in self.data.iter_mut() {
+        for region in self.0.iter_mut() {
             region.start_y = start_y;
         }
     }
     pub(crate) fn width(&self) -> i32 {
-        self.data
+        self.0
             .iter()
             .map(|r| r.start_x + r.width)
             .max()
             .unwrap_or(0)
     }
     pub(crate) fn height(&self, spacing: i32) -> i32 {
-        self.data
+        self.0
             .iter()
             .map(|r| r.start_y + spacing)
             .max()

@@ -1,3 +1,11 @@
+/// Gap detection options
+pub enum GapDetectionOptions {
+    /// Use the median clock period to determine if gaps are present
+    Median,
+    /// Use a manual threshold for the gap
+    AtLeast(u64),
+}
+
 /// Options to control the SVG rendering
 pub struct SvgOptions {
     /// Number of pixels per simulation time unit
@@ -14,6 +22,10 @@ pub struct SvgOptions {
     pub glitch_filter: Option<u32>,
     /// Optional regex filter for trace names
     pub name_filters: Option<regex::Regex>,
+    /// Set automatic gap detection
+    pub auto_gap_detection: Option<GapDetectionOptions>,
+    /// Amount of space to represent each gap
+    pub gap_space: u64,
 }
 
 // Generate an iterator that yields 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, etc.
@@ -70,6 +82,13 @@ impl SvgOptions {
             ..self
         }
     }
+
+    pub fn with_median_gap_detection(self) -> SvgOptions {
+        Self {
+            auto_gap_detection: Some(GapDetectionOptions::Median),
+            ..self
+        }
+    }
 }
 
 impl Default for SvgOptions {
@@ -82,6 +101,8 @@ impl Default for SvgOptions {
             label_width: 20,
             glitch_filter: Some(2),
             name_filters: None,
+            auto_gap_detection: None,
+            gap_space: 100,
         }
     }
 }

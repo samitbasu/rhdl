@@ -10,6 +10,107 @@ use rhdl_core::{
     trace2::{TraceContainer, session::Session, svg::SvgFile, vcd::VcdFile},
 };
 
+#[test] 
+fn test_svg_ng_enum_discontinuous() {
+    use rhdl_core::trace2::page::trace;
+    #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
+    enum Enum {
+        #[default]
+        None,
+        A(b8, b16),
+        B {
+            name: b8,
+        },
+        C(bool),
+    }
+    let mut svg = SvgFile::default();
+    let trace_session = Session::default();
+    let t0 = TimedSample { time: 0, value: () };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::None);
+    trace("color", &b8(0b10101010));
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 1_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::A(bits(42), bits(1024)));
+    trace("color", &b8(0b10101010));
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 2_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::B { name: bits(67) });
+    trace("color", &b8(0b10111010));
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 3_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::C(true));
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 4_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::C(false));
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 5_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::B { name: bits(65) });
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 10_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::A(bits(21), bits(512)));
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 11_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::None);
+    svg.record(&guard.release());
+    let t0 = TimedSample {
+        time: 12_000,
+        value: (),
+    };
+    let p0 = trace_session.traced(t0);
+    let guard = p0.guard();
+    trace("enum", &Enum::None);
+    svg.record(&guard.release());
+    let mut buf = vec![];
+    svg.finalize(
+        &rhdl_core::trace2::svg::options::SvgOptions {
+            pixels_per_time_unit: 0.1,
+            ..Default::default()
+        }
+        .with_median_gap_detection(),
+        &mut buf,
+    )
+    .unwrap();
+    expect_test::expect_file!["expect/svg_ng_enum_median_gap_svg.expect"]
+        .assert_eq(&String::from_utf8(buf).unwrap());
+}
+
 #[test]
 fn test_svg_ng_enum() {
     use rhdl_core::trace2::page::trace;
@@ -99,7 +200,10 @@ fn test_svg_ng_enum() {
     svg.record(&guard.release());
     let mut buf = vec![];
     svg.finalize(
-        &rhdl_core::trace2::svg::options::SvgOptions::default(),
+        &rhdl_core::trace2::svg::options::SvgOptions {
+            pixels_per_time_unit: 0.1,
+            ..Default::default()
+        },
         &mut buf,
     )
     .unwrap();

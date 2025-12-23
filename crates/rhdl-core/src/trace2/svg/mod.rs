@@ -22,11 +22,12 @@ use crate::{
 
 pub(crate) mod bucket;
 pub(crate) mod color;
+pub(crate) mod drawable;
+pub(crate) mod gap;
 pub(crate) mod label;
 pub(crate) mod layout;
 pub mod options;
 pub(crate) mod paths;
-pub(crate) mod region;
 pub(crate) mod waveform;
 
 type TimeAndSample = (u64, TypedBits);
@@ -112,6 +113,7 @@ impl SvgFile {
         let trace_tree = db.read().unwrap().build_trace_tree();
         let mut waves = Vec::new();
         self.write("top", &trace_tree, &mut waves);
+        let gaps = gap::segment_time(&self.times, options);
         rewrite_trace_names_into_tree(waves.as_mut_slice());
         let mut svg_waves = waves
             .into_iter()
@@ -122,14 +124,14 @@ impl SvgFile {
                     .map(|f| f.is_match(&w.hint))
                     .unwrap_or(true)
             })
-            .map(|w| w.render(options))
+            .map(|w| w.render(options, &gaps))
             .collect::<Vec<_>>();
         let spacing = options.spacing();
         // Space the waveforms, and leave one space for the header
         for (i, wave) in svg_waves.iter_mut().enumerate() {
             wave.set_start_y((i + 1) as i32 * spacing);
         }
-        let doc = make_svg_document(&svg_waves, &self.times, options);
+        let doc = make_svg_document(&svg_waves, &self.times, &gaps, options);
         svg::write(&mut out, &doc)?;
         Ok(())
     }
