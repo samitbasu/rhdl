@@ -3,9 +3,10 @@ use crate::{
     trace2::svg::{
         bucket::Bucket,
         color::TraceColor,
+        drawable::{Drawable, DrawableList, RegionKind},
+        gap::GapList,
         label::format_as_label,
         options::SvgOptions,
-        region::{RegionKind, SvgRegion, SvgWaveform},
     },
 };
 
@@ -54,49 +55,55 @@ pub(crate) struct Waveform {
 }
 
 impl Waveform {
-    pub(crate) fn render(self, options: &SvgOptions) -> SvgWaveform {
-        let data = self
-            .data
-            .iter()
-            .filter_map(|r| {
-                if r.start > r.end {
-                    return None;
+    pub(crate) fn render(self, options: &SvgOptions, gaps: &GapList) -> DrawableList {
+        let label_width = options.font_size_in_pixels as i32 * options.label_width;
+        let label_region = Drawable {
+            start_x: 0,
+            start_y: 0,
+            width: label_width,
+            tag: self.label.clone(),
+            full_tag: self.hint.clone(),
+            kind: RegionKind::Label,
+            color: TraceColor::MultiColor,
+        };
+        let data = self.data.iter().filter_map(|r| {
+            if r.start > r.end {
+                return None;
+            }
+            let len = r.end - r.start;
+            if let Some(min_time) = options.glitch_filter
+                && len < min_time as u64
+            {
+                return None;
+            }
+            // Remap the times based on the gap
+            let r_start = gaps.gap_time(r.start, options.gap_space);
+            let r_end = gaps.gap_time(r.end, options.gap_space);
+            let len = r_end.saturating_sub(r_start);
+            let width = (len as f32 * options.pixels_per_time_unit) as i32;
+            let start_x = label_width + (r_start as f32 * options.pixels_per_time_unit) as i32;
+            let kind = r.kind;
+            let width_in_characters = (width as f32 / options.font_size_in_pixels) as usize;
+            let mut tag = r.tag.clone().unwrap_or_default();
+            let full_tag = tag.clone();
+            if tag.len() > width_in_characters {
+                while !tag.is_empty() && tag.len() + 3 > width_in_characters {
+                    tag.pop();
                 }
-                let len = r.end - r.start;
-                if let Some(min_time) = options.glitch_filter
-                    && len < min_time as u64
-                {
-                    return None;
+                if !tag.is_empty() {
+                    tag += "...";
                 }
-                let width = ((r.end - r.start) as f32 * options.pixels_per_time_unit) as i32;
-                let start_x = (r.start as f32 * options.pixels_per_time_unit) as i32;
-                let kind = r.kind;
-                let width_in_characters = (width as f32 / options.font_size_in_pixels) as usize;
-                let mut tag = r.tag.clone().unwrap_or_default();
-                let full_tag = tag.clone();
-                if tag.len() > width_in_characters {
-                    while !tag.is_empty() && tag.len() + 3 > width_in_characters {
-                        tag.pop();
-                    }
-                    if !tag.is_empty() {
-                        tag += "...";
-                    }
-                }
-                Some(SvgRegion {
-                    start_x,
-                    start_y: 0,
-                    full_tag,
-                    width,
-                    tag,
-                    kind,
-                    color: r.color,
-                })
+            }
+            Some(Drawable {
+                start_x,
+                start_y: 0,
+                full_tag,
+                width,
+                tag,
+                kind,
+                color: r.color,
             })
-            .collect();
-        SvgWaveform {
-            label: self.label,
-            hint: self.hint,
-            data,
-        }
+        });
+        DrawableList(std::iter::once(label_region).chain(data).collect())
     }
 }
