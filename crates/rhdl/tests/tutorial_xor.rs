@@ -1,6 +1,10 @@
 use rhdl::prelude::*;
 
-use rhdl_core::trace::db::{trace_init_db, trace_time};
+use rhdl_core::trace2::{
+    TraceContainer,
+    session::Session,
+    svg::{SvgFile, options::SvgOptions},
+};
 use test_log::test;
 
 #[derive(Circuit, Clone)]
@@ -80,32 +84,31 @@ fn test_svg() {
     let gate = XorGate;
     let inputs = [(false, false), (false, true), (true, false), (true, true)];
     let mut state = gate.init();
-    let guard = trace_init_db();
-    for (time, inp) in inputs.iter().enumerate() {
-        trace_time((time * 100) as u64);
-        let _output = gate.sim(signal(*inp), &mut state);
+    let session = Session::default();
+    let mut svg = SvgFile::default();
+    for (time, inp) in inputs.iter().cycle().take(5).enumerate() {
+        let sample = session.traced_at_time((time * 100) as u64, || {
+            let _output = gate.sim(signal(*inp), &mut state);
+        });
+        eprintln!("{}", sample);
+        svg.record(&sample).unwrap();
     }
-    let svg = guard.take().dump_svg(0..=500, &Default::default());
-    expect_test::expect_file!["expect/xor.svg"].assert_eq(&svg.to_string());
+    expect_test::expect_file!["expect/xor.svg"]
+        .assert_eq(&svg.to_string(&SvgOptions::default()).unwrap());
 }
 
 #[test]
 fn test_vcd() {
     let gate = XorGate;
-    let inputs = [
-        (false, false),
-        (false, true),
-        (true, false),
-        (true, true),
-        (false, false),
-    ];
+    let inputs = [(false, false), (false, true), (true, false), (true, true)];
     let mut state = gate.init();
-    let guard = trace_init_db();
-    for (time, inp) in inputs.iter().enumerate() {
-        trace_time((time * 100) as u64);
-        let _output = gate.sim(signal(*inp), &mut state);
+    let session = Session::default();
+    let mut vcd = Vcd::default();
+    for (time, inp) in inputs.iter().cycle().take(5).enumerate() {
+        let sample = session.traced_at_time((time * 100) as u64, || {
+            let _output = gate.sim(signal(*inp), &mut state);
+        });
+        vcd.record(&sample).unwrap();
     }
-    let mut vcd = vec![];
-    guard.take().dump_vcd(&mut vcd, None).unwrap();
-    expect_test::expect_file!["expect/xor_vcd.expect"].assert_eq(&String::from_utf8(vcd).unwrap());
+    expect_test::expect_file!["expect/xor_vcd.expect"].assert_eq(&vcd.to_string().unwrap());
 }

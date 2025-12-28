@@ -177,7 +177,7 @@ mod tests {
             )
             .synchronous_sample();
         let io = io
-            .filter_map(|x| x.value.2.reply)
+            .filter_map(|x| x.output.reply)
             .filter_map(|x| match x {
                 BlockResponse::Read(read) => Some(read),
                 _ => None,

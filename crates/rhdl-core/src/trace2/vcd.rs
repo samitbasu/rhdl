@@ -12,7 +12,7 @@ use vcd::IdCode;
 use crate::{
     Digital, RHDLError, TraceBit,
     trace2::{
-        TraceContainer, TraceId, meta::TraceMetadata, trace_sample::TraceSample,
+        TraceContainer, TraceId, meta::TraceMetadata, trace_sample::TracedSample,
         trace_tree::TraceTree,
     },
 };
@@ -28,6 +28,17 @@ pub struct VcdFile {
 impl Default for VcdFile {
     fn default() -> Self {
         VcdFile::new()
+    }
+}
+
+impl<T: Digital, S: Digital> FromIterator<TracedSample<T, S>> for VcdFile {
+    fn from_iter<I: IntoIterator<Item = TracedSample<T, S>>>(iter: I) -> Self {
+        let mut vcd = VcdFile::new();
+        for sample in iter {
+            vcd.record(&sample)
+                .expect("Failed to record sample into VCD");
+        }
+        vcd
     }
 }
 
@@ -92,7 +103,7 @@ impl VcdFile {
         writeln!(out, "$timescale 1 ps $end")?;
         let rtt = db.read().unwrap().rtt();
         writeln!(out, "$comment")?;
-        writeln!(out, "   {}", ron::ser::to_string(&rtt).unwrap())?;
+        writeln!(out, "    {}", ron::ser::to_string(&rtt).unwrap())?;
         writeln!(out, "$end")?;
         let trace_tree = db.read().unwrap().build_trace_tree();
         self.write_scope(&mut out, "top", &trace_tree)?;
@@ -102,17 +113,33 @@ impl VcdFile {
         std::io::copy(&mut body, &mut out)?;
         Ok(())
     }
+    pub fn dump_to_file(self, path: impl AsRef<std::path::Path>) -> std::io::Result<String> {
+        use sha2::Digest;
+        let mut file = std::fs::File::create(&path)?;
+        self.finalize(&mut file)?;
+        let mut file = std::fs::File::open(path)?;
+        let mut hash = sha2::Sha256::default();
+        std::io::copy(&mut file, &mut hash)?;
+        Ok(format!("{:x}", hash.finalize()))
+    }
+    pub fn to_string(self) -> std::io::Result<String> {
+        let mut buf = Vec::new();
+        self.finalize(&mut buf)?;
+        Ok(String::from_utf8(buf).unwrap())
+    }
 }
 
 impl TraceContainer for VcdFile {
-    fn record<T: Digital>(&mut self, sample: &TraceSample<T>) -> Result<(), RHDLError> {
+    fn record<T: Digital, S: Digital>(
+        &mut self,
+        sample: &TracedSample<T, S>,
+    ) -> Result<(), RHDLError> {
         if let Some(page) = sample.page.as_ref() {
             if self.db.is_none() {
                 self.db = Some(page.details.clone());
             }
             // Write the time stamp
-            self.buffer
-                .write_fmt(format_args!("#{}\n", sample.inner.time))?;
+            self.buffer.write_fmt(format_args!("#{}\n", sample.time))?;
             let mut sbuf = Vec::new();
             for record in page.records() {
                 let value = record.data.trace();

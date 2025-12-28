@@ -94,7 +94,7 @@ mod tests {
             .with_reset(1)
             .clock_pos_edge(100);
         let last = uut.run(input).last().unwrap();
-        assert!(last.value.2);
+        assert!(last.output);
         Ok(())
     }
 

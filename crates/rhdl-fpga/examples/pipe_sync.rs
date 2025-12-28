@@ -14,7 +14,7 @@ fn main() -> Result<(), RHDLError> {
         .with_reset(1)
         .clock_pos_edge(100);
     let uut = PipeSyncBRAM::new((0..).map(|x| (b3(x), b8(x))));
-    let vcd = uut.run(inputs).collect::<Vcd>();
+    let vcd = uut.run(inputs).collect::<Svg>();
     rhdl_fpga::doc::write_svg_as_markdown(
         vcd,
         "pipe_ram.md",

@@ -4,7 +4,7 @@ pub mod probe;
 pub mod run;
 pub mod test_module;
 pub mod testbench;
-pub mod vcd;
+//pub mod vcd;
 
 /// An enum representing either a reset signal or data.
 ///

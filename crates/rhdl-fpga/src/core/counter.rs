@@ -118,7 +118,7 @@ mod tests {
         let stream = rand_set.with_reset(4).clock_pos_edge(100);
         let uut: Counter<6> = Counter::default();
         let out_stream = uut.run(stream);
-        let output = out_stream.clone().last().map(|x| x.value.2);
+        let output = out_stream.clone().last().map(|x| x.output);
         assert_eq!(output, Some(bits(ground_truth)));
         let tb = out_stream.collect::<SynchronousTestBench<_, _>>();
         let tm = tb.rtl(&uut, &Default::default())?;

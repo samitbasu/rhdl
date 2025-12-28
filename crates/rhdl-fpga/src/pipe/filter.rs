@@ -147,7 +147,7 @@ mod tests {
         let uut = Filter::try_new::<keep_even>()?;
         let input = input.with_reset(1).clock_pos_edge(100);
         let output = uut.run(input).synchronous_sample();
-        let output = output.filter_map(|t| t.value.2);
+        let output = output.filter_map(|t| t.output);
         assert!(output.take(10_000).eq(expected.take(10_000)));
         Ok(())
     }

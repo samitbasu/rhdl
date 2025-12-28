@@ -82,6 +82,7 @@ where
 #[cfg(test)]
 mod tests {
     use expect_test::{expect, expect_file};
+    use miette::IntoDiagnostic;
 
     use super::*;
 
@@ -99,10 +100,10 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let vcd = uut.run(input.take(100)).collect::<Vcd>();
-        let svg = vcd.dump_svg(&Default::default());
+        let svg = uut.run(input.take(100)).collect::<Svg>();
+        let svg = svg.to_string(&Default::default()).into_diagnostic()?;
         let expect = expect_file!["async_fifo.svg.expect"];
-        expect.assert_eq(&svg.to_string());
+        expect.assert_eq(&svg);
         Ok(())
     }
 
@@ -141,7 +142,7 @@ mod tests {
             cr_r: signal(b.0),
         });
         let last = uut.run(input.take(10_000)).last().unwrap();
-        assert!(last.value.1.val());
+        assert!(last.output.val());
         Ok(())
     }
 
@@ -155,7 +156,7 @@ mod tests {
             cr_r: signal(b.0),
         });
         let last = uut.run(input.take(10_000)).last().unwrap();
-        assert!(last.value.1.val());
+        assert!(last.output.val());
         Ok(())
     }
 

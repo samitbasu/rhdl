@@ -161,7 +161,11 @@ mod tests {
         trace_pop_path();
         let page = PAGE.take();
         let page = page.expect("Trace page should be set");
-        let expect = expect_test::expect_file!["expect/trace_page.expect"];
+        let expect = expect_test::expect![[r#"
+            TracePage:
+              fn1/fn2/a (1 bits)
+              fn1/a (6 bits)
+        "#]];
         expect.assert_eq(&format!("{}", page));
     }
 

@@ -167,7 +167,7 @@ mod tests {
             )
             .take(100)
             .synchronous_sample()
-            .map(|x| x.value.2.valid)
+            .map(|x| x.output.valid)
             .last()
             .unwrap();
         assert!(!valid);
@@ -196,7 +196,7 @@ mod tests {
             )
             .take(100)
             .synchronous_sample()
-            .map(|x| x.value.2.valid)
+            .map(|x| x.output.valid)
             .last()
             .unwrap();
         assert!(valid);

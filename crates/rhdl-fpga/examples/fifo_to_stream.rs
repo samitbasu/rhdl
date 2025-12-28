@@ -32,7 +32,7 @@ fn main() -> Result<(), RHDLError> {
             100,
         )
         .take_while(|t| t.time < 1500)
-        .collect::<Vcd>();
+        .collect::<Svg>();
     rhdl_fpga::doc::write_svg_as_markdown(
         vcd,
         "fifo_to_rv.md",

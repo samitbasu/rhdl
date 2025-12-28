@@ -1,4 +1,4 @@
-use crate::{Clock, Digital, TimedSample};
+use crate::{Clock, Digital, TimedSample, trace2::trace_sample::TracedSample};
 
 pub struct GlitchCheck<T, I, F> {
     clk: Clock,
@@ -44,16 +44,17 @@ where
     }
 }
 
-impl<T, I, F, S> Iterator for GlitchCheck<T, I, F>
+impl<T, I, F, S, U> Iterator for GlitchCheck<T, I, F>
 where
     T: Digital + std::fmt::Debug,
-    I: Iterator<Item = TimedSample<S>>,
-    F: Fn(&TimedSample<S>) -> (Clock, T),
+    I: Iterator<Item = TracedSample<S, U>>,
+    F: Fn(&TracedSample<S, U>) -> (Clock, T),
     S: Digital,
+    U: Digital,
 {
-    type Item = TimedSample<S>;
+    type Item = TracedSample<S, U>;
 
-    fn next(&mut self) -> Option<TimedSample<S>> {
+    fn next(&mut self) -> Option<TracedSample<S, U>> {
         if !self.initialized {
             if let Some(sample) = self.iter.next() {
                 (self.clk, self.prev_val) = (self.func)(&sample);

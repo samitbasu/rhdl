@@ -3,9 +3,8 @@ use std::marker::PhantomData;
 use rhdl_bits::{BitWidth, Bits, SignedBits};
 
 use crate::{
-    DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
+    DiscriminantAlignment, DiscriminantType, Kind, TraceBit, TypedBits,
     bitx::{BitX, bitx_vec},
-    trace::{bit::TraceBit, svg::Trace},
 };
 
 use crate::const_max;

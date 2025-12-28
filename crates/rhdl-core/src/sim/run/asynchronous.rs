@@ -1,6 +1,13 @@
 //! Extension trait and types to provide for iterator-based open loop testing of
 //! asynchronous circuits.
-use crate::{Circuit, CircuitIO, TimedSample, trace::db::trace_time};
+use crate::{
+    Circuit, CircuitIO, TimedSample,
+    trace2::{
+        page::{set_trace_page, take_trace_page},
+        session::Session,
+        trace_sample::TracedSample,
+    },
+};
 
 /// An iterator that runs an asynchronous circuit given an iterator of timed inputs.
 ///
@@ -12,6 +19,7 @@ pub struct Run<'a, T, I, S> {
     inputs: I,
     state: Option<S>,
     time: u64,
+    session: Session,
 }
 
 impl<T, I, S> Clone for Run<'_, T, I, S>
@@ -25,6 +33,7 @@ where
             inputs: self.inputs.clone(),
             state: self.state.clone(),
             time: self.time,
+            session: self.session.clone(),
         }
     }
 }
@@ -41,6 +50,7 @@ pub fn run<T, I, S>(uut: &T, inputs: I) -> Run<'_, T, I, S> {
         inputs,
         state: None,
         time: 0,
+        session: Session::default(),
     }
 }
 
@@ -49,7 +59,7 @@ where
     T: Circuit<S = S>,
     I: Iterator<Item = TimedSample<<T as CircuitIO>::I>>,
 {
-    type Item = TimedSample<(<T as CircuitIO>::I, <T as CircuitIO>::O)>;
+    type Item = TracedSample<<T as CircuitIO>::I, <T as CircuitIO>::O>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Get a mutable borrow to the state.  If the state is None
@@ -60,10 +70,16 @@ where
                 sample.time >= self.time,
                 "input time must be non-decreasing"
             );
-            self.time = sample.time;
-            trace_time(sample.time);
+            let trace_page = sample.is_traced().then(|| self.session.page());
+            set_trace_page(trace_page);
             let output = self.uut.sim(sample.value, state);
-            Some(sample.map(|i| (i, output)))
+            let page = take_trace_page();
+            Some(TracedSample {
+                input: sample.value,
+                output,
+                time: sample.time,
+                page,
+            })
         } else {
             None
         }

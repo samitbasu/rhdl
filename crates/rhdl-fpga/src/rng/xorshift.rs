@@ -160,7 +160,7 @@ mod tests {
             .run(input)
             .synchronous_sample()
             .skip(1) // Skip the first value with is zero
-            .map(|x| x.value.2);
+            .map(|x| x.output);
         let validate = XorShift128::default();
         for (value, expected) in values.zip(validate.take(100)) {
             assert_eq!((value.raw() & 0xFFFF_FFFF) as u32, expected);

@@ -5,7 +5,7 @@ use syn::parse_quote;
 
 use crate::{
     ClockReset, Digital, RHDLError, Synchronous, SynchronousIO, TimedSample, clock_reset,
-    sim::test_module::TestModule,
+    sim::test_module::TestModule, trace2::trace_sample::TracedSample,
 };
 
 use super::TestBenchOptions;
@@ -13,6 +13,23 @@ use super::TestBenchOptions;
 #[derive(Clone)]
 pub struct SynchronousTestBench<I: Digital, O: Digital> {
     pub samples: Vec<TimedSample<(ClockReset, I, O)>>,
+}
+
+impl<I, O> FromIterator<TracedSample<(ClockReset, I), O>> for SynchronousTestBench<I, O>
+where
+    I: Digital,
+    O: Digital,
+{
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = TracedSample<(ClockReset, I), O>>,
+    {
+        let samples = iter
+            .into_iter()
+            .map(|ts| ts.to_timed_sample().map(|((cr, i), o)| (cr, i, o)))
+            .collect();
+        SynchronousTestBench { samples }
+    }
 }
 
 impl<I, O> FromIterator<TimedSample<(ClockReset, I, O)>> for SynchronousTestBench<I, O>

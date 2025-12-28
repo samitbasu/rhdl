@@ -69,7 +69,7 @@ fn test_auto_counter_is_correct() -> miette::Result<()> {
     let output = uut
         .run(input)
         .synchronous_sample()
-        .map(|x| x.value.2)
+        .map(|x| x.output)
         .skip(1)
         .collect::<Vec<_>>();
     let expected = (0..100).map(|x| bits(x % 16)).collect::<Vec<_>>();
@@ -88,7 +88,7 @@ fn test_chain_auto_counter() -> miette::Result<()> {
     let output = uut
         .run(input)
         .synchronous_sample()
-        .map(|x| x.value.2)
+        .map(|x| x.output)
         .skip(1)
         .collect::<Vec<_>>();
     let expected = (0..100)

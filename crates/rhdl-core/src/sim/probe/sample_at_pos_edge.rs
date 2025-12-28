@@ -72,7 +72,7 @@ where
 mod tests {
 
     use super::super::ext::ProbeExt;
-    use crate::sim::extension::*;
+    use crate::{sim::extension::*, trace2::session::Session};
     use rhdl_bits::alias::*;
 
     #[test]
@@ -84,8 +84,10 @@ mod tests {
             .map(b8)
             .without_reset()
             .clock_pos_edge(100);
-        let probe = stream.sample_at_pos_edge(|x| x.value.0.clock);
-        let result: Vec<_> = probe.map(|t| t.value.1).collect();
+        let session = Session::default();
+        let stream = stream.map(|x| session.untraced(x, ()));
+        let probe = stream.sample_at_pos_edge(|x| x.input.0.clock);
+        let result: Vec<_> = probe.map(|t| t.input.1).collect();
         assert_eq!(result, data);
     }
 }
