@@ -75,7 +75,7 @@ impl VcdFile {
             } else {
                 1
             };
-            let id_code = &self.id_code_map[trace_id];
+            let id_code = &self.id_code(*trace_id);
             out.write_fmt(format_args!(
                 "$var wire {} {} {} $end\n",
                 width,
@@ -88,12 +88,18 @@ impl VcdFile {
         Ok(())
     }
     fn write_id_code(&mut self, trace_id: TraceId) -> std::io::Result<()> {
-        let id_code = self.id_code_map.entry(trace_id).or_insert_with(|| {
-            let code = self.next_id_code;
-            self.next_id_code = self.next_id_code.next();
-            code.to_string().into_bytes().into_boxed_slice()
-        });
-        self.buffer.write_all(id_code)
+        let id_code = self.id_code(trace_id);
+        self.buffer.write_all(&id_code)
+    }
+    fn id_code(&mut self, trace_id: TraceId) -> Box<[u8]> {
+        self.id_code_map
+            .entry(trace_id)
+            .or_insert_with(|| {
+                let code = self.next_id_code;
+                self.next_id_code = self.next_id_code.next();
+                code.to_string().into_bytes().into_boxed_slice()
+            })
+            .clone()
     }
     pub fn finalize(mut self, mut out: impl std::io::Write) -> std::io::Result<()> {
         let Some(db) = self.db.as_ref() else {
