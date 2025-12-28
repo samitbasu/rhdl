@@ -1,4 +1,4 @@
-use crate::{Clock, Digital, TimedSample, trace2::trace_sample::TracedSample};
+use crate::{Clock, Digital, TimedSample, trace::trace_sample::TracedSample};
 
 pub struct GlitchCheck<T, I, F> {
     clk: Clock,

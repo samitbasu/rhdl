@@ -5,7 +5,7 @@ use syn::parse_quote;
 
 use crate::{
     ClockReset, Digital, RHDLError, Synchronous, SynchronousIO, TimedSample, clock_reset,
-    sim::test_module::TestModule, trace2::trace_sample::TracedSample,
+    sim::test_module::TestModule, trace::trace_sample::TracedSample,
 };
 
 use super::TestBenchOptions;

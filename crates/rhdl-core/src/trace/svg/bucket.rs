@@ -1,4 +1,4 @@
-use crate::{TypedBits, trace2::svg::color::TraceColor};
+use crate::{TypedBits, trace::svg::color::TraceColor};
 
 /// A bucket representing a contiguous time span where the value is the same.
 /// Stores the data as [TypedBits] along with start and end time.  Also

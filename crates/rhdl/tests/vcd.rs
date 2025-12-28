@@ -5,11 +5,11 @@
 #![allow(unused_must_use)]
 #![allow(dead_code)]
 use rhdl::prelude::*;
-use rhdl_core::trace2::{TraceContainer, session::Session, svg::SvgFile, vcd::VcdFile};
+use rhdl_core::trace::{TraceContainer, session::Session, svg::SvgFile, vcd::Vcd};
 
 #[test]
 fn test_svg_ng_enum_discontinuous() {
-    use rhdl_core::trace2::page::trace;
+    use rhdl_core::trace::page::trace;
     #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
     enum Enum {
         #[default]
@@ -63,7 +63,7 @@ fn test_svg_ng_enum_discontinuous() {
     svg.record(&sample);
     let mut buf = vec![];
     svg.finalize(
-        &rhdl_core::trace2::svg::options::SvgOptions {
+        &rhdl_core::trace::svg::options::SvgOptions {
             pixels_per_time_unit: 0.1,
             ..Default::default()
         }
@@ -77,7 +77,7 @@ fn test_svg_ng_enum_discontinuous() {
 
 #[test]
 fn test_svg_ng_enum() {
-    use rhdl_core::trace2::page::trace;
+    use rhdl_core::trace::page::trace;
     #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
     enum Enum {
         #[default]
@@ -131,7 +131,7 @@ fn test_svg_ng_enum() {
     svg.record(&sample);
     let mut buf = vec![];
     svg.finalize(
-        &rhdl_core::trace2::svg::options::SvgOptions {
+        &rhdl_core::trace::svg::options::SvgOptions {
             pixels_per_time_unit: 0.1,
             ..Default::default()
         },
@@ -144,7 +144,7 @@ fn test_svg_ng_enum() {
 
 #[test]
 fn test_vcd_ng_enum() {
-    use rhdl_core::trace2::page::trace;
+    use rhdl_core::trace::page::trace;
     #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]
     enum Enum {
         #[default]
@@ -155,7 +155,7 @@ fn test_vcd_ng_enum() {
         },
         C(bool),
     }
-    let mut vcd = VcdFile::default();
+    let mut vcd = Vcd::default();
     let trace_session = Session::default();
     let sample = trace_session.traced_at_time(0, || {
         trace("enum", &Enum::None);

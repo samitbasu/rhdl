@@ -5,7 +5,7 @@ use syn::parse_quote;
 
 use crate::{
     Circuit, CircuitIO, Digital, RHDLError, TimedSample, sim::test_module::TestModule,
-    trace2::trace_sample::TracedSample,
+    trace::trace_sample::TracedSample,
 };
 
 use super::TestBenchOptions;

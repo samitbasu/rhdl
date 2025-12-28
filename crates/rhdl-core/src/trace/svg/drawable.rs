@@ -1,4 +1,4 @@
-use crate::trace2::svg::color::TraceColor;
+use crate::trace::svg::color::TraceColor;
 
 #[derive(Clone, Debug)]
 pub(crate) struct Drawable {

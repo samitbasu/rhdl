@@ -2,7 +2,7 @@
 //! asynchronous circuits.
 use crate::{
     Circuit, CircuitIO, TimedSample,
-    trace2::{
+    trace::{
         page::{set_trace_page, take_trace_page},
         session::Session,
         trace_sample::TracedSample,

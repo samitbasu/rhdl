@@ -2,18 +2,18 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     Digital,
-    trace2::{TraceContainer, trace_sample::TracedSample, vcd::VcdFile},
+    trace::{TraceContainer, trace_sample::TracedSample, vcd::Vcd},
 };
 
 pub struct VCDFile<I> {
-    inner: VcdFile,
+    inner: Vcd,
     iter: I,
     file_name: PathBuf,
 }
 
 pub fn vcd_file<I>(stream: I, file: &Path) -> VCDFile<I> {
     VCDFile {
-        inner: VcdFile::default(),
+        inner: Vcd::default(),
         iter: stream,
         file_name: file.to_path_buf(),
     }

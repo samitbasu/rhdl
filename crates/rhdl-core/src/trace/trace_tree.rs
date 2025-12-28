@@ -25,7 +25,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::trace2::{TraceId, meta::TraceDetails};
+use crate::trace::{TraceId, meta::TraceDetails};
 
 #[derive(Default)]
 pub(crate) struct TraceTree {

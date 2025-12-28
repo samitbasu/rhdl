@@ -6,7 +6,7 @@
 #![allow(dead_code)]
 
 use rhdl::prelude::*;
-use rhdl_core::trace2::{TraceContainer, session::Session};
+use rhdl_core::trace::{TraceContainer, session::Session};
 
 #[test]
 #[allow(dead_code)]

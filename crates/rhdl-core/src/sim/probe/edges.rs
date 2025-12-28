@@ -1,4 +1,4 @@
-use crate::{Digital, TimedSample, trace2::trace_sample::TracedSample};
+use crate::{Digital, TimedSample, trace::trace_sample::TracedSample};
 
 pub struct EdgeTime<T, I, F> {
     iter: I,

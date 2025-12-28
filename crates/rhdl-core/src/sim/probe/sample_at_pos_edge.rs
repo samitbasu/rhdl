@@ -72,7 +72,7 @@ where
 mod tests {
 
     use super::super::ext::ProbeExt;
-    use crate::{sim::extension::*, trace2::session::Session};
+    use crate::{sim::extension::*, trace::session::Session};
     use rhdl_bits::alias::*;
 
     #[test]

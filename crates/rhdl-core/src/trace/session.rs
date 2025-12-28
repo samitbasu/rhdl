@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::{
     Digital, TimedSample,
-    trace2::{
+    trace::{
         meta::TraceMetadata,
         page::{TracePage, set_trace_page, take_trace_page},
         trace_sample::TracedSample,

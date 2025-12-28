@@ -1,6 +1,6 @@
 use crate::{
     Color,
-    trace2::svg::{
+    trace::svg::{
         color::TraceColor,
         drawable::{DrawableList, RegionKind},
         gap::GapList,

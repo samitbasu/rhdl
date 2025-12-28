@@ -1,7 +1,7 @@
 //! Gap detection algorithm
 use std::ops::RangeInclusive;
 
-use crate::trace2::svg::options::{GapDetectionOptions, SvgOptions};
+use crate::trace::svg::options::{GapDetectionOptions, SvgOptions};
 
 #[derive(Debug)]
 pub struct GapList(Box<[RangeInclusive<u64>]>);
