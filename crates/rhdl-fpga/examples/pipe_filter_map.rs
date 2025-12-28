@@ -38,7 +38,7 @@ fn main() -> Result<(), RHDLError> {
     let vcd = uut
         .run(input)
         .take_while(|t| t.time < 1500)
-        .collect::<Vcd>();
+        .collect::<Svg>();
     rhdl_fpga::doc::write_svg_as_markdown(
         vcd,
         "pipe_filter_map.md",

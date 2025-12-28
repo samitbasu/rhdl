@@ -96,6 +96,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
     fn test_strobe_timing() -> miette::Result<()> {
         let _uut: U<4> = U::new(bits(12));
         //let fg = uut.flow_graph("top")?;

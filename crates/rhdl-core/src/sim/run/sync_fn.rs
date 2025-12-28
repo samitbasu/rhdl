@@ -1,6 +1,15 @@
 use crate::{
-    clock::clock, clock_reset, sim::ResetOrData, timed_sample, trace, trace_time,
-    types::reset::reset, Clock, ClockReset, Digital, Synchronous, SynchronousIO, TimedSample,
+    Clock, ClockReset, Digital, Synchronous, SynchronousIO, TimedSample,
+    clock::clock,
+    clock_reset,
+    sim::ResetOrData,
+    timed_sample, trace,
+    trace::{
+        page::{set_trace_page, take_trace_page},
+        session::Session,
+        trace_sample::TracedSample,
+    },
+    types::reset::reset,
 };
 
 #[derive(Clone)]
@@ -29,6 +38,7 @@ pub struct RunSynchronousFeedback<'a, T, F, S, I, O> {
     next_time: u64,
     period: u64,
     state: State,
+    session: Session,
 }
 
 impl<T, F, S, I, O> Clone for RunSynchronousFeedback<'_, T, F, S, I, O>
@@ -49,6 +59,7 @@ where
             period: self.period,
             next_time: self.next_time,
             state: self.state.clone(),
+            session: self.session.clone(),
         }
     }
 }
@@ -68,6 +79,7 @@ pub fn run_fn<T, F, S, I, O>(
         state: State::Init,
         sample: ResetOrData::Reset,
         last_output: None,
+        session: Session::default(),
     }
 }
 
@@ -79,25 +91,36 @@ where
     T: SynchronousIO<I = I, O = O>,
     F: FnMut(<T as SynchronousIO>::O) -> Option<ResetOrData<<T as SynchronousIO>::I>>,
 {
-    fn this_sample(&mut self, clock: Clock) -> TimedSample<(ClockReset, I, O)> {
+    fn this_sample(&mut self, clock: Clock) -> TracedSample<(ClockReset, I), O> {
         let uut_state = self.uut_state.get_or_insert_with(|| self.uut.init());
-        trace_time(self.time);
         match self.sample {
             ResetOrData::Data(i) => {
                 let cr = clock_reset(clock, reset(false));
+                set_trace_page(Some(self.session.page()));
                 trace("clock", &cr.clock);
                 trace("reset", &cr.reset);
                 let o = self.uut.sim(cr, i, uut_state);
                 self.last_output = Some(o);
-                timed_sample(self.time, (cr, i, o))
+                TracedSample {
+                    time: self.time,
+                    page: take_trace_page(),
+                    input: (cr, i),
+                    output: o,
+                }
             }
             ResetOrData::Reset => {
                 let cr = clock_reset(clock, reset(true));
+                set_trace_page(Some(self.session.page()));
                 trace("clock", &cr.clock);
                 trace("reset", &cr.reset);
                 let o = self.uut.sim(cr, I::dont_care(), uut_state);
                 self.last_output = Some(o);
-                timed_sample(self.time, (cr, I::dont_care(), o))
+                TracedSample {
+                    time: self.time,
+                    page: take_trace_page(),
+                    input: (cr, I::dont_care()),
+                    output: o,
+                }
             }
         }
     }
@@ -111,7 +134,7 @@ where
     T: SynchronousIO<I = I, O = O>,
     F: FnMut(<T as SynchronousIO>::O) -> Option<ResetOrData<<T as SynchronousIO>::I>>,
 {
-    type Item = TimedSample<(ClockReset, <T as SynchronousIO>::I, <T as SynchronousIO>::O)>;
+    type Item = TracedSample<(ClockReset, <T as SynchronousIO>::I), <T as SynchronousIO>::O>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.state {

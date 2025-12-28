@@ -361,16 +361,16 @@ mod tests {
             .join("ram")
             .join("synchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["5def5c54395ba2862fc22ba74776d05afd9b013a1600fab6a7b0d78a6da9ba72"];
+        let expect = expect!["f7ed9c54f8704572dde03600cfcfdc43bfbd917c2fe76758309e47425311f1ea"];
         let digest = vcd
             .dump_to_file(root.join("test_scan_out_ram.vcd"))
             .unwrap();
         expect.assert_eq(&digest);
         let values = sim
-            .glitch_check(|x| (x.value.0.clock, x.value.2))
+            .glitch_check(|x| (x.input.0.clock, x.output))
             .synchronous_sample()
             .skip(2)
-            .map(|x| x.value.2);
+            .map(|x| x.output);
         assert!(values.eq(expected));
         Ok(())
     }
@@ -458,11 +458,11 @@ mod tests {
             .clock_pos_edge(100);
         let sim = uut.run(inputs);
         let outputs = sim
-            .glitch_check(|x| (x.value.0.clock, x.value.2))
+            .glitch_check(|x| (x.input.0.clock, x.output))
             .synchronous_sample()
             .skip(5)
             .take(3)
-            .map(|x| x.value.2)
+            .map(|x| x.output)
             .collect::<Vec<_>>();
         assert_eq!(outputs, vec![b8::from(72), b8::from(99), b8::from(255)]);
         Ok(())

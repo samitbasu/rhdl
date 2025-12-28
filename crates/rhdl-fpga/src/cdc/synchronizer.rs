@@ -311,7 +311,7 @@ impl<W: Domain, R: Domain> Sync1Bit<W, R> {
 mod tests {
     use expect_test::expect;
     use rand::{Rng, SeedableRng};
-    use rhdl::{core::sim::vcd, prelude::vlog::Pretty};
+    use rhdl::prelude::vlog::Pretty;
 
     use super::*;
 
@@ -333,20 +333,23 @@ mod tests {
     #[test]
     fn test_sync_stream_makes_sense() -> miette::Result<()> {
         let stream = sync_stream();
+        let session = Session::default();
+        let stream = stream.map(|x| session.untraced(x, ()));
         for (ndx, val) in stream
             .take(150)
-            .edge_time(|p| p.value.cr.val().clock)
-            .filter(|x| x.value.cr.val().clock.raw())
+            .edge_time(|p| p.input.cr.val().clock)
+            .filter(|x| x.input.cr.val().clock.raw())
             .enumerate()
         {
             let pred = 39 + 78 * ndx;
             assert!(pred == val.time as usize);
         }
         let stream = sync_stream();
+        let stream = stream.map(|x| session.untraced(x, ()));
         for (ndx, val) in stream
             .take(150)
-            .edge_time(|p| p.value.cr.val().clock)
-            .filter(|x| !x.value.cr.val().clock.raw())
+            .edge_time(|p| p.input.cr.val().clock)
+            .filter(|x| !x.input.cr.val().clock.raw())
             .enumerate()
         {
             let pred = 78 + 78 * ndx;
@@ -408,7 +411,7 @@ mod tests {
         let input = sync_stream();
         let _ = uut
             .run(input)
-            .glitch_check(|i| (i.value.0.cr.val().clock, i.value.1.val()))
+            .glitch_check(|i| (i.input.cr.val().clock, i.output.val()))
             .last();
         Ok(())
     }
@@ -417,12 +420,12 @@ mod tests {
     fn test_synchronizer_function() -> miette::Result<()> {
         let uut = Sync1Bit::<Red, Blue>::default();
         let input = sync_stream();
-        let vcd = uut.run(input).collect::<vcd::Vcd>();
+        let vcd = uut.run(input).collect::<Vcd>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("synchronizer");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["6447afec090e6d976ed27898d22bfef13361bff6b78b6dbc7db1ada3bcd29252"];
+        let expect = expect!["4ef0cb6fffd0e5f5c88d9e91adaf9c68ca4be2af1f4762bd7b462b1f7b5fc247"];
         let digest = vcd.dump_to_file(root.join("synchronizer.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

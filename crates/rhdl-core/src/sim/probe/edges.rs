@@ -1,4 +1,4 @@
-use crate::{Digital, TimedSample};
+use crate::{Digital, TimedSample, trace::trace_sample::TracedSample};
 
 pub struct EdgeTime<T, I, F> {
     iter: I,
@@ -35,15 +35,16 @@ where
     }
 }
 
-impl<T, I, F, S> Iterator for EdgeTime<T, I, F>
+impl<T, I, F, S, U> Iterator for EdgeTime<T, I, F>
 where
     T: Digital,
-    I: Iterator<Item = TimedSample<S>>,
-    F: Fn(&TimedSample<S>) -> T,
+    I: Iterator<Item = TracedSample<S, U>>,
+    F: Fn(&TracedSample<S, U>) -> T,
     S: Digital,
+    U: Digital,
 {
-    type Item = TimedSample<S>;
-    fn next(&mut self) -> Option<TimedSample<S>> {
+    type Item = TracedSample<S, U>;
+    fn next(&mut self) -> Option<TracedSample<S, U>> {
         loop {
             if !self.initialized {
                 if let Some(sample) = self.iter.next() {

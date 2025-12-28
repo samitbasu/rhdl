@@ -204,10 +204,7 @@ mod tests {
         let expected = source_rng.clone();
         let expected = mk_array(expected);
         let input = stalling(source_rng, 0.23).with_reset(1).clock_pos_edge(100);
-        let output = uut
-            .run(input)
-            .synchronous_sample()
-            .filter_map(|t| t.value.2);
+        let output = uut.run(input).synchronous_sample().filter_map(|t| t.output);
         assert!(output.take(1_000).eq(expected.take(1_000)));
         Ok(())
     }

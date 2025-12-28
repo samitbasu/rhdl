@@ -10,8 +10,8 @@ fn main() -> Result<(), RHDLError> {
     let vcd = uut
         .run(input)
         .take_while(|t| t.time < 1000)
-        .collect::<Vcd>();
-    let options = SvgOptions::default();
+        .collect::<Svg>();
+    let options: SvgOptions = SvgOptions::default();
     write_svg_as_markdown(vcd, "counter.md", options)?;
     Ok(())
 }

@@ -129,7 +129,7 @@ mod tests {
             .join("vcd")
             .join("delay");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["0cb2038195e29a2bceb98b7b274ee0093f5ef9a948a04b210fcdc17ae16e0520"];
+        let expect = expect!["2f2a752159c21bb9c1faf5d0ea640ee811a2f6e01bbec65fd044c9924acd50f8"];
         let digest = vcd.dump_to_file(root.join("delay.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -140,16 +140,18 @@ mod tests {
         let uut = Delay::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
         let output = uut.run(input).synchronous_sample();
-        let count = output.clone().filter(|t| t.value.2.is_some()).count();
+        let output = output.collect::<Vec<_>>();
+        let count = output.iter().filter(|t| t.output.is_some()).count();
         assert!(count == 1);
         let start_delay = output
-            .clone()
+            .iter()
             .enumerate()
-            .find_map(|(ndx, t)| t.value.1.map(|_| ndx))
+            .find_map(|(ndx, t)| t.input.1.map(|_| ndx))
             .unwrap();
         let end_delay = output
+            .iter()
             .enumerate()
-            .find_map(|(ndx, t)| t.value.2.map(|_| ndx))
+            .find_map(|(ndx, t)| t.output.map(|_| ndx))
             .unwrap();
         assert!(end_delay - start_delay == 4);
         Ok(())

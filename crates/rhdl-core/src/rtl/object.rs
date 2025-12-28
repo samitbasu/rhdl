@@ -84,7 +84,6 @@ impl Object {
 impl std::fmt::Debug for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Object {}", self.name)?;
-        writeln!(f, "  fn_id {:?}", self.fn_id)?;
         writeln!(f, "  arguments {:?}", self.arguments)?;
         writeln!(f, "  return_register {}", self.return_register)?;
         for (rid, (kind, details)) in self.symtab.iter_reg() {

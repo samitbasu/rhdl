@@ -54,7 +54,6 @@ where
 #[cfg(test)]
 mod tests {
     use expect_test::{expect, expect_file};
-    use rhdl::core::trace::svg::SvgOptions;
 
     use super::*;
 
@@ -69,7 +68,7 @@ mod tests {
             .join("vcd")
             .join("fifo");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["a1bde5131566aaaf63e4cb676ce8104ba73eb8750773d68c6e12a2c146f62859"];
+        let expect = expect!["3462662854117b22e41e9422a9ba27c0373b017018a52b92d89d1e7871c8fff0"];
         let digest = vcd.dump_to_file(root.join("sync_fifo.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -83,11 +82,10 @@ mod tests {
             .clock_pos_edge(100)
             .skip_while(|x| x.time < 2000)
             .take_while(|x| x.time <= 3000);
-        let vcd = uut.run(input).collect::<Vcd>();
+        let svg = uut.run(input).collect::<Svg>();
         let options = SvgOptions::default();
-        let svg = vcd.dump_svg(&options);
         let expect = expect_file!["sync_fifo.svg.expect"];
-        expect.assert_eq(&svg.to_string());
+        expect.assert_eq(&svg.to_string(&options).unwrap());
         Ok(())
     }
 
@@ -98,7 +96,7 @@ mod tests {
             .with_reset(1)
             .clock_pos_edge(100);
         let last = uut.run(input).last().unwrap();
-        assert!(last.value.2);
+        assert!(last.output);
         Ok(())
     }
 }
