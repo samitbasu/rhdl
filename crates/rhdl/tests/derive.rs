@@ -6,6 +6,7 @@
 #![allow(dead_code)]
 
 use rhdl::prelude::*;
+use rhdl_core::trace::{TraceContainer, session::Session};
 
 #[test]
 #[allow(dead_code)]
@@ -134,17 +135,18 @@ fn test_derive_digital_complex_enum() {
     println!("foo val: {}", foo_2.binary_string());
 
     let foo_3 = Test::A;
-    let guard = trace_init_db();
-    trace_time(0);
-    trace("test", &foo_1);
-    trace_time(1_000);
-    trace("test", &foo_2);
-    trace_time(2_000);
-    trace("test", &foo_3);
-    trace_time(3_000);
-    trace("test", &foo_1);
+    let session = Session::default();
+    let mut vcd_file = Vcd::new();
+    let t0 = session.traced_at_time(0, || trace("test", &foo_1));
+    vcd_file.record(&t0).unwrap();
+    let t1 = session.traced_at_time(1_000, || trace("test", &foo_2));
+    vcd_file.record(&t1).unwrap();
+    let t2 = session.traced_at_time(2_000, || trace("test", &foo_3));
+    vcd_file.record(&t2).unwrap();
+    let t3 = session.traced_at_time(3_000, || trace("test", &foo_1));
+    vcd_file.record(&t3).unwrap();
     let mut vcd = vec![];
-    guard.take().dump_vcd(&mut vcd, None).unwrap();
+    vcd_file.finalize(&mut vcd);
     expect_test::expect_file!["expect/derive_enum_vcd.expect"]
         .assert_eq(&String::from_utf8(vcd).unwrap());
 }

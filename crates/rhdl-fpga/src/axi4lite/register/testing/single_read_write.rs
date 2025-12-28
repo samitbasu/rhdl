@@ -143,7 +143,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["9ecf982260bb3d8a03cb615b086306a6caa56ab3646865227fd09db8e148c07c"];
+        let expect = expect!["a6e5437b58d448b2b42dfed9ccd2c45e672c5025963608b7105229d499df2902"];
         let digest = vcd.dump_to_file(root.join("register.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -177,7 +177,7 @@ mod tests {
             )
             .synchronous_sample();
         let io = io
-            .filter_map(|x| x.value.2.reply)
+            .filter_map(|x| x.output.reply)
             .filter_map(|x| match x {
                 BlockResponse::Read(read) => Some(read),
                 _ => None,

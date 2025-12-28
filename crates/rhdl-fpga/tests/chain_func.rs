@@ -54,7 +54,7 @@ fn test_auto_counter_counts() -> miette::Result<()> {
         .join("vcd")
         .join("chain_func");
     std::fs::create_dir_all(&root).unwrap();
-    let expect = expect!["a00439c6689e90a5fe2f8ec7812ed70dcac787261d99e747d4bfc2d80d7aa1a5"];
+    let expect = expect!["3f85fc11ea2ae6ccbc480b1a0f3525365b0f22e302f7f1cfd9eebbe23c05922f"];
     let digest = vcd.dump_to_file(root.join("auto_counter.vcd")).unwrap();
     expect.assert_eq(&digest);
     Ok(())
@@ -69,7 +69,7 @@ fn test_auto_counter_is_correct() -> miette::Result<()> {
     let output = uut
         .run(input)
         .synchronous_sample()
-        .map(|x| x.value.2)
+        .map(|x| x.output)
         .skip(1)
         .collect::<Vec<_>>();
     let expected = (0..100).map(|x| bits(x % 16)).collect::<Vec<_>>();
@@ -88,7 +88,7 @@ fn test_chain_auto_counter() -> miette::Result<()> {
     let output = uut
         .run(input)
         .synchronous_sample()
-        .map(|x| x.value.2)
+        .map(|x| x.output)
         .skip(1)
         .collect::<Vec<_>>();
     let expected = (0..100)

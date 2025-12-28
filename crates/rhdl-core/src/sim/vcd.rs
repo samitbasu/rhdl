@@ -3,26 +3,29 @@ use std::{io::Write, path::Path};
 use sha2::Digest;
 
 use crate::{
-    trace::svg::SvgOptions,
-    {Digital, TimedSample, trace::db::TraceDBGuard, trace_init_db},
+    Digital,
+    trace2::{TraceContainer, session::Session, trace_sample::TraceSample, vcd::VcdFile},
 };
 
 pub struct Vcd {
-    guard: TraceDBGuard,
-    time_set: fnv::FnvHashSet<u64>,
+    inner: VcdFile,
 }
 
-impl<A> FromIterator<TimedSample<A>> for Vcd
+impl<A> FromIterator<TraceSample<A>> for Vcd
 where
     A: Digital,
 {
     fn from_iter<T>(iter: T) -> Self
     where
-        T: IntoIterator<Item = TimedSample<A>>,
+        T: IntoIterator<Item = TraceSample<A>>,
         A: Digital,
     {
-        let guard = trace_init_db();
+        let mut vcd = VcdFile::default();
         let iter = iter.into_iter();
+        for sample in iter {
+            vcd.record(&sample)
+                .expect("Failed to record sample into VCD");
+        }
         let time_set = iter.map(|sample| sample.time).collect();
         Vcd { guard, time_set }
     }

@@ -1,44 +1,42 @@
 use std::path::{Path, PathBuf};
 
 use crate::{
-    Digital, TimedSample,
-    trace::db::{TraceDBGuard, with_trace_db},
-    trace_init_db,
+    Digital,
+    trace::{TraceContainer, trace_sample::TracedSample, vcd::Vcd},
 };
 
 pub struct VCDFile<I> {
-    _guard: TraceDBGuard,
-    time_set: fnv::FnvHashSet<u64>,
+    inner: Vcd,
     iter: I,
     file_name: PathBuf,
 }
 
 pub fn vcd_file<I>(stream: I, file: &Path) -> VCDFile<I> {
     VCDFile {
-        _guard: trace_init_db(),
-        time_set: fnv::FnvHashSet::default(),
+        inner: Vcd::default(),
         iter: stream,
         file_name: file.to_path_buf(),
     }
 }
 
-impl<T, I> Iterator for VCDFile<I>
+impl<T, S, I> Iterator for VCDFile<I>
 where
     T: Digital,
-    I: Iterator<Item = TimedSample<T>>,
+    S: Digital,
+    I: Iterator<Item = TracedSample<T, S>>,
 {
-    type Item = TimedSample<T>;
+    type Item = TracedSample<T, S>;
 
-    fn next(&mut self) -> Option<TimedSample<T>> {
+    fn next(&mut self) -> Option<TracedSample<T, S>> {
         if let Some(sample) = self.iter.next() {
-            self.time_set.insert(sample.time);
+            self.inner
+                .record(&sample)
+                .expect("Failed to record sample into VCD");
             Some(sample)
         } else {
-            with_trace_db(|db| {
-                let fs = std::fs::File::create(&self.file_name).unwrap();
-                let buf = std::io::BufWriter::new(fs);
-                db.dump_vcd(buf, Some(&self.time_set)).unwrap();
-            });
+            let vcd = std::mem::take(&mut self.inner);
+            vcd.dump_to_file(&self.file_name)
+                .expect("Failed to write VCD file");
             None
         }
     }

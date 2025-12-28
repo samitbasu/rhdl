@@ -1,10 +1,13 @@
 use crate::sim::extension::*;
+use crate::trace::page::{set_trace_page, take_trace_page};
+use crate::trace::session::Session;
+use crate::trace::trace_sample::TracedSample;
 use crate::types::clock_reset::clock_reset;
 use crate::types::reset::reset;
 use crate::types::signal::signal;
 use crate::{Circuit, CircuitIO, TimedSample};
 use crate::{ClockReset, Digital};
-use crate::{Domain, Signal, clock::clock, trace_time};
+use crate::{Domain, Signal, clock::clock};
 
 fn neg_edge<D: Domain>(prev_cr: Signal<ClockReset, D>, curr_cr: Signal<ClockReset, D>) -> bool {
     let prev_cr = prev_cr.val();
@@ -25,7 +28,7 @@ pub fn run_async_red_blue<'a, T, FR, FB, FJ, R, B>(
     red_period: u64,
     blue_period: u64,
     injector: FJ,
-) -> impl Iterator<Item = TimedSample<(<T as CircuitIO>::I, <T as CircuitIO>::O)>> + 'a
+) -> impl Iterator<Item = TracedSample<<T as CircuitIO>::I, <T as CircuitIO>::O>> + 'a
 where
     T: Circuit,
     FJ: Fn(Signal<ClockReset, R>, Signal<ClockReset, B>, &mut <T as CircuitIO>::I) + 'a,
@@ -46,9 +49,9 @@ where
         .with_reset(1)
         .clock_pos_edge(blue_period);
     let mut sequence = red_input.merge_map(blue_input, |r, b| (r, b));
+    let session = Session::default();
     std::iter::from_fn(move || {
         if let Some(event) = sequence.next() {
-            trace_time(event.time);
             let red_cr = signal(event.value.0.0);
             let blue_cr = signal(event.value.1.0);
             let mut input = prev_input;
@@ -59,12 +62,20 @@ where
             if neg_edge(prev_blue_cr, blue_cr) {
                 blue_fn(prev_output, &mut input);
             }
+            let page = event.is_traced().then(|| session.page());
+            set_trace_page(page);
             let output = uut.sim(input, &mut state);
             prev_input = input;
             prev_output = output;
             prev_blue_cr = blue_cr;
             prev_red_cr = red_cr;
-            Some(event.map(|_| (input, output)))
+            let page = take_trace_page();
+            Some(TracedSample {
+                time: event.time,
+                page,
+                input,
+                output,
+            })
         } else {
             None
         }

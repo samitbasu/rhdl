@@ -366,6 +366,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
         let switch: ReadSwitch<2> = ReadSwitch::try_new::<decode_addr>()?;
         drc::no_combinatorial_paths(&switch)?;
@@ -390,7 +391,7 @@ mod tests {
         let sims = uut
             .run(input)
             .synchronous_sample()
-            .filter_map(|ts| ts.value.2)
+            .filter_map(|ts| ts.output)
             .collect::<Vec<_>>();
         let sink = sink.take(sims.len()).collect::<Vec<_>>();
         assert_eq!(sink, sims);

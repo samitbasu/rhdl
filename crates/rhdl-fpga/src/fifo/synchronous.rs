@@ -186,7 +186,7 @@ mod tests {
     fn check_that_output_is_valid() -> miette::Result<()> {
         let uut = SyncFIFO::<b8, 3>::default();
         let stream = test_seq();
-        let output = uut.run(stream).synchronous_sample().map(|x| x.value.2.data);
+        let output = uut.run(stream).synchronous_sample().map(|x| x.output.data);
         let output = output.flatten().collect::<Vec<_>>();
         assert!(output.iter().all(|x| *x != 0));
         let ramp = output.iter().copied().skip_while(|x| *x == 1);
@@ -204,7 +204,7 @@ mod tests {
             .join("fifo")
             .join("synchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["0b412e99ea2905619689d090939884adb9499e54a519f3b92daa8fdb1c23f191"];
+        let expect = expect!["98895c206770062d11b8c3ffa7e314969d9d9a3412ff603218bd40aac6c90ef0"];
         let digest = vcd.dump_to_file(root.join("fifo.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -264,7 +264,7 @@ mod tests {
             )
             //.vcd_file(&PathBuf::from("fifo_streaming.vcd"))
             .synchronous_sample()
-            .filter_map(|x| if x.value.1.next { x.value.2.data } else { None })
+            .filter_map(|x| if x.input.1.next { x.output.data } else { None })
             .collect::<Vec<_>>();
         assert_eq!(data, read_back);
         Ok(())

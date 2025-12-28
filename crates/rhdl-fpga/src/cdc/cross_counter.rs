@@ -221,7 +221,7 @@ mod tests {
         let input = sync_stream();
         let _ = uut
             .run(input)
-            .glitch_check(|t| (t.value.0.cr.val().clock, t.value.1.count))
+            .glitch_check(|t| (t.input.cr.val().clock, t.output.count))
             .last();
         Ok(())
     }
@@ -237,9 +237,9 @@ mod tests {
         std::fs::create_dir_all(&root).unwrap();
         let outputs = uut
             .run(input)
-            .sample_at_pos_edge(|t| t.value.0.cr.val().clock)
+            .sample_at_pos_edge(|t| t.input.cr.val().clock)
             .vcd_file(&root.join("rw_counter.vcd"))
-            .map(|t| t.value.1.count.val())
+            .map(|t| t.output.count.val())
             .collect::<Vec<_>>();
         outputs.windows(2).for_each(|w| {
             assert!(w[0] <= w[1]);

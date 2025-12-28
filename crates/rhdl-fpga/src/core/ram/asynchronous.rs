@@ -543,15 +543,15 @@ mod tests {
             .join("ram")
             .join("asynchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["6c2f79e78de88f30993522da8b8ef34213ed19fe162d663d35d94388b125fb62"];
+        let expect = expect!["69bcc94f85aed28e9cda52b0847f41458a0e7681e60ba76c2f4b65bffd468358"];
         let digest = vcd.dump_to_file(root.join("ram_write.vcd")).unwrap();
         expect.assert_eq(&digest);
         let output = uut
             .run(stream)
-            .glitch_check(|x| (x.value.0.read.val().clock, x.value.1.val()))
-            .sample_at_pos_edge(|x| x.value.0.read.val().clock)
+            .glitch_check(|x| (x.input.read.val().clock, x.output.val()))
+            .sample_at_pos_edge(|x| x.input.read.val().clock)
             .skip(17)
-            .map(|x| x.value.1);
+            .map(|x| x.output);
         let expected = expected.collect::<Vec<_>>();
         let output = output.collect::<Vec<_>>();
         assert_eq!(expected, output);
@@ -578,9 +578,9 @@ mod tests {
         let values = (0..16).map(|x| bits(15 - x)).cycle().take(32);
         let samples = uut
             .run(stream)
-            .sample_at_pos_edge(|i| i.value.0.read.val().clock)
+            .sample_at_pos_edge(|i| i.input.read.val().clock)
             .skip(1);
-        let output = samples.map(|x| x.value.1.val());
+        let output = samples.map(|x| x.output.val());
         assert!(values.eq(output));
         Ok(())
     }

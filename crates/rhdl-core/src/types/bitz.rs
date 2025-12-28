@@ -6,7 +6,7 @@
 //! to help with interfacing to HDL that uses tristate logic.
 use rhdl_bits::{BitWidth, Bits};
 
-use crate::{Digital, Kind, bitx::BitX, trace::bit::TraceBit};
+use crate::{Digital, Kind, TraceBit, bitx::BitX};
 
 use super::kind::Field;
 

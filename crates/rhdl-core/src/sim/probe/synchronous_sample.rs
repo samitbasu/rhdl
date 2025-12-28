@@ -1,4 +1,4 @@
-use crate::{Clock, ClockReset, Digital, TimedSample};
+use crate::{Clock, ClockReset, Digital, TimedSample, trace::trace_sample::TracedSample};
 
 /// This probe collects samples a stream of values _before_ a
 /// positive clock edge.  You must provide a closure that extracts
@@ -41,7 +41,7 @@ where
 
 impl<S, I, O> Iterator for SynchronousSample<S>
 where
-    S: Iterator<Item = TimedSample<(ClockReset, I, O)>>,
+    S: Iterator<Item = TracedSample<(ClockReset, I), O>>,
     I: Digital,
     O: Digital,
 {
@@ -52,7 +52,7 @@ where
             match self.stream.next() {
                 None => return self.last.take(),
                 Some(sample) => {
-                    let clock = sample.value.0.clock;
+                    let clock = sample.input.0.clock;
                     if clock.raw() && !self.clock.raw() && self.last.is_some() {
                         return self.last.take();
                     }
@@ -68,7 +68,7 @@ where
 mod tests {
 
     use super::super::ext::SynchronousProbeExt;
-    use crate::sim::extension::*;
+    use crate::{sim::extension::*, trace::session::Session};
     use rhdl_bits::alias::*;
 
     #[test]
@@ -80,9 +80,10 @@ mod tests {
             .map(b8)
             .without_reset()
             .clock_pos_edge(100);
-        let output = stream.map(|t| t.map(|v| (v.0, v.1, v.1)));
+        let session = Session::default();
+        let output = stream.map(|t| session.untraced(t, t.value.1));
         let probe = output.synchronous_sample();
-        let result: Vec<_> = probe.map(|t| t.value.1).collect();
+        let result: Vec<_> = probe.map(|t| t.input.1).collect();
         assert_eq!(result, data);
     }
 }
