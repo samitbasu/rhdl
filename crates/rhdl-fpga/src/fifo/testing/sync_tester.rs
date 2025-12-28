@@ -54,7 +54,6 @@ where
 #[cfg(test)]
 mod tests {
     use expect_test::{expect, expect_file};
-    use rhdl::core::trace::svg::SvgOptions;
 
     use super::*;
 
@@ -83,11 +82,10 @@ mod tests {
             .clock_pos_edge(100)
             .skip_while(|x| x.time < 2000)
             .take_while(|x| x.time <= 3000);
-        let vcd = uut.run(input).collect::<Vcd>();
+        let svg = uut.run(input).collect::<Svg>();
         let options = SvgOptions::default();
-        let svg = vcd.dump_svg(&options);
         let expect = expect_file!["sync_fifo.svg.expect"];
-        expect.assert_eq(&svg.to_string());
+        expect.assert_eq(&svg.to_string(&options).unwrap());
         Ok(())
     }
 
@@ -98,7 +96,7 @@ mod tests {
             .with_reset(1)
             .clock_pos_edge(100);
         let last = uut.run(input).last().unwrap();
-        assert!(last.value.2);
+        assert!(last.output);
         Ok(())
     }
 }

@@ -152,7 +152,7 @@ mod tests {
         let input = stalling(input, 0.23);
         let input = input.with_reset(1).clock_pos_edge(100);
         let output = uut.run(input).synchronous_sample();
-        let output = output.filter_map(|x| x.value.2);
+        let output = output.filter_map(|x| x.output);
         assert!(output.take(10_000).eq(expected.take(10_000)));
         Ok(())
     }

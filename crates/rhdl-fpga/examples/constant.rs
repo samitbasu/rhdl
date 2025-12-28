@@ -7,7 +7,7 @@ fn main() -> Result<(), RHDLError> {
     let vcd = uut
         .run(inputs)
         .take_while(|x| x.time < 500)
-        .collect::<Vcd>();
+        .collect::<Svg>();
     let options = SvgOptions {
         label_width: 20,
         ..Default::default()

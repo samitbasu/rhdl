@@ -140,16 +140,18 @@ mod tests {
         let uut = Delay::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
         let output = uut.run(input).synchronous_sample();
-        let count = output.clone().filter(|t| t.value.2.is_some()).count();
+        let output = output.collect::<Vec<_>>();
+        let count = output.iter().filter(|t| t.output.is_some()).count();
         assert!(count == 1);
         let start_delay = output
-            .clone()
+            .iter()
             .enumerate()
-            .find_map(|(ndx, t)| t.value.1.map(|_| ndx))
+            .find_map(|(ndx, t)| t.input.1.map(|_| ndx))
             .unwrap();
         let end_delay = output
+            .iter()
             .enumerate()
-            .find_map(|(ndx, t)| t.value.2.map(|_| ndx))
+            .find_map(|(ndx, t)| t.output.map(|_| ndx))
             .unwrap();
         assert!(end_delay - start_delay == 4);
         Ok(())

@@ -27,12 +27,6 @@ use std::collections::BTreeMap;
 
 use crate::trace2::{TraceId, meta::TraceDetails};
 
-pub(crate) struct TSItem<'a> {
-    pub(crate) path: &'a [&'static str],
-    pub(crate) name: &'a str,
-    pub(crate) id: TraceId,
-}
-
 #[derive(Default)]
 pub(crate) struct TraceTree {
     pub(crate) children: BTreeMap<&'static str, Box<TraceTree>>,

@@ -3,13 +3,30 @@ use rhdl_trace_type::RTT;
 use rhdl_vlog::{self as vlog, LitVerilog, maybe_decl_reg, maybe_decl_wire};
 use syn::parse_quote;
 
-use crate::{Circuit, CircuitIO, Digital, RHDLError, TimedSample, sim::test_module::TestModule};
+use crate::{
+    Circuit, CircuitIO, Digital, RHDLError, TimedSample, sim::test_module::TestModule,
+    trace2::trace_sample::TracedSample,
+};
 
 use super::TestBenchOptions;
 
 #[derive(Clone)]
 pub struct TestBench<I: Digital, O: Digital> {
     pub samples: Vec<TimedSample<(I, O)>>,
+}
+
+impl<I, O> FromIterator<TracedSample<I, O>> for TestBench<I, O>
+where
+    I: Digital,
+    O: Digital,
+{
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = TracedSample<I, O>>,
+    {
+        let samples = iter.into_iter().map(|ts| ts.to_timed_sample()).collect();
+        TestBench { samples }
+    }
 }
 
 impl<I, O> FromIterator<TimedSample<(I, O)>> for TestBench<I, O>

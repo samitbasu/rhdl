@@ -1,8 +1,11 @@
 use crate::{Digital, RHDLError};
 
+pub mod bit;
+pub mod key;
 pub mod meta;
 pub mod page;
 pub mod record;
+pub mod rtt;
 pub mod session;
 pub mod svg;
 pub mod trace_sample;
@@ -17,9 +20,9 @@ pub struct TraceId(u64);
 
 impl nohash::IsEnabled for TraceId {}
 
-pub trait TraceContainer {
-    fn record<T: Digital>(
+pub trait TraceContainer: Default {
+    fn record<T: Digital, S: Digital>(
         &mut self,
-        sample: &trace_sample::TraceSample<T>,
+        sample: &trace_sample::TracedSample<T, S>,
     ) -> Result<(), RHDLError>;
 }

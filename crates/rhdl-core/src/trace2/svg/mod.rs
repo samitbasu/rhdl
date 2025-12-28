@@ -14,7 +14,7 @@ use crate::{
             paths::{pretty_leaf_paths, try_path},
             waveform::{Region, Waveform},
         },
-        trace_sample::TraceSample,
+        trace_sample::TracedSample,
         trace_tree::TraceTree,
     },
     types::path::Path,
@@ -40,12 +40,15 @@ pub struct SvgFile {
 }
 
 impl TraceContainer for SvgFile {
-    fn record<T: Digital>(&mut self, sample: &TraceSample<T>) -> Result<(), crate::RHDLError> {
+    fn record<T: Digital, S: Digital>(
+        &mut self,
+        sample: &TracedSample<T, S>,
+    ) -> Result<(), crate::RHDLError> {
         if let Some(page) = sample.page.as_ref() {
             if self.db.is_none() {
                 self.db = Some(page.details.clone());
             }
-            let time = sample.inner.time;
+            let time = sample.time;
             self.times.push(time);
             for record in page.records() {
                 let value = record.data.typed_bits();
@@ -54,6 +57,17 @@ impl TraceContainer for SvgFile {
             }
         }
         Ok(())
+    }
+}
+
+impl<T: Digital, S: Digital> FromIterator<TracedSample<T, S>> for SvgFile {
+    fn from_iter<I: IntoIterator<Item = TracedSample<T, S>>>(iter: I) -> Self {
+        let mut svg = SvgFile::default();
+        for sample in iter {
+            svg.record(&sample)
+                .expect("Failed to record sample into SVG");
+        }
+        svg
     }
 }
 
@@ -134,5 +148,10 @@ impl SvgFile {
         let doc = make_svg_document(&svg_waves, &self.times, &gaps, options);
         svg::write(&mut out, &doc)?;
         Ok(())
+    }
+    pub fn to_string(self, options: &SvgOptions) -> std::io::Result<String> {
+        let mut buf = Vec::new();
+        self.finalize(options, &mut buf)?;
+        Ok(String::from_utf8(buf).unwrap())
     }
 }
