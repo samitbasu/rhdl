@@ -1,4 +1,4 @@
-use crate::trace2::{TraceId, traceable::Traceable};
+use crate::trace::{TraceId, traceable::Traceable};
 
 /// An event reorded on a trace page.  Captures the trace
 /// ID that generated this data element, along with a

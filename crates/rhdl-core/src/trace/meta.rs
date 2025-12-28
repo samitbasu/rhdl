@@ -1,6 +1,6 @@
 use rhdl_trace_type::{RTT, TraceType};
 
-use crate::{Kind, trace2::trace_tree::TraceTree};
+use crate::{Kind, trace::trace_tree::TraceTree};
 
 /// Details about a traced value.
 pub struct TraceDetails {

@@ -1,4 +1,4 @@
-use crate::{Clock, ClockReset, Digital, TimedSample, trace2::trace_sample::TracedSample};
+use crate::{Clock, ClockReset, Digital, TimedSample, trace::trace_sample::TracedSample};
 
 /// This probe collects samples a stream of values _before_ a
 /// positive clock edge.  You must provide a closure that extracts
@@ -68,7 +68,7 @@ where
 mod tests {
 
     use super::super::ext::SynchronousProbeExt;
-    use crate::{sim::extension::*, trace2::session::Session};
+    use crate::{sim::extension::*, trace::session::Session};
     use rhdl_bits::alias::*;
 
     #[test]

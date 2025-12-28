@@ -2,7 +2,7 @@
 //! synchronous circuits.
 use crate::{
     ClockReset, Synchronous, SynchronousIO, TimedSample, trace,
-    trace2::{
+    trace::{
         page::{set_trace_page, take_trace_page},
         session::Session,
         trace_sample::TracedSample,

@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 
-use rhdl_core::trace2::{
+use rhdl_core::trace::{
     TraceContainer,
     session::Session,
     svg::{SvgFile, options::SvgOptions},

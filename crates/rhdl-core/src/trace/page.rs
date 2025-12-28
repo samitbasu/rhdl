@@ -9,7 +9,7 @@ use std::{
 
 use crate::{
     Digital, TraceKey,
-    trace2::{
+    trace::{
         TraceId,
         meta::{TraceDetails, TraceMetadata},
         record::Record,

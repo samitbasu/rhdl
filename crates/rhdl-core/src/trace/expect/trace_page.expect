@@ -1,3 +1,0 @@
-TracePage:
-  fn1/fn2/a (1 bits) at data[0..1]
-  fn1/a (6 bits) at data[1..7]

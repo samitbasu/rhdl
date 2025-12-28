@@ -1,7 +1,7 @@
 use crate::sim::extension::*;
-use crate::trace2::page::{set_trace_page, take_trace_page};
-use crate::trace2::session::Session;
-use crate::trace2::trace_sample::TracedSample;
+use crate::trace::page::{set_trace_page, take_trace_page};
+use crate::trace::session::Session;
+use crate::trace::trace_sample::TracedSample;
 use crate::types::clock_reset::clock_reset;
 use crate::types::reset::reset;
 use crate::types::signal::signal;

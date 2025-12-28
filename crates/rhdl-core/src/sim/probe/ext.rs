@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::{Clock, ClockReset, Digital, TimedSample, trace2::trace_sample::TracedSample};
+use crate::{Clock, ClockReset, Digital, TimedSample, trace::trace_sample::TracedSample};
 
 use super::{
     edges::{EdgeTime, edge_time},

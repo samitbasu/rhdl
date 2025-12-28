@@ -1,6 +1,6 @@
 use crate::{
     BitX,
-    trace2::svg::{
+    trace::svg::{
         bucket::Bucket,
         color::TraceColor,
         drawable::{Drawable, DrawableList, RegionKind},

@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::{
     Digital, Kind, TypedBits,
-    trace2::{
+    trace::{
         TraceContainer, TraceId,
         meta::TraceMetadata,
         svg::{

@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use crate::{
     Digital, TimedSample,
-    trace2::page::{TracePage, set_trace_page, take_trace_page},
+    trace::page::{TracePage, set_trace_page, take_trace_page},
 };
 
 /// A timed sample with an optional trace page attached.
