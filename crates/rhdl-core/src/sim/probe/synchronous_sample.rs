@@ -1,10 +1,15 @@
-use crate::{Clock, ClockReset, Digital, TimedSample, trace::trace_sample::TracedSample};
+//! Probe to sample values before a positive clock edge for synchronous designs
+use crate::{Clock, ClockReset, Digital, trace::trace_sample::TracedSample};
 
 /// This probe collects samples a stream of values _before_ a
 /// positive clock edge.  You must provide a closure that extracts
 /// the clock signal from the stream that you want to sample.  When
 /// ever that clock signal experiences a positive edge, this probe will
-/// emit the _previous_ value for the stream.
+/// emit the _previous_ value for the stream.  
+///
+/// Note that unlike [crate::sim::probe::sample_at_pos_edge::SampleAtPosEdge], this probe assumes that the input
+/// stream is synchronous, i.e., it contains clock and reset information
+/// as part of its input type.
 pub struct SynchronousSample<S>
 where
     S: Iterator,
@@ -28,6 +33,7 @@ where
     }
 }
 
+/// Create a probe that samples values from the supplied stream
 pub fn synchronous_sample<S>(stream: S) -> SynchronousSample<S>
 where
     S: Iterator,

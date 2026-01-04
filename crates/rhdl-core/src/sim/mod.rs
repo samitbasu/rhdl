@@ -1,3 +1,4 @@
+//! Built-in Simulator and Testbench support
 #![warn(missing_docs)]
 pub mod iter;
 pub mod probe;

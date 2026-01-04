@@ -1,5 +1,10 @@
-use crate::{Clock, Digital, TimedSample, trace::trace_sample::TracedSample};
+//! Probe to check for glitches in a stream of traced samples
+use crate::{Clock, Digital, trace::trace_sample::TracedSample};
 
+/// The GlitchCheck struct.  Not intended to be used directly;
+/// use the [glitch_check] function to create one, or use
+/// the extension trait in [crate::sim::probe::ext].
+/// See the [book] for an example of its use.
 pub struct GlitchCheck<T, I, F> {
     clk: Clock,
     prev_val: T,
@@ -29,6 +34,11 @@ where
     }
 }
 
+/// Create a glitch-checking iterator over the supplied stream of traced samples,
+/// using the supplied function to extract the clock and value to monitor for glitches.
+/// A glitch is defined as a change in the monitored value that occurs
+/// outside of a clock positive edge, and outside of the specified tolerance window
+/// (which is 1 time unit by default).
 pub fn glitch_check<T, I, F>(stream: I, clock_fn: F) -> GlitchCheck<T, I, F>
 where
     T: Digital,

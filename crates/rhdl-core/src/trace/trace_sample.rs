@@ -1,7 +1,6 @@
 //! A timed sample with an (option) trace page attached.
 //!
 //! This is how you collect trace data when using the iterator based simulation API.
-use std::rc::Rc;
 
 use crate::{
     Digital, TimedSample,
@@ -69,16 +68,24 @@ impl<T: Digital, S: Digital> TracedSample<T, S> {
 /// page is active while the guard is alive.
 pub struct TraceSampleGuard<T: Digital, S: Digital> {
     inner: TracedSample<T, S>,
+    marker: std::marker::PhantomData<*const ()>,
 }
 
 impl<T: Digital, S: Digital> TracedSample<T, S> {
-    pub fn guard(mut self) -> TraceSampleGuard<T, S> {
+    /// Activate the trace page for this sample, returning a guard
+    pub fn activate(mut self) -> TraceSampleGuard<T, S> {
         set_trace_page(self.page.take());
-        TraceSampleGuard { inner: self }
+        TraceSampleGuard {
+            inner: self,
+            marker: std::marker::PhantomData,
+        }
     }
 }
 
 impl<T: Digital, S: Digital> TraceSampleGuard<T, S> {
+    /// Release the guard, returning the traced sample with
+    /// the trace page updated to reflect any changes made
+    /// while the guard was active.
     pub fn release(mut self) -> TracedSample<T, S> {
         let page = take_trace_page();
         self.inner.page = page;

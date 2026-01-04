@@ -262,7 +262,6 @@ mod tests {
                 },
                 100,
             )
-            //.vcd_file(&PathBuf::from("fifo_streaming.vcd"))
             .synchronous_sample()
             .filter_map(|x| if x.input.1.next { x.output.data } else { None })
             .collect::<Vec<_>>();

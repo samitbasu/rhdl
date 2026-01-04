@@ -97,6 +97,7 @@ impl TracePage {
             data: Box::new(*value),
         });
     }
+    /// Get an iterator over the records in this trace page.
     pub fn records(&self) -> impl Iterator<Item = &Record> {
         self.records.iter()
     }
@@ -111,6 +112,7 @@ pub fn set_trace_page(page: Option<Box<TracePage>>) {
     PAGE.replace(page);
 }
 
+/// Take the current trace page for tracing in this thread
 pub fn take_trace_page() -> Option<Box<TracePage>> {
     PAGE.take()
 }

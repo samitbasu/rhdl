@@ -17,6 +17,8 @@ use crate::{
     },
 };
 
+/// A VCD trace container that writes trace pages to a VCD file.
+/// See the [book] for examples on how to use it.
 pub struct Vcd {
     buffer: std::io::BufWriter<SpooledTempFile>,
     next_id_code: IdCode,
@@ -43,6 +45,7 @@ impl<T: Digital, S: Digital> FromIterator<TracedSample<T, S>> for Vcd {
 }
 
 impl Vcd {
+    /// Create a new empty VCD trace container.
     pub fn new() -> Self {
         let buffer = std::io::BufWriter::new(SpooledTempFile::new(100 * 1024 * 1024));
         Self {
@@ -101,6 +104,7 @@ impl Vcd {
             })
             .clone()
     }
+    /// Finalize the VCD file, writing headers and flushing the buffer.
     pub fn finalize(mut self, mut out: impl std::io::Write) -> std::io::Result<()> {
         let Some(db) = self.db.as_ref() else {
             return Ok(());
@@ -119,6 +123,7 @@ impl Vcd {
         std::io::copy(&mut body, &mut out)?;
         Ok(())
     }
+    /// Dump the VCD file to the given path, returning the SHA256 hash of the file.
     pub fn dump_to_file(self, path: impl AsRef<std::path::Path>) -> std::io::Result<String> {
         use sha2::Digest;
         let mut file = std::fs::File::create(&path)?;
@@ -128,6 +133,7 @@ impl Vcd {
         std::io::copy(&mut file, &mut hash)?;
         Ok(format!("{:x}", hash.finalize()))
     }
+    /// Finalize the VCD file, returning it as a string.
     pub fn to_string(self) -> std::io::Result<String> {
         let mut buf = Vec::new();
         self.finalize(&mut buf)?;

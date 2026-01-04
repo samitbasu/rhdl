@@ -153,7 +153,7 @@ where
 
 /// Creates a ClockPosEdge iterator that produces clock and reset signals along with the input samples.
 ///
-/// See the book for examples of how to use this iterator adaptor.
+/// See the [book] for examples of how to use this iterator adaptor.
 pub fn clock_pos_edge<I, S>(input: I, period: u64) -> ClockPosEdge<I, S>
 where
     I: Iterator<Item = ResetOrData<S>>,

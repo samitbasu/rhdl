@@ -1,3 +1,4 @@
+//! SVG Trace File Generation Module.
 use std::sync::{Arc, RwLock};
 
 use crate::{
@@ -32,6 +33,10 @@ pub(crate) mod waveform;
 
 type TimeAndSample = (u64, TypedBits);
 
+/// An SVG trace file container that collects trace samples
+/// and can render them into an SVG waveform diagram.
+///
+/// See the [book] for examples on how to use it.
 #[derive(Default)]
 pub struct SvgFile {
     db: Option<Arc<RwLock<TraceMetadata>>>,
@@ -116,6 +121,7 @@ impl SvgFile {
             self.trace_out(&name_sanitized, *trace_id, waves);
         }
     }
+    /// Finalize the SVG trace file, writing it to the given output.
     pub fn finalize(
         self,
         options: &SvgOptions,
@@ -149,6 +155,7 @@ impl SvgFile {
         svg::write(&mut out, &doc)?;
         Ok(())
     }
+    /// Finalize the SVG trace file, returning it as a string.
     pub fn to_string(self, options: &SvgOptions) -> std::io::Result<String> {
         let mut buf = Vec::new();
         self.finalize(options, &mut buf)?;

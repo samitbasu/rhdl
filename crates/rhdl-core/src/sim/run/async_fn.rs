@@ -1,3 +1,4 @@
+//! Asynchronous circuit simulator for dual clocked designs
 use crate::sim::extension::*;
 use crate::trace::page::{set_trace_page, take_trace_page};
 use crate::trace::session::Session;
@@ -5,7 +6,7 @@ use crate::trace::trace_sample::TracedSample;
 use crate::types::clock_reset::clock_reset;
 use crate::types::reset::reset;
 use crate::types::signal::signal;
-use crate::{Circuit, CircuitIO, TimedSample};
+use crate::{Circuit, CircuitIO};
 use crate::{ClockReset, Digital};
 use crate::{Domain, Signal, clock::clock};
 
@@ -21,6 +22,12 @@ fn neg_edge<D: Domain>(prev_cr: Signal<ClockReset, D>, curr_cr: Signal<ClockRese
     false
 }
 
+/// Run an asynchronous dual-clocked circuit simulation,
+/// using the supplied red and blue clock event functions,
+/// with the specified clock periods, and an injector function
+/// to set up the inputs based on the current clock states.
+///
+/// See the [book] for an example of its use.
 pub fn run_async_red_blue<'a, T, FR, FB, FJ, R, B>(
     uut: &'a T,
     mut red_fn: FR,

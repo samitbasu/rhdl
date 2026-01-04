@@ -1,3 +1,4 @@
+//! Metadata about a traced value
 use rhdl_trace_type::{RTT, TraceType};
 
 use crate::{Kind, trace::trace_tree::TraceTree};

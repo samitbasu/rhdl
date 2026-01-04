@@ -1,10 +1,15 @@
+//! Probe to sample values before a positive clock edge
 use crate::Clock;
 
 /// This probe collects samples a stream of values _before_ a
 /// positive clock edge.  You must provide a closure that extracts
 /// the clock signal from the stream that you want to sample.  When
 /// ever that clock signal experiences a positive edge, this probe will
-/// emit the _previous_ value for the stream.
+/// emit the _previous_ value for the stream.  
+///
+/// The struct is not intended to be used directly; use the
+/// [sample_at_pos_edge] function to create one, or use
+/// the extension trait in [crate::sim::probe::ext].
 pub struct SampleAtPosEdge<S, F>
 where
     S: Iterator,
@@ -31,6 +36,9 @@ where
     }
 }
 
+/// Create a probe that samples values from the supplied stream
+/// just before a positive edge of the clock extracted using
+/// the supplied function.
 pub fn sample_at_pos_edge<S, F>(stream: S, clock_fn: F) -> SampleAtPosEdge<S, F>
 where
     S: Iterator,

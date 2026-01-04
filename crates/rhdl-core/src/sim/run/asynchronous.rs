@@ -43,7 +43,7 @@ where
 /// This trait is automatically implemented for all types that implement
 /// [`Circuit`].
 ///
-/// See the book for examples of how to use this trait.
+/// See the [book] for examples of how to use this trait.
 pub fn run<T, I, S>(uut: &T, inputs: I) -> Run<'_, T, I, S> {
     Run {
         uut,

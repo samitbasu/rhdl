@@ -1,3 +1,5 @@
+//! Iterator probes to extract various kinds of data from simulations
+#![warn(missing_docs)]
 pub mod edges;
 pub mod ext;
 pub mod glitch_check;
