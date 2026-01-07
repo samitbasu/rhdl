@@ -3,9 +3,7 @@
 Literals are a special case, and worth an aside.  Generally, `rustc` will attempt to infer the type of any integer literal that appears with out a suffix in your code.  For example, if you have an expression like the following,
 
 ```rust
-let a: b8 = 42.into();
-//         👇 - integer literal
-let b = a + 1;
+{{#rustdoc_include bits_ex/src/main.rs:literal}}
 ```
 
 then `rustc` will attempt to assign a type to the integer literal, and fall back to `i32` if it cannot resolve the type.  For the operators in RHDL, the literal type is matched to the underlying representation, which means `i128` for `SignedBits` and `u128` for `Bits`.  So in the above case, the arguments to the `+` operator are actually `Bits::<8>` and `u128`.  

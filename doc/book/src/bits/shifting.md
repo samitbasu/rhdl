@@ -5,17 +5,13 @@ There are only 2 shifting operators in RHDL.  These are the wrapping left shift 
 The left shift operation is the same for `Bits` and `SignedBits` - it simply inserts zeros from the LSB:
 
 ```rust
-let a: b8 = (0b1101_0011).into();
-let a = a << 1; // 0b1010_0110
-let a = a << 1; // 0b0100_1100
+{{#rustdoc_include bits_ex/src/main.rs:left_shift}}
 ```
 
 For a signed value, when the MSB changes due to the shift, the sign of the value will change.  Again, this is normal for 2's complement arithmetic and is implemented in Rust for `wrapping` shifts.
 
 ```rust
-let a: s8 = (0b0010_0101).into();
-let a = a << 1;  // 0b0100_1010
-let a = a << 1;  // 0b1001_0100
+{{#rustdoc_include bits_ex/src/main.rs:signed_left_shift}}
 ```
 
 In the last step, `a` went from a large positive number to a large negative number.
@@ -27,28 +23,19 @@ There are a few critical differences between how `rustc` handles integers, and h
 For right shift operations, the behavior is different for `Bits` than for `SignedBits`.  For `Bits`, right shifting simply injects zeros at the MSB of the vector, so that all the bits shift right.
 
 ```rust
-let a: b8 = (0b1101_0011).into();
-let a = a >> 1; // 0b0110_1001
-let a = a >> 1; // 0b0011_0100
+{{#rustdoc_include bits_ex/src/main.rs:right_shift}}
 ```
 
 For a `SignedBits` value, the sign bit is shifted in from the MSB, so that negative values remain negative.
 
 ```rust
-let a: s8 = (0b1101_0011).into();
-let a = a >> 1; // 0b1110_1001
-let a = a >> 1; // 0b1111_0100
-let a: s8 = (0b0101_0011).into();
-let a = a >> 1; // 0b0010_1001
-let a = a >> 1; // 0b0001_0100
+{{#rustdoc_include bits_ex/src/main.rs:signed_right_shift}}
 ```
 
 For both left and right shift operators, you can use a bit vector `Bits` to specify the shift, so this will also work:
 
 ```rust
-let a: b8 = (0b1101_0011).into();
-let b: b4 = 4.into();
-let c = a >> b; // 0b0000_1101
+{{#rustdoc_include bits_ex/src/main.rs:bit_bit_shift}}
 ```
 
 The shift amount cannot be signed.
