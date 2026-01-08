@@ -13,7 +13,7 @@ Bit width preservation is pretty natural for "regular" Rust.  But there are some
 There _are_ times you want "all the bits".  For example, if you want the carry out bit when adding two bit vectors, how do you do this?  An ALU may need to calculate the carry out on the sum of two 8-bit values.   There are two ways to do this in RHDL.  The first (and maybe easiest) is to simply extend the to operands by an extra bit, and then perform the operation.  The carry bit is then stashed in the MSB of the resulting 9-bit number.  
 
 ```rust
-{{#rustdoc_include bits_ex/src/main.rs:get_all_bits}}
+{{#rustdoc_include ../code/src/bits/mod.rs:get_all_bits}}
 ```
 
 This may look somewhat inefficient, but it will reduce down to a simple adder with the carry out bit residing in `carry`.  The rest (like adding zero, or anding with `0`) will be optimized out.  
@@ -22,7 +22,7 @@ This may look somewhat inefficient, but it will reduce down to a simple adder wi
 Because getting the MSB of a bit vector is a common operation, you may want to write a helper function for it.  The `get_msb` function might look something like this:
 
 ```rust
-{{#rustdoc_include bits_ex/src/main.rs:get_msb_function}}
+{{#rustdoc_include ../code/src/bits/mod.rs:get_msb_function}}
 ```
 
 For reduction operators, like `.any()`, `.all()` and `.xor()`, the output will be a single `bool` value.

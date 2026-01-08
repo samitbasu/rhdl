@@ -42,7 +42,7 @@ Remember that the `kernel` is just a Rust function.  So you can test it like any
 
 ```rust
 fn counter(cr: ClockReset, i: bool, q: b8) -> (b8, b8);
-e```
+```
 
 (where we have assumed that the counter is 8 bits wide).  We can now test this function exhaustively.  The function itself shouldn't care about the clock or reset values (those are handled in the flip flops).  So we just want an invariant like:
 

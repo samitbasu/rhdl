@@ -1,0 +1,18 @@
+[package]
+name = "code"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+miette = { version = "7.6.0", features = ["fancy"] }
+rhdl = { version = "0.1.0", path = "../../../../crates/rhdl" }
+
+[features]
+default = []
+doc0 = []
+doc1 = []
+doc2 = []
+doc3 = []
+doc4 = []
+doc5 = []
+no-default-impl = []

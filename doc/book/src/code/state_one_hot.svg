@@ -14,15 +14,15 @@
 </text>
 <rect fill="#99FFCC" height="16" stroke="gray" width="816" x="0" y="16"/>
 <text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="408" y="24">
-State|13|
+State (One-Hot)|13|
 </text>
 <rect fill="#CCCC99" height="16" stroke="gray" width="272" x="0" y="32"/>
 <text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="136" y="40">
-Idle(11011)
+Idle(00001)
 </text>
 <rect fill="#CCCCCC" height="32" stroke="gray" width="272" x="0" y="48"/>
 <text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="136" y="64">
-Processing(11101)
+Processing(00010)
 </text>
 <rect fill="#CCCCFF" height="16" stroke="gray" width="544" x="272" y="48"/>
 <text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="544" y="56">
@@ -34,7 +34,7 @@ Processing(11101)
 </text>
 <rect fill="#CCFFCC" height="32" stroke="gray" width="272" x="0" y="80"/>
 <text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="136" y="96">
-Sending(00001)
+Sending(00100)
 </text>
 <rect fill="#CCFFFF" height="16" stroke="gray" width="272" x="544" y="80"/>
 <text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="680" y="88">
@@ -46,11 +46,11 @@ Sending(00001)
 </text>
 <rect fill="#FFCCCC" height="16" stroke="gray" width="272" x="0" y="112"/>
 <text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="136" y="120">
-Done(00110)
+Done(01000)
 </text>
 <rect fill="#FFCCFF" height="16" stroke="gray" width="272" x="0" y="128"/>
 <text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="136" y="136">
-Fault(01001)
+Fault(10000)
 </text>
 <rect fill="#FFFF99" height="16" stroke="gray" width="272" x="0" y="144"/>
 <text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="136" y="152">

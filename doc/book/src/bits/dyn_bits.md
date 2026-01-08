@@ -9,7 +9,7 @@ In general to work with dynamic width bitvectors, you will do the following:
 An example is simpler to understand.  
 
 ```rust
-{{#rustdoc_include bits_ex/src/main.rs:dyn-bits-ex}}
+{{#rustdoc_include ../code/src/bits/mod.rs:dyn-bits-ex}}
 ```
 
 While this example is not particularly interesting, it becomes much more difficult when the intermediate operations include bit shifting, sign conversion, etc.  For a more realistic example, consider linear interpolation.  We have two values `a: b8`, and `b: b8`, and an interpolant `x: b4`.  We want to compute as accurately as possible, the expression:
@@ -21,7 +21,7 @@ While this example is not particularly interesting, it becomes much more difficu
 This quickly becomes complicated, as the intermediate expressions need to have enough bits to store the products of `b8 x b4 -> b12`, but then a subtraction of a 5 bit literal and a 4 bit unsigned value, needs 6 bits for storage, etc.  However, the end result is still an 8 bit value, and so our function implementation looks like this:
 
 ```rust
-{{#rustdoc_include bits_ex/src/main.rs:lerp-ex}}
+{{#rustdoc_include ../code/src/bits/mod.rs:lerp-ex}}
 ```
 
 we can use dynamic bit widths internally to get fine grained control over which bits we keep and which we throw away.  And while in this case, you could hard code all of the intermediate bit widths, it becomes much more convenient when `lerp` is generic over the input and output bit widths.
