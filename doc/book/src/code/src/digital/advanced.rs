@@ -73,7 +73,7 @@ fn state_naive_svg_test() {
 }
 // ANCHOR_END: state-naive-test
 
-#[cfg(feature = "doc1")]
+#[cfg(feature = "doc1hot")]
 // ANCHOR: one-hot
 #[derive(PartialEq, Clone, Copy, Digital, Default)]
 pub enum State1Hot {
@@ -87,7 +87,7 @@ pub enum State1Hot {
 }
 // ANCHOR_END: one-hot
 
-#[cfg(not(feature = "doc1"))]
+#[cfg(not(feature = "doc1hot"))]
 // ANCHOR: one-hot-fixed
 #[derive(PartialEq, Clone, Copy, Digital, Default)]
 #[repr(u8)] // 👈 - for rustc.  ignored by rhdl

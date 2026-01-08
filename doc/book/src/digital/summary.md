@@ -4,7 +4,7 @@
 After the `Bits` type, the next most critical trait is `Digital`.  Here are the critical elements of the `Digital` trait that must be provided for any type.  I've redacted those methods that are automatically provided by the trait itself so we can focus on the important ones:
 
 ```rust
-{{#rustdoc_include digital_ex/src/summary_ex.rs:digital-trait}}
+{{#rustdoc_include ../code/src/digital/summary_ex.rs:digital-trait}}
 ```
 
 Most of these are fairly easy to understand.  A `Digital` value has a total of 3 representations:

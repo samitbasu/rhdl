@@ -33,35 +33,35 @@ Suppose, however, that we want the discriminant to appear at the LSBs.  So we wa
 To achieve this layout, we can add an attribute to our `derive` that specifies an `lsb` alignment:
 
 ```rust
-{{#rustdoc_include digital_ex/src/advanced.rs:lsb}}
+{{#rustdoc_include ../code/src/digital/advanced.rs:lsb}}
 ```
 
 With this change, the tag bits are packed in the LSB of the op code.  We can see that by regenerating our SVG.  This time, we 
 will use a unit test
 
 ```rust
-{{#rustdoc_include digital_ex/src/advanced.rs:lsb_svg_test}}
+{{#rustdoc_include ../code/src/digital/advanced.rs:lsb_svg_test}}
 ```
 
 If we run this test, it will generate the SVG output
 
-<!-- cmdrun to-html "cd digital_ex && cargo test lsb_svg_test -- --no-capture 2>&1" -->
+<!-- cmdrun to-html "cd ../code && cargo test lsb_svg_test -- --no-capture 2>&1" -->
 
 The resulting SVG is as follows:
 
-![OpCode with LSB discriminant SVG](digital_ex/opcode_lsb_derived.svg)
+![OpCode with LSB discriminant SVG](../code/opcode_lsb_derived.svg)
 
 
 Note that the discriminant bits are now packed into the least significant bits of the value.
 We can also generate an example value of the `OpCode` and see the serialized value directly.  Let's do that to see the layout explicitly:
 
 ```rust
-{{#rustdoc_include digital_ex/src/advanced.rs:lsb_print_test}}
+{{#rustdoc_include ../code/src/digital/advanced.rs:lsb_print_test}}
 ```
 
 If we run this test, we can see that the `01` discriminant bits are rightmost (least significant position)
 
-<!-- cmdrun to-html "cd digital_ex && cargo test lsb_print_test -- --no-capture 2>&1" -->
+<!-- cmdrun to-html "cd ../code && cargo test lsb_print_test -- --no-capture 2>&1" -->
 
 
 ## Explicit Discriminant Width
@@ -69,14 +69,12 @@ If we run this test, we can see that the `01` discriminant bits are rightmost (l
 Normally RHDL will use the smallest discriminant width necessary to capture all of the discriminant values.  For example, it determined that 2 bits were sufficient to represent `OpCode`'s 4 variants.  But there are cases where we want more control over the width of the discriminant tag.  For example, we may know that future versions of `OpCode` will require an additional number of bits.  Or we may know that `OpCode` will be stored in a memory as a 20 bit value, and thus, want the discriminant to take up the additional bits.  In that case, we can specify that we want the discriminant to be 4 bits wide, using a different attribute:
 
 ```rust
-{{#rustdoc_include digital_ex/src/advanced.rs:disc4bit}}
+{{#rustdoc_include ../code/src/digital/advanced.rs:disc4bit}}
 ```
 
 This will force the discriminant to take up 4 bits, increasing the size of our enum by 2 additional bits.
 
-<!-- cmdrun to-html "cd digital_ex && cargo test disc4bit_svg_test -- --no-capture 2>&1" -->
-
-![OpCode with 4 bit discriminant SVG](digital_ex/opcode_4bit_derived.svg)
+![OpCode with 4 bit discriminant SVG](../code/opcode_4bit_derived.svg)
 
 Note that because we have not specified explicit LSB alignment of the discriminant, it remains MSB aligned, occupying bits `19:16` of the value.
 
@@ -96,20 +94,18 @@ The usual way to handle fast decoding is with `1-hot` encoding.  Let's imagine t
 This mythical state machine is waiting for data to appear on some interface, and then fetches that data element, and does some processing for the data, resulting in a single bit, sending that result on another interface, and then returns to an `Idle` state.  It may `Fault` and it can be `Reset`.  Let's start with a naive implementation of this as an `enum`
 
 ```rust
-{{#rustdoc_include advanced_ex/src/main.rs:state-naive}} 
+{{#rustdoc_include ../code/src/digital/advanced.rs:state-naive}} 
 ```
 
 And let's add a test case to generate the SVG layout:
 
 ```rust
-{{#rustdoc_include digital_ex/src/advanced.rs:state-naive-test}}
+{{#rustdoc_include ../code/src/digital/advanced.rs:state-naive-test}}
 ```
-
-<!-- cmdrun to-html "cd digital_ex && cargo test state_naive_svg_test -- --no-capture 2>&1" -->
 
 The resulting SVG is as follows:
 
-![State SVG with default settings](digital_ex/state_naive.svg)
+![State SVG with default settings](../code/state_naive.svg)
 
 The issue is that the decode logic associated with the tag of `State` requires looking at all the bits of the tag to decide what variant is active.  
 
@@ -120,32 +116,32 @@ Most toolchains will probably automatically detect state machines and update the
 To 1-hot encode the state of the enum, we can assign explicit values to each state, and use powers of 2, with the `Reset` state being set to zero.
 
 ```rust
-{{#rustdoc_include digital_ex/src/advanced.rs:one-hot}}
+{{#rustdoc_include ../code/src/digital/advanced.rs:one-hot}}
 ```
 
 This does _not_ compile.
 
-<!-- cmdrun to-html "cd digital_ex && cargo build --features doc1 2>&1" -->
+<!-- cmdrun to-html "cd ../code && cargo build --features doc1hot 2>&1" -->
 
 The compiler error explains why.  `rustc` wants a representation type.  _This is not related to what `RHDL` will use for the discriminant_.  So we just pick something that will hold all the values to satisfy the compiler:
 
 ```rust
-{{#rustdoc_include digital_ex/src/advanced.rs:one-hot-fixed}}
+{{#rustdoc_include ../code/src/digital/advanced.rs:one-hot-fixed}}
 ```
 
 Now things compile again.
 
-<!-- cmdrun to-html "cd digital_ex && cargo build 2>&1" -->
+<!-- cmdrun to-html "cd ../code && cargo build 2>&1" -->
 
 We can add a test to generate the SVG layout again:
 
 ```rust
-{{#rustdoc_include digital_ex/src/advanced.rs:one-hot-svg-test}}
+{{#rustdoc_include ../code/src/digital/advanced.rs:one-hot-svg-test}}
 ```
 
 which results in the following SVG:
 
-![State SVG with 1-hot encoding](digital_ex/state_one_hot.svg)
+![State SVG with 1-hot encoding](../code/state_one_hot.svg)
 
 In principle, this should be easier to decode in hardware, as a single bit of the tag indicates the active state.  Otherwise, we would have to effectively decode the tag value with a look up table or a some kind of encoder logic.  
 
@@ -162,9 +158,9 @@ If you really want your toolchain to detect and use 1-hot encoding for the state
 There is no reason why the enum discriminant need be an unsigned integer.  If you want, you can use signed integer values.  Again RHDL will calculate the minimum sized discriminant needed to hold the tag unless you also provide the width.  I'm not sure how useful this feature is, but I'll demonstrate it anyway.  
 
 ```rust
-{{#rustdoc_include digital_ex/src/advanced.rs:state-signed-disc}}
+{{#rustdoc_include ../code/src/digital/advanced.rs:state-signed-disc}}
 ```
 
 We need a discriminant that can represent both `-5` and `+9`.  In this case, RHDL selected a signed 5 bit integer `s5`, which can represent values from `-16..15`.
 
-![State SVG with signed discriminants](digital_ex/state_signed_disc.svg)
+![State SVG with signed discriminants](../code/state_signed_disc.svg)
