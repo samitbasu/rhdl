@@ -1,0 +1,13 @@
+[package]
+name = "digital_ex"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+miette = { version = "7.6.0", features = ["fancy"] }
+rhdl = { version = "0.1.0", path = "../../../../../crates/rhdl" }
+
+[features]
+default = []
+doc1 = []
+no-default-impl = []
