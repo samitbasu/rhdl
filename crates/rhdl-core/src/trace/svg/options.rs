@@ -19,7 +19,7 @@ pub struct SvgOptions {
     /// Height of each trace region
     pub height: i32,
     /// Width of the label area
-    pub label_width: i32,
+    pub label_width: Option<i32>,
     /// Minimum glitch filter duration
     pub glitch_filter: Option<u32>,
     /// Optional regex filter for trace names
@@ -63,7 +63,7 @@ impl SvgOptions {
     /// Set the label width
     pub fn with_label_width(self, width: i32) -> Self {
         Self {
-            label_width: width,
+            label_width: Some(width),
             ..self
         }
     }
@@ -100,7 +100,7 @@ impl Default for SvgOptions {
             font_size_in_pixels: 10.0,
             shim: 3,
             height: 14,
-            label_width: 20,
+            label_width: None,
             glitch_filter: Some(2),
             name_filters: None,
             auto_gap_detection: None,

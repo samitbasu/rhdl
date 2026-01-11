@@ -38,7 +38,7 @@ but this does not:
 
 with error:
 
-<!-- cmdrun to-html "cd ../code && cargo build --features doc0 2>&1" -->
+<!-- cmdrun to-html "cd ../code && cargo build --features s8_non_synth 2>&1" -->
 
 
 Analogous to the `b1..b128` constructor functions, there are `s2..s128` signed constructor fucntions that take an `i128` argument and return a signed bit vector of the requested length.  

@@ -1,4 +1,9 @@
 //#![warn(missing_docs)]
+#![deny(unsafe_code)]
+//#![deny(clippy::unwrap_used)]
+//#![deny(clippy::expect_used)]
+//#![deny(clippy::panic)]
+#![deny(unused_must_use)]
 pub use types::kind::Kind;
 pub mod clock_details;
 

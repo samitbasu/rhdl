@@ -1,3 +1,5 @@
+use std::option;
+
 use crate::{
     Color,
     trace::svg::{
@@ -77,7 +79,8 @@ pub(crate) fn make_svg_document(
         .set("stroke", "darkblue");
     document = document.add(background);
 
-    let label_end = options.label_width as f32 * options.font_size_in_pixels;
+    // FIXME let label_end = options.label_width as f32 * options.font_size_in_pixels;
+    let label_end = 20.0 * options.font_size_in_pixels;
     let times = (0..)
         .map(|ndx| ndx * time_delta - start_time)
         .take_while(|t| *t <= end_time)

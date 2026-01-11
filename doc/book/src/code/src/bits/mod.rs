@@ -139,7 +139,7 @@ fn test_constructor_funcs() {
     let _ = a;
 }
 
-#[cfg(feature = "doc0")]
+#[cfg(feature = "s8_non_synth")]
 fn test_non_synthesizable() {
     // ANCHOR: constructor_s8_non_synth
     let a: s8 = -42.into(); // Doesn't work!
@@ -189,18 +189,18 @@ fn do_stuff(a1: Signal<b4, Red>, a2: Signal<b4, Red>) -> Signal<b5, Red> {
 }
 // ANCHOR_END: late_checking_1
 
-#[cfg(feature = "doc2")]
-// ANCHOR: late_checking_1_test
+#[ignore] // because this requires late checking
 #[test]
+// ANCHOR: late_checking_1_test
 fn test_run_do_stuff() {
     let y = do_stuff(signal(b4(3)), signal(b4(5))).val();
     assert_eq!(y, b5(9));
 }
 // ANCHOR_END: late_checking_1_test
 
-#[cfg(feature = "doc3")]
-// ANCHOR: compile_do_stuff
+#[ignore]
 #[test]
+// ANCHOR: compile_do_stuff
 fn test_compile_do_stuff() -> miette::Result<()> {
     compile_design::<do_stuff>(CompilationMode::Asynchronous)?;
     Ok(())
@@ -337,7 +337,7 @@ fn test_basic_signed_usage() {
     let _ = d;
 }
 
-#[cfg(feature = "doc4")]
+#[cfg(feature = "failed_bitcast")]
 #[test]
 fn test_failed_bitcast() {
     // ANCHOR: failed_bitcast
@@ -346,7 +346,7 @@ fn test_failed_bitcast() {
     // ANCHOR_END: failed_bitcast
 }
 
-#[cfg(feature = "doc5")]
+#[cfg(feature = "bool_not_b1")]
 #[test]
 fn test_bool_not_b1() {
     // ANCHOR: bool_not_b1

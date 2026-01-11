@@ -40,7 +40,7 @@ You _cannot_ freely cast from one bitwidth to another.  So this won't work in RH
 
 Attempting to compile this will cause an error:
 
-<!-- cmdrun to-html "cd ../code && cargo test --features doc4 2>&1" -->
+<!-- cmdrun to-html "cd ../code && cargo test --features failed_bitcast 2>&1" -->
 
 
 This may come as a bit of a shock if you are used to the permissive casting allowed in other HDLs like Verilog, but in Rust, you can't do this with "normal" integers, and in RHDL, you cannot either.  In general, if you find yourself needing to cast (and there are explicit cast operations), you may have the wrong data structure in hand.  More on that later.
@@ -57,4 +57,4 @@ Finally, note that `b1` and `bool` are not the same thing.  a `b1` is a 1-bit un
 
 with error:
 
-<!-- cmdrun to-html "cd ../code && cargo test --features doc5 2>&1" -->
+<!-- cmdrun to-html "cd ../code && cargo test --features bool_not_b1 2>&1" -->

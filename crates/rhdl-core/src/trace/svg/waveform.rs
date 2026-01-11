@@ -56,7 +56,8 @@ pub(crate) struct Waveform {
 
 impl Waveform {
     pub(crate) fn render(self, options: &SvgOptions, gaps: &GapList) -> DrawableList {
-        let label_width = options.font_size_in_pixels as i32 * options.label_width;
+        //let label_width = options.font_size_in_pixels as i32 * options.label_width;
+        let label_width = (self.label.len() as f32 * options.font_size_in_pixels) as i32;
         let label_region = Drawable {
             start_x: 0,
             start_y: 0,

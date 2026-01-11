@@ -1,5 +1,5 @@
 //! Built-in Simulator and Testbench support
-#![warn(missing_docs)]
+//#![warn(missing_docs)]
 pub mod iter;
 pub mod probe;
 pub mod run;

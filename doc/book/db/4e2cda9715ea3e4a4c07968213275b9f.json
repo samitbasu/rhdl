@@ -1,1 +1,0 @@
-[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[kernel]\nfn kernel(a: b8) -> b8 {\n    a + 270 // 👈 panics at runtime or fails at RHDL compile time\n}\n"},{"End":"CodeBlock"}]

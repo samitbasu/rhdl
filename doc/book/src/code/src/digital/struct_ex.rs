@@ -39,7 +39,7 @@ impl Digital for Things {
         bits.extend(self.count.bin());
         bits.extend(self.valid.bin());
         bits.extend(self.coordinates.bin());
-        bits.extend(self.zst.bin());
+        bits.extend(().bin());
         bits.into_boxed_slice()
     }
     // ANCHOR_END: struct-bin

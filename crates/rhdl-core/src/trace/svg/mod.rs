@@ -114,9 +114,10 @@ impl SvgFile {
     }
     fn write(&self, top: &str, tree: &TraceTree, waves: &mut Vec<Waveform>) {
         for (name, subtree) in &tree.children {
-            self.write(name, subtree, waves);
+            self.write(&format!("{top}.{name}"), subtree, waves);
         }
         for (name, trace_id) in &tree.signals {
+            let name = format!("{top}.{name}");
             let name_sanitized = name.replace("::", "__");
             self.trace_out(&name_sanitized, *trace_id, waves);
         }

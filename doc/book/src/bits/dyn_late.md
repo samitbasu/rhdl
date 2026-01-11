@@ -14,7 +14,7 @@ This function `do_stuff` will _compile_ just fine, since `rustc` does not know t
 
 We get a straight panic:
 
-<!-- cmdrun to-html "cd ../code && cargo test --features doc2 test_run_do_stuff 2>&1" -->
+<!-- cmdrun to-html "cd ../code && cargo test test_run_do_stuff 2>&1" -->
 
 In this case, RHDL's compiler is actually better at spotting exactly where the problem is.  We don't normally need to compile functions manually, but it's simple enough to do in a test case:
 
@@ -22,6 +22,6 @@ In this case, RHDL's compiler is actually better at spotting exactly where the p
 {{#rustdoc_include ../code/src/bits/mod.rs:compile_do_stuff}}
 ```
 
-<!-- cmdrun to-html "cd ../code && cargo test --features doc3 test_compile_do_stuff -- --nocapture 2>&1" -->
+<!-- cmdrun to-html "cd ../code && cargo test test_compile_do_stuff -- --nocapture 2>&1" -->
 
 In this case, RHDL has inferred that `d` must be 5 bits wide (based on the conversion to `e`), and thus, the assignment is invalid.

@@ -5,15 +5,17 @@ edition = "2024"
 
 [dependencies]
 miette = { version = "7.6.0", features = ["fancy"] }
+rand = "0.9.2"
 rhdl = { version = "0.1.0", path = "../../../../crates/rhdl" }
+rhdl-fpga = { version = "0.1.0", path = "../../../../crates/rhdl-fpga" }
 
 [features]
 default = []
-doc0 = []
-doc1 = []
-doc2 = []
-doc3 = []
-doc4 = []
-doc5 = []
+s8_non_synth = []
+timed_impl = []
+late_checking_test = []
+timed_blanket_impl = []
+failed_bitcast = []
+bool_not_b1 = []
 doc1hot = []
 no-default-impl = []

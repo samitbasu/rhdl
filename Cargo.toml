@@ -1,5 +1,4 @@
 [workspace]
-resolver = "2"
 members = [
     "crates/rhdl",
     "crates/rhdl-bits",
@@ -8,8 +7,12 @@ members = [
     "crates/rhdl-fpga",
     "crates/rhdl-macro",
     "crates/rhdl-macro-core",
-    "crates/rhdl-span", "crates/rhdl-toolchains",
+    "crates/rhdl-span",
+    "crates/rhdl-toolchains",
     "crates/rhdl-trace-type",
     "crates/rhdl-vlog",
-"doc/mdbook-rhdl",
+    "doc/book/src/code",
+    "doc/mdbook-rhdl",
 ]
+
+resolver = "2"

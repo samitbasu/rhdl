@@ -1,1 +1,0 @@
-[{"Start":{"CodeBlock":{"Fenced":"rust"}}},{"Text":"#[kernel]\nfn kernel(a: bool) -> bool {\n    (a ^ true) || false\n}\n"},{"End":"CodeBlock"}]

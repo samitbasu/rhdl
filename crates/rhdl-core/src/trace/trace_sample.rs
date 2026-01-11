@@ -23,10 +23,15 @@ impl<T: Digital, S: Digital> std::fmt::Display for TracedSample<T, S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "@{}: {:?} -> {:?}",
+            "@{}: {:?} -> {:?} [{}]",
             self.time,
             self.input.typed_bits(),
-            self.output.typed_bits()
+            self.output.typed_bits(),
+            if self.page.is_some() {
+                "traced"
+            } else {
+                "untraced"
+            }
         )
     }
 }
