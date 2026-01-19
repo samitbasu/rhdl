@@ -3,17 +3,13 @@
 In the context of the `Circuit` trait, the compute kernel is specified in the `CircuitIO` trait.  Recall the `CircuitIO` trait
 
 ```rust
-pub trait CircuitIO: 'static + CircuitDQ {
-    type I: Timed;
-    type O: Timed;
-    type Kernel: DigitalFn + DigitalFn2<A0 = Self::I, A1 = Self::Q, O = (Self::O, Self::D)>;
-}
+{{#rustdoc_include ../code/src/circuits/io.rs:circuit_io}}
 ```
 
 The line of interest is this one:
 
 ```rust
-type Kernel: DigitalFn + DigitalFn2<A0 = Self::I, A1 = Self::Q, O = (Self::O, Self::D)>;
+{{#rustdoc_include ../code/src/circuits/kernels.rs:kernel-def}}
 ```
 
 which in words says that the `Kernel` type satisfies the following constraints
@@ -41,70 +37,37 @@ b +------+--->|         |
 The output type for the circuit is defined as:
 
 ```rust
-#[derive(Digital, Copy, Clone, Timed, PartialEq)]
-pub struct Outputs {
-    pub sum: Signal<bool, Red>,
-    pub carry: Signal<bool, Red>,
-}
+{{#rustdoc_include ../code/src/circuits/kernels.rs:half-adder-outputs}}
 ```
 
 The circuit itself is 
 
 ```rust
-#[derive(Circuit, Clone)]
-pub struct HalfAdder {
-    xor: xor::XorGate,
-    and: and::AndGate,
-}
+{{#rustdoc_include ../code/src/circuits/kernels.rs:half-adder}}
 ```
 
-And the `CircuitIO` trait is defined as
+And the `CircuitIO` trait is implemented as
 
 ```rust
-impl CircuitIO for HalfAdder {
-    type I = Signal<(bool, bool), Red>;
-    type O = Outputs;
-    type Kernel = half_adder;
-}
+{{#rustdoc_include ../code/src/circuits/kernels.rs:half-adder-io}}
 ```
 
 For completeness, the `D` and `Q` types are defined explicitly in this case:
 
 ```rust
-#[derive(Digital, Copy, Clone, Timed, PartialEq)]
-pub struct D {
-    xor: <xor::XorGate as CircuitIO>::I,
-    and: <and::AndGate as CircuitIO>::I,
-}
+{{#rustdoc_include ../code/src/circuits/kernels.rs:half-adder-d}}
 ```
 
 and the `Q` type must be defined as
 
 ```rust
-#[derive(Digital, Copy, Clone, Timed, PartialEq)]
-pub struct Q {
-    xor: <xor::XorGate as CircuitIO>::O,
-    and: <and::AndGate as CircuitIO>::O,
-}
+{{#rustdoc_include ../code/src/circuits/kernels.rs:half-adder-q}}
 ```
 
 Finally, the `half_adder` kernel is defined as:
 
 ```rust
-#[kernel]
-pub fn half_adder(i: Signal<(bool, bool), Red>, q: Q) -> (Outputs, D) {
-    // D is the set of inputs for the internal components
-    let d = D {
-        xor: i, 
-        and: i, // 👈 Digital : Copy, so no cloning needed
-    };
-    // Q is the output of those internal components
-    let o = Outputs {
-        sum: q.xor,
-        carry: q.and,
-    };
-    (o, d)
-}
+{{#rustdoc_include ../code/src/circuits/kernels.rs:half-adder-kernel}}
 ```
 
 Note the important things:

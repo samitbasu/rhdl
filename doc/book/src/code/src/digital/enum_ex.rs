@@ -71,8 +71,6 @@ impl Digital for OpCode {
 // ANCHOR: test_opcode_layout
 fn test_opcode_layout() {
     let svg = OpCode::static_kind().svg("OpCode");
-    if !std::path::Path::new("opcode.svg").exists() {
-        std::fs::write("opcode.svg", svg.to_string()).unwrap();
-    }
+    std::fs::write("opcode.svg", svg.to_string()).unwrap();
 }
 // ANCHOR_END: test_opcode_layout

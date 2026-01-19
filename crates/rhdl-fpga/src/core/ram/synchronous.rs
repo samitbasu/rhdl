@@ -355,13 +355,13 @@ mod tests {
         let expected = test.map(|item| item.1).take(16);
         let stream = inputs.with_reset(1).clock_pos_edge(100);
         let sim = uut.run(stream);
-        let vcd = sim.clone().collect::<Vcd>();
+        let vcd = sim.clone().collect::<VcdFile>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("ram")
             .join("synchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["f7ed9c54f8704572dde03600cfcfdc43bfbd917c2fe76758309e47425311f1ea"];
+        let expect = expect!["733894af03614fc12879e029f3454473944d6bf5861d7f752583b44cb1cb7c92"];
         let digest = vcd
             .dump_to_file(root.join("test_scan_out_ram.vcd"))
             .unwrap();

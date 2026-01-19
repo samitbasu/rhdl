@@ -28,11 +28,7 @@ Recall from the foundational diagram that the circuit inputs and outputs are enc
 The way we specify these types is via the `CircuitIO` trait.  Here is the definition of that trait:
 
 ```rust
-pub trait CircuitIO: 'static + CircuitDQ {
-    type I: Timed;
-    type O: Timed;
-    type Kernel: DigitalFn + DigitalFn2<A0 = Self::I, A1 = Self::Q, O = (Self::O, Self::D)>;
-}
+{{#rustdoc_include ../code/src/circuits/io.rs:circuit_io}}
 ```
 
 Ignoring the `Kernel` associated type for the moment, we see that `I: Timed` and `O: Timed`.  In general, a `Timed` type is either:
@@ -46,28 +42,13 @@ See the [Timed Types](../timed/summary.md) section for more information about th
 The `CircuitIO` trait cannot be auto-derived by RHDL, since only you know what the input and output types of the circuit are.  For example in the [Half Adder](../half_adder/half_adder.md), the input is a pair of boolean signals that result in a `sum` and `carry` signal.  Here are the types involved:
 
 ```rust
-#[derive(Digital, Copy, Clone, Timed, PartialEq)]
-pub struct Outputs {
-    pub sum: Signal<bool, Red>,
-    pub carry: Signal<bool, Red>,
-}
-
-impl CircuitIO for HalfAdder {
-    type I = Signal<(bool, bool), Red>;
-    type O = Outputs;
-    type Kernel = half_adder; // 👈 function `half_adder` is decorated with #[kernel]
-}
+{{#rustdoc_include ../code/src/circuits/io.rs:half_adder_io}}
 ```
 
 The [CircuitIO] trait also links the compute kernel to the circuit.  This is done by annotating a function with the appropriate signature with a `#[kernel]` and then providing it's name _as a type_ to the `CircuitIO` trait as the associated type `Kernel`.  For example, in the most trivial example of an [Xor Gate](../xor_gate/summary.md), the kernel is 
 
 ```rust
-#use rhdl::prelude::*;
-pub fn xor_gate(i: Signal<(bool, bool), Red>, q: ()) -> (Signal<bool, Red>, ()) {
-     let (a, b) = i.val(); // a and b are both bool
-     let c = a ^ b; // Exclusive OR
-     (signal(c), ())
-}
+{{#rustdoc_include ../code/src/circuits/io.rs:xor_gate_kernel}}
 ```
 
 ```admonish note

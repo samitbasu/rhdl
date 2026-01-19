@@ -63,12 +63,12 @@ mod tests {
         let input = std::iter::repeat_n((), 1000)
             .with_reset(1)
             .clock_pos_edge(100);
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input).collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["3462662854117b22e41e9422a9ba27c0373b017018a52b92d89d1e7871c8fff0"];
+        let expect = expect!["de3c5c8555c39f6b8dbd88e86d84fbb9a15bdf034fb518167b31322f4e8e2d7e"];
         let digest = vcd.dump_to_file(root.join("sync_fifo.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
@@ -82,7 +82,7 @@ mod tests {
             .clock_pos_edge(100)
             .skip_while(|x| x.time < 2000)
             .take_while(|x| x.time <= 3000);
-        let svg = uut.run(input).collect::<Svg>();
+        let svg = uut.run(input).collect::<SvgFile>();
         let options = SvgOptions::default();
         let expect = expect_file!["sync_fifo.svg.expect"];
         expect.assert_eq(&svg.to_string(&options).unwrap());

@@ -33,8 +33,6 @@ pub enum OpCode {
 // ANCHOR: main
 fn test_opcode_derived_layout() {
     let svg = OpCode::static_kind().svg("OpCode (Autoderive)");
-    if !std::path::Path::new("opcode_derived.svg").exists() {
-        std::fs::write("opcode_derived.svg", svg.to_string()).unwrap();
-    }
+    std::fs::write("opcode_derived.svg", svg.to_string()).unwrap();
 }
 // ANCHOR_END: main

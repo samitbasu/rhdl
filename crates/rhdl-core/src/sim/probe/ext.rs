@@ -8,7 +8,7 @@ use super::{
     glitch_check::{GlitchCheck, glitch_check},
     sample_at_pos_edge::{SampleAtPosEdge, sample_at_pos_edge},
     synchronous_sample::{SynchronousSample, synchronous_sample},
-    vcd_file::{VCDFile, vcd_file},
+    vcd_tap::{VcdTap, vcd_tap},
 };
 
 /// Extension trait to add probe methods to iterators
@@ -34,7 +34,7 @@ pub trait ProbeExt<I, S, U> {
         U: Digital,
         T: Digital;
     /// Create a VCD file-writing probe over the supplied stream of traced samples.
-    fn vcd_file(self, file: &Path) -> VCDFile<I>
+    fn vcd_file(self, file: &Path) -> VcdTap<I>
     where
         Self: Sized,
         I: Iterator<Item = TracedSample<S, U>>,
@@ -71,8 +71,8 @@ where
         glitch_check(self, clock_fn)
     }
 
-    fn vcd_file(self, file: &Path) -> VCDFile<I> {
-        vcd_file(self, file)
+    fn vcd_file(self, file: &Path) -> VcdTap<I> {
+        vcd_tap(self, file)
     }
 
     fn edge_time<F, T>(self, data_fn: F) -> EdgeTime<T, I, F>

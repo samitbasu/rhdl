@@ -1,10 +1,6 @@
 use rhdl::prelude::*;
 
-use rhdl_core::trace::{
-    TraceContainer,
-    session::Session,
-    svg::{SvgFile, options::SvgOptions},
-};
+use rhdl_core::trace::{container::TraceContainer, session::Session};
 use test_log::test;
 
 #[derive(Circuit, Clone)]
@@ -103,7 +99,7 @@ fn test_vcd() {
     let inputs = [(false, false), (false, true), (true, false), (true, true)];
     let mut state = gate.init();
     let session = Session::default();
-    let mut vcd = Vcd::default();
+    let mut vcd = VcdFile::default();
     for (time, inp) in inputs.iter().cycle().take(5).enumerate() {
         let sample = session.traced_at_time((time * 100) as u64, || {
             let _output = gate.sim(signal(*inp), &mut state);

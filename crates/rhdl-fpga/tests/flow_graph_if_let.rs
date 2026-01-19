@@ -44,12 +44,12 @@ fn stream() -> impl Iterator<Item = TimedSample<(ClockReset, Option<(bool, b8)>)
 fn test_trace() -> miette::Result<()> {
     let uut = U::default();
     let input = stream();
-    let vcd = uut.run(input).collect::<Vcd>();
+    let vcd = uut.run(input).collect::<VcdFile>();
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("vcd")
         .join("flow_graph_if_let");
     std::fs::create_dir_all(&root).unwrap();
-    let expect = expect!["b5f6a5a0bbaf1da08f5d67d1f603eb579323ee890e5b044ec6c6fb3b301b7757"];
+    let expect = expect!["d72104cfbc6cc807fa3ffa02a9fb12a6b1384361f2df7f70d9801b0b6a766a87"];
     let digest = vcd
         .dump_to_file(root.join("flow_graph_if_let.vcd"))
         .unwrap();

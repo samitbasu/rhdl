@@ -209,13 +209,13 @@ mod tests {
         });
         //        let input = test_stream();
         let uut = AsyncFIFO::<Bits<8>, Red, Blue, 5>::default();
-        let vcd = uut.run(input.clone()).collect::<Vcd>();
+        let vcd = uut.run(input.clone()).collect::<VcdFile>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo")
             .join("asynchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["6ea6fd8b66bbcc4b8b5c0097921fec5dc5c938a6147580dbf420a6b6c8e852a6"];
+        let expect = expect!["e9199109530eec5fbc5498fc75ee31db61451e4b58e74f3fcd40c94b5614fc58"];
         let digest = vcd
             .dump_to_file(root.join("async_fifo_write_test.vcd"))
             .unwrap();

@@ -31,7 +31,7 @@ fn main() -> Result<(), RHDLError> {
         .with_reset(1)
         .clock_pos_edge(100);
     let uut = SyncBRAM::new((0..).map(|x| (b4(x), b8(x))));
-    let vcd = uut.run(input).collect::<Svg>();
+    let vcd = uut.run(input).collect::<SvgFile>();
     let options = SvgOptions::default();
     write_svg_as_markdown(vcd, "sync_bram.md", options)?;
     Ok(())

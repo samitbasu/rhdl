@@ -253,13 +253,13 @@ mod tests {
         let expected = vec![142, 0, 100, 0, 0, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23]
             .into_iter()
             .map(|x| signal(bits(x)));
-        let vcd = uut.run(stream.clone()).collect::<Vcd>();
+        let vcd = uut.run(stream.clone()).collect::<VcdFile>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("ram")
             .join("option_async");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["ca4d34a0c5a04a200e24276c9ca2870d1e6040e2444e7ba587c307455be8a80f"];
+        let expect = expect!["e5a28d3bc7c3fb17ae819e8ceb943dc87c3894b3d6a111ebadc33c963ef06327"];
         let digest = vcd.dump_to_file(root.join("ram_write.vcd")).unwrap();
         expect.assert_eq(&digest);
         let output = uut

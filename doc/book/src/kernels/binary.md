@@ -22,15 +22,6 @@ The missing operators are either division type operators `%` and `/` or the rang
 
 Because the operators behave the same in RHDL and rust, there isn't much more to explain.  The primary caveats around edge cases have already been covered in the [bits] section.  The following example shows some basic expression examples:
 
-```rust,kernel:binary
-#[kernel]
-fn kernel(a: b8, b: b8) -> bool {
-    let c = a * b - b;
-    let c = a & c;
-    let mut d = c + b;
-    d >>= 2;
-    !((d >= a) || (a == b))
-}
+```rust
+{{#rustdoc_include ../code/src/kernels/binary.rs:step_1}}
 ```
-
-

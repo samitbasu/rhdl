@@ -1,4 +1,4 @@
-use crate::{BitX, Kind, TypedBits, trace::svg::waveform::Waveform, types::path::Path};
+use crate::{BitX, Kind, TypedBits, trace::container::svg::waveform::Waveform, types::path::Path};
 
 #[derive(Debug, Clone)]
 struct IndentedLabel {

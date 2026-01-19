@@ -18,8 +18,6 @@ pub struct Things {
 // ANCHOR: main
 fn derived_thing() {
     let svg = Things::static_kind().svg("Things (Autoderive)");
-    if !std::path::Path::new("things_derived.svg").exists() {
-        std::fs::write("things_derived.svg", svg.to_string()).unwrap();
-    }
+    std::fs::write("things_derived.svg", svg.to_string()).unwrap();
 }
 // ANCHOR_END: main

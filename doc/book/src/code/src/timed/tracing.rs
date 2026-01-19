@@ -24,12 +24,8 @@ fn make_trace_waveform() -> Result<(), RHDLError> {
     let svg = uut
         .run(inputs)
         .take_while(|x| x.time <= 1000)
-        .collect::<Svg>();
-    let options = SvgOptions {
-        //label_width: 20,
-        ..Default::default()
-    }
-    .with_io_filter();
+        .collect::<SvgFile>();
+    let options = SvgOptions::default().with_io_filter();
     std::fs::write("time_tracing_waveform.svg", svg.to_string(&options)?)?;
     // ANCHOR_END: time_tracing_waveform
     Ok(())

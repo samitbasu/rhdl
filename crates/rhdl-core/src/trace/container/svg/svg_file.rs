@@ -1,35 +1,30 @@
-//! SVG Trace File Generation Module.
+//! SVG trace file container
+
 use std::sync::{Arc, RwLock};
 
 use crate::{
     Digital, Kind, TypedBits,
     trace::{
-        TraceContainer, TraceId,
-        meta::TraceMetadata,
-        svg::{
-            bucket::bucketize,
-            color::compute_trace_color_from_path,
-            label::rewrite_trace_names_into_tree,
-            layout::make_svg_document,
-            options::SvgOptions,
-            paths::{pretty_leaf_paths, try_path},
-            waveform::{Region, Waveform},
+        TraceId,
+        container::{
+            TraceContainer,
+            svg::{
+                bucket::bucketize,
+                color::compute_trace_color_from_path,
+                gap,
+                label::rewrite_trace_names_into_tree,
+                layout::make_svg_document,
+                options::SvgOptions,
+                paths::{pretty_leaf_paths, try_path},
+                waveform::{Region, Waveform},
+            },
         },
+        meta::TraceMetadata,
         trace_sample::TracedSample,
         trace_tree::TraceTree,
     },
     types::path::Path,
 };
-
-pub(crate) mod bucket;
-pub(crate) mod color;
-pub(crate) mod drawable;
-pub(crate) mod gap;
-pub(crate) mod label;
-pub(crate) mod layout;
-pub mod options;
-pub(crate) mod paths;
-pub(crate) mod waveform;
 
 type TimeAndSample = (u64, TypedBits);
 
@@ -77,7 +72,13 @@ impl<T: Digital, S: Digital> FromIterator<TracedSample<T, S>> for SvgFile {
 }
 
 impl SvgFile {
-    fn build_time_trace(&self, trace_id: TraceId, kind: Kind, path: &Path) -> Box<[Region]> {
+    fn build_time_trace(
+        &self,
+        tail: u64,
+        trace_id: TraceId,
+        kind: Kind,
+        path: &Path,
+    ) -> Box<[Region]> {
         let trace_color = compute_trace_color_from_path(kind, path).unwrap_or_default();
         let sliced = self
             .inner
@@ -85,12 +86,12 @@ impl SvgFile {
             .unwrap()
             .iter()
             .map(|(time, value)| (*time, try_path(value, path)));
-        bucketize(sliced, trace_color)
+        bucketize(tail, sliced, trace_color)
             .iter()
             .map(|bucket| bucket.into())
             .collect()
     }
-    fn trace_out(&self, name: &str, trace_id: TraceId, waves: &mut Vec<Waveform>) {
+    fn trace_out(&self, tail: u64, name: &str, trace_id: TraceId, waves: &mut Vec<Waveform>) {
         let Some(db) = self.db.as_ref() else {
             return;
         };
@@ -103,7 +104,7 @@ impl SvgFile {
             pretty_leaf_paths(kind, Path::default())
                 .into_iter()
                 .map(|path| {
-                    let data = self.build_time_trace(trace_id, kind, &path);
+                    let data = self.build_time_trace(tail, trace_id, kind, &path);
                     Waveform {
                         label: format!("{name}{path:?}"),
                         hint: Default::default(),
@@ -112,14 +113,14 @@ impl SvgFile {
                 }),
         )
     }
-    fn write(&self, top: &str, tree: &TraceTree, waves: &mut Vec<Waveform>) {
+    fn write(&self, tail: u64, top: &str, tree: &TraceTree, waves: &mut Vec<Waveform>) {
         for (name, subtree) in &tree.children {
-            self.write(&format!("{top}.{name}"), subtree, waves);
+            self.write(tail, &format!("{top}.{name}"), subtree, waves);
         }
         for (name, trace_id) in &tree.signals {
             let name = format!("{top}.{name}");
             let name_sanitized = name.replace("::", "__");
-            self.trace_out(&name_sanitized, *trace_id, waves);
+            self.trace_out(tail, &name_sanitized, *trace_id, waves);
         }
     }
     /// Finalize the SVG trace file, writing it to the given output.
@@ -133,7 +134,8 @@ impl SvgFile {
         };
         let trace_tree = db.read().unwrap().build_trace_tree();
         let mut waves = Vec::new();
-        self.write("top", &trace_tree, &mut waves);
+        let tail = options.tail_flush_time;
+        self.write(tail, "top", &trace_tree, &mut waves);
         let gaps = gap::segment_time(&self.times, options);
         rewrite_trace_names_into_tree(waves.as_mut_slice());
         let mut svg_waves = waves
@@ -151,6 +153,12 @@ impl SvgFile {
         // Space the waveforms, and leave one space for the header
         for (i, wave) in svg_waves.iter_mut().enumerate() {
             wave.set_start_y((i + 1) as i32 * spacing);
+        }
+        // Calculate the maximum label width
+        let max_width = svg_waves.iter().map(|w| w.label_width()).max().unwrap_or(0);
+        // Shift all waveforms so they have the same label width
+        for wave in svg_waves.iter_mut() {
+            wave.set_label_width(max_width);
         }
         let doc = make_svg_document(&svg_waves, &self.times, &gaps, options);
         svg::write(&mut out, &doc)?;

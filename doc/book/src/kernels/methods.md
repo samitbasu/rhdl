@@ -33,15 +33,7 @@ For the handful of method calls that are currently supported in RHDL, here is th
 
 These method calls are all special cased inside the RHDL compiler.  There are checks to ensure that you don't try to `impl` these on your own types, but mostly these make no sense for aggregate data structures.  
 
-```rust,kernel:methods
-#[kernel]
-pub fn kernel(a: b8, b: s8) -> bool {
-    let x = a.any();  let y = b.any();
-    let x = x && a.all();  let y = y && b.all();
-    let x = x && a.xor();  let y = y && b.xor();
-    let a_as_s8 : s8 = a.as_signed();
-    let b_as_b8 : b8 = b.as_unsigned();
-    (a_as_s8 == b) && (b_as_b8 == a) && x && y
-}
+```rust
+{{#rustdoc_include ../code/src/kernels/methods.rs:step_1}}
 ```
 

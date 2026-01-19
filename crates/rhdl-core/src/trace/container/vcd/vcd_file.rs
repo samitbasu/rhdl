@@ -1,4 +1,4 @@
-//! A filter/inspector that writes trace pages to a VCD file.
+//! A VCD file to contain trace samples.
 
 use std::{
     io::Seek,
@@ -12,30 +12,34 @@ use vcd::IdCode;
 use crate::{
     Digital, RHDLError, TraceBit,
     trace::{
-        TraceContainer, TraceId, meta::TraceMetadata, trace_sample::TracedSample,
+        TraceId,
+        container::{TraceContainer, vcd::options::VcdOptions},
+        meta::TraceMetadata,
+        trace_sample::TracedSample,
         trace_tree::TraceTree,
     },
 };
 
 /// A VCD trace container that writes trace pages to a VCD file.
 /// See the [book] for examples on how to use it.
-pub struct Vcd {
+pub struct VcdFile {
     buffer: std::io::BufWriter<SpooledTempFile>,
     next_id_code: IdCode,
     id_code_map: fnv::FnvHashMap<TraceId, Box<[u8]>>,
     prev_values: fnv::FnvHashMap<TraceId, Box<[TraceBit]>>,
     db: Option<Arc<RwLock<TraceMetadata>>>,
+    last_time: u64,
 }
 
-impl Default for Vcd {
+impl Default for VcdFile {
     fn default() -> Self {
-        Vcd::new()
+        VcdFile::new()
     }
 }
 
-impl<T: Digital, S: Digital> FromIterator<TracedSample<T, S>> for Vcd {
+impl<T: Digital, S: Digital> FromIterator<TracedSample<T, S>> for VcdFile {
     fn from_iter<I: IntoIterator<Item = TracedSample<T, S>>>(iter: I) -> Self {
-        let mut vcd = Vcd::new();
+        let mut vcd = VcdFile::new();
         for sample in iter {
             vcd.record(&sample)
                 .expect("Failed to record sample into VCD");
@@ -44,7 +48,7 @@ impl<T: Digital, S: Digital> FromIterator<TracedSample<T, S>> for Vcd {
     }
 }
 
-impl Vcd {
+impl VcdFile {
     /// Create a new empty VCD trace container.
     pub fn new() -> Self {
         let buffer = std::io::BufWriter::new(SpooledTempFile::new(100 * 1024 * 1024));
@@ -54,6 +58,7 @@ impl Vcd {
             id_code_map: fnv::FnvHashMap::default(),
             prev_values: fnv::FnvHashMap::default(),
             db: None,
+            last_time: 0,
         }
     }
     fn write_scope(
@@ -105,7 +110,11 @@ impl Vcd {
             .clone()
     }
     /// Finalize the VCD file, writing headers and flushing the buffer.
-    pub fn finalize(mut self, mut out: impl std::io::Write) -> std::io::Result<()> {
+    pub fn finalize(
+        mut self,
+        options: &VcdOptions,
+        mut out: impl std::io::Write,
+    ) -> std::io::Result<()> {
         let Some(db) = self.db.as_ref() else {
             return Ok(());
         };
@@ -121,13 +130,14 @@ impl Vcd {
         let mut body = self.buffer.into_inner()?;
         body.seek(std::io::SeekFrom::Start(0))?;
         std::io::copy(&mut body, &mut out)?;
+        writeln!(out, "#{}", self.last_time + options.tail_flush_time)?;
         Ok(())
     }
     /// Dump the VCD file to the given path, returning the SHA256 hash of the file.
     pub fn dump_to_file(self, path: impl AsRef<std::path::Path>) -> std::io::Result<String> {
         use sha2::Digest;
         let mut file = std::fs::File::create(&path)?;
-        self.finalize(&mut file)?;
+        self.finalize(&VcdOptions::default(), &mut file)?;
         let mut file = std::fs::File::open(path)?;
         let mut hash = sha2::Sha256::default();
         std::io::copy(&mut file, &mut hash)?;
@@ -136,12 +146,12 @@ impl Vcd {
     /// Finalize the VCD file, returning it as a string.
     pub fn to_string(self) -> std::io::Result<String> {
         let mut buf = Vec::new();
-        self.finalize(&mut buf)?;
+        self.finalize(&VcdOptions::default(), &mut buf)?;
         Ok(String::from_utf8(buf).unwrap())
     }
 }
 
-impl TraceContainer for Vcd {
+impl TraceContainer for VcdFile {
     fn record<T: Digital, S: Digital>(
         &mut self,
         sample: &TracedSample<T, S>,
@@ -152,6 +162,7 @@ impl TraceContainer for Vcd {
             }
             // Write the time stamp
             self.buffer.write_fmt(format_args!("#{}\n", sample.time))?;
+            self.last_time = sample.time;
             let mut sbuf = Vec::new();
             for record in page.records() {
                 let value = record.data.trace();

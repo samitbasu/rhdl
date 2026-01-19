@@ -141,12 +141,12 @@ fn test_input_stream() -> impl Iterator<Item = TimedSample<(ClockReset, Option<(
 fn test_trace() -> miette::Result<()> {
     let uut = U::default();
     let input = test_input_stream();
-    let vcd = uut.run(input).collect::<Vcd>();
+    let vcd = uut.run(input).collect::<VcdFile>();
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("vcd")
         .join("lid");
     std::fs::create_dir_all(&root).unwrap();
-    let expect = expect!["47297f586b1a4978d665a21d807da6b05c98c4cfac5a24f890af38a0d11c17df"];
+    let expect = expect!["40b74dbf9404332485b553cf9bda33c24816ecc78611d72874711cc4c3422ab8"];
     let digest = vcd.dump_to_file(root.join("twist.vcd")).unwrap();
     expect.assert_eq(&digest);
     Ok(())

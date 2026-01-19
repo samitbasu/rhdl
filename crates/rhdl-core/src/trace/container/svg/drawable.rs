@@ -1,4 +1,4 @@
-use crate::trace::svg::color::TraceColor;
+use crate::trace::container::svg::color::TraceColor;
 
 #[derive(Clone, Debug)]
 pub(crate) struct Drawable {
@@ -20,6 +20,7 @@ pub(crate) enum RegionKind {
 }
 
 /// A waveform that has been converted into SVG regions for rendering.
+#[derive(Debug)]
 pub(crate) struct DrawableList(pub Box<[Drawable]>);
 
 impl DrawableList {
@@ -41,5 +42,22 @@ impl DrawableList {
             .map(|r| r.start_y + spacing)
             .max()
             .unwrap_or_default()
+    }
+    pub(crate) fn label_width(&self) -> i32 {
+        self.0
+            .iter()
+            .find(|r| matches!(r.kind, RegionKind::Label))
+            .map(|r| r.width)
+            .unwrap_or(0)
+    }
+    pub(crate) fn set_label_width(&mut self, width: i32) {
+        let delta = width - self.label_width();
+        for region in self.0.iter_mut() {
+            if !matches!(region.kind, RegionKind::Label) {
+                region.start_x += delta;
+            } else {
+                region.width += delta;
+            }
+        }
     }
 }

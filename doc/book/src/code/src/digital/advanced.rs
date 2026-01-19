@@ -16,9 +16,7 @@ pub enum OpCodeLsb {
 #[test]
 fn lsb_svg_test() {
     let svg = OpCodeLsb::static_kind().svg("OpCodeLsb (Autoderive LSB)");
-    if !std::path::Path::new("opcode_lsb_derived.svg").exists() {
-        std::fs::write("opcode_lsb_derived.svg", svg.to_string()).unwrap();
-    }
+    std::fs::write("opcode_lsb_derived.svg", svg.to_string()).unwrap();
 }
 // ANCHOR_END: lsb_svg_test
 
@@ -44,9 +42,7 @@ pub enum OpCode {
 #[test]
 fn disc4bit_svg_test() {
     let svg = OpCode::static_kind().svg("OpCode (4 bit discriminant)");
-    if !std::path::Path::new("opcode_4bit_derived.svg").exists() {
-        std::fs::write("opcode_4bit_derived.svg", svg.to_string()).unwrap();
-    }
+    std::fs::write("opcode_4bit_derived.svg", svg.to_string()).unwrap();
 }
 // ANCHOR_END: disc4bit
 
@@ -67,9 +63,7 @@ pub enum State {
 #[test]
 fn state_naive_svg_test() {
     let svg = State::static_kind().svg("State (Naive)");
-    if !std::path::Path::new("state_naive.svg").exists() {
-        std::fs::write("state_naive.svg", svg.to_string()).unwrap();
-    }
+    std::fs::write("state_naive.svg", svg.to_string()).unwrap();
 }
 // ANCHOR_END: state-naive-test
 
@@ -106,9 +100,7 @@ pub enum State1Hot {
 #[test]
 fn state_one_hot_svg_test() {
     let svg = State1Hot::static_kind().svg("State (One-Hot)");
-    if !std::path::Path::new("state_one_hot.svg").exists() {
-        std::fs::write("state_one_hot.svg", svg.to_string()).unwrap();
-    }
+    std::fs::write("state_one_hot.svg", svg.to_string()).unwrap();
 }
 // ANCHOR_END: one-hot-test
 
@@ -129,7 +121,5 @@ pub enum StateSigned {
 #[test]
 fn state_signed_svg_test() {
     let svg = StateSigned::static_kind().svg("State (Signed Discriminant)");
-    if !std::path::Path::new("state_signed_disc.svg").exists() {
-        std::fs::write("state_signed_disc.svg", svg.to_string()).unwrap();
-    }
+    std::fs::write("state_signed_disc.svg", svg.to_string()).unwrap();
 }

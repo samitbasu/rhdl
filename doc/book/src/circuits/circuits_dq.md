@@ -34,10 +34,7 @@ If this seems strange, well, it is a little.  But real circuitry behaves _exactl
 The `CircuitDQ` trait is pretty simple, and only tells part of the story:
 
 ```rust
-pub trait CircuitDQ: 'static {
-    type D: Timed;
-    type Q: Timed;
-}
+{{#rustdoc_include ../code/src/circuits/dq.rs:circuit-dq}}
 ```
 
 It explicitly requires that we define the two types `D` and `Q`, and that they `impl Timed`.  In general a `Timed` type is either a `Signal<T, D>` where `T: Digital` and `D: Domain` or `()`.
@@ -51,46 +48,25 @@ However, the trait does not provide the full set of constraints on the `D` and `
 It's easier to illustrate than explain.  Suppose we have a circuit that contains 3 subcircuits of type `A`, `B` and `C`, and suppose that these circuits are members of the parent circuit `X` with field names `child_1`, `child_2` and `child_3`.  So the declaration of `X` looks like
 
 ```rust
-#[derive(Circuit)]
-pub struct X {
-    child_1: A,
-    child_2: B,
-    child_3: C
-}
+{{#rustdoc_include ../code/src/circuits/dq.rs:circuit-x}}
 ```
 
 In this case, the type of `D` must be equivalent to:
 
 ```rust
-#[derive(Digital, Timed, Clone, Copy, PartialEq)]
-pub struct D {
-    child_1: <A as CircuitIO>::I,
-    child_2: <B as CircuitIO>::I,
-    child_3: <C as CircuitIO>::I,
-}
+{{#rustdoc_include ../code/src/circuits/dq.rs:circuit-x-d}}
 ```
 
 and similarly, the type of `Q` must be equivalent to
 
 ```rust
-#[derive(Digital, Timed, Clone, Copy, PartialEq)]
-pub struct Q {
-    child_1: <A as CircuitIO>::O,
-    child_2: <B as CircuitIO>::O,
-    child_3: <C as CircuitIO>::O,
-}
+{{#rustdoc_include ../code/src/circuits/dq.rs:circuit-x-q}}
 ```
 
 There is a macro that automatically derives these exact type definitions, and you can simply add it to the list for `X`:
 
 ```rust
-//                  👇 new!
-#[derive(Circuit, CircuitDQ)]
-pub struct X {
-    child_1: A,
-    child_2: B,
-    child_3: C
-}
+{{#rustdoc_include ../code/src/circuits/dq.rs:circuit-x-derive}}
 ```
 
 This will cause RHDL to derive a pair of structs named `D` and `Q` and give them the definitions described above (with the appropriate generics as needed).

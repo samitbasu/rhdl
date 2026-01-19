@@ -124,12 +124,12 @@ mod tests {
     fn test_delay_trace() -> miette::Result<()> {
         let uut = Delay::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input).collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("delay");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["2f2a752159c21bb9c1faf5d0ea640ee811a2f6e01bbec65fd044c9924acd50f8"];
+        let expect = expect!["2740086796477a9137b6c6205b46a92ca6e7bd7bad63233aa84d2710ae219e0e"];
         let digest = vcd.dump_to_file(root.join("delay.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

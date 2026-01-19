@@ -49,12 +49,12 @@ fn test_auto_counter_counts() -> miette::Result<()> {
         .with_reset(1)
         .clock_pos_edge(100);
     let uut = auto_counter::U::<4>::default();
-    let vcd = uut.run(input).collect::<Vcd>();
+    let vcd = uut.run(input).collect::<VcdFile>();
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("vcd")
         .join("chain_func");
     std::fs::create_dir_all(&root).unwrap();
-    let expect = expect!["3f85fc11ea2ae6ccbc480b1a0f3525365b0f22e302f7f1cfd9eebbe23c05922f"];
+    let expect = expect!["bd315cd399d9110b1919c983d26d89091c64330c265c14cd9c01a1ab077a9d23"];
     let digest = vcd.dump_to_file(root.join("auto_counter.vcd")).unwrap();
     expect.assert_eq(&digest);
     Ok(())

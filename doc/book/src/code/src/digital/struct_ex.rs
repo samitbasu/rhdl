@@ -59,8 +59,6 @@ impl Digital for Things {
 // ANCHOR: struct-layout
 fn test_struct_layout() {
     let svg = Things::static_kind().svg("Things");
-    if !std::path::Path::new("things.svg").exists() {
-        std::fs::write("things.svg", svg.to_string()).unwrap();
-    }
+    std::fs::write("things.svg", svg.to_string()).unwrap();
 }
 // ANCHOR_END: struct-layout

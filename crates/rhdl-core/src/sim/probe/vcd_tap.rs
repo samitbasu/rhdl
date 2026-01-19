@@ -3,27 +3,30 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     Digital,
-    trace::{TraceContainer, trace_sample::TracedSample, vcd::Vcd},
+    trace::{
+        container::{TraceContainer, vcd::vcd_file::VcdFile},
+        trace_sample::TracedSample,
+    },
 };
 
 /// A probe that writes traced samples to a VCD file without consuming them.
 /// See the [book] for an example of its use.
-pub struct VCDFile<I> {
-    inner: Vcd,
+pub struct VcdTap<I> {
+    inner: VcdFile,
     iter: I,
     file_name: PathBuf,
 }
 
 /// Create a VCD file-writing probe over the supplied stream of traced samples.
-pub fn vcd_file<I>(stream: I, file: &Path) -> VCDFile<I> {
-    VCDFile {
-        inner: Vcd::default(),
+pub fn vcd_tap<I>(stream: I, file: &Path) -> VcdTap<I> {
+    VcdTap {
+        inner: VcdFile::default(),
         iter: stream,
         file_name: file.to_path_buf(),
     }
 }
 
-impl<T, S, I> Iterator for VCDFile<I>
+impl<T, S, I> Iterator for VcdTap<I>
 where
     T: Digital,
     S: Digital,

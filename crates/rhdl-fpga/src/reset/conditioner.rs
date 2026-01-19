@@ -296,13 +296,13 @@ mod tests {
     fn test_reset_conditioner_function() -> miette::Result<()> {
         let uut = ResetConditioner::<Red, Blue>::default();
         let input = sync_stream();
-        let output = uut.run(input).collect::<Vcd>();
+        let output = uut.run(input).collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("reset")
             .join("conditioner");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["fec90288ec3d30bb6e7d6c92c8d8b787be9987caf5fa706aa9487fd7b9bcd252"];
+        let expect = expect!["6ec9ef04a8e4fa4491f04d938360b2b6d98c2bf520d5b329e76e2fadff3645fc"];
         let digest = output
             .dump_to_file(root.join("reset_conditioner.vcd"))
             .unwrap();

@@ -100,7 +100,7 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let svg = uut.run(input.take(100)).collect::<Svg>();
+        let svg = uut.run(input.take(100)).collect::<SvgFile>();
         let svg = svg.to_string(&Default::default()).into_diagnostic()?;
         let expect = expect_file!["async_fifo.svg.expect"];
         expect.assert_eq(&svg);
@@ -121,12 +121,12 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let vcd = uut.run(input.take(10000)).collect::<Vcd>();
+        let vcd = uut.run(input.take(10000)).collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["fd371831ec299169033aac74bbad443cbadb09a207923799d189a5bbe5e36edd"];
+        let expect = expect!["1f89a3914e6d15aed160f71ee547f66f136af0eb0f921ec31703a510a98eb461"];
         let digest = vcd.dump_to_file(root.join("async_fifo_trace.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

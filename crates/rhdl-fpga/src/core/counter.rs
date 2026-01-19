@@ -94,12 +94,12 @@ mod tests {
         let input = inputs_1.chain(inputs_2);
         let input = input.clock_pos_edge(100);
         let uut: Counter<6> = Counter::default();
-        let vcd: Vcd = uut.run(input).collect();
+        let vcd: VcdFile = uut.run(input).collect();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("counter");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["c64b3514ea7c0e710acdf4c2a2d629339e52b65b540643986e32abe5636df339"];
+        let expect = expect!["a97a2ac58fdd55fd47cc061e1d8303fd6e27d9ec7219b23e7a6d75d9ea3712ae"];
         let digest = vcd.dump_to_file(root.join("counter.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

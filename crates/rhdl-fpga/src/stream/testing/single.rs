@@ -72,12 +72,12 @@ mod tests {
         let input = std::iter::repeat_n((), 5000)
             .with_reset(1)
             .clock_pos_edge(100);
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input).collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!("b535883f68098943bf3ae128433b43952a7696a1c4b9c73c64339d2da8c4f611");
+        let expect = expect!("ac28edb1d8ca17b61b4ced2421fc639c8b8c79b0359728bc4b9acc6e19cb3c4d");
         let digest = vcd.dump_to_file(root.join("single.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

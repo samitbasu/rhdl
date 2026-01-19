@@ -1,8 +1,6 @@
-use std::option;
-
 use crate::{
     Color,
-    trace::svg::{
+    trace::container::svg::{
         color::TraceColor,
         drawable::{DrawableList, RegionKind},
         gap::GapList,
@@ -37,6 +35,19 @@ fn fill_color(color: TraceColor) -> &'static str {
     }
 }
 
+fn get_label_size(waveforms: &[DrawableList]) -> i32 {
+    waveforms
+        .iter()
+        .map(|w| {
+            w.0.iter()
+                .find(|region| matches!(region.kind, RegionKind::Label))
+                .map(|region| region.width)
+                .unwrap_or(0)
+        })
+        .max()
+        .unwrap_or(0)
+}
+
 pub(crate) fn make_svg_document(
     waveforms: &[DrawableList],
     times: &[u64],
@@ -51,6 +62,7 @@ pub(crate) fn make_svg_document(
     let Some(end_time) = times.last().copied() else {
         return svg::Document::new();
     };
+    let end_time = end_time + options.tail_flush_time;
     let width = waveforms.iter().map(|w| w.width()).max().unwrap_or(0);
     let height = waveforms
         .iter()
@@ -78,9 +90,7 @@ pub(crate) fn make_svg_document(
         .set("fill", "#0B151D")
         .set("stroke", "darkblue");
     document = document.add(background);
-
-    // FIXME let label_end = options.label_width as f32 * options.font_size_in_pixels;
-    let label_end = 20.0 * options.font_size_in_pixels;
+    let label_end = get_label_size(waveforms) as f32;
     let times = (0..)
         .map(|ndx| ndx * time_delta - start_time)
         .take_while(|t| *t <= end_time)

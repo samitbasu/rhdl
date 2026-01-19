@@ -26,7 +26,7 @@ Reflection is another feature of the `Synchronous` trait that operates exactly l
 At run time, we can retrieve `Descriptor` structs for the child circuits using the `children` method, which provides an iterator over the child circuits, returning a descriptor for each one:
 
 ```rust
-    fn children(&self, parent_scope: &ScopedName) -> impl Iterator<Item = Result<Descriptor<SyncKind>, RHDLError>>;
+{{#rustdoc_include ../../code/src/synchronous.rs:children}}
 ```
 
 For the diagrammed circuit above, this method would probably look something like:

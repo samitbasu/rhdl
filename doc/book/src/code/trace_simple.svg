@@ -1,0 +1,141 @@
+<svg viewBox="0 0 760 80" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<clipPath id="clip">
+<rect height="80" width="760" x="0" y="0"/>
+</clipPath>
+</defs>
+<rect fill="#0B151D" height="80" stroke="darkblue" width="760" x="0" y="0"/>
+<line stroke="#333333" stroke-width="1" x1="160" x2="160" y1="0" y2="80"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="160" y="10">
+0
+</text>
+<line stroke="#333333" stroke-width="1" x1="260" x2="260" y1="0" y2="80"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="260" y="10">
+100
+</text>
+<line stroke="#333333" stroke-width="1" x1="360" x2="360" y1="0" y2="80"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="360" y="10">
+200
+</text>
+<line stroke="#333333" stroke-width="1" x1="460" x2="460" y1="0" y2="80"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="460" y="10">
+300
+</text>
+<line stroke="#333333" stroke-width="1" x1="560" x2="560" y1="0" y2="80"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="560" y="10">
+400
+</text>
+<line stroke="#333333" stroke-width="1" x1="660" x2="660" y1="0" y2="80"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="660" y="10">
+500
+</text>
+<line stroke="#333333" stroke-width="1" x1="760" x2="760" y1="0" y2="80"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="end" x="760" y="10">
+600
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" y="10">
+Time:
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="30">
+.kernel_1.a
+<title>top.kernel_1.a</title>
+</text>
+<path d="M 160 30 L 163 23 L 257 23 L 260 30 L 257 37 L 163 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="210" xml:space="preserve" y="30">
+00
+<title>00</title>
+</text>
+<path d="M 260 30 L 263 23 L 357 23 L 360 30 L 357 37 L 263 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="310" xml:space="preserve" y="30">
+04
+<title>04</title>
+</text>
+<path d="M 360 30 L 363 23 L 457 23 L 460 30 L 457 37 L 363 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="410" xml:space="preserve" y="30">
+0f
+<title>0f</title>
+</text>
+<path d="M 460 30 L 463 23 L 557 23 L 560 30 L 557 37 L 463 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="510" xml:space="preserve" y="30">
+17
+<title>17</title>
+</text>
+<path d="M 560 30 L 563 23 L 657 23 L 660 30 L 657 37 L 563 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="610" xml:space="preserve" y="30">
+2a
+<title>2a</title>
+</text>
+<path d="M 660 30 L 663 23 L 757 23 L 760 30 L 757 37 L 663 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="710" xml:space="preserve" y="30">
+38
+<title>38</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="50">
+.kernel_1.b
+<title>top.kernel_1.b</title>
+</text>
+<path d="M 160 50 L 163 43 L 257 43 L 260 50 L 257 57 L 163 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="210" xml:space="preserve" y="50">
+05
+<title>05</title>
+</text>
+<path d="M 260 50 L 263 43 L 357 43 L 360 50 L 357 57 L 263 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="310" xml:space="preserve" y="50">
+0d
+<title>0d</title>
+</text>
+<path d="M 360 50 L 363 43 L 457 43 L 460 50 L 457 57 L 363 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="410" xml:space="preserve" y="50">
+2a
+<title>2a</title>
+</text>
+<path d="M 460 50 L 463 43 L 557 43 L 560 50 L 557 57 L 463 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="510" xml:space="preserve" y="50">
+40
+<title>40</title>
+</text>
+<path d="M 560 50 L 563 43 L 657 43 L 660 50 L 657 57 L 563 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="610" xml:space="preserve" y="50">
+55
+<title>55</title>
+</text>
+<path d="M 660 50 L 663 43 L 757 43 L 760 50 L 757 57 L 663 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="710" xml:space="preserve" y="50">
+7f
+<title>7f</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
+.kernel_1.output
+<title>top.kernel_1.output</title>
+</text>
+<path d="M 160 70 L 163 63 L 257 63 L 260 70 L 257 77 L 163 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="210" xml:space="preserve" y="70">
+05
+<title>05</title>
+</text>
+<path d="M 260 70 L 263 63 L 357 63 L 360 70 L 357 77 L 263 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="310" xml:space="preserve" y="70">
+11
+<title>11</title>
+</text>
+<path d="M 360 70 L 363 63 L 457 63 L 460 70 L 457 77 L 363 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="410" xml:space="preserve" y="70">
+39
+<title>39</title>
+</text>
+<path d="M 460 70 L 463 63 L 557 63 L 560 70 L 557 77 L 463 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="510" xml:space="preserve" y="70">
+57
+<title>57</title>
+</text>
+<path d="M 560 70 L 563 63 L 657 63 L 660 70 L 657 77 L 563 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="610" xml:space="preserve" y="70">
+7f
+<title>7f</title>
+</text>
+<path d="M 660 70 L 663 63 L 757 63 L 760 70 L 757 77 L 663 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="710" xml:space="preserve" y="70">
+b7
+<title>b7</title>
+</text>
+</svg>

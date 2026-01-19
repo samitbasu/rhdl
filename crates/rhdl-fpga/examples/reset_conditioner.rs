@@ -26,7 +26,7 @@ fn main() -> Result<(), RHDLError> {
     let vcd = uut
         .run(input)
         .take_while(|t| t.time < 1400)
-        .collect::<Svg>();
+        .collect::<SvgFile>();
     write_svg_as_markdown(vcd, "reset_conditioner.md", SvgOptions::default())?;
     Ok(())
 }

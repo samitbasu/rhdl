@@ -43,11 +43,7 @@ will use a unit test
 {{#rustdoc_include ../code/src/digital/advanced.rs:lsb_svg_test}}
 ```
 
-If we run this test, it will generate the SVG output
-
-<!-- cmdrun to-html "cd ../code && cargo test lsb_svg_test -- --no-capture 2>&1" -->
-
-The resulting SVG is as follows:
+If we run this test, it will generate the SVG output:
 
 ![OpCode with LSB discriminant SVG](../code/opcode_lsb_derived.svg)
 

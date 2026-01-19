@@ -39,7 +39,7 @@ fn main() -> Result<(), RHDLError> {
             100,
         )
         .take_while(|t| t.time < 1500)
-        .collect::<Svg>();
+        .collect::<SvgFile>();
     let options = SvgOptions::default().with_filter("(^top.input(.*))|(^top.outputs(.*))");
     write_svg_as_markdown(vcd, "sync_fifo.md", options)?;
     Ok(())

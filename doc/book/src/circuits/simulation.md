@@ -3,13 +3,7 @@
 It is quite simple to "roll" your own simulation once you have a circuit.  Recall from the definition of the `Circuit` trait:
 
 ```rust
-pub trait Circuit: 'static + CircuitIO + Sized {
-    type S: Clone + PartialEq;
-
-    fn init(&self) -> Self::S;
-    fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O;
-    // snip
-}
+{{#rustdoc_include ../code/src/circuits/traits.rs:circuit_trait}}
 ```
 
 Thus, for any struct `T` that `impl Circuit`, we can write a simulation loop that looks like:

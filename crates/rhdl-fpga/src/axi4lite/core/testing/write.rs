@@ -122,7 +122,7 @@ mod tests {
         };
         let input = repeat_n((), 250);
         let input = input.with_reset(1).clock_pos_edge(100);
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input).collect::<VcdFile>();
         vcd.dump_to_file("axi_write.vcd")?;
         Ok(())
     }

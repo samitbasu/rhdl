@@ -198,13 +198,13 @@ mod tests {
     fn basic_write_then_read_test() -> miette::Result<()> {
         let uut = SyncFIFO::<Bits<8>, 3>::default();
         let stream = test_seq();
-        let vcd = uut.run(stream).collect::<Vcd>();
+        let vcd = uut.run(stream).collect::<VcdFile>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo")
             .join("synchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["98895c206770062d11b8c3ffa7e314969d9d9a3412ff603218bd40aac6c90ef0"];
+        let expect = expect!["c8aeeca7936778fb820641b3cb5dd9c243d402672012ffd1ca3a65bf8dce4689"];
         let digest = vcd.dump_to_file(root.join("fifo.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

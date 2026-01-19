@@ -28,6 +28,8 @@ pub struct SvgOptions {
     pub auto_gap_detection: Option<GapDetectionOptions>,
     /// Amount of space to represent each gap
     pub gap_space: u64,
+    /// Tail flush time (how long past the last event to continue drawing)
+    pub tail_flush_time: u64,
 }
 
 // Generate an iterator that yields 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, etc.
@@ -105,6 +107,7 @@ impl Default for SvgOptions {
             name_filters: None,
             auto_gap_detection: None,
             gap_space: 100,
+            tail_flush_time: 100,
         }
     }
 }

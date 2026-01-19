@@ -99,13 +99,13 @@ mod tests {
     fn test_stream_function() -> miette::Result<()> {
         let uut = NegatingConditioner::<Red, Blue>::default();
         let stream = istream();
-        let vcd = uut.run(stream).collect::<Vcd>();
+        let vcd = uut.run(stream).collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("reset")
             .join("negating_conditioner");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["58d27e6ed2271dc9b2367e6ef8684aecf66ce8dd4cd764d87347972bfaf60f8b"];
+        let expect = expect!["db4885cc2e280eb0e6f612efe0fb3ddedd7161b5476b944c270e52fe817e2ea4"];
         let digest = vcd
             .dump_to_file(root.join("negating_conditioner.vcd"))
             .unwrap();

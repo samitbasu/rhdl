@@ -1,4 +1,4 @@
-use crate::{TypedBits, trace::svg::color::TraceColor};
+use crate::{TypedBits, trace::container::svg::color::TraceColor};
 
 /// A bucket representing a contiguous time span where the value is the same.
 /// Stores the data as [TypedBits] along with start and end time.  Also
@@ -12,6 +12,7 @@ pub(crate) struct Bucket {
 }
 
 pub(crate) fn bucketize(
+    tail: u64,
     data: impl IntoIterator<Item = (u64, Option<TypedBits>)>,
     color: TraceColor,
 ) -> Box<[Bucket]> {
@@ -45,7 +46,7 @@ pub(crate) fn bucketize(
     if let Some(data) = last_data {
         buckets.push(Bucket {
             start: start_time,
-            end: last_time,
+            end: last_time + tail,
             color,
             data,
         });

@@ -137,13 +137,13 @@ mod tests {
                 },
                 100,
             )
-            .collect::<Vcd>();
+            .collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["a6e5437b58d448b2b42dfed9ccd2c45e672c5025963608b7105229d499df2902"];
+        let expect = expect!["892d03775b57f8ef4b3a5f97560970fccacf9d5557749b1c2f65f9842f8930b4"];
         let digest = vcd.dump_to_file(root.join("register.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

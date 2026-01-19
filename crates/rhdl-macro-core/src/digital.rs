@@ -21,16 +21,11 @@ fn derive_digital_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
         Data::Struct(s) => match s.fields {
             syn::Fields::Named(_) => derive_digital_named_struct(decl),
             syn::Fields::Unnamed(_) => derive_digital_tuple_struct(decl),
-            syn::Fields::Unit => Err(syn::Error::new(
-                s.fields.span(),
-                "Unit structs are not digital",
-            )),
+            syn::Fields::Unit => derive_digital_unit_struct(decl),
         },
         _ => Err(syn::Error::new(decl.span(), "Only structs can be digital")),
     }
 }
-
-//  Add the module path to the name
 
 fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
@@ -53,9 +48,9 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 .collect::<Vec<_>>();
             Ok(quote! {
                 impl #impl_generics rhdl::core::Digital for #struct_name #ty_generics #where_clause {
-                    const BITS: usize = #(
-                        <#field_types as rhdl::core::Digital>::BITS
-                    )+*;
+                    const BITS: usize = 0_usize #(
+                        + <#field_types as rhdl::core::Digital>::BITS
+                    )*;
                     fn static_kind() -> rhdl::core::Kind {
                         rhdl::core::Kind::make_struct(
                             #fqdn,
@@ -71,7 +66,7 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         #(
                             self.#fields.bin(),
                         )*
-                        ].concat().into()
+                        ].concat::<rhdl::core::BitX>().into()
                     }
                     fn dont_care() -> Self {
                         Self(
@@ -92,6 +87,28 @@ fn derive_digital_tuple_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     }
 }
 
+fn derive_digital_unit_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
+    let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
+    let name = &decl.ident;
+    Ok(quote! {
+        impl #impl_generics rhdl::core::Digital for #name #ty_generics #where_clause {
+            const BITS: usize = 0;
+            fn static_kind() -> rhdl::core::Kind {
+                rhdl::core::Kind::make_struct(
+                    stringify!(#name),
+                    [].into(),
+                )
+            }
+            fn bin(self) -> Box<[rhdl::core::BitX]> {
+                [].into()
+            }
+            fn dont_care() -> Self {
+                Self {}
+            }
+        }
+    })
+}
+
 fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &decl.ident;
     let (impl_generics, ty_generics, where_clause) = decl.generics.split_for_impl();
@@ -104,6 +121,19 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 .filter(|f| !parse_rhdl_skip_attribute(&f.attrs))
                 .map(|field| &field.ident)
                 .collect::<Vec<_>>();
+            let bin_body = if fields.is_empty() {
+                quote! {
+                    [].into()
+                }
+            } else {
+                quote! {
+                    [
+                    #(
+                        self.#fields.bin(),
+                    )*
+                    ].concat::<rhdl::core::BitX>().into()
+                }
+            };
             let field_types = s
                 .fields
                 .iter()
@@ -112,9 +142,9 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                 .collect::<Vec<_>>();
             Ok(quote! {
                 impl #impl_generics rhdl::core::Digital for #struct_name #ty_generics #where_clause {
-                    const BITS: usize = #(
-                        <#field_types as rhdl::core::Digital>::BITS
-                    )+*;
+                    const BITS: usize = 0_usize #(
+                        + <#field_types as rhdl::core::Digital>::BITS
+                    )*;
                     fn static_kind() -> rhdl::core::Kind {
                         rhdl::core::Kind::make_struct(
                             #fqdn,
@@ -126,11 +156,7 @@ fn derive_digital_named_struct(decl: DeriveInput) -> syn::Result<TokenStream> {
                         )
                     }
                     fn bin(self) -> Box<[rhdl::core::BitX]> {
-                        [
-                        #(
-                            self.#fields.bin(),
-                        )*
-                        ].concat().into()
+                        #bin_body
                     }
                     fn dont_care() -> Self {
                         Self {
@@ -163,6 +189,26 @@ mod test {
         let output = derive_digital(decl).unwrap().to_string();
         let expected = expect_file!["expect/digital_proc_macro.expect"];
         expected.assert_debug_eq(&output);
+    }
+
+    #[test]
+    fn test_digital_with_unit_struct() {
+        let decl = quote!(
+            pub struct EmptyStruct;
+        );
+        let output = derive_digital(decl).unwrap().to_string();
+        let expected = expect_file!["expect/digital_with_unit_struct.expect"];
+        expected.assert_eq(&output);
+    }
+
+    #[test]
+    fn test_digital_with_no_fields() {
+        let decl = quote!(
+            pub struct EmptyNamedStruct {}
+        );
+        let output = derive_digital(decl).unwrap().to_string();
+        let expected = expect_file!["expect/digital_with_no_fields.expect"];
+        expected.assert_eq(&output);
     }
 
     #[test]

@@ -420,12 +420,12 @@ mod tests {
     fn test_synchronizer_function() -> miette::Result<()> {
         let uut = Sync1Bit::<Red, Blue>::default();
         let input = sync_stream();
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input).collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("synchronizer");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["4ef0cb6fffd0e5f5c88d9e91adaf9c68ca4be2af1f4762bd7b462b1f7b5fc247"];
+        let expect = expect!["a4d4d8a0caab0f31d3574ab1802589d57c1ad375e9be109c8d672e3e48064d8b"];
         let digest = vcd.dump_to_file(root.join("synchronizer.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
