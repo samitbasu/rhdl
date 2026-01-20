@@ -1,0 +1,13 @@
+| time | clock | reset | value |
+|------|-------|-------|-------|
+| 0 |   false   |   false   |  0_b8 |
+| 5 |   true   |   false   |  0_b8 |
+| 6 |   true   |   false   |  1_b8 |
+| 10 |   false   |   false   |  1_b8 |
+| 15 |   true   |   false   |  1_b8 |
+| 16 |   true   |   false   |  2_b8 |
+| 20 |   false   |   false   |  2_b8 |
+| 25 |   true   |   false   |  2_b8 |
+| 26 |   true   |   false   |  3_b8 |
+| 30 |   false   |   false   |  3_b8 |
+| 35 |   true   |   false   |  3_b8 |

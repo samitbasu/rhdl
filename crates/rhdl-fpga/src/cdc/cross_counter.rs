@@ -159,12 +159,12 @@ where
 /// The kernel function for the cross-counter.
 pub fn cross_counter_kernel<W: Domain, R: Domain, const N: usize>(
     input: In<W, R>,
-    q: Q<W, R, N>,
-) -> (Out<R, N>, D<W, R, N>)
+    q: CrossCounterQ<W, R, N>,
+) -> (Out<R, N>, CrossCounterD<W, R, N>)
 where
     rhdl::bits::W<N>: BitWidth,
 {
-    let mut d = D::<W, R, { N }>::dont_care();
+    let mut d = CrossCounterD::<W, R, { N }>::dont_care();
     // The counter increments each time the input is high
     d.counter.clock_reset = input.incr_cr;
     d.counter.input = signal(q.counter.val() + if input.incr.val() { 1 } else { 0 });

@@ -84,6 +84,7 @@ pub use rhdl_core::circuit::fixture::Fixture;
 pub use rhdl_core::circuit::fixture::MountPoint;
 pub use rhdl_core::circuit::fixture::passthrough_input_driver;
 pub use rhdl_core::circuit::fixture::passthrough_output_driver;
+pub use rhdl_core::circuit::scoped_name::ScopedName;
 pub use rhdl_core::const_max;
 pub use rhdl_core::ntl::builder::circuit_black_box;
 pub use rhdl_core::ntl::builder::constant;

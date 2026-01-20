@@ -22,6 +22,7 @@ pub mod delay {
 
     use super::*;
     #[derive(Clone, Synchronous, SynchronousDQ, Default)]
+    #[rhdl(dq_no_prefix)]
     pub struct DelayLine {
         stage_0: DFF<Option<b6>>,
         stage_1: DFF<Option<b6>>,
@@ -62,6 +63,7 @@ pub mod delay {
               +------------+               
 ")]
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 struct TestFixture {
     source: SourceFromFn<b6>,
     delay: DelayLine,

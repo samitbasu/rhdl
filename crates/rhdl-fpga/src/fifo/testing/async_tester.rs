@@ -53,13 +53,13 @@ where
 /// Tester kernel
 pub fn fixture_kernel<W: Domain, R: Domain, const N: usize, const Z: usize>(
     i: In<W, R>,
-    q: Q<W, R, N, Z>,
-) -> (Signal<bool, R>, D<W, R, N, Z>)
+    q: AsyncFIFOTesterQ<W, R, N, Z>,
+) -> (Signal<bool, R>, AsyncFIFOTesterD<W, R, N, Z>)
 where
     rhdl::bits::W<Z>: BitWidth,
     rhdl::bits::W<N>: BitWidth,
 {
-    let mut d = D::<W, R, N, Z>::dont_care();
+    let mut d = AsyncFIFOTesterD::<W, R, N, Z>::dont_care();
     // The filler needs access to the full signal of the FIFO
     d.filler.clock_reset = i.cr_w;
     d.filler.input = signal(crate::fifo::testing::filler::In {
@@ -126,7 +126,7 @@ mod tests {
             .join("vcd")
             .join("fifo");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["1f89a3914e6d15aed160f71ee547f66f136af0eb0f921ec31703a510a98eb461"];
+        let expect = expect!["bc780ffd4d71974653b50f7a63f9e08f3c1fe3ea828f6e6ec910916d2d815f4c"];
         let digest = vcd.dump_to_file(root.join("async_fifo_trace.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

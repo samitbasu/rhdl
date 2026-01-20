@@ -1,1 +1,1 @@
-# [derive (PartialEq , Digital , Clone , Copy , Timed)] # [doc (hidden)] pub struct Q ; # [derive (PartialEq , Digital , Clone , Copy , Timed)] # [doc (hidden)] pub struct D ; impl rhdl :: core :: CircuitDQ for EmptyStruct { type Q = Q ; type D = D ; }
+# [derive (PartialEq , Digital , Clone , Copy , Timed)] # [doc (hidden)] pub struct EmptyStructQ { } # [derive (PartialEq , Digital , Clone , Copy , Timed)] # [doc (hidden)] pub struct EmptyStructD { } impl rhdl :: core :: CircuitDQ for EmptyStruct { type Q = EmptyStructQ ; type D = EmptyStructD ; }

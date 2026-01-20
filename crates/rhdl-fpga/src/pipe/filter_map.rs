@@ -59,6 +59,7 @@ use rhdl::prelude::*;
 use crate::core::dff::DFF;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The FilterMap Core
 ///
 /// Here `T` is the input type, and `S` is the

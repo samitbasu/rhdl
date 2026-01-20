@@ -33,6 +33,7 @@ use crate::{
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 pub struct TestFixture {
     req_source: SourceFromFn<b32>,
     controller: ReadController,

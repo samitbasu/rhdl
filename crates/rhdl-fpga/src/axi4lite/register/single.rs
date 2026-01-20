@@ -57,6 +57,7 @@ use crate::{
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// AXI Register
 ///
 /// This core provides a single dual-ported register

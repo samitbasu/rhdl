@@ -71,6 +71,7 @@ use crate::stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO};
 use super::Ready;
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ, Default)]
+#[rhdl(dq_no_prefix)]
 /// The [Tee] Core
 ///
 /// This core takes a single stream of type `(S,T)`, and connects to
@@ -156,6 +157,7 @@ mod tests {
     use crate::stream::testing::utils::stalling;
 
     #[derive(Clone, Synchronous, SynchronousDQ)]
+    #[rhdl(dq_no_prefix)]
     struct TestFixture {
         source: SourceFromFn<(b4, b6)>,
         tee: Tee<b4, b6>,

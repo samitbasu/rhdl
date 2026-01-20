@@ -64,7 +64,7 @@ pub mod circuit_x_2 {
     impl CircuitIO for X {
         type I = ();
         type O = ();
-        type Kernel = NoCircuitKernel<(), Q, ((), D)>;
+        type Kernel = NoCircuitKernel<(), XQ, ((), XD)>;
     }
 
     // ANCHOR: circuit-x-derive

@@ -39,6 +39,8 @@ use crate::{
 };
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
+
 /// The FIFO Filler core
 pub struct FIFOFiller<const N: usize>
 where
@@ -161,7 +163,7 @@ mod tests {
             .join("fifo")
             .join("filler");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["f1917d397c6c5c6014505810431f31f8bf1925f2ba2e7e0c75fd82d4678605e0"];
+        let expect = expect!["ce7fdab274cd6e358d38c416687abe606645373a563e208ff46fe81bd3250134"];
         let digest = vcd.dump_to_file(root.join("filler.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

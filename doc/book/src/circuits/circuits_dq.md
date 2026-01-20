@@ -69,9 +69,9 @@ There is a macro that automatically derives these exact type definitions, and yo
 {{#rustdoc_include ../code/src/circuits/dq.rs:circuit-x-derive}}
 ```
 
-This will cause RHDL to derive a pair of structs named `D` and `Q` and give them the definitions described above (with the appropriate generics as needed).
+This will cause RHDL to derive a pair of structs named `XD` and `XQ` (and more generally, for a struct of name `Name`, a pair of structs named `NameD` and `NameQ`) and give them the definitions described above (with the appropriate generics as needed).
 
 ```admonish note
-It might seem like `D` and `Q` should have just been defined as tuples, so that `D = (child_1::I, child_2::I, ...)` and similarly `Q = (child_1::O, child_2::O, ...)`.  And while from a Rust idiomatic perspective, these definitions may be the best, they do not lead to particularly clean kernels.  The approach I adopted here is messier because there is an implicit requirement on `D` and `Q` that is not otherwise expressed.  An alternate strategy would have been to define a pair of _traits_ and then `impl` the traits on structs.  I'm not sure the extra complexity is really worth it.  But I acknowledge that this aspect of the implementation is not particularly elegant.
+It might seem like `XD` and `XQ` should have just been defined as tuples, so that `D = (child_1::I, child_2::I, ...)` and similarly `Q = (child_1::O, child_2::O, ...)`.  And while from a Rust idiomatic perspective, these definitions may be the best, they do not lead to particularly clean kernels.  The approach I adopted here is messier because there is an implicit requirement on `D` and `Q` that is not otherwise expressed.  An alternate strategy would have been to define a pair of _traits_ and then `impl` the traits on structs.  I'm not sure the extra complexity is really worth it.  But I acknowledge that this aspect of the implementation is not particularly elegant.
 ```
 

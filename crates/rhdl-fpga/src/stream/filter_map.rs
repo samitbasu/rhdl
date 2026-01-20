@@ -69,6 +69,7 @@ use crate::stream::ready_cast;
 use super::{stream_buffer::StreamBuffer, StreamIO};
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The FilterMap Core
 ///
 /// Here `T` is the input type, and `S` is the

@@ -7,6 +7,7 @@
 use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+#[rhdl(dq_no_prefix)]
 /// This core provides a synchronous test fixture
 pub struct SyncTester<const N: usize, const Z: usize>
 where
@@ -68,7 +69,7 @@ mod tests {
             .join("vcd")
             .join("fifo");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["de3c5c8555c39f6b8dbd88e86d84fbb9a15bdf034fb518167b31322f4e8e2d7e"];
+        let expect = expect!["315235f31f740c096205435da96cdaacb1e8821f0d6e0e39c1f9661eab4bbc04"];
         let digest = vcd.dump_to_file(root.join("sync_fifo.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

@@ -61,6 +61,7 @@ use rhdl::prelude::*;
 use crate::{core::option::pack, lid::carloni::Carloni, stream::Ready};
 
 #[derive(Clone, Default, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// AXI to RHDL Stream Shim
 ///
 /// This core provides a shim to convert an AXI stream
@@ -133,6 +134,7 @@ mod tests {
     use super::Axi2Rhdl;
 
     #[derive(Clone, Synchronous, SynchronousDQ)]
+    #[rhdl(dq_no_prefix)]
     struct TestFixture {
         source: SourceFromFn<b8>,
         axi_2_rhdl: Axi2Rhdl<b8>,

@@ -3,6 +3,7 @@ use rhdl::prelude::*;
 use rhdl_fpga::core::dff;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+#[rhdl(dq_no_prefix)]
 pub struct U {
     reg: dff::DFF<b8>,
 }
@@ -49,7 +50,7 @@ fn test_trace() -> miette::Result<()> {
         .join("vcd")
         .join("flow_graph_if_let");
     std::fs::create_dir_all(&root).unwrap();
-    let expect = expect!["d72104cfbc6cc807fa3ffa02a9fb12a6b1384361f2df7f70d9801b0b6a766a87"];
+    let expect = expect!["241a61095d6604f2c4dbf81b09388f17ba88af20567f92f095acb6ebae6b422c"];
     let digest = vcd
         .dump_to_file(root.join("flow_graph_if_let.vcd"))
         .unwrap();

@@ -64,9 +64,9 @@ impl<W: Domain, R: Domain> CircuitIO for NegatingConditioner<W, R> {
 #[doc(hidden)]
 pub fn negating_conditioner_kernel<W: Domain, R: Domain>(
     i: In<W, R>,
-    q: Q<W, R>,
-) -> (Signal<Reset, R>, D<W, R>) {
-    let mut d = D::<W, R>::dont_care();
+    q: NegatingConditionerQ<W, R>,
+) -> (Signal<Reset, R>, NegatingConditionerD<W, R>) {
+    let mut d = NegatingConditionerD::<W, R>::dont_care();
     d.neg = i.reset_n;
     d.cond.reset = q.neg;
     d.cond.clock = i.clock;
@@ -105,7 +105,7 @@ mod tests {
             .join("reset")
             .join("negating_conditioner");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["db4885cc2e280eb0e6f612efe0fb3ddedd7161b5476b944c270e52fe817e2ea4"];
+        let expect = expect!["5141a0747854b68a9fb6539f47cf2df9d8fdf008f5cf6fbd29b418ff38d302ff"];
         let digest = vcd
             .dump_to_file(root.join("negating_conditioner.vcd"))
             .unwrap();

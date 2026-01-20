@@ -12,6 +12,7 @@ use crate::{
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 pub struct Fixture {
     write_source: SourceFromFn<WriteCommand>,
     write: WriteController,

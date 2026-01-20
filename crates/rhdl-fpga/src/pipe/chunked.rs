@@ -63,6 +63,7 @@ use rhdl::prelude::*;
 use crate::core::{dff::DFF, option::is_some};
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The Chunked Pipe Core
 ///
 /// This core takes a pipeline of `T` and produces

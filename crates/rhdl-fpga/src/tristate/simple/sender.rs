@@ -34,6 +34,7 @@ pub struct O {
 }
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+#[rhdl(dq_no_prefix)]
 pub struct U {
     state: dff::DFF<State>,
     reg: dff::DFF<b8>,

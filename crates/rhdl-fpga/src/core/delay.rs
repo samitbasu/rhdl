@@ -47,6 +47,7 @@ use rhdl::prelude::*;
 use super::dff;
 
 #[derive(PartialEq, Debug, Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The Delay core
 /// `T` is the type carried by the core
 /// `N` is the length of the delay line
@@ -129,7 +130,7 @@ mod tests {
             .join("vcd")
             .join("delay");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["2740086796477a9137b6c6205b46a92ca6e7bd7bad63233aa84d2710ae219e0e"];
+        let expect = expect!["296ee66b6c71dfaaad5172021ae1fbf8d5cfe208a97b2b05a095e23438de42e3"];
         let digest = vcd.dump_to_file(root.join("delay.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

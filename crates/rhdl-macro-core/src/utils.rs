@@ -75,3 +75,15 @@ pub(crate) fn parse_rhdl_skip_attribute(attrs: &[Attribute]) -> bool {
     }
     false
 }
+
+pub(crate) fn parse_dq_no_prefix_attribute(attrs: &[Attribute]) -> bool {
+    for attr in attrs {
+        if attr.path().is_ident("rhdl")
+            && let Ok(Expr::Path(path)) = attr.parse_args()
+            && path.path.is_ident("dq_no_prefix")
+        {
+            return true;
+        }
+    }
+    false
+}

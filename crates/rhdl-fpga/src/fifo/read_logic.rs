@@ -39,6 +39,7 @@ use crate::core::dff;
 use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+#[rhdl(dq_no_prefix)]
 /// The FIFO read logic as a core
 pub struct FIFOReadCore<const N: usize>
 where

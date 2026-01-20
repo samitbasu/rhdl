@@ -38,6 +38,7 @@ use rhdl::prelude::*;
 use crate::core::dff;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The [XorShift] core.  Note that resetting the
 /// core resets the sequence.
 pub struct XorShift {

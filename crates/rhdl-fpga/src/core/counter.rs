@@ -27,6 +27,7 @@ use rhdl::prelude::*;
 use super::dff;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The counter core
 ///   `N` is the bitwidth of the counter
 pub struct Counter<const N: usize>
@@ -99,7 +100,7 @@ mod tests {
             .join("vcd")
             .join("counter");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["a97a2ac58fdd55fd47cc061e1d8303fd6e27d9ec7219b23e7a6d75d9ea3712ae"];
+        let expect = expect!["8c705ca54284865b48857764d7a5040f4ced6aca93d1085d67a6112ea88c497b"];
         let digest = vcd.dump_to_file(root.join("counter.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

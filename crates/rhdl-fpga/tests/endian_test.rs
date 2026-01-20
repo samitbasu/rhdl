@@ -6,6 +6,7 @@ mod sub {
     use rhdl_fpga::core::dff;
 
     #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+    #[rhdl(dq_no_prefix)]
     pub struct U {
         data: dff::DFF<b2>,
     }
@@ -92,6 +93,7 @@ mod master {
 }
 
 #[derive(Synchronous, SynchronousDQ, Clone, Debug, Default)]
+#[rhdl(dq_no_prefix)]
 struct U {
     sub: sub::U,
     master: master::U,
@@ -146,7 +148,7 @@ fn test_trace() -> miette::Result<()> {
         .join("vcd")
         .join("lid");
     std::fs::create_dir_all(&root).unwrap();
-    let expect = expect!["40b74dbf9404332485b553cf9bda33c24816ecc78611d72874711cc4c3422ab8"];
+    let expect = expect!["006cd8559cb183c8c60dbfb09204738ed4fff1468121baf2f29d14ad4aa49835"];
     let digest = vcd.dump_to_file(root.join("twist.vcd")).unwrap();
     expect.assert_eq(&digest);
     Ok(())

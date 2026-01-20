@@ -48,6 +48,7 @@ use super::read_logic;
 use super::write_logic;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// A simple synchronous FIFO
 ///    `T` is the data type held by the FIFO.
 /// Note that we need `T: Default`.
@@ -204,7 +205,7 @@ mod tests {
             .join("fifo")
             .join("synchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["c8aeeca7936778fb820641b3cb5dd9c243d402672012ffd1ca3a65bf8dce4689"];
+        let expect = expect!["56360464217ac1f39232de8646f49ab24b06879258a0cd9039ff66a350b71dfc"];
         let digest = vcd.dump_to_file(root.join("fifo.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

@@ -67,6 +67,7 @@ use crate::{
 use rhdl::prelude::*;
 
 #[derive(Clone, Synchronous, SynchronousDQ, Default)]
+#[rhdl(dq_no_prefix)]
 /// Lazy, bursty random number generator as
 /// a stream.
 pub struct LazyRng {

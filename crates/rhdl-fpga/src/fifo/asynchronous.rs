@@ -72,7 +72,7 @@ where
 {
     write_logic: Adapter<write_logic::FIFOWriteCore<N>, W>,
     read_logic: Adapter<read_logic::FIFOReadCore<N>, R>,
-    ram: ram::option_async::OptionAsyncBRAM<T, W, R, N>,
+    ram: ram::option_async::OptionAsyncBram<T, W, R, N>,
     read_count_for_write_logic: cross_counter::CrossCounter<R, W, N>,
     write_count_for_read_logic: cross_counter::CrossCounter<W, R, N>,
 }
@@ -120,12 +120,12 @@ where
 /// Async FIFO kernel
 pub fn async_fifo_kernel<T: Digital, W: Domain, R: Domain, const N: usize>(
     i: In<T, W, R>,
-    q: Q<T, W, R, N>,
-) -> (Out<T, W, R>, D<T, W, R, N>)
+    q: AsyncFIFOQ<T, W, R, N>,
+) -> (Out<T, W, R>, AsyncFIFOD<T, W, R, N>)
 where
     rhdl::bits::W<N>: BitWidth,
 {
-    let mut d = D::<T, W, R, N>::dont_care();
+    let mut d = AsyncFIFOD::<T, W, R, N>::dont_care();
     // Clock the various components
     d.write_logic.clock_reset = i.cr_w;
     d.read_logic.clock_reset = i.cr_r;
@@ -215,7 +215,7 @@ mod tests {
             .join("fifo")
             .join("asynchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["e9199109530eec5fbc5498fc75ee31db61451e4b58e74f3fcd40c94b5614fc58"];
+        let expect = expect!["625450e7a3bfef9fa73b72497cd2f97bfe728b5142c9f5fda027ec4c1f23e1a0"];
         let digest = vcd
             .dump_to_file(root.join("async_fifo_write_test.vcd"))
             .unwrap();

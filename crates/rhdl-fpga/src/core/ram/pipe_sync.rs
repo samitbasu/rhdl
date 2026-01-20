@@ -99,6 +99,7 @@ use crate::core::{
 use super::option_sync::OptionSyncBRAM;
 
 #[derive(PartialEq, Debug, Clone, Default, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The unit that implements the [PipeBRAM]
 /// The `T` parameter indicates the type of data held in the BRAM.
 /// The `N` parameter indicates the number of address bits.

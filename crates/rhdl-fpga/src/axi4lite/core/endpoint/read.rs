@@ -119,6 +119,7 @@ use crate::{
 use rhdl::prelude::*;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// AXI Read Endpoint
 ///
 /// This core converts the AXI bus signals into a RHDL stream

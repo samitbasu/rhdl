@@ -19,6 +19,7 @@ pub enum State {
 // This is the core itself.  We derive these
 // 4 traits to provide the needed functions
 #[derive(Synchronous, Clone, Debug, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 pub struct Recognizer {
     state: DFF<State>,
 }

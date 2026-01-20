@@ -26,10 +26,7 @@ The feedback types for `Synchronous` are completely analagous to those of `Circu
 The `SynchronousDQ` trait is simple:
 
 ```rust
-pub trait SynchronousDQ: 'static {
-    type D: Digital;
-    type Q: Digital;
-}
+{{#rustdoc_include ../code/src/synchronous.rs:synchronous-dq}}
 ```
 
 and unlike `CircuitDQ`, the associated types are only required to be `Digital`, not `Timed`.  
@@ -37,46 +34,29 @@ and unlike `CircuitDQ`, the associated types are only required to be `Digital`, 
 Like the case of `Circuit`, the `D` and `Q` have implicit constraints in that they must basically take on predetermined forms to work with RHDL.  For a `Synchronous` circuit `X`:
 
 ```rust
-#[derive(Synchronous)]
-pub struct X {
-    child_1: A,
-    child_2: B,
-    child_3: C
-}
+{{#rustdoc_include ../code/src/synchronous.rs:x-sync-def}}
 ```
 
 In this case, the type of `D` must be equivalent to:
 
 ```rust
-#[derive(Digital, Clone, Copy, PartialEq)]
-pub struct D {
-    child_1: <A as SynchronousIO>::I,
-    child_2: <B as SynchronousIO>::I,
-    child_3: <C as SynchronousIO>::I,
-}
+{{#rustdoc_include ../code/src/synchronous.rs:xd-def}}
 ```
 
 and similarly, the type of `Q` must be equivalent to
 
 ```rust
-#[derive(Digital, Clone, Copy, PartialEq)]
-pub struct Q {
-    child_1: <A as SynchronousIO>::O,
-    child_2: <B as SynchronousIO>::O,
-    child_3: <C as SynchronousIO>::O,
-}
+{{#rustdoc_include ../code/src/synchronous.rs:xq-def}}
 ```
 
 There is a macro that automatically derives these exact type definitions, and you can simply add it to the list for `X`:
 
 ```rust
-//                       👇 new!
-#[derive(Synchronous, SynchronousDQ)]
-pub struct X {
-    child_1: A,
-    child_2: B,
-    child_3: C
-}
+{{#rustdoc_include ../code/src/synchronous.rs:x-sync-derive-def}}
 ```
 
 If using `#[derive]` macros to create new items gives you the heebie-jeebies, then feel free to write the definitions yourself.  If it's any consolation, `Rust Analyzer` seems to be able to understand the derived structs just fine.
+
+```admonish note
+The `SynchronousDQ` derive applied to a struct named `Name` will create a pair of structs named `NameD` and `NameQ` (and more generally, for a struct of name `Name`, a pair of structs named `NameD` and `NameQ`) and give them the definitions described above (with the appropriate generics as needed).  You can force `RHDL` to omit the `Name` prefix by using the attribute `#[rhdl(no_dq_prefix)]` on the struct, but this _will_ cause name collisions if you have multiple circuits in the same module.
+```

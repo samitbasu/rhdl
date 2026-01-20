@@ -10,6 +10,7 @@ use rhdl_fpga::{
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The test fixture has 2 sources feeding
 ///  a [Zip] core and a sink to consume the output.
 struct TestFixture {

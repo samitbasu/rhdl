@@ -11,6 +11,7 @@ use crate::{
 use rhdl::prelude::*;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 pub struct TestFixture {
     controller: BlockReadWriteController,
     register: AxiRegister,
@@ -143,7 +144,7 @@ mod tests {
             .join("axi4lite")
             .join("register");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["892d03775b57f8ef4b3a5f97560970fccacf9d5557749b1c2f65f9842f8930b4"];
+        let expect = expect!["762dac22de9f4fc50f476c1598ba93717a09ffee4025219f37a6e4590f37c05f"];
         let digest = vcd.dump_to_file(root.join("register.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

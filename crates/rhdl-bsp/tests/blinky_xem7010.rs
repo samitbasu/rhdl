@@ -11,6 +11,7 @@ mod blinker {
     use super::*;
 
     #[derive(Clone, Synchronous, SynchronousDQ, Default)]
+    #[rhdl(dq_no_prefix)]
     pub struct U {
         // We need a 32 bit counter.
         counter: rhdl_fpga::core::counter::Counter<32>,

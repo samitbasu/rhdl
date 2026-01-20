@@ -63,6 +63,7 @@ use rhdl::prelude::*;
 use crate::core::dff::DFF;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The [Filter] Pipe Core
 ///
 /// Here `T` is the type flowing in the stream.

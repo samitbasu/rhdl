@@ -10,8 +10,8 @@ impl CircuitIO for AndGate {
 }
 
 #[kernel]
-pub fn and_gate(i: Signal<(bool, bool), Red>, _q: Q) -> (Signal<bool, Red>, D) {
+pub fn and_gate(i: Signal<(bool, bool), Red>, _q: AndGateQ) -> (Signal<bool, Red>, AndGateD) {
     let (a, b) = i.val(); // a and b are both bool
     let c = a & b; // AND operation
-    (signal(c), D {})
+    (signal(c), AndGateD {})
 }

@@ -127,6 +127,7 @@ use rhdl::prelude::*;
 use super::Ready;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// [PipeWrapper] core for wrapping a pipeline into a stream
 ///
 /// This core allows you to run a pipeline (that accepts no backpressure)
@@ -253,6 +254,7 @@ mod tests {
 
         use super::*;
         #[derive(Clone, Synchronous, SynchronousDQ, Default)]
+        #[rhdl(dq_no_prefix)]
         pub struct DelayLine {
             stage_0: DFF<Option<b6>>,
             stage_1: DFF<Option<b6>>,
@@ -293,6 +295,7 @@ mod tests {
               +------------+               
 ")]
     #[derive(Clone, Synchronous, SynchronousDQ)]
+    #[rhdl(dq_no_prefix)]
     struct TestFixture {
         source: SourceFromFn<b6>,
         delay: DelayLine,

@@ -26,22 +26,13 @@ Completely analogous to the case for [CircuitIO](../circuits/circuit_io.md), the
 The `SynchronousIO` trait is short.  Here is the definition of that trait in its entirety:
 
 ```rust
-pub trait SynchronousIO: 'static + SynchronousDQ {
-    type I: Digital;
-    type O: Digital;
-    type Kernel: DigitalFn
-        + DigitalFn3<A0 = ClockReset, A1 = Self::I, A2 = Self::Q, O = (Self::O, Self::D)>;
-}
+{{#rustdoc_include ../code/src/synchronous.rs:synchronous-io}}
 ```
 
 While it looks similar to the `CircuitIO` trait definition:
 
 ```rust
-pub trait CircuitIO: 'static + CircuitDQ {
-    type I: Timed;
-    type O: Timed;
-    type Kernel: DigitalFn + DigitalFn2<A0 = Self::I, A1 = Self::Q, O = (Self::O, Self::D)>;
-}
+{{#rustdoc_include ../code/src/circuits/io.rs:circuit_io}}
 ```
 
 there are a few differences, and they are all significant.  First, note that in the case of `Circuit`, `I: Timed`, and `O: Timed`.  And recall from [here](../circuits/circuit_io.md), that a `Timed` type is either:
@@ -53,12 +44,7 @@ there are a few differences, and they are all significant.  First, note that in 
 On the other hand, note that in the `SynchronousIO` case:
 
 ```rust
-pub trait SynchronousIO: 'static + SynchronousDQ {
-    // snip
-    type I: Digital;
-    type O: Digital;
-    // snip
-}
+{{#rustdoc_include ../code/src/synchronous.rs:synchronous-io-focus}}
 ```
 
 This means that the input and output types are just `Digital`, and _not_ `Timed`.  Here the type system is telling us "no need to indicate the clock domain `D`, because this whole thing is synchronous to the provided clock...".  Because the circuit pinky-promises to change only on the clock edges of the provided clock, and because you promise to only feed it inputs that are synchronous that same clock, RHDL essentially removes all clock related bits from the type signatures of the inputs and outputs.
@@ -66,31 +52,19 @@ This means that the input and output types are just `Digital`, and _not_ `Timed`
 So while in a `Circuit`, you have inputs that are a bit clunky looking, like `Signal<bool, Red>`, in a `Synchronosu`, you can just have `bool`.  The `Signal<_, Red>` is implied, and assumed to be the same as the clock being `Signal<Clock, Red>` (and the reset too).  The same is true for the outputs.  Referring to the simple XOR gate example [here](../xor_gate/the_gate.md), the `CircuitIO` impl is somewhat clunky looking:
 
 ```rust
-impl CircuitIO for XorGate {
-     type I = Signal<(bool, bool), Red>;
-     type O = Signal<bool, Red>;
-     type Kernel = xor_gate;
-}
+{{#rustdoc_include ../code/src/circuits/io.rs:circuit_io}}
 ```
 
 And here, we took a shortcut.  Really an `XorGate` should be usable in any clock domain, which means, that it should really be generic over the clock domain `D`.  So....
 
 ```rust
-impl<D: Domain> CircuitIO for XorGate<D> {
-    type I = Signal<(bool, bool), D>;
-    type O = Signal<bool, D>;
-    type Kernel = xor_gate<D>;
-}
+{{#rustdoc_include ../code/src/synchronous.rs:xor-io-generic}}
 ```
 
 It's not getting any better.  While explicit, and type checked, it is getting harder and harder to read.  A synchronous Xor gate (if there were such a thing) would instead have the following trait implementation
 
 ```rust
-impl SynchronousIO for XorGate {
-    type I = (bool, bool);
-    type O = bool;
-    type Kernel = xor_gate;
-}
+{{#rustdoc_include ../code/src/synchronous.rs:xor-sync-io}}
 ```
 
 Before you decide that you will only use synchronous circuits, just remember that reality is _not_ synchronous.  Sooner or later you will have to deal with the clock domain or asynchrony of the inputs.
@@ -98,19 +72,13 @@ Before you decide that you will only use synchronous circuits, just remember tha
 The other change is in the form of the compute kernel.  For `CircuitIO`, we had:
 
 ```rust
-pub trait CircuitIO: 'static + CircuitDQ {
-    // snip
-    type Kernel: DigitalFn + DigitalFn2<A0 = Self::I, A1 = Self::Q, O = (Self::O, Self::D)>;
-}
+{{#rustdoc_include ../code/src/circuits/io.rs:circuit_io}}
 ```
 
-which stated in words that the `kernel` was a synthesizable function (marked with `#[kernel]`) that had the type signature `fn(I, Q) -> (O, D)`.  For a synchronous circuit, the only difference is that the clock and reset are passed as the first argument:
+For the `Kernel` associated type, we can state in words that the `kernel` is a synthesizable function (marked with `#[kernel]`) that has the type signature `fn(I, Q) -> (O, D)`.  For a synchronous circuit, the only difference is that the clock and reset are passed as the first argument:
 
 ```rust
-pub trait SynchronousIO: 'static + SynchronousDQ {
-    type Kernel: DigitalFn
-        + DigitalFn3<A0 = ClockReset, A1 = Self::I, A2 = Self::Q, O = (Self::O, Self::D)>;
-}
+{{#rustdoc_include ../code/src/synchronous.rs:synchronous-io}}
 ```
 
 so that the `kernel` function is of the form `fn(ClockReset, I, Q) -> (O, D)`.  Having the `reset` available to the `kernel` is critical for implementing reset behavior.  The `clock` is less useful, but it's there if for some reason you need to do something with it.

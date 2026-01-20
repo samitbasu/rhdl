@@ -51,6 +51,7 @@ use crate::core::option::is_some;
 use super::{Ready, StreamIO};
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The [Xfer] core
 ///
 /// Emits a `run` pulse on every clock cycle where a
@@ -112,6 +113,7 @@ mod tests {
     };
 
     #[derive(Clone, Synchronous, SynchronousDQ)]
+    #[rhdl(dq_no_prefix)]
     pub struct TestFixture {
         source: SourceFromFn<b4>,
         count: DFF<b16>,

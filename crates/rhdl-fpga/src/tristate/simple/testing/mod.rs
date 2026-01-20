@@ -4,6 +4,7 @@ use crate::tristate::simple::receiver;
 use crate::tristate::simple::sender;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+#[rhdl(dq_no_prefix)]
 pub struct U {
     pub snd: sender::U,
     pub rcv: receiver::U,
@@ -51,7 +52,7 @@ mod tests {
             .join("vcd")
             .join("tristate");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["5ae2d0e3c4e9642075ad9b5ed7c061f3f85e71ba5221b4fca5d0259534d592ee"];
+        let expect = expect!["acb8eb9739400be1ff525d61b66c6ec1b38162dbf43e4fb460ebe00748b7f75b"];
         let digest = vcd.dump_to_file(root.join("basic.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

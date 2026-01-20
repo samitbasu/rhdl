@@ -67,6 +67,7 @@ use rhdl::{
 use super::{ready_cast, stream_buffer::StreamBuffer, StreamIO};
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The Map Core (Stream Version)
 ///
 /// Here `T` is the input type, and `S` is the

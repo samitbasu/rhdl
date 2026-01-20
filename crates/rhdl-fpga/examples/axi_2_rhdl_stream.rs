@@ -7,6 +7,7 @@ use rhdl_fpga::{
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 struct TestFixture {
     source: SourceFromFn<b8>,
     axi_2_rhdl: Axi2Rhdl<b8>,

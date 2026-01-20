@@ -1,6 +1,7 @@
 use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 pub struct U<const N: usize>
 where
     rhdl::bits::W<N>: BitWidth,
@@ -77,7 +78,7 @@ mod tests {
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!("ac28edb1d8ca17b61b4ced2421fc639c8b8c79b0359728bc4b9acc6e19cb3c4d");
+        let expect = expect!("1e845a64c59d2b06ea12c532e29a83b05cbcc8cafdabbf7962a6c380ab22c835");
         let digest = vcd.dump_to_file(root.join("single.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

@@ -9,6 +9,7 @@ use rhdl_fpga::{
 // Just because.
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 struct TestFixture {
     source: SourceFromFn<b8>,
     rhdl_2_axi: Rhdl2Axi<b8>,

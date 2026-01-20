@@ -72,6 +72,7 @@ use crate::stream::{fifo_to_stream::FIFOToStream, stream_to_fifo::StreamToFIFO};
 use super::Ready;
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ, Default)]
+#[rhdl(dq_no_prefix)]
 /// The [Zip] Core
 ///
 /// This core takes two streams.  One of type
@@ -156,6 +157,7 @@ mod tests {
     };
 
     #[derive(Clone, Synchronous, SynchronousDQ)]
+    #[rhdl(dq_no_prefix)]
     struct TestFixture {
         a_source: SourceFromFn<b4>,
         b_source: SourceFromFn<b6>,

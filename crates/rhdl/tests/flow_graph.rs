@@ -158,6 +158,7 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
     mod parent {
         use super::*;
         #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+        #[rhdl(dq_no_prefix)]
         pub struct Parent {
             selector: selector::U,
         }
@@ -200,6 +201,7 @@ fn test_add_inline() -> miette::Result<()> {
     mod parent {
         use super::*;
         #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+        #[rhdl(dq_no_prefix)]
         pub struct Parent {
             adder: adder::U,
         }
@@ -235,6 +237,7 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
         use super::*;
 
         #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+        #[rhdl(dq_no_prefix)]
         pub struct Parent {
             anyer: anyer::U,
         }
@@ -305,6 +308,7 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
         use super::*;
 
         #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+        #[rhdl(dq_no_prefix)]
         pub struct Parent {
             adder: adder::U,
         }
@@ -345,6 +349,7 @@ fn test_constant_propagates_through_indexing() -> miette::Result<()> {
         use super::*;
 
         #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+        #[rhdl(dq_no_prefix)]
         pub struct Parent {
             indexor: indexor::U,
         }
@@ -377,6 +382,7 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
         use super::*;
 
         #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+        #[rhdl(dq_no_prefix)]
         pub struct Parent {
             splicer: splicer::U,
         }
