@@ -1,10 +1,10 @@
-<svg viewBox="0 0 860 320" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <clipPath id="clip">
-<rect height="320" width="860" x="0" y="0"/>
+<rect height="320" width="760" x="0" y="0"/>
 </clipPath>
 </defs>
-<rect fill="#0B151D" height="320" stroke="darkblue" width="860" x="0" y="0"/>
+<rect fill="#0B151D" height="320" stroke="darkblue" width="760" x="0" y="0"/>
 <line stroke="#333333" stroke-width="1" x1="160" x2="160" y1="0" y2="320"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="160" y="10">
 0
@@ -30,12 +30,8 @@
 500
 </text>
 <line stroke="#333333" stroke-width="1" x1="760" x2="760" y1="0" y2="320"/>
-<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="760" y="10">
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="end" x="760" y="10">
 600
-</text>
-<line stroke="#333333" stroke-width="1" x1="860" x2="860" y1="0" y2="320"/>
-<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="end" x="860" y="10">
-700
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" y="10">
 Time:
@@ -48,8 +44,8 @@ Time:
 <rect fill="#1C400C" height="14" stroke="none" width="98" x="261" y="23"/>
 <path d="M 260 30 L 260 23 L 360 23 L 360 30" fill="none" stroke="#56C126" stroke-width="1"/>
 <path d="M 360 30 L 360 37 L 460 37 L 460 30" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="398" x="461" y="23"/>
-<path d="M 460 30 L 460 23 L 860 23 L 860 30" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="298" x="461" y="23"/>
+<path d="M 460 30 L 460 23 L 760 23 L 760 30" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="50">
 .fsm.event#Start
 <title>top.fsm.event#Start</title>
@@ -73,8 +69,8 @@ Time:
 
 <title></title>
 </text>
-<path d="M 460 70 L 463 63 L 857 63 L 860 70 L 857 77 L 463 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="660" xml:space="preserve" y="70">
+<path d="M 460 70 L 463 63 L 757 63 L 760 70 L 757 77 L 463 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="610" xml:space="preserve" y="70">
 
 <title></title>
 </text>
@@ -111,11 +107,6 @@ Stopped
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="710" xml:space="preserve" y="90">
 Idle
 <title>Idle</title>
-</text>
-<path d="M 760 90 L 763 83 L 857 83 L 860 90 L 857 97 L 763 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="810" xml:space="preserve" y="90">
-Broken
-<title>Broken</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="110">
    #Idle
@@ -167,11 +158,6 @@ Broken
    #Broken
 <title>top.fsm.next_state#Broken</title>
 </text>
-<path d="M 760 190 L 763 183 L 857 183 L 860 190 L 857 197 L 763 197 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="810" xml:space="preserve" y="190">
-
-<title></title>
-</text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="210">
 .fsm.state
 <title>top.fsm.state</title>
@@ -206,22 +192,12 @@ Paused
 Stopped
 <title>Stopped</title>
 </text>
-<path d="M 760 210 L 763 203 L 857 203 L 860 210 L 857 217 L 763 217 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="810" xml:space="preserve" y="210">
-Idle
-<title>Idle</title>
-</text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="230">
    #Idle
 <title>top.fsm.state#Idle</title>
 </text>
 <path d="M 160 230 L 163 223 L 257 223 L 260 230 L 257 237 L 163 237 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="210" xml:space="preserve" y="230">
-
-<title></title>
-</text>
-<path d="M 760 230 L 763 223 L 857 223 L 860 230 L 857 237 L 763 237 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="810" xml:space="preserve" y="230">
 
 <title></title>
 </text>

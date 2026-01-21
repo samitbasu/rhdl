@@ -427,5 +427,20 @@ pub mod synchronous_sim {
             post_process(sample);
         }
         // ANCHOR_END: counter-iter-ext
+
+        let uut = rhdl_fpga::core::counter::Counter::<3>::default();
+        let inputs = std::iter::repeat_n(true, 6)
+            .with_reset(1)
+            .clock_pos_edge(100);
+        // ANCHOR: counter-iter-svg
+
+        let svg = uut.run(inputs).collect::<SvgFile>();
+
+        // ANCHOR_END: counter-iter-svg
+        std::fs::write(
+            "counter_iter.svg",
+            svg.to_string(&SvgOptions::default()).unwrap(),
+        )
+        .unwrap();
     }
 }

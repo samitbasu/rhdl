@@ -1,10 +1,10 @@
-<svg viewBox="0 0 930 200" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 920 200" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <clipPath id="clip">
-<rect height="200" width="930" x="0" y="0"/>
+<rect height="200" width="920" x="0" y="0"/>
 </clipPath>
 </defs>
-<rect fill="#0B151D" height="200" stroke="darkblue" width="930" x="0" y="0"/>
+<rect fill="#0B151D" height="200" stroke="darkblue" width="920" x="0" y="0"/>
 <line stroke="#333333" stroke-width="1" x1="110" x2="110" y1="0" y2="200"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="110" y="10">
 0
@@ -42,7 +42,7 @@
 11000
 </text>
 <line stroke="#333333" stroke-width="1" x1="920" x2="920" y1="0" y2="200"/>
-<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="920" y="10">
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="end" x="920" y="10">
 12000
 </text>
 <rect fill="#333333" height="200" width="10" x="710" y="0"/>
@@ -57,11 +57,6 @@ Time:
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="210" xml:space="preserve" y="30">
 aa
 <title>aa</title>
-</text>
-<path d="M 310 30 L 313 23 L 317 23 L 320 30 L 317 37 L 313 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="315" xml:space="preserve" y="30">
-
-<title>ba</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="50">
 .enum
@@ -102,8 +97,8 @@ B{name: 41}
 A(15, 0...
 <title>A(15, 0200)</title>
 </text>
-<path d="M 820 50 L 823 43 L 927 43 L 930 50 L 927 57 L 823 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="875" xml:space="preserve" y="50">
+<path d="M 820 50 L 823 43 L 917 43 L 920 50 L 917 57 L 823 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="870" xml:space="preserve" y="50">
 None
 <title>None</title>
 </text>
@@ -116,8 +111,8 @@ None
 
 <title></title>
 </text>
-<path d="M 820 70 L 823 63 L 927 63 L 930 70 L 927 77 L 823 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="875" xml:space="preserve" y="70">
+<path d="M 820 70 L 823 63 L 917 63 L 920 70 L 917 77 L 823 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="870" xml:space="preserve" y="70">
 
 <title></title>
 </text>

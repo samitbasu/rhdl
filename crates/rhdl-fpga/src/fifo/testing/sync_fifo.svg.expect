@@ -1,10 +1,10 @@
-<svg viewBox="0 0 3600 2200" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 3500 2200" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <clipPath id="clip">
-<rect height="2200" width="3600" x="0" y="0"/>
+<rect height="2200" width="3500" x="0" y="0"/>
 </clipPath>
 </defs>
-<rect fill="#0B151D" height="2200" stroke="darkblue" width="3600" x="0" y="0"/>
+<rect fill="#0B151D" height="2200" stroke="darkblue" width="3500" x="0" y="0"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" y="10">
 Time:
 </text>
@@ -12,8 +12,8 @@ Time:
 .drainer.drain_kernel.data
 <title>top.drainer.drain_kernel.data</title>
 </text>
-<path d="M 2500 30 L 2503 23 L 3597 23 L 3600 30 L 3597 37 L 2503 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="30">
+<path d="M 2500 30 L 2503 23 L 3497 23 L 3500 30 L 3497 37 L 2503 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="30">
 0000
 <title>0000</title>
 </text>
@@ -21,14 +21,14 @@ Time:
 .drainer.drain_kernel.data_matches
 <title>top.drainer.drain_kernel.data_matches</title>
 </text>
-<rect fill="#1C400C" height="14" stroke="none" width="1098" x="2501" y="43"/>
-<path d="M 2500 50 L 2500 43 L 3600 43 L 3600 50" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="998" x="2501" y="43"/>
+<path d="M 2500 50 L 2500 43 L 3500 43 L 3500 50" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
 .drainer.drain_kernel.validation
 <title>top.drainer.drain_kernel.validation</title>
 </text>
-<path d="M 2500 70 L 2503 63 L 3597 63 L 3600 70 L 3597 77 L 2503 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="70">
+<path d="M 2500 70 L 2503 63 L 3497 63 L 3500 70 L 3497 77 L 2503 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="70">
 0000
 <title>0000</title>
 </text>
@@ -37,14 +37,14 @@ Time:
 <title>top.drainer.drain_kernel.will_read</title>
 </text>
 <path d="M 2500 90 L 2500 97 L 2650 97 L 2650 90" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="948" x="2651" y="83"/>
-<path d="M 2650 90 L 2650 83 L 3600 83 L 3600 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="848" x="2651" y="83"/>
+<path d="M 2650 90 L 2650 83 L 3500 83 L 3500 90" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="110">
 .drainer.read_probability.constant.value
 <title>top.drainer.read_probability.constant.value</title>
 </text>
-<path d="M 2500 110 L 2503 103 L 3597 103 L 3600 110 L 3597 117 L 2503 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="110">
+<path d="M 2500 110 L 2503 103 L 3497 103 L 3500 110 L 3497 117 L 2503 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="110">
 d000
 <title>d000</title>
 </text>
@@ -52,8 +52,8 @@ d000
 .drainer.rng.w.dff.input
 <title>top.drainer.rng.w.dff.input</title>
 </text>
-<path d="M 2500 130 L 2503 123 L 3597 123 L 3600 130 L 3597 137 L 2503 137 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="130">
+<path d="M 2500 130 L 2503 123 L 3497 123 L 3500 130 L 3497 137 L 2503 137 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="130">
 00000000
 <title>00000000</title>
 </text>
@@ -61,8 +61,8 @@ d000
 .drainer.rng.w.dff.output
 <title>top.drainer.rng.w.dff.output</title>
 </text>
-<path d="M 2500 150 L 2503 143 L 3597 143 L 3600 150 L 3597 157 L 2503 157 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="150">
+<path d="M 2500 150 L 2503 143 L 3497 143 L 3500 150 L 3497 157 L 2503 157 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="150">
 00000000
 <title>00000000</title>
 </text>
@@ -70,8 +70,8 @@ d000
 .drainer.rng.x.dff.input
 <title>top.drainer.rng.x.dff.input</title>
 </text>
-<path d="M 2500 170 L 2503 163 L 3597 163 L 3600 170 L 3597 177 L 2503 177 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="170">
+<path d="M 2500 170 L 2503 163 L 3497 163 L 3500 170 L 3497 177 L 2503 177 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="170">
 00000000
 <title>00000000</title>
 </text>
@@ -79,8 +79,8 @@ d000
 .drainer.rng.x.dff.output
 <title>top.drainer.rng.x.dff.output</title>
 </text>
-<path d="M 2500 190 L 2503 183 L 3597 183 L 3600 190 L 3597 197 L 2503 197 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="190">
+<path d="M 2500 190 L 2503 183 L 3497 183 L 3500 190 L 3497 197 L 2503 197 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="190">
 00000000
 <title>00000000</title>
 </text>
@@ -88,8 +88,8 @@ d000
 .drainer.rng.y.dff.input
 <title>top.drainer.rng.y.dff.input</title>
 </text>
-<path d="M 2500 210 L 2503 203 L 3597 203 L 3600 210 L 3597 217 L 2503 217 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="210">
+<path d="M 2500 210 L 2503 203 L 3497 203 L 3500 210 L 3497 217 L 2503 217 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="210">
 00000000
 <title>00000000</title>
 </text>
@@ -97,8 +97,8 @@ d000
 .drainer.rng.y.dff.output
 <title>top.drainer.rng.y.dff.output</title>
 </text>
-<path d="M 2500 230 L 2503 223 L 3597 223 L 3600 230 L 3597 237 L 2503 237 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="230">
+<path d="M 2500 230 L 2503 223 L 3497 223 L 3500 230 L 3497 237 L 2503 237 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="230">
 00000000
 <title>00000000</title>
 </text>
@@ -106,8 +106,8 @@ d000
 .drainer.rng.z.dff.input
 <title>top.drainer.rng.z.dff.input</title>
 </text>
-<path d="M 2500 250 L 2503 243 L 3597 243 L 3600 250 L 3597 257 L 2503 257 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="250">
+<path d="M 2500 250 L 2503 243 L 3497 243 L 3500 250 L 3497 257 L 2503 257 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="250">
 00000000
 <title>00000000</title>
 </text>
@@ -115,8 +115,8 @@ d000
 .drainer.rng.z.dff.output
 <title>top.drainer.rng.z.dff.output</title>
 </text>
-<path d="M 2500 270 L 2503 263 L 3597 263 L 3600 270 L 3597 277 L 2503 277 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="270">
+<path d="M 2500 270 L 2503 263 L 3497 263 L 3500 270 L 3497 277 L 2503 277 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="270">
 00000000
 <title>00000000</title>
 </text>
@@ -125,14 +125,14 @@ d000
 <title>top.drainer.rng.input</title>
 </text>
 <path d="M 2500 290 L 2500 297 L 2650 297 L 2650 290" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="948" x="2651" y="283"/>
-<path d="M 2650 290 L 2650 283 L 3600 283 L 3600 290" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="848" x="2651" y="283"/>
+<path d="M 2650 290 L 2650 283 L 3500 283 L 3500 290" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="310">
 .drainer.rng.outputs
 <title>top.drainer.rng.outputs</title>
 </text>
-<path d="M 2500 310 L 2503 303 L 3597 303 L 3600 310 L 3597 317 L 2503 317 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="310">
+<path d="M 2500 310 L 2503 303 L 3497 303 L 3500 310 L 3497 317 L 2503 317 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="310">
 00000000
 <title>00000000</title>
 </text>
@@ -140,8 +140,8 @@ d000
 .drainer.sleep_counter.dff.input
 <title>top.drainer.sleep_counter.dff.input</title>
 </text>
-<path d="M 2500 330 L 2503 323 L 3597 323 L 3600 330 L 3597 337 L 2503 337 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="330">
+<path d="M 2500 330 L 2503 323 L 3497 323 L 3500 330 L 3497 337 L 2503 337 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="330">
 0
 <title>0</title>
 </text>
@@ -149,8 +149,8 @@ d000
 .drainer.sleep_counter.dff.output
 <title>top.drainer.sleep_counter.dff.output</title>
 </text>
-<path d="M 2500 350 L 2503 343 L 3597 343 L 3600 350 L 3597 357 L 2503 357 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="350">
+<path d="M 2500 350 L 2503 343 L 3497 343 L 3500 350 L 3497 357 L 2503 357 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="350">
 0
 <title>0</title>
 </text>
@@ -158,8 +158,8 @@ d000
 .drainer.sleep_len.constant.value
 <title>top.drainer.sleep_len.constant.value</title>
 </text>
-<path d="M 2500 370 L 2503 363 L 3597 363 L 3600 370 L 3597 377 L 2503 377 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="370">
+<path d="M 2500 370 L 2503 363 L 3497 363 L 3500 370 L 3497 377 L 2503 377 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="370">
 4
 <title>4</title>
 </text>
@@ -167,12 +167,12 @@ d000
 .drainer.valid.dff.input
 <title>top.drainer.valid.dff.input</title>
 </text>
-<path d="M 2500 390 L 2500 397 L 3600 397 L 3600 390" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 390 L 2500 397 L 3500 397 L 3500 390" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="410">
 .drainer.valid.dff.output
 <title>top.drainer.valid.dff.output</title>
 </text>
-<path d="M 2500 410 L 2500 417 L 3600 417 L 3600 410" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 410 L 2500 417 L 3500 417 L 3500 410" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="430">
 .drainer.input
 <title>top.drainer.input</title>
@@ -182,8 +182,8 @@ d000
 {data: None}
 <title>{data: None}</title>
 </text>
-<path d="M 2650 430 L 2653 423 L 3597 423 L 3600 430 L 3597 437 L 2653 437 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3125" xml:space="preserve" y="430">
+<path d="M 2650 430 L 2653 423 L 3497 423 L 3500 430 L 3497 437 L 2653 437 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3075" xml:space="preserve" y="430">
 {data: Some(0000)}
 <title>{data: Some(0000)}</title>
 </text>
@@ -196,8 +196,8 @@ d000
 None
 <title>None</title>
 </text>
-<path d="M 2650 450 L 2653 443 L 3597 443 L 3600 450 L 3597 457 L 2653 457 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3125" xml:space="preserve" y="450">
+<path d="M 2650 450 L 2653 443 L 3497 443 L 3500 450 L 3497 457 L 2653 457 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3075" xml:space="preserve" y="450">
 Some(0000)
 <title>Some(0000)</title>
 </text>
@@ -214,8 +214,8 @@ Some(0000)
       #Some.0
 <title>top.drainer.input.data#Some.0</title>
 </text>
-<path d="M 2650 490 L 2653 483 L 3597 483 L 3600 490 L 3597 497 L 2653 497 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3125" xml:space="preserve" y="490">
+<path d="M 2650 490 L 2653 483 L 3497 483 L 3500 490 L 3497 497 L 2653 497 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3075" xml:space="preserve" y="490">
 0000
 <title>0000</title>
 </text>
@@ -228,8 +228,8 @@ Some(0000)
 {next: 0, va...
 <title>{next: 0, valid: 0}</title>
 </text>
-<path d="M 2650 510 L 2653 503 L 3597 503 L 3600 510 L 3597 517 L 2653 517 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3125" xml:space="preserve" y="510">
+<path d="M 2650 510 L 2653 503 L 3497 503 L 3500 510 L 3497 517 L 2653 517 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3075" xml:space="preserve" y="510">
 {next: 1, valid: 0}
 <title>{next: 1, valid: 0}</title>
 </text>
@@ -238,13 +238,13 @@ Some(0000)
 <title>top.drainer.outputs.next</title>
 </text>
 <path d="M 2500 530 L 2500 537 L 2650 537 L 2650 530" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="948" x="2651" y="523"/>
-<path d="M 2650 530 L 2650 523 L 3600 523 L 3600 530" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="848" x="2651" y="523"/>
+<path d="M 2650 530 L 2650 523 L 3500 523 L 3500 530" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="550">
    .valid
 <title>top.drainer.outputs.valid</title>
 </text>
-<path d="M 2500 550 L 2500 557 L 3600 557 L 3600 550" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 550 L 2500 557 L 3500 557 L 3500 550" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="570">
 .fifo.ram.inner.synchronous_ram.input
 <title>top.fifo.ram.inner.synchronous_ram.input</title>
@@ -299,9 +299,9 @@ Some(0000)
 {read_a...
 <title>{read_addr: 08, write: {addr: 09, value: 0000, enable: 1}}</title>
 </text>
-<path d="M 3450 570 L 3453 563 L 3597 563 L 3600 570 L 3597 577 L 3453 577 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="570">
-{read_addr: ...
+<path d="M 3450 570 L 3453 563 L 3497 563 L 3500 570 L 3497 577 L 3453 577 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="570">
+{r...
 <title>{read_addr: 09, write: {addr: 0a, value: 0000, enable: 1}}</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="590">
@@ -353,8 +353,8 @@ Some(0000)
 08
 <title>08</title>
 </text>
-<path d="M 3450 590 L 3453 583 L 3597 583 L 3600 590 L 3597 597 L 3453 597 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="590">
+<path d="M 3450 590 L 3453 583 L 3497 583 L 3500 590 L 3497 597 L 3453 597 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="590">
 09
 <title>09</title>
 </text>
@@ -412,9 +412,9 @@ Some(0000)
 {addr: ...
 <title>{addr: 09, value: 0000, enable: 1}</title>
 </text>
-<path d="M 3450 610 L 3453 603 L 3597 603 L 3600 610 L 3597 617 L 3453 617 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="610">
-{addr: 0a, v...
+<path d="M 3450 610 L 3453 603 L 3497 603 L 3500 610 L 3497 617 L 3453 617 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="610">
+{a...
 <title>{addr: 0a, value: 0000, enable: 1}</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="630">
@@ -471,8 +471,8 @@ Some(0000)
 09
 <title>09</title>
 </text>
-<path d="M 3450 630 L 3453 623 L 3597 623 L 3600 630 L 3597 637 L 3453 637 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="630">
+<path d="M 3450 630 L 3453 623 L 3497 623 L 3500 630 L 3497 637 L 3453 637 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="630">
 0a
 <title>0a</title>
 </text>
@@ -480,8 +480,8 @@ Some(0000)
       .value
 <title>top.fifo.ram.inner.synchronous_ram.input.write.value</title>
 </text>
-<path d="M 2500 650 L 2503 643 L 3597 643 L 3600 650 L 3597 657 L 2503 657 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="650">
+<path d="M 2500 650 L 2503 643 L 3497 643 L 3500 650 L 3497 657 L 2503 657 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="650">
 0000
 <title>0000</title>
 </text>
@@ -489,14 +489,14 @@ Some(0000)
       .enable
 <title>top.fifo.ram.inner.synchronous_ram.input.write.enable</title>
 </text>
-<rect fill="#1C400C" height="14" stroke="none" width="1098" x="2501" y="663"/>
-<path d="M 2500 670 L 2500 663 L 3600 663 L 3600 670" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="998" x="2501" y="663"/>
+<path d="M 2500 670 L 2500 663 L 3500 663 L 3500 670" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="690">
 .fifo.ram.inner.synchronous_ram.output
 <title>top.fifo.ram.inner.synchronous_ram.output</title>
 </text>
-<path d="M 2500 690 L 2503 683 L 3597 683 L 3600 690 L 3597 697 L 2503 697 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="690">
+<path d="M 2500 690 L 2503 683 L 3497 683 L 3500 690 L 3497 697 L 2503 697 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="690">
 0000
 <title>0000</title>
 </text>
@@ -554,9 +554,9 @@ Some(0000)
 {read_a...
 <title>{read_addr: 08, write: Some((09, 0000))}</title>
 </text>
-<path d="M 3450 710 L 3453 703 L 3597 703 L 3600 710 L 3597 717 L 3453 717 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="710">
-{read_addr: ...
+<path d="M 3450 710 L 3453 703 L 3497 703 L 3500 710 L 3497 717 L 3453 717 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="710">
+{r...
 <title>{read_addr: 09, write: Some((0a, 0000))}</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="730">
@@ -608,8 +608,8 @@ Some(0000)
 08
 <title>08</title>
 </text>
-<path d="M 3450 730 L 3453 723 L 3597 723 L 3600 730 L 3597 737 L 3453 737 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="730">
+<path d="M 3450 730 L 3453 723 L 3497 723 L 3500 730 L 3497 737 L 3453 737 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="730">
 09
 <title>09</title>
 </text>
@@ -667,9 +667,9 @@ Some((0...
 Some((0...
 <title>Some((09, 0000))</title>
 </text>
-<path d="M 3450 750 L 3453 743 L 3597 743 L 3600 750 L 3597 757 L 3453 757 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="750">
-Some((0a, 00...
+<path d="M 3450 750 L 3453 743 L 3497 743 L 3500 750 L 3497 757 L 3453 757 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="750">
+So...
 <title>Some((0a, 0000))</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="770">
@@ -730,9 +730,9 @@ Some((0a, 00...
 (09, 0000)
 <title>(09, 0000)</title>
 </text>
-<path d="M 3450 790 L 3453 783 L 3597 783 L 3600 790 L 3597 797 L 3453 797 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="790">
-(0a, 0000)
+<path d="M 3450 790 L 3453 783 L 3497 783 L 3500 790 L 3497 797 L 3453 797 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="790">
+(0...
 <title>(0a, 0000)</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="810">
@@ -789,8 +789,8 @@ Some((0a, 00...
 09
 <title>09</title>
 </text>
-<path d="M 3450 810 L 3453 803 L 3597 803 L 3600 810 L 3597 817 L 3453 817 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="810">
+<path d="M 3450 810 L 3453 803 L 3497 803 L 3500 810 L 3497 817 L 3453 817 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="810">
 0a
 <title>0a</title>
 </text>
@@ -798,8 +798,8 @@ Some((0a, 00...
          .1
 <title>top.fifo.ram.input.write#Some.0.1</title>
 </text>
-<path d="M 2500 830 L 2503 823 L 3597 823 L 3600 830 L 3597 837 L 2503 837 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="830">
+<path d="M 2500 830 L 2503 823 L 3497 823 L 3500 830 L 3497 837 L 2503 837 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="830">
 0000
 <title>0000</title>
 </text>
@@ -807,8 +807,8 @@ Some((0a, 00...
 .fifo.ram.outputs
 <title>top.fifo.ram.outputs</title>
 </text>
-<path d="M 2500 850 L 2503 843 L 3597 843 L 3600 850 L 3597 857 L 2503 857 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="850">
+<path d="M 2500 850 L 2503 843 L 3497 843 L 3500 850 L 3497 857 L 2503 857 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="850">
 0000
 <title>0000</title>
 </text>
@@ -861,8 +861,8 @@ Some((0a, 00...
 08
 <title>08</title>
 </text>
-<path d="M 3450 870 L 3453 863 L 3597 863 L 3600 870 L 3597 877 L 3453 877 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="870">
+<path d="M 3450 870 L 3453 863 L 3497 863 L 3500 870 L 3497 877 L 3453 877 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="870">
 09
 <title>09</title>
 </text>
@@ -910,8 +910,8 @@ Some((0a, 00...
 07
 <title>07</title>
 </text>
-<path d="M 3450 890 L 3453 883 L 3597 883 L 3600 890 L 3597 897 L 3453 897 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="890">
+<path d="M 3450 890 L 3453 883 L 3497 883 L 3500 890 L 3497 897 L 3453 897 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="890">
 08
 <title>08</title>
 </text>
@@ -927,12 +927,12 @@ Some((0a, 00...
 <path d="M 3150 910 L 3150 917 L 3250 917 L 3250 910" fill="none" stroke="#56C126" stroke-width="1"/>
 <path d="M 3250 910 L 3250 917 L 3350 917 L 3350 910" fill="none" stroke="#56C126" stroke-width="1"/>
 <path d="M 3350 910 L 3350 917 L 3450 917 L 3450 910" fill="none" stroke="#56C126" stroke-width="1"/>
-<path d="M 3450 910 L 3450 917 L 3600 917 L 3600 910" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 3450 910 L 3450 917 L 3500 917 L 3500 910" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="930">
 .fifo.read_logic.underflow.dff.output
 <title>top.fifo.read_logic.underflow.dff.output</title>
 </text>
-<path d="M 2500 930 L 2500 937 L 3600 937 L 3600 930" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 930 L 2500 937 L 3500 937 L 3500 930" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="950">
 .fifo.read_logic.input
 <title>top.fifo.read_logic.input</title>
@@ -982,9 +982,9 @@ Some((0a, 00...
 {write_...
 <title>{write_address: 08, next: 1}</title>
 </text>
-<path d="M 3450 950 L 3453 943 L 3597 943 L 3600 950 L 3597 957 L 3453 957 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="950">
-{write_addre...
+<path d="M 3450 950 L 3453 943 L 3497 943 L 3500 950 L 3497 957 L 3453 957 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="950">
+{w...
 <title>{write_address: 09, next: 1}</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="970">
@@ -1036,8 +1036,8 @@ Some((0a, 00...
 08
 <title>08</title>
 </text>
-<path d="M 3450 970 L 3453 963 L 3597 963 L 3600 970 L 3597 977 L 3453 977 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="970">
+<path d="M 3450 970 L 3453 963 L 3497 963 L 3500 970 L 3497 977 L 3453 977 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="970">
 09
 <title>09</title>
 </text>
@@ -1046,8 +1046,8 @@ Some((0a, 00...
 <title>top.fifo.read_logic.input.next</title>
 </text>
 <path d="M 2500 990 L 2500 997 L 2650 997 L 2650 990" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="948" x="2651" y="983"/>
-<path d="M 2650 990 L 2650 983 L 3600 983 L 3600 990" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="848" x="2651" y="983"/>
+<path d="M 2650 990 L 2650 983 L 3500 983 L 3500 990" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1010">
 .fifo.read_logic.outputs
 <title>top.fifo.read_logic.outputs</title>
@@ -1097,9 +1097,9 @@ Some((0a, 00...
 {empty:...
 <title>{empty: 0, almost_empty: 1, underflow: 0, ram_read_address: 08, will_advance: 1}</title>
 </text>
-<path d="M 3450 1010 L 3453 1003 L 3597 1003 L 3600 1010 L 3597 1017 L 3453 1017 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="1010">
-{empty: 0, a...
+<path d="M 3450 1010 L 3453 1003 L 3497 1003 L 3500 1010 L 3497 1017 L 3453 1017 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="1010">
+{e...
 <title>{empty: 0, almost_empty: 1, underflow: 0, ram_read_address: 09, will_advance: 1}</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1030">
@@ -1116,13 +1116,13 @@ Some((0a, 00...
 <path d="M 3150 1030 L 3150 1037 L 3250 1037 L 3250 1030" fill="none" stroke="#56C126" stroke-width="1"/>
 <path d="M 3250 1030 L 3250 1037 L 3350 1037 L 3350 1030" fill="none" stroke="#56C126" stroke-width="1"/>
 <path d="M 3350 1030 L 3350 1037 L 3450 1037 L 3450 1030" fill="none" stroke="#56C126" stroke-width="1"/>
-<path d="M 3450 1030 L 3450 1037 L 3600 1037 L 3600 1030" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 3450 1030 L 3450 1037 L 3500 1037 L 3500 1030" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1050">
    .almost_empty
 <title>top.fifo.read_logic.outputs.almost_empty</title>
 </text>
-<rect fill="#1C400C" height="14" stroke="none" width="1098" x="2501" y="1043"/>
-<path d="M 2500 1050 L 2500 1043 L 3600 1043 L 3600 1050" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="998" x="2501" y="1043"/>
+<path d="M 2500 1050 L 2500 1043 L 3500 1043 L 3500 1050" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1070">
    .underflow
 <title>top.fifo.read_logic.outputs.underflow</title>
@@ -1135,7 +1135,7 @@ Some((0a, 00...
 <path d="M 3150 1070 L 3150 1077 L 3250 1077 L 3250 1070" fill="none" stroke="#56C126" stroke-width="1"/>
 <path d="M 3250 1070 L 3250 1077 L 3350 1077 L 3350 1070" fill="none" stroke="#56C126" stroke-width="1"/>
 <path d="M 3350 1070 L 3350 1077 L 3450 1077 L 3450 1070" fill="none" stroke="#56C126" stroke-width="1"/>
-<path d="M 3450 1070 L 3450 1077 L 3600 1077 L 3600 1070" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 3450 1070 L 3450 1077 L 3500 1077 L 3500 1070" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1090">
    .ram_read_address
 <title>top.fifo.read_logic.outputs.ram_read_address</title>
@@ -1185,8 +1185,8 @@ Some((0a, 00...
 08
 <title>08</title>
 </text>
-<path d="M 3450 1090 L 3453 1083 L 3597 1083 L 3600 1090 L 3597 1097 L 3453 1097 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="1090">
+<path d="M 3450 1090 L 3453 1083 L 3497 1083 L 3500 1090 L 3497 1097 L 3453 1097 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="1090">
 09
 <title>09</title>
 </text>
@@ -1211,18 +1211,18 @@ Some((0a, 00...
 <path d="M 3250 1110 L 3250 1103 L 3350 1103 L 3350 1110" fill="none" stroke="#56C126" stroke-width="1"/>
 <rect fill="#1C400C" height="14" stroke="none" width="98" x="3351" y="1103"/>
 <path d="M 3350 1110 L 3350 1103 L 3450 1103 L 3450 1110" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="148" x="3451" y="1103"/>
-<path d="M 3450 1110 L 3450 1103 L 3600 1103 L 3600 1110" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="3451" y="1103"/>
+<path d="M 3450 1110 L 3450 1103 L 3500 1103 L 3500 1110" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1130">
 .fifo.write_logic.overflow.dff.input
 <title>top.fifo.write_logic.overflow.dff.input</title>
 </text>
-<path d="M 2500 1130 L 2500 1137 L 3600 1137 L 3600 1130" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 1130 L 2500 1137 L 3500 1137 L 3500 1130" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1150">
 .fifo.write_logic.overflow.dff.output
 <title>top.fifo.write_logic.overflow.dff.output</title>
 </text>
-<path d="M 2500 1150 L 2500 1157 L 3600 1157 L 3600 1150" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 1150 L 2500 1157 L 3500 1157 L 3500 1150" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1170">
 .fifo.write_logic.write_address.dff.input
 <title>top.fifo.write_logic.write_address.dff.input</title>
@@ -1277,8 +1277,8 @@ Some((0a, 00...
 0a
 <title>0a</title>
 </text>
-<path d="M 3450 1170 L 3453 1163 L 3597 1163 L 3600 1170 L 3597 1177 L 3453 1177 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="1170">
+<path d="M 3450 1170 L 3453 1163 L 3497 1163 L 3500 1170 L 3497 1177 L 3453 1177 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="1170">
 0b
 <title>0b</title>
 </text>
@@ -1336,8 +1336,8 @@ Some((0a, 00...
 09
 <title>09</title>
 </text>
-<path d="M 3450 1190 L 3453 1183 L 3597 1183 L 3600 1190 L 3597 1197 L 3453 1197 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="1190">
+<path d="M 3450 1190 L 3453 1183 L 3497 1183 L 3500 1190 L 3497 1197 L 3453 1197 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="1190">
 0a
 <title>0a</title>
 </text>
@@ -1395,8 +1395,8 @@ Some((0a, 00...
 09
 <title>09</title>
 </text>
-<path d="M 3450 1210 L 3453 1203 L 3597 1203 L 3600 1210 L 3597 1217 L 3453 1217 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="1210">
+<path d="M 3450 1210 L 3453 1203 L 3497 1203 L 3500 1210 L 3497 1217 L 3453 1217 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="1210">
 0a
 <title>0a</title>
 </text>
@@ -1449,8 +1449,8 @@ Some((0a, 00...
 08
 <title>08</title>
 </text>
-<path d="M 3450 1230 L 3453 1223 L 3597 1223 L 3600 1230 L 3597 1237 L 3453 1237 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="1230">
+<path d="M 3450 1230 L 3453 1223 L 3497 1223 L 3500 1230 L 3497 1237 L 3453 1237 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="1230">
 09
 <title>09</title>
 </text>
@@ -1503,9 +1503,9 @@ Some((0a, 00...
 {read_a...
 <title>{read_address: 08, write_enable: 1}</title>
 </text>
-<path d="M 3450 1250 L 3453 1243 L 3597 1243 L 3600 1250 L 3597 1257 L 3453 1257 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="1250">
-{read_addres...
+<path d="M 3450 1250 L 3453 1243 L 3497 1243 L 3500 1250 L 3497 1257 L 3453 1257 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="1250">
+{r...
 <title>{read_address: 09, write_enable: 1}</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1270">
@@ -1557,8 +1557,8 @@ Some((0a, 00...
 08
 <title>08</title>
 </text>
-<path d="M 3450 1270 L 3453 1263 L 3597 1263 L 3600 1270 L 3597 1277 L 3453 1277 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="1270">
+<path d="M 3450 1270 L 3453 1263 L 3497 1263 L 3500 1270 L 3497 1277 L 3453 1277 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="1270">
 09
 <title>09</title>
 </text>
@@ -1566,8 +1566,8 @@ Some((0a, 00...
    .write_enable
 <title>top.fifo.write_logic.input.write_enable</title>
 </text>
-<rect fill="#1C400C" height="14" stroke="none" width="1098" x="2501" y="1283"/>
-<path d="M 2500 1290 L 2500 1283 L 3600 1283 L 3600 1290" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="998" x="2501" y="1283"/>
+<path d="M 2500 1290 L 2500 1283 L 3500 1283 L 3500 1290" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1310">
 .fifo.write_logic.outputs
 <title>top.fifo.write_logic.outputs</title>
@@ -1622,26 +1622,26 @@ Some((0a, 00...
 {full: ...
 <title>{full: 0, almost_full: 0, overflow: 0, ram_write_address: 09, write_address: 08}</title>
 </text>
-<path d="M 3450 1310 L 3453 1303 L 3597 1303 L 3600 1310 L 3597 1317 L 3453 1317 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="1310">
-{full: 0, al...
+<path d="M 3450 1310 L 3453 1303 L 3497 1303 L 3500 1310 L 3497 1317 L 3453 1317 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="1310">
+{f...
 <title>{full: 0, almost_full: 0, overflow: 0, ram_write_address: 0a, write_address: 09}</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1330">
    .full
 <title>top.fifo.write_logic.outputs.full</title>
 </text>
-<path d="M 2500 1330 L 2500 1337 L 3600 1337 L 3600 1330" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 1330 L 2500 1337 L 3500 1337 L 3500 1330" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1350">
    .almost_full
 <title>top.fifo.write_logic.outputs.almost_full</title>
 </text>
-<path d="M 2500 1350 L 2500 1357 L 3600 1357 L 3600 1350" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 1350 L 2500 1357 L 3500 1357 L 3500 1350" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1370">
    .overflow
 <title>top.fifo.write_logic.outputs.overflow</title>
 </text>
-<path d="M 2500 1370 L 2500 1377 L 3600 1377 L 3600 1370" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 1370 L 2500 1377 L 3500 1377 L 3500 1370" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1390">
    .ram_write_address
 <title>top.fifo.write_logic.outputs.ram_write_address</title>
@@ -1696,8 +1696,8 @@ Some((0a, 00...
 09
 <title>09</title>
 </text>
-<path d="M 3450 1390 L 3453 1383 L 3597 1383 L 3600 1390 L 3597 1397 L 3453 1397 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="1390">
+<path d="M 3450 1390 L 3453 1383 L 3497 1383 L 3500 1390 L 3497 1397 L 3453 1397 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="1390">
 0a
 <title>0a</title>
 </text>
@@ -1750,8 +1750,8 @@ Some((0a, 00...
 08
 <title>08</title>
 </text>
-<path d="M 3450 1410 L 3453 1403 L 3597 1403 L 3600 1410 L 3597 1417 L 3453 1417 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3525" xml:space="preserve" y="1410">
+<path d="M 3450 1410 L 3453 1403 L 3497 1403 L 3500 1410 L 3497 1417 L 3453 1417 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3475" xml:space="preserve" y="1410">
 09
 <title>09</title>
 </text>
@@ -1764,8 +1764,8 @@ Some((0a, 00...
 {data: Some(...
 <title>{data: Some(0000), next: 0}</title>
 </text>
-<path d="M 2650 1430 L 2653 1423 L 3597 1423 L 3600 1430 L 3597 1437 L 2653 1437 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3125" xml:space="preserve" y="1430">
+<path d="M 2650 1430 L 2653 1423 L 3497 1423 L 3500 1430 L 3497 1437 L 2653 1437 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3075" xml:space="preserve" y="1430">
 {data: Some(0000), next: 1}
 <title>{data: Some(0000), next: 1}</title>
 </text>
@@ -1773,8 +1773,8 @@ Some((0a, 00...
    .data
 <title>top.fifo.input.data</title>
 </text>
-<path d="M 2500 1450 L 2503 1443 L 3597 1443 L 3600 1450 L 3597 1457 L 2503 1457 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1450">
+<path d="M 2500 1450 L 2503 1443 L 3497 1443 L 3500 1450 L 3497 1457 L 2503 1457 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1450">
 Some(0000)
 <title>Some(0000)</title>
 </text>
@@ -1786,8 +1786,8 @@ Some(0000)
       #Some.0
 <title>top.fifo.input.data#Some.0</title>
 </text>
-<path d="M 2500 1490 L 2503 1483 L 3597 1483 L 3600 1490 L 3597 1497 L 2503 1497 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1490">
+<path d="M 2500 1490 L 2503 1483 L 3497 1483 L 3500 1490 L 3497 1497 L 2503 1497 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1490">
 0000
 <title>0000</title>
 </text>
@@ -1796,8 +1796,8 @@ Some(0000)
 <title>top.fifo.input.next</title>
 </text>
 <path d="M 2500 1510 L 2500 1517 L 2650 1517 L 2650 1510" fill="none" stroke="#56C126" stroke-width="1"/>
-<rect fill="#1C400C" height="14" stroke="none" width="948" x="2651" y="1503"/>
-<path d="M 2650 1510 L 2650 1503 L 3600 1503 L 3600 1510" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="848" x="2651" y="1503"/>
+<path d="M 2650 1510 L 2650 1503 L 3500 1503 L 3500 1510" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1530">
 .fifo.outputs
 <title>top.fifo.outputs</title>
@@ -1807,9 +1807,9 @@ Some(0000)
 {data: None,...
 <title>{data: None, full: 0, almost_empty: 1, almost_full: 0, overflow: 0, underflow: 0}</title>
 </text>
-<path d="M 2650 1530 L 2653 1523 L 3597 1523 L 3600 1530 L 3597 1537 L 2653 1537 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3125" xml:space="preserve" y="1530">
-{data: Some(0000), full: 0, almost_empty: 1, almost_full: 0, overflow: 0, underflow: 0}
+<path d="M 2650 1530 L 2653 1523 L 3497 1523 L 3500 1530 L 3497 1537 L 2653 1537 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3075" xml:space="preserve" y="1530">
+{data: Some(0000), full: 0, almost_empty: 1, almost_full: 0, overflow: 0, underflo...
 <title>{data: Some(0000), full: 0, almost_empty: 1, almost_full: 0, overflow: 0, underflow: 0}</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1550">
@@ -1821,8 +1821,8 @@ Some(0000)
 None
 <title>None</title>
 </text>
-<path d="M 2650 1550 L 2653 1543 L 3597 1543 L 3600 1550 L 3597 1557 L 2653 1557 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3125" xml:space="preserve" y="1550">
+<path d="M 2650 1550 L 2653 1543 L 3497 1543 L 3500 1550 L 3497 1557 L 2653 1557 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3075" xml:space="preserve" y="1550">
 Some(0000)
 <title>Some(0000)</title>
 </text>
@@ -1839,8 +1839,8 @@ Some(0000)
       #Some.0
 <title>top.fifo.outputs.data#Some.0</title>
 </text>
-<path d="M 2650 1590 L 2653 1583 L 3597 1583 L 3600 1590 L 3597 1597 L 2653 1597 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3125" xml:space="preserve" y="1590">
+<path d="M 2650 1590 L 2653 1583 L 3497 1583 L 3500 1590 L 3497 1597 L 2653 1597 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3075" xml:space="preserve" y="1590">
 0000
 <title>0000</title>
 </text>
@@ -1848,34 +1848,34 @@ Some(0000)
    .full
 <title>top.fifo.outputs.full</title>
 </text>
-<path d="M 2500 1610 L 2500 1617 L 3600 1617 L 3600 1610" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 1610 L 2500 1617 L 3500 1617 L 3500 1610" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1630">
    .almost_empty
 <title>top.fifo.outputs.almost_empty</title>
 </text>
-<rect fill="#1C400C" height="14" stroke="none" width="1098" x="2501" y="1623"/>
-<path d="M 2500 1630 L 2500 1623 L 3600 1623 L 3600 1630" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="998" x="2501" y="1623"/>
+<path d="M 2500 1630 L 2500 1623 L 3500 1623 L 3500 1630" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1650">
    .almost_full
 <title>top.fifo.outputs.almost_full</title>
 </text>
-<path d="M 2500 1650 L 2500 1657 L 3600 1657 L 3600 1650" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 1650 L 2500 1657 L 3500 1657 L 3500 1650" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1670">
    .overflow
 <title>top.fifo.outputs.overflow</title>
 </text>
-<path d="M 2500 1670 L 2500 1677 L 3600 1677 L 3600 1670" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 1670 L 2500 1677 L 3500 1677 L 3500 1670" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1690">
    .underflow
 <title>top.fifo.outputs.underflow</title>
 </text>
-<path d="M 2500 1690 L 2500 1697 L 3600 1697 L 3600 1690" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 1690 L 2500 1697 L 3500 1697 L 3500 1690" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1710">
 .filler._marker.constant.value
 <title>top.filler._marker.constant.value</title>
 </text>
-<path d="M 2500 1710 L 2503 1703 L 3597 1703 L 3600 1710 L 3597 1717 L 2503 1717 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1710">
+<path d="M 2500 1710 L 2503 1703 L 3497 1703 L 3500 1710 L 3497 1717 L 2503 1717 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1710">
 0000
 <title>0000</title>
 </text>
@@ -1883,8 +1883,8 @@ Some(0000)
 .filler.rng.w.dff.input
 <title>top.filler.rng.w.dff.input</title>
 </text>
-<path d="M 2500 1730 L 2503 1723 L 3597 1723 L 3600 1730 L 3597 1737 L 2503 1737 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1730">
+<path d="M 2500 1730 L 2503 1723 L 3497 1723 L 3500 1730 L 3497 1737 L 2503 1737 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1730">
 00000000
 <title>00000000</title>
 </text>
@@ -1892,8 +1892,8 @@ Some(0000)
 .filler.rng.w.dff.output
 <title>top.filler.rng.w.dff.output</title>
 </text>
-<path d="M 2500 1750 L 2503 1743 L 3597 1743 L 3600 1750 L 3597 1757 L 2503 1757 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1750">
+<path d="M 2500 1750 L 2503 1743 L 3497 1743 L 3500 1750 L 3497 1757 L 2503 1757 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1750">
 00000000
 <title>00000000</title>
 </text>
@@ -1901,8 +1901,8 @@ Some(0000)
 .filler.rng.x.dff.input
 <title>top.filler.rng.x.dff.input</title>
 </text>
-<path d="M 2500 1770 L 2503 1763 L 3597 1763 L 3600 1770 L 3597 1777 L 2503 1777 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1770">
+<path d="M 2500 1770 L 2503 1763 L 3497 1763 L 3500 1770 L 3497 1777 L 2503 1777 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1770">
 00000000
 <title>00000000</title>
 </text>
@@ -1910,8 +1910,8 @@ Some(0000)
 .filler.rng.x.dff.output
 <title>top.filler.rng.x.dff.output</title>
 </text>
-<path d="M 2500 1790 L 2503 1783 L 3597 1783 L 3600 1790 L 3597 1797 L 2503 1797 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1790">
+<path d="M 2500 1790 L 2503 1783 L 3497 1783 L 3500 1790 L 3497 1797 L 2503 1797 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1790">
 00000000
 <title>00000000</title>
 </text>
@@ -1919,8 +1919,8 @@ Some(0000)
 .filler.rng.y.dff.input
 <title>top.filler.rng.y.dff.input</title>
 </text>
-<path d="M 2500 1810 L 2503 1803 L 3597 1803 L 3600 1810 L 3597 1817 L 2503 1817 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1810">
+<path d="M 2500 1810 L 2503 1803 L 3497 1803 L 3500 1810 L 3497 1817 L 2503 1817 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1810">
 00000000
 <title>00000000</title>
 </text>
@@ -1928,8 +1928,8 @@ Some(0000)
 .filler.rng.y.dff.output
 <title>top.filler.rng.y.dff.output</title>
 </text>
-<path d="M 2500 1830 L 2503 1823 L 3597 1823 L 3600 1830 L 3597 1837 L 2503 1837 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1830">
+<path d="M 2500 1830 L 2503 1823 L 3497 1823 L 3500 1830 L 3497 1837 L 2503 1837 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1830">
 00000000
 <title>00000000</title>
 </text>
@@ -1937,8 +1937,8 @@ Some(0000)
 .filler.rng.z.dff.input
 <title>top.filler.rng.z.dff.input</title>
 </text>
-<path d="M 2500 1850 L 2503 1843 L 3597 1843 L 3600 1850 L 3597 1857 L 2503 1857 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1850">
+<path d="M 2500 1850 L 2503 1843 L 3497 1843 L 3500 1850 L 3497 1857 L 2503 1857 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1850">
 00000000
 <title>00000000</title>
 </text>
@@ -1946,8 +1946,8 @@ Some(0000)
 .filler.rng.z.dff.output
 <title>top.filler.rng.z.dff.output</title>
 </text>
-<path d="M 2500 1870 L 2503 1863 L 3597 1863 L 3600 1870 L 3597 1877 L 2503 1877 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1870">
+<path d="M 2500 1870 L 2503 1863 L 3497 1863 L 3500 1870 L 3497 1877 L 2503 1877 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1870">
 00000000
 <title>00000000</title>
 </text>
@@ -1955,14 +1955,14 @@ Some(0000)
 .filler.rng.input
 <title>top.filler.rng.input</title>
 </text>
-<rect fill="#1C400C" height="14" stroke="none" width="1098" x="2501" y="1883"/>
-<path d="M 2500 1890 L 2500 1883 L 3600 1883 L 3600 1890" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="998" x="2501" y="1883"/>
+<path d="M 2500 1890 L 2500 1883 L 3500 1883 L 3500 1890" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="1910">
 .filler.rng.outputs
 <title>top.filler.rng.outputs</title>
 </text>
-<path d="M 2500 1910 L 2503 1903 L 3597 1903 L 3600 1910 L 3597 1917 L 2503 1917 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1910">
+<path d="M 2500 1910 L 2503 1903 L 3497 1903 L 3500 1910 L 3497 1917 L 2503 1917 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1910">
 00000000
 <title>00000000</title>
 </text>
@@ -1970,8 +1970,8 @@ Some(0000)
 .filler.sleep_counter.dff.input
 <title>top.filler.sleep_counter.dff.input</title>
 </text>
-<path d="M 2500 1930 L 2503 1923 L 3597 1923 L 3600 1930 L 3597 1937 L 2503 1937 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1930">
+<path d="M 2500 1930 L 2503 1923 L 3497 1923 L 3500 1930 L 3497 1937 L 2503 1937 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1930">
 0
 <title>0</title>
 </text>
@@ -1979,8 +1979,8 @@ Some(0000)
 .filler.sleep_counter.dff.output
 <title>top.filler.sleep_counter.dff.output</title>
 </text>
-<path d="M 2500 1950 L 2503 1943 L 3597 1943 L 3600 1950 L 3597 1957 L 2503 1957 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1950">
+<path d="M 2500 1950 L 2503 1943 L 3497 1943 L 3500 1950 L 3497 1957 L 2503 1957 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1950">
 0
 <title>0</title>
 </text>
@@ -1988,8 +1988,8 @@ Some(0000)
 .filler.sleep_len.constant.value
 <title>top.filler.sleep_len.constant.value</title>
 </text>
-<path d="M 2500 1970 L 2503 1963 L 3597 1963 L 3600 1970 L 3597 1977 L 2503 1977 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1970">
+<path d="M 2500 1970 L 2503 1963 L 3497 1963 L 3500 1970 L 3497 1977 L 2503 1977 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1970">
 4
 <title>4</title>
 </text>
@@ -1997,8 +1997,8 @@ Some(0000)
 .filler.write_probability.constant.value
 <title>top.filler.write_probability.constant.value</title>
 </text>
-<path d="M 2500 1990 L 2503 1983 L 3597 1983 L 3600 1990 L 3597 1997 L 2503 1997 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="1990">
+<path d="M 2500 1990 L 2503 1983 L 3497 1983 L 3500 1990 L 3497 1997 L 2503 1997 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="1990">
 8000
 <title>8000</title>
 </text>
@@ -2006,18 +2006,18 @@ Some(0000)
 .filler.input
 <title>top.filler.input</title>
 </text>
-<path d="M 2500 2010 L 2500 2017 L 3600 2017 L 3600 2010" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 2010 L 2500 2017 L 3500 2017 L 3500 2010" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="2030">
    .full
 <title>top.filler.input.full</title>
 </text>
-<path d="M 2500 2030 L 2500 2037 L 3600 2037 L 3600 2030" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 2030 L 2500 2037 L 3500 2037 L 3500 2030" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="2050">
 .filler.outputs
 <title>top.filler.outputs</title>
 </text>
-<path d="M 2500 2050 L 2503 2043 L 3597 2043 L 3600 2050 L 3597 2057 L 2503 2057 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="2050">
+<path d="M 2500 2050 L 2503 2043 L 3497 2043 L 3500 2050 L 3497 2057 L 2503 2057 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="2050">
 {data: Some(0000)}
 <title>{data: Some(0000)}</title>
 </text>
@@ -2025,8 +2025,8 @@ Some(0000)
    .data
 <title>top.filler.outputs.data</title>
 </text>
-<path d="M 2500 2070 L 2503 2063 L 3597 2063 L 3600 2070 L 3597 2077 L 2503 2077 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="2070">
+<path d="M 2500 2070 L 2503 2063 L 3497 2063 L 3500 2070 L 3497 2077 L 2503 2077 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="2070">
 Some(0000)
 <title>Some(0000)</title>
 </text>
@@ -2038,8 +2038,8 @@ Some(0000)
       #Some.0
 <title>top.filler.outputs.data#Some.0</title>
 </text>
-<path d="M 2500 2110 L 2503 2103 L 3597 2103 L 3600 2110 L 3597 2117 L 2503 2117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="2110">
+<path d="M 2500 2110 L 2503 2103 L 3497 2103 L 3500 2110 L 3497 2117 L 2503 2117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="2110">
 0000
 <title>0000</title>
 </text>
@@ -2077,13 +2077,12 @@ Some(0000)
 <path d="M 3400 2130 L 3400 2137 L 3450 2137 L 3450 2130" fill="none" stroke="#56C126" stroke-width="1"/>
 <rect fill="#1C400C" height="14" stroke="none" width="48" x="3451" y="2123"/>
 <path d="M 3450 2130 L 3450 2123 L 3500 2123 L 3500 2130" fill="none" stroke="#56C126" stroke-width="1"/>
-<path d="M 3500 2130 L 3500 2137 L 3600 2137 L 3600 2130" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="2150">
 .input
 <title>top.input</title>
 </text>
-<path d="M 2500 2150 L 2503 2143 L 3597 2143 L 3600 2150 L 3597 2157 L 2503 2157 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3050" xml:space="preserve" y="2150">
+<path d="M 2500 2150 L 2503 2143 L 3497 2143 L 3500 2150 L 3497 2157 L 2503 2157 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="3000" xml:space="preserve" y="2150">
 
 <title></title>
 </text>
@@ -2091,10 +2090,10 @@ Some(0000)
 .outputs
 <title>top.outputs</title>
 </text>
-<path d="M 2500 2170 L 2500 2177 L 3600 2177 L 3600 2170" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 2170 L 2500 2177 L 3500 2177 L 3500 2170" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="2190">
 .reset
 <title>top.reset</title>
 </text>
-<path d="M 2500 2190 L 2500 2197 L 3600 2197 L 3600 2190" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 2500 2190 L 2500 2197 L 3500 2197 L 3500 2190" fill="none" stroke="#56C126" stroke-width="1"/>
 </svg>

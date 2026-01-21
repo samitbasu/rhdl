@@ -11,3 +11,6 @@
 | 26 |   true   |   false   |  3_b8 |
 | 30 |   false   |   false   |  3_b8 |
 | 35 |   true   |   false   |  3_b8 |
+| 36 |   true   |   false   |  3_b8 |
+| 40 |   false   |   false   |  3_b8 |
+| 45 |   false   |   false   |  3_b8 |

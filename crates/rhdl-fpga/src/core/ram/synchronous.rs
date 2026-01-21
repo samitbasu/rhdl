@@ -361,7 +361,7 @@ mod tests {
             .join("ram")
             .join("synchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["d1873b746f8c77027dac6ada707737c8c1e80290607992b587c5f0154bb61985"];
+        let expect = expect!["7e8c4f317e3788b67a496ed860c3605e5d2d4be8bee4f0b3b2a44c180a4d37a6"];
         let digest = vcd
             .dump_to_file(root.join("test_scan_out_ram.vcd"))
             .unwrap();

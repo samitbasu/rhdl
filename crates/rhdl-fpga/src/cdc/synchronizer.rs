@@ -425,7 +425,7 @@ mod tests {
             .join("vcd")
             .join("synchronizer");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["f325239a60fbfc6c0aa5bcff5815d9e144b6be7bd7bfb1ec12115cdb2d9018dd"];
+        let expect = expect!["5560c2b70d377be2927fe3d326a260f2743604b81b747445faa6ebbaff1aab90"];
         let digest = vcd.dump_to_file(root.join("synchronizer.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

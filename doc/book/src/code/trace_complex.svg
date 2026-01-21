@@ -1,10 +1,10 @@
-<svg viewBox="0 0 760 120" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 660 120" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <clipPath id="clip">
-<rect height="120" width="760" x="0" y="0"/>
+<rect height="120" width="660" x="0" y="0"/>
 </clipPath>
 </defs>
-<rect fill="#0B151D" height="120" stroke="darkblue" width="760" x="0" y="0"/>
+<rect fill="#0B151D" height="120" stroke="darkblue" width="660" x="0" y="0"/>
 <line stroke="#333333" stroke-width="1" x1="160" x2="160" y1="0" y2="120"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="160" y="10">
 0
@@ -26,12 +26,8 @@
 400
 </text>
 <line stroke="#333333" stroke-width="1" x1="660" x2="660" y1="0" y2="120"/>
-<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="660" y="10">
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="end" x="660" y="10">
 500
-</text>
-<line stroke="#333333" stroke-width="1" x1="760" x2="760" y1="0" y2="120"/>
-<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="end" x="760" y="10">
-600
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" y="10">
 Time:
@@ -65,11 +61,6 @@ Time:
 (4, 5)
 <title>(4, 5)</title>
 </text>
-<path d="M 660 30 L 663 23 L 757 23 L 760 30 L 757 37 L 663 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="710" xml:space="preserve" y="30">
-(3, 6)
-<title>(3, 6)</title>
-</text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="50">
 .kernel_2.a.0
 <title>top.kernel_2.a.0</title>
@@ -98,11 +89,6 @@ f
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="610" xml:space="preserve" y="50">
 4
 <title>4</title>
-</text>
-<path d="M 660 50 L 663 43 L 757 43 L 760 50 L 757 57 L 663 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="710" xml:space="preserve" y="50">
-3
-<title>3</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
 .kernel_2.a.1
@@ -133,11 +119,6 @@ f
 5
 <title>5</title>
 </text>
-<path d="M 660 70 L 663 63 L 757 63 L 760 70 L 757 77 L 663 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="710" xml:space="preserve" y="70">
-6
-<title>6</title>
-</text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="90">
 .kernel_2.b
 <title>top.kernel_2.b</title>
@@ -167,11 +148,6 @@ f
 9
 <title>9</title>
 </text>
-<path d="M 660 90 L 663 83 L 757 83 L 760 90 L 757 97 L 663 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="710" xml:space="preserve" y="90">
-b
-<title>b</title>
-</text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="110">
 .kernel_2.output
 <title>top.kernel_2.output</title>
@@ -200,10 +176,5 @@ e
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="610" xml:space="preserve" y="110">
 d
 <title>d</title>
-</text>
-<path d="M 660 110 L 663 103 L 757 103 L 760 110 L 757 117 L 663 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="710" xml:space="preserve" y="110">
-e
-<title>e</title>
 </text>
 </svg>

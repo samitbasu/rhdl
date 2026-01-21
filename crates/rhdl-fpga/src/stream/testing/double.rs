@@ -82,7 +82,7 @@ mod tests {
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!("80bc08761c1abb879c05d867b73f985c4ae502bcb630f05f562533c305a0674b");
+        let expect = expect!("722e36eabd3b0c5f09293d6200b38a18c058c71d76fd656bafcfd5a425796d2f");
         let digest = vcd.dump_to_file(root.join("double.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

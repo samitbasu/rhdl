@@ -107,7 +107,7 @@ impl Default for SvgOptions {
             name_filters: None,
             auto_gap_detection: None,
             gap_space: 100,
-            tail_flush_time: 100,
+            tail_flush_time: 0,
         }
     }
 }

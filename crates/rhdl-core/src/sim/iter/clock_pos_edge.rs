@@ -34,6 +34,8 @@ enum State {
     Hold,
     ClockLow,
     ClockHigh,
+    TailStart,
+    TailEnd,
     Done,
 }
 
@@ -138,13 +140,23 @@ where
                 if let Some(data) = self.input.next() {
                     self.sample = data;
                     self.state = State::ClockLow;
-                    self.time = self.next_time;
-                    self.next_time += self.period / 2 - 1;
-                    Some(self.this_sample(clock(true)))
                 } else {
-                    self.state = State::Done;
-                    None
+                    self.state = State::TailStart;
                 }
+                self.time = self.next_time;
+                self.next_time += self.period / 2 - 1;
+                Some(self.this_sample(clock(true)))
+            }
+            State::TailStart => {
+                self.state = State::TailEnd;
+                self.time = self.next_time;
+                self.next_time = self.time + self.period / 2;
+                Some(self.this_sample(clock(false)))
+            }
+            State::TailEnd => {
+                self.state = State::Done;
+                self.time = self.next_time;
+                Some(self.this_sample(clock(false)))
             }
             State::Done => None,
         }

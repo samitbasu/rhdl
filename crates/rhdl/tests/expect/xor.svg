@@ -1,10 +1,10 @@
-<svg viewBox="0 0 590 140" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 490 140" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <clipPath id="clip">
-<rect height="140" width="590" x="0" y="0"/>
+<rect height="140" width="490" x="0" y="0"/>
 </clipPath>
 </defs>
-<rect fill="#0B151D" height="140" stroke="darkblue" width="590" x="0" y="0"/>
+<rect fill="#0B151D" height="140" stroke="darkblue" width="490" x="0" y="0"/>
 <line stroke="#333333" stroke-width="1" x1="90" x2="90" y1="0" y2="140"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="90" y="10">
 0
@@ -22,12 +22,8 @@
 300
 </text>
 <line stroke="#333333" stroke-width="1" x1="490" x2="490" y1="0" y2="140"/>
-<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="490" y="10">
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="end" x="490" y="10">
 400
-</text>
-<line stroke="#333333" stroke-width="1" x1="590" x2="590" y1="0" y2="140"/>
-<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="end" x="590" y="10">
-500
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" y="10">
 Time:
@@ -56,11 +52,6 @@ r@((1, 0))
 r@((1, 1))
 <title>r@((1, 1))</title>
 </text>
-<path d="M 490 30 L 493 23 L 587 23 L 590 30 L 587 37 L 493 37 Z" fill="none" stroke="#D62246" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="540" xml:space="preserve" y="30">
-r@((0, 0))
-<title>r@((0, 0))</title>
-</text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="50">
 .input@
 <title>top.input@</title>
@@ -85,11 +76,6 @@ r@((0, 0))
 (1, 1)
 <title>(1, 1)</title>
 </text>
-<path d="M 490 50 L 493 43 L 587 43 L 590 50 L 587 57 L 493 57 Z" fill="none" stroke="#D62246" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="540" xml:space="preserve" y="50">
-(0, 0)
-<title>(0, 0)</title>
-</text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
    .0
 <title>top.input@.0</title>
@@ -97,7 +83,6 @@ r@((0, 0))
 <path d="M 90 70 L 90 77 L 290 77 L 290 70" fill="none" stroke="#D62246" stroke-width="1"/>
 <rect fill="#470B17" height="14" stroke="none" width="198" x="291" y="63"/>
 <path d="M 290 70 L 290 63 L 490 63 L 490 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 490 70 L 490 77 L 590 77 L 590 70" fill="none" stroke="#D62246" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="90">
    .1
 <title>top.input@.1</title>
@@ -108,7 +93,6 @@ r@((0, 0))
 <path d="M 290 90 L 290 97 L 390 97 L 390 90" fill="none" stroke="#D62246" stroke-width="1"/>
 <rect fill="#470B17" height="14" stroke="none" width="98" x="391" y="83"/>
 <path d="M 390 90 L 390 83 L 490 83 L 490 90" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 490 90 L 490 97 L 590 97 L 590 90" fill="none" stroke="#D62246" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="110">
 .outputs
 <title>top.outputs</title>
@@ -116,7 +100,7 @@ r@((0, 0))
 <path d="M 90 110 L 90 117 L 190 117 L 190 110" fill="none" stroke="#D62246" stroke-width="1"/>
 <rect fill="#470B17" height="14" stroke="none" width="198" x="191" y="103"/>
 <path d="M 190 110 L 190 103 L 390 103 L 390 110" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 390 110 L 390 117 L 590 117 L 590 110" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 390 110 L 390 117 L 490 117 L 490 110" fill="none" stroke="#D62246" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="130">
 .outputs@
 <title>top.outputs@</title>
@@ -124,5 +108,5 @@ r@((0, 0))
 <path d="M 90 130 L 90 137 L 190 137 L 190 130" fill="none" stroke="#D62246" stroke-width="1"/>
 <rect fill="#470B17" height="14" stroke="none" width="198" x="191" y="123"/>
 <path d="M 190 130 L 190 123 L 390 123 L 390 130" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 390 130 L 390 137 L 590 137 L 590 130" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 390 130 L 390 137 L 490 137 L 490 130" fill="none" stroke="#D62246" stroke-width="1"/>
 </svg>

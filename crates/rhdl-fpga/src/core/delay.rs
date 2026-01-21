@@ -130,7 +130,7 @@ mod tests {
             .join("vcd")
             .join("delay");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["296ee66b6c71dfaaad5172021ae1fbf8d5cfe208a97b2b05a095e23438de42e3"];
+        let expect = expect!["ddeb0fcde2569c74a43fecf62083bb1d0b422124557fad1a34fa0c8a5de76bea"];
         let digest = vcd.dump_to_file(root.join("delay.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
