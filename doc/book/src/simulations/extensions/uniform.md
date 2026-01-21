@@ -34,11 +34,10 @@ Once the iterator is consumed by the `.run` method, the output contains items of
 
 Here, the output of `uut.run(it)` is a sequence of `TracedSample<I,O>` items.  These are then unpacked as:
 
-- `s` is of type `TimedSample<(I,O)>`
-- `s.value` is the value of the `TimedSample` (we do not use the time in this test), and has type `(I,O)`
-- `s.value.0` is the input fed to the circuit at the corresponding timestamp, and has type `I`, which for this circuit, is `Signal<(bool, bool), Red>`.
-- `s.value.0.val()` is the value carried by the signal (remember that `Signal` is just a wrapper type), so this is of type `(bool, bool)`, which is the input
-- `s.value.1.val()` is by the same argument, the output of the circuit, and is of type `bool`, the output of the circuit.
+- `s` is of type `TracedSample<I,O>`
+- `s.input` is the input fed to the circuit at the corresponding timestamp, and has type `I`, which for this circuit, is `Signal<(bool, bool), Red>`.
+- `s.input.val()` is the value carried by the signal (remember that `Signal` is just a wrapper type), so this is of type `(bool, bool)`, which is the input
+- `s.output.val()` is the output of the circuit, and is of type `bool`, the output of the circuit.
 - We can then compute the Xor of the two input bits using the Rust `^` operator to yield `expected`
 - An assertion then compares the circuit output to the Rust output
 
@@ -46,7 +45,7 @@ This example demonstrates the general flow for open loop testing using iterators
 
 - We create an iterator that yields inputs of interest to present to our circuit
 - We use `.uniform` to put these inputs on a uniform time grid for feeding to our unit under test (UUT)
-- The `.run()` method consumes the iterator, and produces a sequence of timed samples that contain the input and the output
+- The `.run()` method consumes the iterator, and produces a sequence of traced samples that contain the input and the output
 - Some independent means is used to compute the expected output of the circuit to the input provided.  This independent means can use _any_ valid Rust code to do so.
 - The output of the circuit is checked against the independently computed output and any discrepancies cause a failure of the test.
 

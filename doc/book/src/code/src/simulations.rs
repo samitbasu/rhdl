@@ -321,3 +321,111 @@ pub mod xor_gate_uniform {
     }
     // ANCHOR_END: xor-uniform-iter
 }
+
+pub mod circuit_run {
+    use rhdl::prelude::*;
+
+    // ANCHOR: run-circuit
+
+    pub trait Circuit: 'static + CircuitIO + Sized {
+        type S: Clone + PartialEq;
+
+        fn init(&self) -> Self::S;
+        fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O;
+        // snip
+    }
+
+    // ANCHOR_END: run-circuit
+}
+
+pub mod circuit_sim {
+    use rhdl::prelude::*;
+
+    #[derive(Circuit, Clone, CircuitDQ)]
+    pub struct XorGate;
+
+    impl CircuitIO for XorGate {
+        type I = Signal<(bool, bool), Red>;
+        type O = Signal<bool, Red>;
+        type Kernel = xor_gate;
+    }
+
+    #[kernel]
+    pub fn xor_gate(i: Signal<(bool, bool), Red>, _q: XorGateQ) -> (Signal<bool, Red>, XorGateD) {
+        let (a, b) = i.val(); // a and b are both bool
+        let c = a ^ b; // Exclusive OR
+        (signal(c), XorGateD {})
+    }
+
+    // ANCHOR: test_sim
+    #[test]
+    fn test_sim() {
+        let uut = XorGate; // Get an instance of the circuit
+        let mut state = uut.init(); // Initialize the state
+        // Assemble the inputs to test
+        let inputs = [(false, false), (false, true), (true, false), (true, true)];
+        let inputs = inputs.into_iter().map(signal);
+        for i in inputs {
+            // Simulate the circuit with the input and current state
+            let o = uut.sim(i, &mut state);
+            // Verify the output
+            let (a, b) = i.val();
+            let expected = a ^ b;
+            assert_eq!(o.val(), expected, "For input {i:?}, expected {expected}");
+        }
+    }
+    // ANCHOR_END: test_sim
+
+    // ANCHOR: test_sim_ext
+    #[test]
+    fn test_sim_ext() {
+        let uut = XorGate;
+        let inputs = [(false, false), (false, true), (true, false), (true, true)];
+        // The `.uniform` turns the values into timed samples
+        let inputs = inputs.into_iter().map(signal).uniform(100);
+        for output in uut.run(inputs) {
+            let input = output.input.val();
+            let expected = input.0 ^ input.1;
+            assert_eq!(
+                output.output.val(),
+                expected,
+                "For input {input:?}, expected {expected}"
+            );
+        }
+    }
+    // ANCHOR_END: test_sim_ext
+}
+
+pub mod synchronous_sim {
+    #[test]
+    fn test_counter() {
+        use rhdl::core::trace::trace_sample::TracedSample;
+        use rhdl::prelude::*;
+        use std::io::Write;
+
+        let fs = std::fs::File::create("counter.txt").unwrap();
+        let mut writer = std::io::BufWriter::new(fs);
+        writeln!(writer, "| time | cr | input | output |").unwrap();
+        writeln!(writer, "|------|----|----|--------|").unwrap();
+        let mut post_process = |sample: TracedSample<(ClockReset, bool), b3>| {
+            writeln!(
+                writer,
+                "| {time} | {cr} | {input} | {output} |",
+                time = sample.time,
+                cr = sample.input.0,
+                input = sample.input.1,
+                output = sample.output
+            )
+            .unwrap();
+        };
+        // ANCHOR: counter-iter-ext
+        let uut = rhdl_fpga::core::counter::Counter::<3>::default();
+        let inputs = std::iter::repeat_n(true, 4)
+            .with_reset(1)
+            .clock_pos_edge(100);
+        for sample in uut.run(inputs) {
+            post_process(sample);
+        }
+        // ANCHOR_END: counter-iter-ext
+    }
+}
