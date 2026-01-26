@@ -163,9 +163,10 @@ impl<T: Digital> DFF<T> {
         let module_name = format_ident!("{}", name);
         let init: vlog::LitVerilog = self.reset.typed_bits().into();
         let data_width: vlog::BitRange = (0..T::static_kind().bits()).into();
-        let reset_index = bit_range(ClockReset::static_kind(), &path!(.reset))?;
+        let cr = ClockReset::dont_care();
+        let reset_index = bit_range(ClockReset::static_kind(), &path!(cr.reset))?;
         let reset_index = syn::Index::from(reset_index.0.start);
-        let clock_index = bit_range(ClockReset::static_kind(), &path!(.clock))?;
+        let clock_index = bit_range(ClockReset::static_kind(), &path!(cr.clock))?;
         let clock_index = syn::Index::from(clock_index.0.start);
         let module: vlog::ModuleDef = parse_quote! {
             module #module_name(

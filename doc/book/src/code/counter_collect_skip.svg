@@ -1,0 +1,353 @@
+<svg viewBox="0 0 1570 140" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<clipPath id="clip">
+<rect height="140" width="1570" x="0" y="0"/>
+</clipPath>
+</defs>
+<rect fill="#0B151D" height="140" stroke="darkblue" width="1570" x="0" y="0"/>
+<line stroke="#333333" stroke-width="1" x1="170" x2="170" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="end" x="170" y="10">
+0
+</text>
+<line stroke="#333333" stroke-width="1" x1="220" x2="220" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="220" y="10">
+600
+</text>
+<line stroke="#333333" stroke-width="1" x1="320" x2="320" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="320" y="10">
+700
+</text>
+<line stroke="#333333" stroke-width="1" x1="420" x2="420" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="420" y="10">
+800
+</text>
+<line stroke="#333333" stroke-width="1" x1="520" x2="520" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="520" y="10">
+900
+</text>
+<line stroke="#333333" stroke-width="1" x1="620" x2="620" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="620" y="10">
+1000
+</text>
+<line stroke="#333333" stroke-width="1" x1="720" x2="720" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="720" y="10">
+1100
+</text>
+<line stroke="#333333" stroke-width="1" x1="820" x2="820" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="820" y="10">
+1200
+</text>
+<line stroke="#333333" stroke-width="1" x1="920" x2="920" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="920" y="10">
+1300
+</text>
+<line stroke="#333333" stroke-width="1" x1="1020" x2="1020" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1020" y="10">
+1400
+</text>
+<line stroke="#333333" stroke-width="1" x1="1120" x2="1120" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1120" y="10">
+1500
+</text>
+<line stroke="#333333" stroke-width="1" x1="1220" x2="1220" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1220" y="10">
+1600
+</text>
+<line stroke="#333333" stroke-width="1" x1="1320" x2="1320" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1320" y="10">
+1700
+</text>
+<line stroke="#333333" stroke-width="1" x1="1420" x2="1420" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1420" y="10">
+1800
+</text>
+<line stroke="#333333" stroke-width="1" x1="1520" x2="1520" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1520" y="10">
+1900
+</text>
+<line stroke="#333333" stroke-width="1" x1="1620" x2="1620" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="end" x="1620" y="10">
+2000
+</text>
+<rect fill="#333333" height="140" width="50" x="170" y="0"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" y="10">
+Time:
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="30">
+.count.dff.input
+<title>top.count.dff.input</title>
+</text>
+<path d="M 221 30 L 224 23 L 267 23 L 270 30 L 267 37 L 224 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="245" xml:space="preserve" y="30">
+6
+<title>6</title>
+</text>
+<path d="M 270 30 L 273 23 L 367 23 L 370 30 L 367 37 L 273 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="320" xml:space="preserve" y="30">
+7
+<title>7</title>
+</text>
+<path d="M 370 30 L 373 23 L 467 23 L 470 30 L 467 37 L 373 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="420" xml:space="preserve" y="30">
+0
+<title>0</title>
+</text>
+<path d="M 470 30 L 473 23 L 567 23 L 570 30 L 567 37 L 473 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="520" xml:space="preserve" y="30">
+1
+<title>1</title>
+</text>
+<path d="M 570 30 L 573 23 L 667 23 L 670 30 L 667 37 L 573 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="620" xml:space="preserve" y="30">
+2
+<title>2</title>
+</text>
+<path d="M 670 30 L 673 23 L 767 23 L 770 30 L 767 37 L 673 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="720" xml:space="preserve" y="30">
+3
+<title>3</title>
+</text>
+<path d="M 770 30 L 773 23 L 867 23 L 870 30 L 867 37 L 773 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="820" xml:space="preserve" y="30">
+4
+<title>4</title>
+</text>
+<path d="M 870 30 L 873 23 L 967 23 L 970 30 L 967 37 L 873 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="920" xml:space="preserve" y="30">
+5
+<title>5</title>
+</text>
+<path d="M 970 30 L 973 23 L 1067 23 L 1070 30 L 1067 37 L 973 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1020" xml:space="preserve" y="30">
+6
+<title>6</title>
+</text>
+<path d="M 1070 30 L 1073 23 L 1167 23 L 1170 30 L 1167 37 L 1073 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1120" xml:space="preserve" y="30">
+7
+<title>7</title>
+</text>
+<path d="M 1170 30 L 1173 23 L 1267 23 L 1270 30 L 1267 37 L 1173 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1220" xml:space="preserve" y="30">
+0
+<title>0</title>
+</text>
+<path d="M 1270 30 L 1273 23 L 1367 23 L 1370 30 L 1367 37 L 1273 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1320" xml:space="preserve" y="30">
+1
+<title>1</title>
+</text>
+<path d="M 1370 30 L 1373 23 L 1467 23 L 1470 30 L 1467 37 L 1373 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1420" xml:space="preserve" y="30">
+2
+<title>2</title>
+</text>
+<path d="M 1470 30 L 1473 23 L 1567 23 L 1570 30 L 1567 37 L 1473 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1520" xml:space="preserve" y="30">
+3
+<title>3</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="50">
+.count.dff.output
+<title>top.count.dff.output</title>
+</text>
+<path d="M 221 50 L 224 43 L 267 43 L 270 50 L 267 57 L 224 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="245" xml:space="preserve" y="50">
+5
+<title>5</title>
+</text>
+<path d="M 270 50 L 273 43 L 367 43 L 370 50 L 367 57 L 273 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="320" xml:space="preserve" y="50">
+6
+<title>6</title>
+</text>
+<path d="M 370 50 L 373 43 L 467 43 L 470 50 L 467 57 L 373 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="420" xml:space="preserve" y="50">
+7
+<title>7</title>
+</text>
+<path d="M 470 50 L 473 43 L 567 43 L 570 50 L 567 57 L 473 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="520" xml:space="preserve" y="50">
+0
+<title>0</title>
+</text>
+<path d="M 570 50 L 573 43 L 667 43 L 670 50 L 667 57 L 573 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="620" xml:space="preserve" y="50">
+1
+<title>1</title>
+</text>
+<path d="M 670 50 L 673 43 L 767 43 L 770 50 L 767 57 L 673 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="720" xml:space="preserve" y="50">
+2
+<title>2</title>
+</text>
+<path d="M 770 50 L 773 43 L 867 43 L 870 50 L 867 57 L 773 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="820" xml:space="preserve" y="50">
+3
+<title>3</title>
+</text>
+<path d="M 870 50 L 873 43 L 967 43 L 970 50 L 967 57 L 873 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="920" xml:space="preserve" y="50">
+4
+<title>4</title>
+</text>
+<path d="M 970 50 L 973 43 L 1067 43 L 1070 50 L 1067 57 L 973 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1020" xml:space="preserve" y="50">
+5
+<title>5</title>
+</text>
+<path d="M 1070 50 L 1073 43 L 1167 43 L 1170 50 L 1167 57 L 1073 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1120" xml:space="preserve" y="50">
+6
+<title>6</title>
+</text>
+<path d="M 1170 50 L 1173 43 L 1267 43 L 1270 50 L 1267 57 L 1173 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1220" xml:space="preserve" y="50">
+7
+<title>7</title>
+</text>
+<path d="M 1270 50 L 1273 43 L 1367 43 L 1370 50 L 1367 57 L 1273 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1320" xml:space="preserve" y="50">
+0
+<title>0</title>
+</text>
+<path d="M 1370 50 L 1373 43 L 1467 43 L 1470 50 L 1467 57 L 1373 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1420" xml:space="preserve" y="50">
+1
+<title>1</title>
+</text>
+<path d="M 1470 50 L 1473 43 L 1567 43 L 1570 50 L 1567 57 L 1473 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1520" xml:space="preserve" y="50">
+2
+<title>2</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
+.clock
+<title>top.clock</title>
+</text>
+<path d="M 221 70 L 221 77 L 270 77 L 270 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="271" y="63"/>
+<path d="M 270 70 L 270 63 L 320 63 L 320 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 320 70 L 320 77 L 370 77 L 370 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="371" y="63"/>
+<path d="M 370 70 L 370 63 L 420 63 L 420 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 420 70 L 420 77 L 470 77 L 470 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="471" y="63"/>
+<path d="M 470 70 L 470 63 L 520 63 L 520 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 520 70 L 520 77 L 570 77 L 570 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="571" y="63"/>
+<path d="M 570 70 L 570 63 L 620 63 L 620 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 620 70 L 620 77 L 670 77 L 670 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="671" y="63"/>
+<path d="M 670 70 L 670 63 L 720 63 L 720 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 720 70 L 720 77 L 770 77 L 770 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="771" y="63"/>
+<path d="M 770 70 L 770 63 L 820 63 L 820 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 820 70 L 820 77 L 870 77 L 870 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="871" y="63"/>
+<path d="M 870 70 L 870 63 L 920 63 L 920 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 920 70 L 920 77 L 970 77 L 970 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="971" y="63"/>
+<path d="M 970 70 L 970 63 L 1020 63 L 1020 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 1020 70 L 1020 77 L 1070 77 L 1070 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="1071" y="63"/>
+<path d="M 1070 70 L 1070 63 L 1120 63 L 1120 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 1120 70 L 1120 77 L 1170 77 L 1170 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="1171" y="63"/>
+<path d="M 1170 70 L 1170 63 L 1220 63 L 1220 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 1220 70 L 1220 77 L 1270 77 L 1270 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="1271" y="63"/>
+<path d="M 1270 70 L 1270 63 L 1320 63 L 1320 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 1320 70 L 1320 77 L 1370 77 L 1370 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="1371" y="63"/>
+<path d="M 1370 70 L 1370 63 L 1420 63 L 1420 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 1420 70 L 1420 77 L 1470 77 L 1470 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="48" x="1471" y="63"/>
+<path d="M 1470 70 L 1470 63 L 1520 63 L 1520 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 1520 70 L 1520 77 L 1570 77 L 1570 70" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="90">
+.input
+<title>top.input</title>
+</text>
+<rect fill="#1C400C" height="14" stroke="none" width="1347" x="222" y="83"/>
+<path d="M 221 90 L 221 83 L 1570 83 L 1570 90" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="110">
+.outputs
+<title>top.outputs</title>
+</text>
+<path d="M 221 110 L 224 103 L 267 103 L 270 110 L 267 117 L 224 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="245" xml:space="preserve" y="110">
+5
+<title>5</title>
+</text>
+<path d="M 270 110 L 273 103 L 367 103 L 370 110 L 367 117 L 273 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="320" xml:space="preserve" y="110">
+6
+<title>6</title>
+</text>
+<path d="M 370 110 L 373 103 L 467 103 L 470 110 L 467 117 L 373 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="420" xml:space="preserve" y="110">
+7
+<title>7</title>
+</text>
+<path d="M 470 110 L 473 103 L 567 103 L 570 110 L 567 117 L 473 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="520" xml:space="preserve" y="110">
+0
+<title>0</title>
+</text>
+<path d="M 570 110 L 573 103 L 667 103 L 670 110 L 667 117 L 573 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="620" xml:space="preserve" y="110">
+1
+<title>1</title>
+</text>
+<path d="M 670 110 L 673 103 L 767 103 L 770 110 L 767 117 L 673 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="720" xml:space="preserve" y="110">
+2
+<title>2</title>
+</text>
+<path d="M 770 110 L 773 103 L 867 103 L 870 110 L 867 117 L 773 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="820" xml:space="preserve" y="110">
+3
+<title>3</title>
+</text>
+<path d="M 870 110 L 873 103 L 967 103 L 970 110 L 967 117 L 873 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="920" xml:space="preserve" y="110">
+4
+<title>4</title>
+</text>
+<path d="M 970 110 L 973 103 L 1067 103 L 1070 110 L 1067 117 L 973 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1020" xml:space="preserve" y="110">
+5
+<title>5</title>
+</text>
+<path d="M 1070 110 L 1073 103 L 1167 103 L 1170 110 L 1167 117 L 1073 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1120" xml:space="preserve" y="110">
+6
+<title>6</title>
+</text>
+<path d="M 1170 110 L 1173 103 L 1267 103 L 1270 110 L 1267 117 L 1173 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1220" xml:space="preserve" y="110">
+7
+<title>7</title>
+</text>
+<path d="M 1270 110 L 1273 103 L 1367 103 L 1370 110 L 1367 117 L 1273 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1320" xml:space="preserve" y="110">
+0
+<title>0</title>
+</text>
+<path d="M 1370 110 L 1373 103 L 1467 103 L 1470 110 L 1467 117 L 1373 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1420" xml:space="preserve" y="110">
+1
+<title>1</title>
+</text>
+<path d="M 1470 110 L 1473 103 L 1567 103 L 1570 110 L 1567 117 L 1473 117 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1520" xml:space="preserve" y="110">
+2
+<title>2</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="130">
+.reset
+<title>top.reset</title>
+</text>
+<path d="M 221 130 L 221 137 L 1570 137 L 1570 130" fill="none" stroke="#56C126" stroke-width="1"/>
+</svg>

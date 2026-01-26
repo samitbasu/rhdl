@@ -18,11 +18,11 @@ pub struct VcdTap<I> {
 }
 
 /// Create a VCD file-writing probe over the supplied stream of traced samples.
-pub fn vcd_tap<I>(stream: I, file: &Path) -> VcdTap<I> {
+pub fn vcd_tap<I>(stream: I, file: impl AsRef<Path>) -> VcdTap<I> {
     VcdTap {
         inner: VcdFile::default(),
         iter: stream,
-        file_name: file.to_path_buf(),
+        file_name: file.as_ref().to_path_buf(),
     }
 }
 

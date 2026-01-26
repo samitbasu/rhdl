@@ -55,6 +55,24 @@ pub(crate) struct Waveform {
 }
 
 impl Waveform {
+    pub(crate) fn split_at_gaps(self, gaps: &GapList) -> Waveform {
+        let mut regions = Vec::new();
+        for region in self.data.iter() {
+            let intervals = gaps.break_interval_at_gaps(&(region.start..=region.end));
+            regions.extend(intervals.into_iter().map(|interval| Region {
+                start: *interval.start(),
+                end: *interval.end(),
+                tag: region.tag.clone(),
+                kind: region.kind,
+                color: region.color,
+            }));
+        }
+        Waveform {
+            label: self.label,
+            hint: self.hint,
+            data: regions.into_boxed_slice(),
+        }
+    }
     pub(crate) fn render(self, options: &SvgOptions, gaps: &GapList) -> DrawableList {
         //let label_width = options.font_size_in_pixels as i32 * options.label_width;
         let label_width = (self.label.len() as f32 * options.font_size_in_pixels) as i32;
@@ -79,7 +97,7 @@ impl Waveform {
             }
             // Remap the times based on the gap
             let r_start = gaps.gap_time(r.start, options.gap_space);
-            let r_end = gaps.gap_time(r.end, options.gap_space);
+            let r_end = gaps.gap_time(r.end - 1, options.gap_space) + 1;
             let len = r_end.saturating_sub(r_start);
             let width = (len as f32 * options.pixels_per_time_unit) as i32;
             let start_x = label_width + (r_start as f32 * options.pixels_per_time_unit) as i32;

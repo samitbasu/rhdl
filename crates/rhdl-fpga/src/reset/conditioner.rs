@@ -199,14 +199,15 @@ impl<W: Domain, R: Domain> ResetConditioner<W, R> {
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = name.to_owned();
         let module_name = format_ident!("{}", module_name);
+        let i = <Self as CircuitIO>::I::dont_care();
         let reset_index = bit_range(
             <<Self as CircuitIO>::I as Digital>::static_kind(),
-            &path!(.reset.val()),
+            &path!(i.reset.val()),
         )?;
         let reset_index = syn::Index::from(reset_index.0.start);
         let clock_index = bit_range(
             <<Self as CircuitIO>::I as Digital>::static_kind(),
-            &path!(.clock.val()),
+            &path!(i.clock.val()),
         )?;
         let clock_index = syn::Index::from(clock_index.0.start);
         let module: vlog::ModuleDef = parse_quote! {

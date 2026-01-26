@@ -1,0 +1,18 @@
+| time | red clock | red reset | blue clock | blue reset |
+|------|-----------|-----------|------------|------------|
+| 0 |     false     |     true     |     false      |     true      |
+| 25 |     true     |     true     |     false      |     true      |
+| 26 |     true     |     false     |     false      |     true      |
+| 39 |     true     |     false     |     true      |     true      |
+| 40 |     true     |     false     |     true      |     false      |
+| 50 |     false     |     false     |     true      |     false      |
+| 75 |     true     |     false     |     true      |     false      |
+| 76 |     true     |     false     |     true      |     false      |
+| 78 |     true     |     false     |     false      |     false      |
+| 100 |     false     |     false     |     false      |     false      |
+| 117 |     false     |     false     |     true      |     false      |
+| 118 |     false     |     false     |     true      |     false      |
+| 125 |     true     |     false     |     true      |     false      |
+| 126 |     true     |     false     |     true      |     false      |
+| 150 |     false     |     false     |     true      |     false      |
+| 156 |     false     |     false     |     false      |     false      |

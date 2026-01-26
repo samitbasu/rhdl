@@ -76,8 +76,8 @@ mod tests {
             type O = (Signal<b2, Red>, Signal<b4, Blue>);
             type Kernel = NoCircuitKernel<(), (), ((Signal<b2, Red>, Signal<b4, Blue>), ())>;
         }
-
-        let driver = build::<U>("led", &path!(.0.val()), &options).unwrap();
+        let o = <U as CircuitIO>::O::dont_care();
+        let driver = build::<U>("led", &path!(o.0.val()), &options).unwrap();
         let hdl = expect_test::expect![[r#"
             wire [1:0] _drive_led;
             assign _drive_led = inner_output[1:0];

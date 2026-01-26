@@ -29,7 +29,21 @@ Here is the previous example, rewritten to use the extention trait:
 {{#rustdoc_include ../../code/src/simulations.rs:test_sim_ext}}
 ```
 
-Similarly for `impl Synchronous`, the `RunSynchronousExt` trait provides a `run` method that works similarly, but also preserves the clock and reset information.  Essentially, assuming:
+Similarly for `impl Synchronous`, the `RunSynchronousExt` trait provides a `run` method that works similarly, but also preserves the clock and reset information. 
+
+```rust
+{{#rustdoc_include ../../code/src/simulations.rs:run_synchronous_ext}}
+```
+
+The blanket implementation is as follows:
+
+```rust
+{{#rustdoc_include ../../code/src/simulations.rs:run_synchronous_ext_impl}}
+```
+
+and provides a `.run` method for any `impl Synchronous`.
+
+ Essentially, assuming:
 
 - You have some thing `i` which implements `IntoIterator`, with an `Item = TimedSample<(ClockReset, I)>` where `I` is the circuit input type.  Clock and reset information are contained in the `ClockReset` part of the tuple.
 - You have a synchronous circuit `x` with input type `I` and output type `O`.
@@ -55,4 +69,4 @@ As we will see later, you can also collect the output of the `run` method into a
 
 with a resuling SVG trace that looks like this:
 
-![Counter Trace](../../code/counter.svg)
+![Counter Trace](../../code/counter_iter.svg)

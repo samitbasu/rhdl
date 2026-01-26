@@ -248,11 +248,14 @@ where
             quote! {mem[#addr] = #val;}
         });
         let i_kind = <<Self as SynchronousIO>::I as Digital>::static_kind();
-        let read_addr_index: vlog::BitRange = bit_range(i_kind, &path!(.read_addr))?.0.into();
-        let write_addr_index: vlog::BitRange = bit_range(i_kind, &path!(.write.addr))?.0.into();
-        let write_value_index: vlog::BitRange = bit_range(i_kind, &path!(.write.value))?.0.into();
-        let write_enable_index: vlog::BitRange = bit_range(i_kind, &path!(.write.enable))?.0.into();
-        let clock_index: vlog::BitRange = bit_range(ClockReset::static_kind(), &path!(.clock))?
+        let i = <Self as SynchronousIO>::I::dont_care();
+        let read_addr_index: vlog::BitRange = bit_range(i_kind, &path!(i.read_addr))?.0.into();
+        let write_addr_index: vlog::BitRange = bit_range(i_kind, &path!(i.write.addr))?.0.into();
+        let write_value_index: vlog::BitRange = bit_range(i_kind, &path!(i.write.value))?.0.into();
+        let write_enable_index: vlog::BitRange =
+            bit_range(i_kind, &path!(i.write.enable))?.0.into();
+        let cr: ClockReset = ClockReset::dont_care();
+        let clock_index: vlog::BitRange = bit_range(ClockReset::static_kind(), &path!(cr.clock))?
             .0
             .into();
         let module: vlog::ModuleDef = parse_quote! {

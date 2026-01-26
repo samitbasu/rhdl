@@ -93,6 +93,20 @@ impl SvgOptions {
             ..self
         }
     }
+    /// Enable manual gap detection using the specified gap time
+    pub fn with_manual_gap_detection(self, gap: u64) -> SvgOptions {
+        Self {
+            auto_gap_detection: Some(GapDetectionOptions::AtLeast(gap)),
+            ..self
+        }
+    }
+    /// Set the tail flush time
+    pub fn with_tail_flush_time(self, time: u64) -> SvgOptions {
+        Self {
+            tail_flush_time: time,
+            ..self
+        }
+    }
 }
 
 impl Default for SvgOptions {
@@ -106,7 +120,7 @@ impl Default for SvgOptions {
             glitch_filter: Some(2),
             name_filters: None,
             auto_gap_detection: None,
-            gap_space: 100,
+            gap_space: 50,
             tail_flush_time: 0,
         }
     }

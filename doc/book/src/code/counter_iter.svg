@@ -37,6 +37,10 @@
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="870" y="10">
 700
 </text>
+<line stroke="#333333" stroke-width="1" x1="970" x2="970" y1="0" y2="140"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="end" x="970" y="10">
+800
+</text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" y="10">
 Time:
 </text>

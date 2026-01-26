@@ -5,23 +5,13 @@ There is no inherent notion of time in RHDL.  If you re-examine the definition o
 This lack of time is reflected in the trait definitions.  Here is a summary of the `Circuit` trait definition:
 
 ```rust
-pub trait Circuit: 'static + CircuitIO + Sized {
-    type S: Clone + PartialEq;
-
-    fn init(&self) -> Self::S;
-    fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O;
-    // snip
-}
+{{#rustdoc_include ../code/src/circuits/traits.rs:circuit_trait}}
 ```
 
 Note that there is no notion of "time" here.  It is true that the input is constrained such that `I: Timed` from the `CircuitIO` trait:
 
 ```rust
-pub trait CircuitIO: 'static + CircuitDQ {
-    type I: Timed;
-    type O: Timed;
-    // snip
-}
+{{#rustdoc_include ../code/src/circuits/io.rs:circuit_io}}
 ```
 
 but this is simply a marker trait that refers to the input belonging to some class of signals that "belong to the same timing domain".  Indeed, `Timed` carries no additional runtime information, it is simply a marker trait on top of `Digital`.
@@ -29,12 +19,7 @@ but this is simply a marker trait that refers to the input belonging to some cla
 Similarly, if we look at the `Synchronous` trait:
 
 ```rust
-pub trait Synchronous: 'static + Sized + SynchronousIO {
-    type S: PartialEq + Clone;
-    fn init(&self) -> Self::S;
-    fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O;
-    // snip
-}
+{{#rustdoc_include ../code/src/synchronous.rs:synchronous_trait}}
 ```
 
 there is no notion of time here either.  Simulation via the `sim` method is only involved with the _values_ of the `ClockReset` and input signals presented to it (as well as the current state).  There is no reference to the current absolute time, or when those signals have changed relative to each other.
@@ -52,14 +37,7 @@ There is nothing inherently fundamental about the uniform spacing here.  You cou
 For the purposes of attaching time to a value, we have a `TimedSample` struct in RHDL.  It is _very_ simple:
 
 ```rust
-/// A sample of a digital value at a specific time.
-#[derive(Copy, Clone, Debug, PartialEq, Hash)]
-pub struct TimedSample<T: Digital> {
-    /// The digital value being sampled.
-    pub value: T,
-    /// The time at which the sample was taken.
-    pub time: u64,
-}
+{{#rustdoc_include ../code/src/simulations.rs:timed_sample}}
 ```
 
 Time is modelled as a `u64`, and the units are intentionally arbitrary.  If you like to think in picoseconds or nanoseconds, you can easily do so.  But using a unit that is something like "1/200th of a clock period" is actually more convenient.  

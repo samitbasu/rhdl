@@ -1,12 +1,16 @@
 //! Extension traits for probes
 use std::path::Path;
 
-use crate::{Clock, ClockReset, Digital, trace::trace_sample::TracedSample};
+use crate::{
+    Clock, ClockReset, Digital,
+    sim::probe::svg_tap::{SvgTap, svg_tap},
+    trace::{container::svg::options::SvgOptions, trace_sample::TracedSample},
+};
 
 use super::{
     edges::{EdgeTime, edge_time},
     glitch_check::{GlitchCheck, glitch_check},
-    sample_at_pos_edge::{SampleAtPosEdge, sample_at_pos_edge},
+    sample_at_neg_edge::{SampleAtNegEdge, sample_at_neg_edge},
     synchronous_sample::{SynchronousSample, synchronous_sample},
     vcd_tap::{VcdTap, vcd_tap},
 };
@@ -14,9 +18,9 @@ use super::{
 /// Extension trait to add probe methods to iterators
 pub trait ProbeExt<I, S, U> {
     /// Create a probe that samples values from the supplied stream
-    /// just before a positive edge of the clock extracted using
+    /// at each negative edge of the clock extracted using
     /// the supplied function.
-    fn sample_at_pos_edge<F>(self, clock_fn: F) -> SampleAtPosEdge<I, F>
+    fn sample_at_neg_edge<F>(self, clock_fn: F) -> SampleAtNegEdge<I, F>
     where
         Self: Sized,
         I: Iterator,
@@ -34,7 +38,14 @@ pub trait ProbeExt<I, S, U> {
         U: Digital,
         T: Digital;
     /// Create a VCD file-writing probe over the supplied stream of traced samples.
-    fn vcd_file(self, file: &Path) -> VcdTap<I>
+    fn vcd_file(self, file: impl AsRef<Path>) -> VcdTap<I>
+    where
+        Self: Sized,
+        I: Iterator<Item = TracedSample<S, U>>,
+        S: Digital,
+        U: Digital;
+    /// Create an SVG file-writing probe over the supplied stream of traced samples.
+    fn svg_file(self, file: impl AsRef<Path>, options: SvgOptions) -> SvgTap<I>
     where
         Self: Sized,
         I: Iterator<Item = TracedSample<S, U>>,
@@ -56,11 +67,11 @@ where
     S: Digital,
     U: Digital,
 {
-    fn sample_at_pos_edge<F>(self, clock_fn: F) -> SampleAtPosEdge<I, F>
+    fn sample_at_neg_edge<F>(self, clock_fn: F) -> SampleAtNegEdge<I, F>
     where
         F: Fn(&I::Item) -> Clock,
     {
-        sample_at_pos_edge(self, clock_fn)
+        sample_at_neg_edge(self, clock_fn)
     }
 
     fn glitch_check<F, T>(self, clock_fn: F) -> GlitchCheck<T, I, F>
@@ -71,8 +82,12 @@ where
         glitch_check(self, clock_fn)
     }
 
-    fn vcd_file(self, file: &Path) -> VcdTap<I> {
+    fn vcd_file(self, file: impl AsRef<Path>) -> VcdTap<I> {
         vcd_tap(self, file)
+    }
+
+    fn svg_file(self, file: impl AsRef<Path>, options: SvgOptions) -> SvgTap<I> {
+        svg_tap(self, file, options)
     }
 
     fn edge_time<F, T>(self, data_fn: F) -> EdgeTime<T, I, F>

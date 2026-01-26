@@ -1,5 +1,19 @@
 (
     PathExpression {
+        full_expr: TokenStream [
+            Ident {
+                sym: input,
+            },
+            Group {
+                delimiter: Bracket,
+                stream: TokenStream [
+                    Literal {
+                        lit: 3,
+                        span: bytes(1..2),
+                    },
+                ],
+            },
+        ],
         elements: [
             Default,
             ArrayIndex(
@@ -11,6 +25,27 @@
         ],
     },
     PathExpression {
+        full_expr: TokenStream [
+            Ident {
+                sym: input,
+            },
+            Group {
+                delimiter: Bracket,
+                stream: TokenStream [
+                    Literal {
+                        lit: 3,
+                        span: bytes(3..4),
+                    },
+                ],
+            },
+            Punct {
+                char: '.',
+                spacing: Alone,
+            },
+            Ident {
+                sym: foo,
+            },
+        ],
         elements: [
             Default,
             ArrayIndex(
@@ -29,6 +64,53 @@
         ],
     },
     PathExpression {
+        full_expr: TokenStream [
+            Ident {
+                sym: input,
+            },
+            Group {
+                delimiter: Bracket,
+                stream: TokenStream [
+                    Literal {
+                        lit: 3,
+                        span: bytes(5..6),
+                    },
+                ],
+            },
+            Punct {
+                char: '.',
+                spacing: Alone,
+            },
+            Ident {
+                sym: foo,
+            },
+            Punct {
+                char: '.',
+                spacing: Alone,
+            },
+            Ident {
+                sym: val,
+            },
+            Group {
+                delimiter: Parenthesis,
+                stream: TokenStream [],
+            },
+            Punct {
+                char: '.',
+                spacing: Alone,
+            },
+            Literal {
+                lit: 4,
+                span: bytes(7..8),
+            },
+            Punct {
+                char: '.',
+                spacing: Alone,
+            },
+            Ident {
+                sym: val,
+            },
+        ],
         elements: [
             Default,
             ArrayIndex(

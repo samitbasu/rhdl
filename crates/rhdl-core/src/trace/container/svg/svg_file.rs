@@ -147,7 +147,7 @@ impl SvgFile {
                     .map(|f| f.is_match(&w.hint))
                     .unwrap_or(true)
             })
-            .map(|w| w.render(options, &gaps))
+            .map(|w| w.split_at_gaps(&gaps).render(options, &gaps))
             .collect::<Vec<_>>();
         let spacing = options.spacing();
         // Space the waveforms, and leave one space for the header
@@ -169,5 +169,15 @@ impl SvgFile {
         let mut buf = Vec::new();
         self.finalize(options, &mut buf)?;
         Ok(String::from_utf8(buf).unwrap())
+    }
+    /// Finalize the SVG trace file, writing it to the given file.
+    pub fn write_to_file(
+        self,
+        file: impl AsRef<std::path::Path>,
+        options: &SvgOptions,
+    ) -> std::io::Result<()> {
+        let file = std::fs::File::create(file)?;
+        let mut buffer = std::io::BufWriter::new(file);
+        self.finalize(options, &mut buffer)
     }
 }

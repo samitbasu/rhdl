@@ -62,6 +62,13 @@ pub(crate) fn make_svg_document(
     let Some(end_time) = times.last().copied() else {
         return svg::Document::new();
     };
+    // Adjust the start and end times to fall on time delta boundaries
+    let start_time = start_time.saturating_sub(start_time % time_delta);
+    let end_time = if end_time % time_delta == 0 {
+        end_time
+    } else {
+        end_time + (time_delta - (end_time % time_delta))
+    };
     let end_time = end_time + options.tail_flush_time;
     let width = waveforms.iter().map(|w| w.width()).max().unwrap_or(0);
     let height = waveforms
@@ -91,17 +98,23 @@ pub(crate) fn make_svg_document(
         .set("stroke", "darkblue");
     document = document.add(background);
     let label_end = get_label_size(waveforms) as f32;
-    let times = (0..)
+    // The first index is ndx * time_delta >= start_time
+    // or ndx >= start_time / time_delta
+    let first_ndx = if start_time % time_delta == 0 {
+        start_time / time_delta
+    } else {
+        start_time / time_delta + 1
+    };
+    let times = (first_ndx..)
         .map(|ndx| ndx * time_delta - start_time)
         .take_while(|t| *t <= end_time)
         .filter(|t| !gaps.dropped_time(*t));
     let time_to_pixel = |time: u64| {
-        gaps.gap_time(time + start_time, options.gap_space) as f32 * options.pixels_per_time_unit
-            + label_end
+        gaps.gap_time(time, options.gap_space) as f32 * options.pixels_per_time_unit + label_end
     };
     for time in times {
         let x = time_to_pixel(time);
-        let text = svg::node::element::Text::new(format!("{}", time + start_time));
+        let text = svg::node::element::Text::new(format!("{}", time));
         document = document.add(
             svg::node::element::Line::new()
                 .set("x1", x)
@@ -111,7 +124,7 @@ pub(crate) fn make_svg_document(
                 .set("stroke", "#333333")
                 .set("stroke-width", 1.0),
         );
-        let anchor = if gaps.is_gap_start(time) || end_time == time {
+        let anchor = if gaps.is_gap_start(time) || end_time.saturating_sub(time) <= 1 {
             "end"
         } else if gaps.is_gap_end(time) {
             "start"

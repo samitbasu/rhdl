@@ -265,8 +265,8 @@ mod tests {
         let output = uut
             .run(stream)
             .glitch_check(|x| (x.input.read.val().clock, x.output.val()))
-            .sample_at_pos_edge(|x| x.input.read.val().clock)
-            .skip(17)
+            .sample_at_neg_edge(|x| x.input.read.val().clock)
+            .skip(16)
             .map(|x| x.output);
         let expected = expected.collect::<Vec<_>>();
         let output = output.collect::<Vec<_>>();
@@ -294,8 +294,7 @@ mod tests {
         let values = (0..16).map(|x| bits(15 - x)).cycle().take(32);
         let samples = uut
             .run(stream)
-            .sample_at_pos_edge(|i| i.input.read.val().clock)
-            .skip(1);
+            .sample_at_neg_edge(|i| i.input.read.val().clock);
         let output = samples.map(|x| x.output.val());
         assert!(values.eq(output));
         Ok(())

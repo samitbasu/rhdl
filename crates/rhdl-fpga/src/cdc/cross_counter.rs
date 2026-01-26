@@ -237,7 +237,7 @@ mod tests {
         std::fs::create_dir_all(&root).unwrap();
         let outputs = uut
             .run(input)
-            .sample_at_pos_edge(|t| t.input.cr.val().clock)
+            .sample_at_neg_edge(|t| t.input.cr.val().clock)
             .vcd_file(&root.join("rw_counter.vcd"))
             .map(|t| t.output.count.val())
             .collect::<Vec<_>>();

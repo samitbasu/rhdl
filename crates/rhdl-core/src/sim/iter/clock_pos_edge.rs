@@ -219,6 +219,9 @@ mod tests {
             timed_sample(26, (clock_reset(clock(true), reset(false)), b8(3))),
             timed_sample(30, (clock_reset(clock(false), reset(false)), b8(3))),
             timed_sample(35, (clock_reset(clock(true), reset(false)), b8(3))),
+            timed_sample(36, (clock_reset(clock(true), reset(false)), b8(3))),
+            timed_sample(40, (clock_reset(clock(false), reset(false)), b8(3))),
+            timed_sample(45, (clock_reset(clock(false), reset(false)), b8(3))),
         ]
     }
 

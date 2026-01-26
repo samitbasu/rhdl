@@ -269,11 +269,12 @@ impl<W: Domain, R: Domain> Sync1Bit<W, R> {
         let module_name = name.to_owned();
         let module_ident = format_ident!("{}", module_name);
         let i_kind = <<Self as CircuitIO>::I as Digital>::static_kind();
-        let reset_index = bit_range(i_kind, &path!(.cr.val().reset))?;
+        let i = <Self as CircuitIO>::I::dont_care();
+        let reset_index = bit_range(i_kind, &path!(i.cr.val().reset))?;
         let reset_index = syn::Index::from(reset_index.0.start);
-        let clock_index = bit_range(i_kind, &path!(.cr.val().clock))?;
+        let clock_index = bit_range(i_kind, &path!(i.cr.val().clock))?;
         let clock_index = syn::Index::from(clock_index.0.start);
-        let data_index = bit_range(i_kind, &path!(.data))?;
+        let data_index = bit_range(i_kind, &path!(i.data))?;
         let data_index = syn::Index::from(data_index.0.start);
         let module: vlog::ModuleDef = parse_quote! {
             module #module_ident(input wire [2:0] i, output wire [0:0] o);

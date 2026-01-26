@@ -1,3 +1,4 @@
+//! Asynchronous testbench generation
 use quote::{format_ident, quote};
 use rhdl_trace_type::RTT;
 use rhdl_vlog::{self as vlog, LitVerilog, maybe_decl_reg, maybe_decl_wire};
@@ -10,9 +11,10 @@ use crate::{
 
 use super::TestBenchOptions;
 
+/// A test bench for asynchronous circuits
 #[derive(Clone)]
 pub struct TestBench<I: Digital, O: Digital> {
-    pub samples: Vec<TimedSample<(I, O)>>,
+    samples: Vec<TimedSample<(I, O)>>,
 }
 
 impl<I, O> FromIterator<TracedSample<I, O>> for TestBench<I, O>
@@ -169,6 +171,7 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         Ok(module.into())
     }
 
+    /// Generate a RTL testbench module for the given asynchronous UUT
     pub fn rtl<T>(&self, uut: &T, options: &TestBenchOptions) -> Result<TestModule, RHDLError>
     where
         T: Circuit,
@@ -178,7 +181,7 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         let hdl = desc.hdl()?;
         self.build_test_module(&hdl.modules, options)
     }
-
+    /// Generate a NTL testbench module for the given asynchronous UUT
     pub fn ntl<T>(&self, uut: &T, options: &TestBenchOptions) -> Result<TestModule, RHDLError>
     where
         T: Circuit,

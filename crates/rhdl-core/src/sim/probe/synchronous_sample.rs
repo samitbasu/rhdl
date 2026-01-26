@@ -56,7 +56,7 @@ where
     fn next(&mut self) -> Option<S::Item> {
         loop {
             match self.stream.next() {
-                None => return self.last.take(),
+                None => return None,
                 Some(sample) => {
                     let clock = sample.input.0.clock;
                     if clock.raw() && !self.clock.raw() && self.last.is_some() {

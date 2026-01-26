@@ -55,6 +55,11 @@ impl<T: Digital> TimedSample<T> {
     pub fn is_traced(&self) -> bool {
         self.trace_status.is_traced()
     }
+    /// Sets this sample to be untraced.
+    pub fn untrace(mut self) -> Self {
+        self.trace_status = TraceStatus::Untraced;
+        self
+    }
 }
 
 impl<T: Digital> std::fmt::Display for TimedSample<T> {

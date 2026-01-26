@@ -84,7 +84,7 @@ mod tests {
         let inputs = inputs.collect::<Vec<_>>();
         let uut: Counter<6> = Counter::default();
         let output = uut.run(inputs).count();
-        assert_eq!(output, 311);
+        assert_eq!(output, 314);
         Ok(())
     }
 
