@@ -210,6 +210,8 @@ pub mod blinky_xem7010 {
         // ANCHOR_END: blinker-fixture-start
         // ANCHOR: blinker-fixture-io
         let (i, o) = fixture.io();
+        eprintln!("Input: {:?}", i.kind());
+        eprintln!("Input: {:?}", i.trace_type());
         // ANCHOR_END: blinker-fixture-io
         // ANCHOR: blinker-fixture-drivers
         fixture.add_driver(rhdl_bsp::ok::drivers::xem7010::sys_clock::sys_clock(

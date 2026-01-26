@@ -163,7 +163,7 @@ impl ClockDomainContext<'_> {
                     variants,
                 )
             }
-            Kind::Bits(_) | Kind::Signed(_) | Kind::Empty => domain,
+            Kind::Bits(_) | Kind::Signed(_) | Kind::Empty | Kind::Clock | Kind::Reset => domain,
             Kind::Signal(base, clock) => {
                 let clock = self.ctx.ty_clock(id, *clock);
                 self.import_kind_with_single_domain(id, base, clock)

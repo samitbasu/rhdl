@@ -42,7 +42,7 @@ fn pretty_leaf_paths_inner(kind: Kind, base: Path) -> Vec<Path> {
                 pretty_leaf_paths_inner(variant.kind, base.clone().payload(&variant.name))
             })
             .collect(),
-        Kind::Bits(_) | Kind::Signed(_) | Kind::Empty => vec![],
+        Kind::Bits(_) | Kind::Signed(_) | Kind::Empty | Kind::Clock | Kind::Reset => vec![],
     };
     root.extend(branch);
     root

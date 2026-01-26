@@ -96,6 +96,8 @@ fn format_as_label_inner(t: &TypedBits) -> Option<String> {
             Some(format!("{color:?}@({val})"))
         }
         Kind::Empty => None,
+        Kind::Clock => Some("clk".to_string()),
+        Kind::Reset => Some("rst".to_string()),
     }
 }
 

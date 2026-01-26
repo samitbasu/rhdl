@@ -27,6 +27,10 @@ pub enum Kind {
     Signed(usize),
     /// A signal type with a specific kind and color.
     Signal(Intern<Kind>, Color),
+    /// A Clock type
+    Clock,
+    /// A Reset type
+    Reset,
     /// An empty type.
     Empty,
 }
@@ -52,6 +56,8 @@ impl std::fmt::Debug for Kind {
             Kind::Signed(digits) => write!(f, "s{digits}"),
             Kind::Empty => write!(f, "()"),
             Kind::Signal(kind, color) => write!(f, "{kind:?}@{color:?}"),
+            Kind::Clock => write!(f, "clk"),
+            Kind::Reset => write!(f, "rst"),
         }
     }
 }
@@ -275,6 +281,7 @@ impl Kind {
             Kind::Signed(digits) => *digits,
             Kind::Signal(kind, _) => kind.bits(),
             Kind::Empty => 0,
+            Kind::Clock | Kind::Reset => 1,
         }
     }
     /// Pads the given bits to match the kind's bit width.
@@ -371,6 +378,8 @@ impl Kind {
             Kind::Struct(s) => (*s.name).clone(),
             Kind::Enum(e) => (*e.name).clone(),
             Kind::Signal(kind, color) => format!("Sig::<{kind:?},{color:?}>"),
+            Kind::Clock => "Clock".to_string(),
+            Kind::Reset => "Reset".to_string(),
         }
     }
     /// Gets the kind of the discriminant for an enum.
@@ -629,6 +638,8 @@ impl From<Kind> for rtt::TraceType {
             Kind::Signed(digits) => rtt::TraceType::Signed(digits),
             Kind::Signal(kind, color) => rtt::make_signal((*kind).into(), color.into()),
             Kind::Empty => rtt::TraceType::Empty,
+            Kind::Clock => rtt::TraceType::Clock,
+            Kind::Reset => rtt::TraceType::Reset,
         }
     }
 }

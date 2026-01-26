@@ -64,6 +64,8 @@ pub(crate) mod test {
                 TraceType::Signal(Box::new(kind_to_trace(ky)), (*color).into())
             }
             Kind::Empty => TraceType::Empty,
+            Kind::Clock => TraceType::Clock,
+            Kind::Reset => TraceType::Reset,
         }
     }
 

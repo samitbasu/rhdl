@@ -64,6 +64,24 @@ fn generate_kind_layout(
     match kind {
         Kind::Empty => vec![],
         Kind::Signal(kind, _) => generate_kind_layout(kind, name, offset_row, offset_col),
+        Kind::Clock => {
+            vec![KindLayout {
+                row: offset_row,
+                size: 1,
+                cols: offset_col..offset_col + 1,
+                label: Some(LayoutLabel::Name(format!("{name} clk"))),
+                ..Default::default()
+            }]
+        }
+        Kind::Reset => {
+            vec![KindLayout {
+                row: offset_row,
+                size: 1,
+                cols: offset_col..offset_col + 1,
+                label: Some(LayoutLabel::Name(format!("{name} rst"))),
+                ..Default::default()
+            }]
+        }
         Kind::Bits(digits) => {
             vec![KindLayout {
                 row: offset_row,

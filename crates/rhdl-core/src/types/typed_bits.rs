@@ -831,6 +831,8 @@ fn write_kind_with_bits(
             write_kind_with_bits(base, bits, f)?;
             write!(f, "@{color:?}")
         }
+        Kind::Clock => write!(f, "clk {}", bitx_string(bits)),
+        Kind::Reset => write!(f, "rst {}", bitx_string(bits)),
     }
 }
 

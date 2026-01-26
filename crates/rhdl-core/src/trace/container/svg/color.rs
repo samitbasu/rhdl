@@ -38,7 +38,12 @@ fn color_merged(list: impl Iterator<Item = TraceColor>) -> Option<TraceColor> {
 fn compute_trace_color(kind: Kind) -> Option<TraceColor> {
     match kind {
         Kind::Signal(_, color) => Some(TraceColor::Single(color)),
-        Kind::Bits(_) | Kind::Signed(_) | Kind::Empty | Kind::Enum(_) => None,
+        Kind::Bits(_)
+        | Kind::Signed(_)
+        | Kind::Empty
+        | Kind::Enum(_)
+        | Kind::Clock
+        | Kind::Reset => None,
         Kind::Struct(inner) => color_merged(
             inner
                 .fields

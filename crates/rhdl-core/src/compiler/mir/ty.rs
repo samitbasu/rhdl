@@ -810,6 +810,10 @@ impl UnifyContext {
                 let clock = self.ty_clock(loc, clock);
                 self.ty_signal(loc, kind, clock)
             }
+            Kind::Clock | Kind::Reset => {
+                let len = self.ty_const_len(loc, 1);
+                self.ty_bits(loc, len)
+            }
         }
     }
 
