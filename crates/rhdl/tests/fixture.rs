@@ -39,7 +39,7 @@ fn test_bind_macro_with_expressions() -> miette::Result<()> {
     let circuit = AsyncFunc::new::<simple_passthrough>()?;
 
     // Test with array indexing expression
-    let mut fixtures = vec![
+    let mut fixtures = [
         Fixture::new("test0", circuit.clone()),
         Fixture::new("test1", circuit.clone()),
     ];

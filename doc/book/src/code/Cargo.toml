@@ -4,10 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+camino = "1.2.2"
 miette = { version = "7.6.0", features = ["fancy"] }
 rand = "0.9.2"
 rhdl = { version = "0.1.0", path = "../../../../crates/rhdl" }
+rhdl-bsp = { version = "0.1.0", path = "../../../../crates/rhdl-bsp" }
 rhdl-fpga = { version = "0.1.0", path = "../../../../crates/rhdl-fpga" }
+rhdl-toolchains = { version = "0.1.0", path = "../../../../crates/rhdl-toolchains" }
 
 [features]
 default = []

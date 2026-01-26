@@ -42,15 +42,19 @@ pub fn get_clock_input<T: CircuitIO>(path: &Path) -> Result<MountPoint, RHDLErro
     let trace_type = <T::I as Digital>::static_trace_type();
     let target_trace = sub_trace_type(trace_type, path)?;
     if target_trace != TraceType::Clock {
-        return Err(RHDLError::ExportError(ExportError::NotAClockInput(
-            path.clone(),
-        )));
+        return Err(RHDLError::ExportError(ExportError::NotAClockInput {
+            path: path.clone(),
+            kind: <T::I as Digital>::static_kind(),
+            trace_type: target_trace,
+        }));
     }
     let (bits, sub) = bit_range(<T::I as Digital>::static_kind(), path)?;
     if bits.len() != 1 || sub.is_signal() {
-        return Err(RHDLError::ExportError(ExportError::NotAClockInput(
-            path.clone(),
-        )));
+        return Err(RHDLError::ExportError(ExportError::NotAClockInput {
+            path: path.clone(),
+            kind: <T::I as Digital>::static_kind(),
+            trace_type: target_trace,
+        }));
     }
     Ok(MountPoint::Input(bits))
 }
@@ -59,15 +63,19 @@ pub fn get_clock_output<T: CircuitIO>(path: &Path) -> Result<MountPoint, RHDLErr
     let trace_type = <T::O as Digital>::static_trace_type();
     let target_trace = sub_trace_type(trace_type, path)?;
     if target_trace != TraceType::Clock {
-        return Err(RHDLError::ExportError(ExportError::NotAClockOutput(
-            path.clone(),
-        )));
+        return Err(RHDLError::ExportError(ExportError::NotAClockOutput {
+            path: path.clone(),
+            kind: <T::O as Digital>::static_kind(),
+            trace_type: target_trace,
+        }));
     }
     let (bits, sub) = bit_range(<T::O as Digital>::static_kind(), path)?;
     if bits.len() != 1 || sub.is_signal() {
-        return Err(RHDLError::ExportError(ExportError::NotAClockOutput(
-            path.clone(),
-        )));
+        return Err(RHDLError::ExportError(ExportError::NotAClockOutput {
+            path: path.clone(),
+            kind: <T::O as Digital>::static_kind(),
+            trace_type: target_trace,
+        }));
     }
     Ok(MountPoint::Input(bits))
 }
