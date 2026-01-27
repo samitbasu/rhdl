@@ -33,7 +33,6 @@ where
     rhdl_bits::W<N>: BitWidth,
 {
     const BITS: usize = 2 * N;
-    const TRACE_BITS: usize = N;
     fn static_kind() -> Kind {
         Kind::make_struct(
             "BitZ",
@@ -49,9 +48,6 @@ where
             ]
             .into(),
         )
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rhdl_trace_type::TraceType::Bits(Self::TRACE_BITS)
     }
     fn bin(self) -> Box<[BitX]> {
         [self.value.bin(), self.mask.bin()].concat().into()

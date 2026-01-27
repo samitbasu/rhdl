@@ -10,7 +10,7 @@ use tempfile::SpooledTempFile;
 use vcd::IdCode;
 
 use crate::{
-    Digital, RHDLError, TraceBit,
+    BitX, Digital, RHDLError,
     trace::{
         TraceId,
         container::{TraceContainer, vcd::options::VcdOptions},
@@ -26,7 +26,7 @@ pub struct VcdFile {
     buffer: std::io::BufWriter<SpooledTempFile>,
     next_id_code: IdCode,
     id_code_map: fnv::FnvHashMap<TraceId, Box<[u8]>>,
-    prev_values: fnv::FnvHashMap<TraceId, Box<[TraceBit]>>,
+    prev_values: fnv::FnvHashMap<TraceId, Box<[BitX]>>,
     db: Option<Arc<RwLock<TraceMetadata>>>,
     last_time: u64,
 }
@@ -165,7 +165,7 @@ impl TraceContainer for VcdFile {
             self.last_time = sample.time;
             let mut sbuf = Vec::new();
             for record in page.records() {
-                let value = record.data.trace();
+                let value = record.data.bin();
                 // Check to see if this value has changed since last time
                 let changed = self
                     .prev_values
@@ -182,10 +182,9 @@ impl TraceContainer for VcdFile {
                 // Value has changed.  Write it out.  Get the VCD ID code for this trace ID.
                 sbuf.push(b'b');
                 sbuf.extend(value.iter().rev().map(|v| match v {
-                    TraceBit::Zero => b'0',
-                    TraceBit::One => b'1',
-                    TraceBit::X => b'x',
-                    TraceBit::Z => b'z',
+                    BitX::Zero => b'0',
+                    BitX::One => b'1',
+                    BitX::X => b'x',
                 }));
                 sbuf.push(b' ');
                 self.buffer.write_all(&sbuf[..])?;

@@ -115,11 +115,11 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
                 [
                     (
                         "testbench.clock_reset".to_string(),
-                        ClockReset::static_trace_type(),
+                        ClockReset::static_kind().into(),
                     ),
-                    ("testbench.i".to_string(), I::static_trace_type()),
-                    ("testbench.o".to_string(), O::static_trace_type()),
-                    ("testbench.rust_out".to_string(), O::static_trace_type()),
+                    ("testbench.i".to_string(), I::static_kind().into()),
+                    ("testbench.o".to_string(), O::static_kind().into()),
+                    ("testbench.rust_out".to_string(), O::static_kind().into()),
                 ]
                 .into_iter()
                 .collect(),

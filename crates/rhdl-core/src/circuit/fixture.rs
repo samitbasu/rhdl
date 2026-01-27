@@ -136,7 +136,6 @@ use crate::{
 };
 use miette::Diagnostic;
 use quote::{ToTokens, format_ident, quote};
-use rhdl_trace_type::TraceType;
 use syn::parse_quote;
 use thiserror::Error;
 
@@ -160,16 +159,12 @@ pub enum ExportError {
         required: Kind,
     },
     /// Attempt to feed a clock signal to a non-clock input
-    #[error(
-        "Path {path:?} on input is not a clock input - it is of type {kind:?} with trace type {trace_type:?}"
-    )]
+    #[error("Path {path:?} on input is not a clock input - it is of type {kind:?} ")]
     NotAClockInput {
         /// The path to the signal
         path: Path,
         /// The kind of the signal
         kind: Kind,
-        /// The trace type of the signal
-        trace_type: TraceType,
     },
     #[error(
         "Mismatch in signal width on input: expected {expected} bits, but got {actual} with path {path:?}"
@@ -196,16 +191,12 @@ pub enum ExportError {
         path: Path,
     },
     /// Attempt to feed a clock signal from a non-clock input
-    #[error(
-        "Path {path:?} on output is not a clock output, it is of type {kind:?} with trace type {trace_type:?}"
-    )]
+    #[error("Path {path:?} on output is not a clock output, it is of type {kind:?}")]
     NotAClockOutput {
         /// The path to the signal
         path: Path,
         /// The kind of the signal
         kind: Kind,
-        /// The trace type of the signal
-        trace_type: TraceType,
     },
     /// The circuit cannot be exported as a fixture, due to some BSP specific issue.
     #[error("BSP Error {0}")]

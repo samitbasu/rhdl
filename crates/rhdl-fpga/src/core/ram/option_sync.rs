@@ -207,7 +207,7 @@ mod tests {
             .join("ram")
             .join("option_sync");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["19801e7ea83120e7e0ee15210239e18be36682bc892ba7ac76d35d8e322f8a3e"];
+        let expect = expect!["d3ac7b45e0e8cf9d82fa02ec2dcacab1bdef8b08bcbcb6da7aac8632f18e3fb9"];
         let digest = vcd
             .dump_to_file(root.join("test_scan_out_option_ram.vcd"))
             .unwrap();

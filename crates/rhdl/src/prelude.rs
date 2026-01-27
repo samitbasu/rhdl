@@ -25,7 +25,7 @@ pub use rhdl_core::rtl::vm::execute;
 pub use rhdl_core::trace;
 pub use rhdl_core::trace_pop_path;
 pub use rhdl_core::trace_push_path;
-pub use rhdl_core::types::bitz::BitZ;
+//pub use rhdl_core::types::bitz::BitZ;
 pub use rhdl_core::types::clock::Clock;
 pub use rhdl_core::types::clock::clock;
 pub use rhdl_core::types::clock_reset::clock_reset;

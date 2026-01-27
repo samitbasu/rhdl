@@ -1,7 +1,7 @@
 //! Core RHDL types.
 #![warn(missing_docs)]
 pub mod bit_string;
-pub mod bitz;
+//pub mod bitz;
 pub mod clock;
 pub mod clock_reset;
 /// The core Digital trait and implementations for standard types.

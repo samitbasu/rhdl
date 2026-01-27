@@ -13,3 +13,12 @@ pub enum LineState {
     #[default]
     Read,
 }
+
+#[derive(Digital, Clone, Copy, Debug, PartialEq, Default)]
+pub struct BitZ<const N: usize>
+where
+    rhdl::bits::W<N>: BitWidth,
+{
+    pub value: Bits<N>,
+    pub mask: Bits<N>,
+}

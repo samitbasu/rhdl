@@ -303,7 +303,7 @@ mod tests {
             .join("reset")
             .join("conditioner");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["50228194f3fc7cb9f9eb15273953da0453b662e62dd40173b4bffbfbb140cbf0"];
+        let expect = expect!["a176506299518f6bb3f0061f612dd7d8209c81a00c568f0ae88f0f1b1b7bb201"];
         let digest = output
             .dump_to_file(root.join("reset_conditioner.vcd"))
             .unwrap();

@@ -84,10 +84,9 @@ impl TracePage {
             // populate it.  This is expensive, but done rarely.
             let details = TraceDetails {
                 trace_id,
-                trace_type: value.trace_type(),
                 path: self.path.clone(),
                 key: key.as_string().to_string(),
-                width: (T::TRACE_BITS as u32).max(1) as usize,
+                width: (T::BITS as u32).max(1) as usize,
                 kind: value.kind(),
             };
             self.details.write().unwrap().insert(trace_id, details);

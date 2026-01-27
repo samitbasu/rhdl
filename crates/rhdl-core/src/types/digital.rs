@@ -58,36 +58,18 @@ use seq_macro::seq;
 pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
     /// Associated constant that gives the total number of bits needed to represent the value.
     const BITS: usize;
-    /// Associated constant that gives the total number of bits needed to represent the value in a trace.
-    const TRACE_BITS: usize = Self::BITS;
     /// Returns the [Kind] (run time type descriptor) of the value as a static method
     fn static_kind() -> Kind;
-    /// Returns the [TraceType] (run time trace type descriptor) of the value as a static method
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        Self::static_kind().into()
-    }
     /// Returns the number of bits needed to represent the value.
     fn bits() -> usize {
         Self::BITS
-    }
-    /// Returns the number of bits needed to represent the value in a trace.
-    fn trace_bits() -> usize {
-        Self::TRACE_BITS
     }
     /// Returns the [Kind] (run time type descriptor) of the value.
     fn kind(&self) -> Kind {
         Self::static_kind()
     }
-    /// Returns the [TraceType] (run time trace type descriptor) of the value.
-    fn trace_type(&self) -> rhdl_trace_type::TraceType {
-        Self::static_trace_type()
-    }
     /// Returns the binary representation of the value as a vector of [BitX].
     fn bin(self) -> Box<[BitX]>;
-    /// Returns the binary representation of the value as a vector of [TraceBit].
-    fn trace(self) -> Box<[TraceBit]> {
-        self.bin().into_iter().map(|b| b.into()).collect()
-    }
     /// Returns the value as a [TypedBits], which includes both the bits and the kind.
     fn typed_bits(self) -> TypedBits {
         TypedBits::new(self.bin().into(), self.kind())
@@ -414,10 +396,7 @@ impl<T: Digital, const N: usize> Digital for [T; N] {
 mod test {
 
     use super::*;
-    use crate::{
-        rtt::test::kind_to_trace,
-        types::kind::{DiscriminantAlignment, Variant},
-    };
+    use crate::types::kind::{DiscriminantAlignment, Variant};
     use rhdl_bits::alias::*;
 
     #[test]
@@ -489,9 +468,6 @@ mod test {
                         crate::types::kind::DiscriminantType::Unsigned,
                     ),
                 )
-            }
-            fn static_trace_type() -> rhdl_trace_type::TraceType {
-                kind_to_trace(&Self::static_kind())
             }
             fn bin(self) -> Box<[BitX]> {
                 let raw = match self {

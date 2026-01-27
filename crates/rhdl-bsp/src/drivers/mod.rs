@@ -1,6 +1,6 @@
 use rhdl::{
-    core::{CircuitIO, RHDLError},
-    prelude::{bit_range, sub_trace_type, Digital, ExportError, MountPoint, Path},
+    core::{types::path::sub_kind, CircuitIO, RHDLError},
+    prelude::*,
     rtt::TraceType,
 };
 
@@ -39,13 +39,12 @@ pub fn get_untyped_output<T: CircuitIO>(
 }
 
 pub fn get_clock_input<T: CircuitIO>(path: &Path) -> Result<MountPoint, RHDLError> {
-    let trace_type = <T::I as Digital>::static_trace_type();
-    let target_trace = sub_trace_type(trace_type, path)?;
-    if target_trace != TraceType::Clock {
+    let trace_type = <T::I as Digital>::static_kind();
+    let target_trace = sub_kind(trace_type, path)?;
+    if target_trace != Kind::Clock {
         return Err(RHDLError::ExportError(ExportError::NotAClockInput {
             path: path.clone(),
             kind: <T::I as Digital>::static_kind(),
-            trace_type: target_trace,
         }));
     }
     let (bits, sub) = bit_range(<T::I as Digital>::static_kind(), path)?;
@@ -53,20 +52,18 @@ pub fn get_clock_input<T: CircuitIO>(path: &Path) -> Result<MountPoint, RHDLErro
         return Err(RHDLError::ExportError(ExportError::NotAClockInput {
             path: path.clone(),
             kind: <T::I as Digital>::static_kind(),
-            trace_type: target_trace,
         }));
     }
     Ok(MountPoint::Input(bits))
 }
 
 pub fn get_clock_output<T: CircuitIO>(path: &Path) -> Result<MountPoint, RHDLError> {
-    let trace_type = <T::O as Digital>::static_trace_type();
-    let target_trace = sub_trace_type(trace_type, path)?;
-    if target_trace != TraceType::Clock {
+    let trace_type = <T::O as Digital>::static_kind();
+    let target_trace = sub_kind(trace_type, path)?;
+    if target_trace != Kind::Clock {
         return Err(RHDLError::ExportError(ExportError::NotAClockOutput {
             path: path.clone(),
             kind: <T::O as Digital>::static_kind(),
-            trace_type: target_trace,
         }));
     }
     let (bits, sub) = bit_range(<T::O as Digital>::static_kind(), path)?;
@@ -74,7 +71,6 @@ pub fn get_clock_output<T: CircuitIO>(path: &Path) -> Result<MountPoint, RHDLErr
         return Err(RHDLError::ExportError(ExportError::NotAClockOutput {
             path: path.clone(),
             kind: <T::O as Digital>::static_kind(),
-            trace_type: target_trace,
         }));
     }
     Ok(MountPoint::Input(bits))

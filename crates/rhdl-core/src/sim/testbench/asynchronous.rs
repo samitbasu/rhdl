@@ -95,9 +95,9 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
             // afterwards to provide type information for the VCD
             let rtt = RTT::TraceInfo(
                 [
-                    ("testbench.i".to_string(), I::static_trace_type()),
-                    ("testbench.o".to_string(), O::static_trace_type()),
-                    ("testbench.rust_out".to_string(), O::static_trace_type()),
+                    ("testbench.i".to_string(), I::static_kind().into()),
+                    ("testbench.o".to_string(), O::static_kind().into()),
+                    ("testbench.rust_out".to_string(), O::static_kind().into()),
                 ]
                 .into_iter()
                 .collect(),

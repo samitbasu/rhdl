@@ -1045,9 +1045,6 @@ mod tests {
                     ),
                 )
             }
-            fn static_trace_type() -> rhdl_trace_type::TraceType {
-                crate::rtt::test::kind_to_trace(&Self::static_kind())
-            }
             fn bin(self) -> Box<[BitX]> {
                 self.kind().pad(match self {
                     Self::A(_0) => {

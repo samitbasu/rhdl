@@ -18,7 +18,7 @@ pub use circuit::synchronous::Synchronous;
 pub use circuit::synchronous::SynchronousDQ;
 pub use circuit::synchronous::SynchronousIO;
 pub use clock_details::ClockDetails;
-pub use types::bitz::BitZ;
+//pub use types::bitz::BitZ;
 pub use types::clock::Clock;
 pub use types::digital::Digital;
 pub use types::digital_fn::DigitalFn;
