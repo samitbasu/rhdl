@@ -240,6 +240,20 @@ mod test {
     }
 
     #[test]
+    fn test_struct_with_two_generics() {
+        let decl = quote!(
+            pub struct Inputs<T: Digital, U: Digital> {
+                pub input: T,
+                pub write: U,
+                pub read: bool,
+            }
+        );
+        let output = derive_digital(decl).unwrap().to_string();
+        let expected = expect_file!["expect/struct_with_two_generics.expect"];
+        expected.assert_eq(&output);
+    }
+
+    #[test]
     fn test_struct_with_tuple_field() {
         let decl = quote!(
             pub struct Inputs {

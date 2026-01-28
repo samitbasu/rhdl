@@ -267,11 +267,11 @@ impl<'a> MirTypeInference<'a> {
             AluUnary::All | AluUnary::Any | AluUnary::Xor => {
                 let bool_ty = self.ctx.ty_bool(loc);
                 if self.ctx.is_signal(a1) {
-                    let clock_ty = self.ctx.ty_var(loc);
-                    let bool_sig = self.ctx.ty_signal(loc, bool_ty, clock_ty);
+                    let color_ty = self.ctx.ty_var(loc);
+                    let bool_sig = self.ctx.ty_signal(loc, bool_ty, color_ty);
                     self.unify(loc, op.lhs, bool_sig)?;
-                    if let Some(a1_clock) = self.ctx.project_signal_clock(a1) {
-                        self.unify(loc, clock_ty, a1_clock)?;
+                    if let Some(a1_color) = self.ctx.project_signal_color(a1) {
+                        self.unify(loc, color_ty, a1_color)?;
                     }
                 } else {
                     self.unify(loc, op.lhs, bool_ty)?;
@@ -767,13 +767,13 @@ impl<'a> MirTypeInference<'a> {
                     let arg = self.slot_ty(retime.arg);
                     let color = retime.color;
                     let sig_ty = self.ctx.ty_var(loc);
-                    let sig_clock_lhs = self.ctx.ty_var(loc);
-                    let sig = self.ctx.ty_signal(loc, sig_ty, sig_clock_lhs);
+                    let sig_color_lhs = self.ctx.ty_var(loc);
+                    let sig = self.ctx.ty_signal(loc, sig_ty, sig_color_lhs);
                     self.unify(loc, lhs, sig)?;
                     self.unify(loc, arg, sig_ty)?;
                     if let Some(color) = color {
-                        let clk = self.ctx.ty_clock(loc, color);
-                        self.unify(loc, sig_clock_lhs, clk)?;
+                        let clk = self.ctx.ty_color(loc, color);
+                        self.unify(loc, sig_color_lhs, clk)?;
                     }
                 }
                 OpCode::Select(select) => {
@@ -925,8 +925,8 @@ impl<'a> MirTypeInference<'a> {
                         }
                         AluUnary::Val => {
                             let sig_ty = self.ctx.ty_var(loc);
-                            let sig_clock = self.ctx.ty_var(loc);
-                            let sig = self.ctx.ty_signal(loc, sig_ty, sig_clock);
+                            let sig_color = self.ctx.ty_var(loc);
+                            let sig = self.ctx.ty_signal(loc, sig_ty, sig_color);
                             if self.unify(loc, lhs, sig_ty).is_err()
                                 || self.unify(loc, arg1, sig).is_err()
                             {

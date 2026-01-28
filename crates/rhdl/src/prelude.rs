@@ -135,6 +135,7 @@ pub use rhdl_vlog::parse_quote_miette;
 ///
 ///let adder = AsyncFunc::new::<adder>()?;
 ///let mut fixture = Fixture::new("adder_top", adder);
+///let (input, output) = fixture.io();
 ///bind!(fixture, a -> input.val().0);
 ///bind!(fixture, b -> input.val().1);
 ///bind!(fixture, sum <- output.val());

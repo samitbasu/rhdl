@@ -1,17 +1,29 @@
 use proc_macro2::TokenStream;
 use quote::quote;
+use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
 use syn::{Attribute, DeriveInput, Expr};
 
 pub(crate) fn get_fqdn(decl: &DeriveInput) -> TokenStream {
     let struct_name = &decl.ident;
     if decl.generics.type_params().count() > 0 {
-        let generics_names = decl
+        let mut generics_names = decl
             .generics
             .type_params()
             .map(|x| &x.ident)
-            .map(|x| quote!(std::any::type_name::<#x>().to_string()));
-        quote!(&vec![module_path!().to_string(), "::".to_string(), stringify!(#struct_name).to_string(), "<".to_string(),  #(#generics_names),*, ">".to_string()].join(""))
+            .flat_map(|x| {
+                [
+                    quote!(std::any::type_name::<#x>().to_string()),
+                    quote!(",".to_string()),
+                ]
+            })
+            .collect::<Punctuated<_, syn::Token![,]>>();
+        if !generics_names.is_empty() {
+            generics_names.pop(); // Remove last comma string
+            generics_names.pop_punct(); // Remove last punctuation
+        }
+        let generics_names = quote!(#generics_names);
+        quote!(&vec![module_path!().to_string(), "::".to_string(), stringify!(#struct_name).to_string(), "<".to_string(),  #generics_names, ">".to_string()].join(""))
     } else {
         quote!(concat!(module_path!(), "::", stringify! (#struct_name)))
     }

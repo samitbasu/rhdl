@@ -44,7 +44,7 @@ pub fn get_clock_input<T: CircuitIO>(path: &Path) -> Result<MountPoint, RHDLErro
     if target_trace != Kind::Clock {
         return Err(RHDLError::ExportError(ExportError::NotAClockInput {
             path: path.clone(),
-            kind: <T::I as Digital>::static_kind(),
+            kind: target_trace,
         }));
     }
     let (bits, sub) = bit_range(<T::I as Digital>::static_kind(), path)?;

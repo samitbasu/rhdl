@@ -25,7 +25,7 @@ pub fn clock(b: bool) -> Clock {
 impl Digital for Clock {
     const BITS: usize = 1;
     fn static_kind() -> Kind {
-        Kind::make_bool()
+        Kind::Clock
     }
     fn bin(self) -> Box<[BitX]> {
         [self.0.into()].into()

@@ -50,7 +50,21 @@ impl std::fmt::Debug for Kind {
                     .join(", ");
                 write!(f, "({elements})")
             }
-            Kind::Struct(s) => write!(f, "{}", s.name),
+            Kind::Struct(s) => {
+                // Write struct as name {f1: k1, f2: k2, ...}
+                write!(
+                    f,
+                    "{} {{ ",
+                    s.name.replace("rhdl_core::types::domain::", "")
+                )?;
+                for (i, field) in s.fields.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}: {:?}", field.name, field.kind)?;
+                }
+                write!(f, " }}")
+            }
             Kind::Enum(e) => write!(f, "{}", e.name),
             Kind::Bits(digits) => write!(f, "b{digits}"),
             Kind::Signed(digits) => write!(f, "s{digits}"),

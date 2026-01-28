@@ -44,7 +44,7 @@ fn collect_clock_domains(ty: TypeId) -> Vec<TypeId> {
             .into_iter()
             .flat_map(collect_clock_domains)
             .collect(),
-        TypeKind::Const(Const::Clock(_)) => vec![ty],
+        TypeKind::Const(Const::Color(_)) => vec![ty],
         _ => vec![],
     }
 }
@@ -54,7 +54,7 @@ impl ClockDomainContext<'_> {
         let domains = collect_clock_domains(ty)
             .into_iter()
             .map(|ty| {
-                if let Ok(clock) = self.ctx.cast_ty_as_clock(ty) {
+                if let Ok(clock) = self.ctx.cast_ty_as_color(ty) {
                     match clock {
                         Color::Red => "Red",
                         Color::Orange => "Orange",
@@ -165,7 +165,7 @@ impl ClockDomainContext<'_> {
             }
             Kind::Bits(_) | Kind::Signed(_) | Kind::Empty | Kind::Clock | Kind::Reset => domain,
             Kind::Signal(base, clock) => {
-                let clock = self.ctx.ty_clock(id, *clock);
+                let clock = self.ctx.ty_color(id, *clock);
                 self.import_kind_with_single_domain(id, base, clock)
             }
         }
@@ -192,7 +192,7 @@ impl ClockDomainContext<'_> {
                 self.ctx.ty_dyn_struct(id, strukt.name, fields)
             }
             Kind::Signal(base, color) => {
-                let domain = self.ctx.ty_clock(id, *color);
+                let domain = self.ctx.ty_color(id, *color);
                 self.import_kind_with_single_domain(id, base, domain)
             }
             _ => {
@@ -203,7 +203,7 @@ impl ClockDomainContext<'_> {
     }
     fn import_literals(&mut self) {
         for (lit_id, (_tb, det)) in self.obj.symtab.iter_lit() {
-            let ty = self.ctx.ty_unclocked(det.location);
+            let ty = self.ctx.ty_uncolored(det.location);
             self.slot_map.insert(lit_id.into(), ty);
         }
     }
