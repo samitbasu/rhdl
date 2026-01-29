@@ -584,7 +584,7 @@ impl<T: Circuit> Fixture<T> {
         xdc.join("\n")
     }
     /// Get an input/output value pair for the circuit wrapped by this fixture.
-    pub fn io(&self) -> (<T as CircuitIO>::I, <T as CircuitIO>::O) {
+    pub fn io_dont_care(&self) -> (<T as CircuitIO>::I, <T as CircuitIO>::O) {
         (
             <T::I as Digital>::dont_care(),
             <T::O as Digital>::dont_care(),

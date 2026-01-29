@@ -209,8 +209,7 @@ pub mod blinky_xem7010 {
         let mut fixture = Fixture::new("top", blinker);
         // ANCHOR_END: blinker-fixture-start
         // ANCHOR: blinker-fixture-io
-        let (i, o) = fixture.io();
-        eprintln!("Input: {:?}", i.kind());
+        let (i, o) = fixture.io_dont_care();
         // ANCHOR_END: blinker-fixture-io
         // ANCHOR: blinker-fixture-drivers
         fixture.add_driver(rhdl_bsp::ok::drivers::xem7010::sys_clock::sys_clock(
@@ -219,8 +218,27 @@ pub mod blinky_xem7010 {
         fixture.constant_input(reset(false), &path!(i.clock_reset.val().reset))?;
         fixture.add_driver(rhdl_bsp::ok::drivers::xem7010::leds::leds(&path!(o.val()))?);
         // ANCHOR_END: blinker-fixture-drivers
+        let _module = fixture.module()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_blinker_fixture_total() -> miette::Result<()> {
+        // ANCHOR: blinker-fixture
+        type T = Adapter<blinker::U, Red>;
+        let blinker: T = Adapter::new(blinker::U::default());
+        let mut fixture = Fixture::new("top", blinker);
+        let (i, o) = fixture.io_dont_care();
+        fixture.add_driver(rhdl_bsp::ok::drivers::xem7010::sys_clock::sys_clock(
+            &path!(i.clock_reset.val().clock),
+        )?);
+        fixture.constant_input(reset(false), &path!(i.clock_reset.val().reset))?;
+        fixture.add_driver(rhdl_bsp::ok::drivers::xem7010::leds::leds(&path!(o.val()))?);
         let module = fixture.module()?;
+        let constraints = fixture.constraints();
+        // ANCHOR_END: blinker-fixture
         std::fs::write("blinky_fixture.v", format!("{}", module)).into_diagnostic()?;
+        std::fs::write("blinky_constraints.xdc", constraints).into_diagnostic()?;
         Ok(())
     }
 }

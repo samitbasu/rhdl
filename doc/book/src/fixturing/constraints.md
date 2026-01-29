@@ -48,4 +48,20 @@ Finally, we add the 3 drivers of interest.  In this case, we will add a clock dr
 {{#rustdoc_include ../code/src/fixturing.rs:blinker-fixture-drivers}}
 ```
 
+The total fixture code looks like this:
 
+```rust
+{{#rustdoc_include ../code/src/fixturing.rs:blinker-fixture}}
+```
+
+The resulting Verilog looks like this:
+
+```verilog
+{{#include ../code/blinky_fixture.v}}
+```
+
+And the constraint file looks like this:
+
+```tcl
+{{#include ../code/blinky_constraints.xdc}}
+```
