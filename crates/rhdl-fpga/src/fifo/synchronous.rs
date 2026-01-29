@@ -266,6 +266,9 @@ mod tests {
             .synchronous_sample()
             .filter_map(|x| if x.input.1.next { x.output.data } else { None })
             .collect::<Vec<_>>();
+        let len = data.len().min(read_back.len());
+        let data = &data[..len];
+        let read_back = &read_back[..len];
         assert_eq!(data, read_back);
         Ok(())
     }

@@ -238,7 +238,7 @@ mod tests {
         let outputs = uut
             .run(input)
             .sample_at_neg_edge(|t| t.input.cr.val().clock)
-            .vcd_file(&root.join("rw_counter.vcd"))
+            .vcd_file(root.join("rw_counter.vcd"))
             .map(|t| t.output.count.val())
             .collect::<Vec<_>>();
         outputs.windows(2).for_each(|w| {

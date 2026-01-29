@@ -626,6 +626,7 @@ mod match_4 {
 }
 
 pub mod match_5 {
+    #![allow(unused)]
     use rhdl::prelude::*;
 
     #[derive(PartialEq, Digital, Debug, Default, Clone, Copy)]

@@ -32,12 +32,27 @@ pub fn fixture(_cr: ClockReset, i: I, q: Q) -> (O, D) {
 #[cfg(test)]
 mod tests {
     use expect_test::{expect, expect_file};
+    use miette::IntoDiagnostic;
     use rhdl::prelude::vlog::Pretty as _;
 
     use crate::tristate::simple::sender::Cmd;
 
     use super::*;
     use std::iter::once;
+
+    #[test]
+    fn test_basic_svg() -> miette::Result<()> {
+        let input = std::iter::repeat_n(None, 2)
+            .chain(once(Some(Cmd::Write(bits(0x15)))))
+            .chain(std::iter::repeat_n(None, 2))
+            .chain(once(Some(Cmd::Read)).chain(std::iter::repeat_n(None, 4)));
+        let input = input.with_reset(1).clock_pos_edge(100);
+        let uut = super::U::default();
+        let svg = uut.run(input).collect::<SvgFile>();
+        svg.write_to_file("basic_tristate.svg", &SvgOptions::default())
+            .into_diagnostic()?;
+        Ok(())
+    }
 
     #[test]
     fn test_basic_trace() -> miette::Result<()> {

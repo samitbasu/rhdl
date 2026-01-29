@@ -88,6 +88,7 @@ pub mod step_4 {
 }
 
 pub mod step_5 {
+    #![allow(unused)]
     use super::*;
     // ANCHOR: step_5
     #[derive(PartialEq, Debug, Digital, Default, Clone, Copy)]

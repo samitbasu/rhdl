@@ -812,8 +812,6 @@ IBUFDS #(
 
 #[test]
 fn test_parse_quote_miette_success() -> miette::Result<()> {
-    use crate::parse_quote_miette;
-
     // Test successful parsing of an expression
     let _result: Expr = parse_quote_miette! { 1 + 2 }?;
 

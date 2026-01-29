@@ -1,6 +1,6 @@
 //! A dyn-compatible version of the [Digital] trait for use in tracing.
 
-use crate::{BitX, Digital, Kind, TraceBit, TypedBits};
+use crate::{BitX, Digital, Kind, TypedBits};
 
 /// This trait captures the [Digital] interface that is dyn-compatible.
 /// It is used internally by the tracing system to handle traced values

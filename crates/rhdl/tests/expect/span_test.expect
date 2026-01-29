@@ -10,4 +10,4 @@
     ·                        ╰── Expression belongs to Red clock domain
  25 │     }
     ╰────
-  help: You cannot perform binary operations on signals from different clock domains
+  help: You cannot perform binary operation + on signals from different clock domains

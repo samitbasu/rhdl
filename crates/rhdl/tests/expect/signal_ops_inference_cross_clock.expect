@@ -10,4 +10,4 @@
      ·                    ╰── Expression belongs to Green clock domain
  165 │         signal(match (z + 1 + qq).raw() {
      ╰────
-  help: You cannot perform binary operations on signals from different clock domains
+  help: You cannot perform binary operation + on signals from different clock domains

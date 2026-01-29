@@ -1,7 +1,7 @@
 //! Trace recording and export (as VCD or SVG) functionality
 #![warn(missing_docs)]
 
-pub mod bit;
+//pub mod bit;
 pub mod container;
 pub mod key;
 pub mod meta;

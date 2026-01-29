@@ -289,7 +289,7 @@ pub enum Syntax {
 pub enum ClockError {
     #[error("Clock domain mismatch in binary operation {op:?}")]
     #[diagnostic(help(
-        "You cannot perform binary operations on signals from different clock domains"
+        "You cannot perform binary operation {op:?} on signals from different clock domains"
     ))]
     BinaryOperationClockMismatch { op: AluBinary },
     #[error("Clock domain mismatch in unary operation {op:?}")]

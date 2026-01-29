@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use rhdl_bits::{BitWidth, Bits, SignedBits};
 
 use crate::{
-    DiscriminantAlignment, DiscriminantType, Kind, TraceBit, TypedBits,
+    DiscriminantAlignment, DiscriminantType, Kind, TypedBits,
     bitx::{BitX, bitx_vec},
 };
 

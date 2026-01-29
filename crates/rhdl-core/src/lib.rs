@@ -67,7 +67,6 @@ pub use types::timed_sample::timed_sample;
 pub mod hdl;
 pub use bitx::dyn_bit_manip::move_nbits_to_msb;
 pub use rhdl_trace_type::TraceType;
-pub use trace::bit::TraceBit;
 pub use trace::rtt;
 pub mod bitx;
 pub use bitx::BitX;

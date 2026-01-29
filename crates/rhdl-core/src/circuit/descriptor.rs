@@ -59,7 +59,7 @@ impl<T> Descriptor<T> {
         let hdl = self.hdl.as_ref().ok_or(RHDLError::HDLNotAvailable {
             name: self.name.to_string(),
         })?;
-        //hdl.modules.checked()?;
+        hdl.modules.checked()?;
         Ok(hdl)
     }
     /// Get a reference to the netlist representation of the circuit, if available.

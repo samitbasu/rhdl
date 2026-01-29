@@ -1,7 +1,6 @@
 use rhdl::{
     core::{types::path::sub_kind, CircuitIO, RHDLError},
     prelude::*,
-    rtt::TraceType,
 };
 
 pub mod lattice;
