@@ -4,53 +4,18 @@ There are other things you can do with an output iterator from the `.run` method
 
 Here is the updated test
 
-```rust,write:xor/tests/test_svg.rs
-use rhdl::prelude::*;
-
-#[test]
-fn test_svg() -> miette::Result<()> {
-    let inputs = [(false, false), (false, true), (true, false), (true, true)];
-    let it = inputs.into_iter().cycle().take(5).map(signal).uniform(100);
-    let uut = xor::XorGate;
-    let vcd: Vcd = uut.run(it).collect();
-    let svg = vcd.dump_svg(&SvgOptions::default());
-    std::fs::write("xor.svg", svg.to_string()).unwrap();
-    Ok(())
-}
-```
-
-```shell,rhdl:xor
-cargo build -q
-cargo test --test test_svg
+```rust
+{{#rustdoc_include ../code/src/xor.rs:xor-step-14}}
 ```
 
 The resulting SVG shows the input and output signals as one would expect for a trace file.
 
-```shell,rhdl-silent:xor
-cp xor.svg $ROOT_DIR/src/img/.
-```
-![XorGate Simulation](../img/xor.svg)
+![XorGate Simulation](../code/xor.svg)
 
 You can also generate a traditional `VCD` file which can be opened by other tools like [surfer](https://surfer-project.org/).  Here is a test file to generate a `.vcd` file.
 
-```rust,write:xor/tests/test_vcd.rs
-use rhdl::prelude::*;
-
-#[test]
-fn test_vcd() -> miette::Result<()> {
-    let inputs = [(false, false), (false, true), (true, false), (true, true)];
-    let it = inputs.into_iter().cycle().take(5).map(signal).uniform(100);
-    let uut = xor::XorGate;
-    let vcd: Vcd = uut.run(it).collect();
-    let file = std::fs::File::create("xor.vcd").unwrap();
-    vcd.dump(file).unwrap();
-    Ok(())
-}
-```
-
-```shell,rhdl:xor
-cargo build -q
-cargo test --test test_vcd
+```rust
+{{#rustdoc_include ../code/src/xor.rs:xor-step-15}}
 ```
 
 Here is a screen shot of the VCD as rendered by `surfer`:

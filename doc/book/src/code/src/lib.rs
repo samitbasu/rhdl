@@ -9,3 +9,4 @@ pub mod synchronous;
 pub mod testbench;
 pub mod timed;
 pub mod trace;
+pub mod xor;
