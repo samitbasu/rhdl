@@ -24,3 +24,6 @@ doc1hot = []
 no-default-impl = []
 lowercase_enum = []
 const_generic_limits = []
+
+[dev-dependencies]
+rhdl-toolchains = { path = "../../../../crates/rhdl-toolchains" }

@@ -21,7 +21,7 @@ which in words says that the `Kernel` type satisfies the following constraints
 An example of a synchronous kernel might be helpful.  This is the kernel for a simple counter with a variable (compile time determined) bit width:
 
 ```rust
-{{#rustdoc_include ../code/src/synchronous/kernels.rs:counter-kernel}}
+{{#rustdoc_include ../code/src/synchronous.rs:counter-kernel}}
 ```
 
 The `counter` kernel function uses the `ClockReset` argument to force the count to zero.  

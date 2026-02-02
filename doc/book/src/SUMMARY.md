@@ -1,5 +1,9 @@
 # Summary
 - [Quickstart](./quickstart.md)
+- [Setup](setup/summary.md)
+	- [Installation](setup/installation.md)
+	- [Toolchain](setup/toolchain.md)
+	- [IDE Support](setup/ide.md)
 - [The Foundation](foundation/summary.md)
 - [Bits](bits/summary.md)
 	- [Bit Widths](bits/widths.md)

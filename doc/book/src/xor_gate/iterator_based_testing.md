@@ -31,7 +31,7 @@ Running the test produces the following output:
 <!-- cmdrun to-html "cd ../code &&cargo test --package code --lib -- xor::step_8::test_iterators --exact --nocapture" -->
 
 
-RHDL then provides every `Circuit` with a method that consumes an iterator of `TimedSample<CircuitIO::I>` via the `RunExt` trait.  As you can see from the output of the test function, the output iterator of `.run(it)` yields items of type `TimedSample<(CircuitIO::I, CircuitIO::O)>`.  Let's upgrade our iterator test to check that the output meets our definition of an XorGate.  
+RHDL then provides every `Circuit` with a method that consumes an iterator of `TimedSample<CircuitIO::I>` via the `RunExt` trait.  As you can see from the output of the test function, the output iterator of `.run(it)` yields items of type `TracedSample<CircuitIO::I, CircuitIO::O>`.  Let's upgrade our iterator test to check that the output meets our definition of an XorGate.  
 
 ```rust
 {{#rustdoc_include ../code/src/xor.rs:xor-step-13}}

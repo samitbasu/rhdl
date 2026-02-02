@@ -146,8 +146,8 @@ pub mod step_2 {
             });
             trace::container::TraceContainer::record(&mut vcd, &sample).unwrap();
         }
-        let mut file = std::fs::File::create("tracing_demo_fsm.vcd").unwrap();
-        vcd.finalize(&VcdOptions::default(), &mut file).unwrap();
+        vcd.finalize(&VcdOptions::default(), "tracing_demo_fsm.vcd")
+            .unwrap();
         // ANCHOR_END: step_2_vcd
     }
 }

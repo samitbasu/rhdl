@@ -1,0 +1,35 @@
+$timescale 1 ps $end
+$scope module top $end
+$scope module fsm $end
+$var wire 1 " event $end
+$var wire 3 # next_state $end
+$var wire 3 ! state $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+b000 !
+b0 "
+b001 #
+#100
+b001 !
+b1 "
+b010 #
+#200
+b010 !
+b0 "
+b001 #
+#300
+b001 !
+b1 "
+b010 #
+#400
+b010 !
+b011 #
+#500
+b011 !
+b000 #
+#600
+b000 !
+b100 #
+#700

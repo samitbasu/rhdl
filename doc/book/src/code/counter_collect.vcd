@@ -1,0 +1,111 @@
+$timescale 1 ps $end
+$scope module top $end
+$scope module count $end
+$scope module dff $end
+$var wire 3 $ input $end
+$var wire 3 % output $end
+$upscope $end
+$upscope $end
+$var wire 1 ! clock $end
+$var wire 1 # input $end
+$var wire 3 & outputs $end
+$var wire 1 " reset $end
+$upscope $end
+$enddefinitions $end
+#0
+b0 !
+b1 "
+b0 #
+b000 $
+b000 %
+b000 &
+#50
+b1 !
+#51
+b0 "
+b1 #
+b001 $
+#100
+b0 !
+#150
+b1 !
+b001 %
+b010 $
+b001 &
+#151
+#200
+b0 !
+#250
+b1 !
+b010 %
+b011 $
+b010 &
+#251
+#300
+b0 !
+#350
+b1 !
+b011 %
+b100 $
+b011 &
+#351
+#400
+b0 !
+#450
+b1 !
+b100 %
+b101 $
+b100 &
+#451
+#500
+b0 !
+#550
+b1 !
+b101 %
+b110 $
+b101 &
+#551
+#600
+b0 !
+#650
+b1 !
+b110 %
+b111 $
+b110 &
+#651
+#700
+b0 !
+#750
+b1 !
+b111 %
+b000 $
+b111 &
+#751
+#800
+b0 !
+#850
+b1 !
+b000 %
+b001 $
+b000 &
+#851
+#900
+b0 !
+#950
+b1 !
+b001 %
+b010 $
+b001 &
+#951
+#1000
+b0 !
+#1050
+b1 !
+b010 %
+b011 $
+b010 &
+#1051
+#1100
+b0 !
+#1150
+#1250

@@ -113,17 +113,16 @@ impl VcdFile {
     pub fn finalize(
         mut self,
         options: &VcdOptions,
-        mut out: impl std::io::Write,
+        path: impl AsRef<std::path::Path>,
     ) -> std::io::Result<()> {
         let Some(db) = self.db.as_ref() else {
             return Ok(());
         };
         self.buffer.flush()?;
+        let out = std::fs::File::create(path.as_ref())?;
+        let mut out = std::io::BufWriter::new(out);
         writeln!(out, "$timescale 1 ps $end")?;
         let rtt = db.read().unwrap().rtt();
-        writeln!(out, "$comment")?;
-        writeln!(out, "    {}", ron::ser::to_string(&rtt).unwrap())?;
-        writeln!(out, "$end")?;
         let trace_tree = db.read().unwrap().build_trace_tree();
         self.write_scope(&mut out, "top", &trace_tree)?;
         writeln!(out, "$enddefinitions $end")?;
@@ -131,23 +130,20 @@ impl VcdFile {
         body.seek(std::io::SeekFrom::Start(0))?;
         std::io::copy(&mut body, &mut out)?;
         writeln!(out, "#{}", self.last_time + options.tail_flush_time)?;
+        std::fs::write(
+            path.as_ref().with_added_extension("rhdl"),
+            ron::ser::to_string(&rtt).unwrap(),
+        )?;
         Ok(())
     }
     /// Dump the VCD file to the given path, returning the SHA256 hash of the file.
     pub fn dump_to_file(self, path: impl AsRef<std::path::Path>) -> std::io::Result<String> {
         use sha2::Digest;
-        let mut file = std::fs::File::create(&path)?;
-        self.finalize(&VcdOptions::default(), &mut file)?;
+        self.finalize(&VcdOptions::default(), path.as_ref())?;
         let mut file = std::fs::File::open(path)?;
         let mut hash = sha2::Sha256::default();
         std::io::copy(&mut file, &mut hash)?;
         Ok(format!("{:x}", hash.finalize()))
-    }
-    /// Finalize the VCD file, returning it as a string.
-    pub fn to_string(self) -> std::io::Result<String> {
-        let mut buf = Vec::new();
-        self.finalize(&VcdOptions::default(), &mut buf)?;
-        Ok(String::from_utf8(buf).unwrap())
     }
 }
 

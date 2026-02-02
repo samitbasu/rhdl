@@ -125,7 +125,9 @@ pub mod step_7 {
 }
 
 pub mod step_8 {
+    #[cfg(test)]
     use miette::IntoDiagnostic;
+
     // ANCHOR: xor-step-9
     use rhdl::prelude::*;
 
@@ -195,7 +197,7 @@ pub mod step_8 {
         let inputs = [(false, false), (false, true), (true, false), (true, true)];
         let it = inputs.into_iter().cycle().take(5).map(signal).uniform(100);
         let uut = XorGate;
-        //                   👇 TimedSample<(Signal<(bool,bool), Red>, Signal<bool, Red>)>
+        //                   👇 TracedSample<Signal<(bool,bool), Red>, Signal<bool, Red>>
         uut.run(it).for_each(|s| {
             let input = s.input.val();
             let output = s.output.val();
@@ -230,4 +232,73 @@ pub mod step_8 {
         Ok(())
     }
     // ANCHOR_END: xor-step-15
+
+    // ANCHOR: xor-step-16
+    #[test]
+    fn test_testbench() -> miette::Result<()> {
+        let inputs = [(false, false), (false, true), (true, false), (true, true)];
+        let it = inputs.into_iter().cycle().take(5).map(signal).uniform(100);
+        let uut = XorGate;
+        let tb: TestBench<_, _> = uut.run(it).collect();
+        let tb = tb.rtl(&uut, &TestBenchOptions::default())?;
+        std::fs::write("xor_tb.v", tb.to_string()).unwrap();
+        Ok(())
+    }
+    // ANCHOR_END: xor-step-16
+
+    // ANCHOR: xor-step-17
+    #[test]
+    fn test_testbench_ntl() -> miette::Result<()> {
+        let inputs = [(false, false), (false, true), (true, false), (true, true)];
+        let it = inputs.into_iter().cycle().take(5).map(signal).uniform(100);
+        let uut = XorGate;
+        let tb: TestBench<_, _> = uut.run(it).collect();
+        let tb = tb.ntl(&uut, &TestBenchOptions::default())?;
+        std::fs::write("xor_tb_ntl.v", tb.to_string()).unwrap();
+        Ok(())
+    }
+    // ANCHOR_END: xor-step-17
+
+    // ANCHOR: xor-step-18
+    #[test]
+    fn test_make_fixture() -> miette::Result<()> {
+        let mut fixture = Fixture::new("xor_top", XorGate);
+        // bind! needs an input and output value to work with
+        // This method provides a tuple of (input, output) with
+        // dont_care values for all fields.
+        let (input, output) = fixture.io_dont_care();
+        // Bind an input port 'a' to input.val().0
+        bind!(fixture, a -> input.val().0);
+        // Bind an input port 'b' to input.val().1
+        bind!(fixture, b -> input.val().1);
+        // Bind an output port 'y' to output.val()
+        // Note the direction of the arrow is reversed for outputs
+        bind!(fixture, y <- output.val());
+        let vlog = fixture.module()?;
+        eprintln!("{vlog}");
+        std::fs::write("xor_top.v", vlog.to_string()).unwrap();
+        Ok(())
+    }
+    // ANCHOR_END: xor-step-18
+
+    // ANCHOR: xor-step-19
+    #[test]
+    #[ignore]
+    fn test_flash_icestorm() -> miette::Result<()> {
+        const PCF: &str = "
+set_io a H11
+set_io b G11
+set_io y E12    
+    ";
+        let uut = XorGate;
+        let mut fixture = Fixture::new("xor_flash", uut);
+        let (input, output) = fixture.io_dont_care();
+        bind!(fixture, a -> input.val().0);
+        bind!(fixture, b -> input.val().1);
+        bind!(fixture, y <- output.val());
+        rhdl_toolchains::icestorm::IceStorm::new("hx8k", "cb132", "build")
+            .clean()?
+            .build_and_flash(fixture, PCF)
+    }
+    // ANCHOR_END: xor-step-19
 }

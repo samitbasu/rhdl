@@ -259,7 +259,7 @@ mod tests {
             .join("ram")
             .join("option_async");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["c08142b6285db7da6e2c701cf269f8e5aa5ea7caedd9a42b1da9a50478526922"];
+        let expect = expect!["7af413cdca0b6d77821ea40a42b60062f468113d04a00375a9892834704761c6"];
         let digest = vcd.dump_to_file(root.join("ram_write.vcd")).unwrap();
         expect.assert_eq(&digest);
         let output = uut

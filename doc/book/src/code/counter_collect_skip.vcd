@@ -1,0 +1,127 @@
+$timescale 1 ps $end
+$scope module top $end
+$scope module count $end
+$scope module dff $end
+$var wire 3 $ input $end
+$var wire 3 % output $end
+$upscope $end
+$upscope $end
+$var wire 1 ! clock $end
+$var wire 1 # input $end
+$var wire 3 & outputs $end
+$var wire 1 " reset $end
+$upscope $end
+$enddefinitions $end
+#600
+b0 !
+b0 "
+b1 #
+b110 $
+b101 %
+b101 &
+#650
+b1 !
+b110 %
+b111 $
+b110 &
+#651
+#700
+b0 !
+#750
+b1 !
+b111 %
+b000 $
+b111 &
+#751
+#800
+b0 !
+#850
+b1 !
+b000 %
+b001 $
+b000 &
+#851
+#900
+b0 !
+#950
+b1 !
+b001 %
+b010 $
+b001 &
+#951
+#1000
+b0 !
+#1050
+b1 !
+b010 %
+b011 $
+b010 &
+#1051
+#1100
+b0 !
+#1150
+b1 !
+b011 %
+b100 $
+b011 &
+#1151
+#1200
+b0 !
+#1250
+b1 !
+b100 %
+b101 $
+b100 &
+#1251
+#1300
+b0 !
+#1350
+b1 !
+b101 %
+b110 $
+b101 &
+#1351
+#1400
+b0 !
+#1450
+b1 !
+b110 %
+b111 $
+b110 &
+#1451
+#1500
+b0 !
+#1550
+b1 !
+b111 %
+b000 $
+b111 &
+#1551
+#1600
+b0 !
+#1650
+b1 !
+b000 %
+b001 $
+b000 &
+#1651
+#1700
+b0 !
+#1750
+b1 !
+b001 %
+b010 $
+b001 &
+#1751
+#1800
+b0 !
+#1850
+b1 !
+b010 %
+b011 $
+b010 &
+#1851
+#1900
+b0 !
+#1950
+#2050

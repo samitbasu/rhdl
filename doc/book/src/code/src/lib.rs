@@ -2,6 +2,7 @@ pub mod bits;
 pub mod circuits;
 pub mod digital;
 pub mod fixturing;
+pub mod half_adder;
 pub mod kernels;
 pub mod probes;
 pub mod simulations;

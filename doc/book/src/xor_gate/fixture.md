@@ -34,23 +34,17 @@ b +-+---+    |     |  |
 
 We will then use a constraints file to bind `a, b, y` to pins on the FPGA.  Using the `bind!` macro this is pretty simple:
 
-```rust,write:xor/tests/test_fixture.rs
-use rhdl::prelude::*;
-
-#[test]
-fn test_make_fixture() -> miette::Result<()> {
-    let mut fixture = Fixture::new("xor_top", xor::XorGate);
-    bind!(fixture, a -> input.val().0);
-    bind!(fixture, b -> input.val().1);
-    bind!(fixture, y -> output.val());
-    let vlog = fixture.module()?;
-    eprintln!("{vlog}");
-    std::fs::write("xor_top.v", vlog.to_string()).unwrap();
-    Ok(())
-}
+```rust
+{{#rustdoc_include ../code/src/xor.rs:xor-step-18}}
 ```
 
-```shell,rhdl:xor
-cargo build -q
-cargo test --test test_fixture --  --no-capture
+The `Fixture` provides a convenient `.io_dont_care()` method that returns a tuple of the input and output types of the circuit, with `dont_care` values for the fields.  This provides a convenient way to get an instance of the `input` and `output` types that are needed by the `bind!` macro.  
+
+
+The generated Verilog for the fixture looks like this:
+
+```verilog
+{{#include ../code/xor_top.v}}
 ```
+
+Note that the top level module is called `xor_top` as we specified when we created the Fixture.  The pins `a, b, y` are all present as top level ports.  The `bind!` macro created the necessary wiring to connect the pins to the internal `XorGate` instance.

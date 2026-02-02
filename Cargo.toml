@@ -7,6 +7,7 @@ members = [
     "crates/rhdl-fpga",
     "crates/rhdl-macro",
     "crates/rhdl-macro-core",
+    "crates/rhdl-surfer-plugin",
     "crates/rhdl-span",
     "crates/rhdl-toolchains",
     "crates/rhdl-trace-type",
@@ -16,3 +17,18 @@ members = [
 ]
 
 resolver = "2"
+
+default-members = [
+    "crates/rhdl",
+    "crates/rhdl-bits",
+    "crates/rhdl-bsp",
+    "crates/rhdl-core",
+    "crates/rhdl-fpga",
+    "crates/rhdl-macro",
+    "crates/rhdl-macro-core",
+    "crates/rhdl-span",
+    "crates/rhdl-toolchains",
+    "crates/rhdl-trace-type",
+    "crates/rhdl-vlog",
+    "doc/book/src/code",
+]

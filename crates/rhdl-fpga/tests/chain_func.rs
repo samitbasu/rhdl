@@ -55,7 +55,7 @@ fn test_auto_counter_counts() -> miette::Result<()> {
         .join("vcd")
         .join("chain_func");
     std::fs::create_dir_all(&root).unwrap();
-    let expect = expect!["b9cfac4be987679b22670ac300b4ec4bdc849f25acb219b18fdf7afaa1014312"];
+    let expect = expect!["fd64b712f684a375502e2884b4f2f479b41117eeebc4e3cc3ca9f62ac2853bae"];
     let digest = vcd.dump_to_file(root.join("auto_counter.vcd")).unwrap();
     expect.assert_eq(&digest);
     Ok(())

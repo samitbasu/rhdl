@@ -106,5 +106,8 @@ fn test_vcd() {
         });
         vcd.record(&sample).unwrap();
     }
-    expect_test::expect_file!["expect/xor_vcd.expect"].assert_eq(&vcd.to_string().unwrap());
+    let manifest_dir = std::env!("CARGO_MANIFEST_DIR");
+    let vcd_path = std::path::Path::new(manifest_dir).join("tests/expect/xor.vcd");
+    let hash = vcd.dump_to_file(&vcd_path).unwrap();
+    expect_test::expect!["acf4ef6f779d2ce55c90a85b80f42f736e25170157cb653622790f674f3f2cea"].assert_eq(&hash);
 }

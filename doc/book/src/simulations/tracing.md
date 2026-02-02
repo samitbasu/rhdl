@@ -75,13 +75,13 @@ Often, tracing requires collecting mountains of data, and then sifting for the o
 RHDL provides the extension trait `AroundEventExt` which provides methods to help with this.  The trait is defined as follows:
 
 ```rust
-{{#rustdoc_include ../../code/src/trace.rs:around-event-trait}}
+{{#rustdoc_include ../code/src/trace.rs:around-event-trait}}
 ```
 
 Given an iterator `i`, we can use `i.around_event(before, after, predicate)` to capture `before` samples before the event and `after` samples after the event where the event is defined by the `predicate` function.  For example, suppose we want to capture 5 samples before and 5 samples after each time when the output of our counter rolls over.  We can do that as follows:
 
 ```rust
-{{#rustdoc_include ../../code/src/trace.rs:around-event-test}}
+{{#rustdoc_include ../code/src/trace.rs:around-event-test}}
 ```
 
 The resulting SVG trace looks like this:

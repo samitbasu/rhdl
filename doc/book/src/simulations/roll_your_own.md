@@ -6,7 +6,7 @@ While RHDL provides a number of convenience methods and extension traits to enab
 Here is a simple example of a simulation loop that uses none of the iterator or trace infrastructure provided by RHDL.  The `XorGate` circuit is defined [here](../xor_gate/the_gate.md).  The simulation loop is as follows:
 
 ```rust
-{{#rustdoc_include ../../code/src/simulations.rs:roll-sim}}
+{{#rustdoc_include ../code/src/simulations.rs:roll-sim}}
 ```
 
 The key steps are:
