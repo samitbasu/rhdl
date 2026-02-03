@@ -20,13 +20,12 @@ fn replace_shift_by_zero(input: &Object, lop: LocatedOpCode) -> LocatedOpCode {
         arg1,
         arg2: Operand::Literal(lit),
     }) = lop.op
+        && input.symtab[&lit].is_zero()
     {
-        if input.symtab[&lit].is_zero() {
-            return LocatedOpCode {
-                op: OpCode::Assign(Assign { lhs, rhs: arg1 }),
-                loc: lop.loc,
-            };
-        }
+        return LocatedOpCode {
+            op: OpCode::Assign(Assign { lhs, rhs: arg1 }),
+            loc: lop.loc,
+        };
     }
     lop
 }

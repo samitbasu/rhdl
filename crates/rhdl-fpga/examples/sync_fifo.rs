@@ -29,9 +29,9 @@ fn main() -> Result<(), RHDLError> {
                 // By default, we do not advance the FIFO
                 input.next = false;
                 // The FIFO has valid data.  So we can receive data. Toss a coin.
-                if output.data.is_some() && rand::random::<bool>() {
+                if let Some(data) = output.data && rand::random::<bool>() {
                     input.next = true;
-                    assert_eq!(output_seq.next().unwrap(), output.data.unwrap());
+                    assert_eq!(output_seq.next().unwrap(), data);
                 }
                 // Return the constructed input
                 Some(ResetOrData::Data(input))

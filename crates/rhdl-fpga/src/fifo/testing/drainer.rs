@@ -7,7 +7,6 @@ use crate::core::{constant, dff, option::unpack, slice::lsbs};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 #[rhdl(dq_no_prefix)]
-
 /// The core that provides the FIFO drainer
 pub struct FIFODrainer<const N: usize>
 where

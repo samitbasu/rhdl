@@ -80,7 +80,7 @@ use crate::{
         WriteResult,
     },
     core::{dff::DFF, option::is_some},
-    stream::{stream_buffer::StreamBuffer, Ready},
+    stream::{Ready, stream_buffer::StreamBuffer},
 };
 
 use super::{read::ReadController, write::WriteController};

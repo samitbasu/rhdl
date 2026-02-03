@@ -21,28 +21,28 @@ impl Pass for PrecomputeDiscriminantPass {
         let (mut literals, registers) = std::mem::take(&mut input.symtab).into_parts();
         let mut ops = std::mem::take(&mut input.ops);
         for lop in ops.iter_mut() {
-            if let OpCode::Index(index) = &lop.op {
-                if index.path == Path::default().discriminant() {
-                    let kind = match index.arg {
-                        Slot::Register(rid) => registers[rid].0,
-                        Slot::Literal(lid) => literals[lid].0.kind(),
-                    };
-                    if !kind.is_enum() {
-                        lop.op = OpCode::Assign(Assign {
-                            lhs: index.lhs,
-                            rhs: index.arg,
-                        });
-                    } else if let Slot::Literal(lit_id) = index.arg {
-                        let (literal_value, loc) = &literals[&lit_id];
-                        let discriminant = literal_value.discriminant()?;
-                        // Get a new literal slot for the discriminant
-                        let discriminant_id = literals.push((discriminant, loc.clone()));
-                        let discriminant_slot = Slot::Literal(discriminant_id);
-                        lop.op = OpCode::Assign(Assign {
-                            lhs: index.lhs,
-                            rhs: discriminant_slot,
-                        });
-                    }
+            if let OpCode::Index(index) = &lop.op
+                && index.path == Path::default().discriminant()
+            {
+                let kind = match index.arg {
+                    Slot::Register(rid) => registers[rid].0,
+                    Slot::Literal(lid) => literals[lid].0.kind(),
+                };
+                if !kind.is_enum() {
+                    lop.op = OpCode::Assign(Assign {
+                        lhs: index.lhs,
+                        rhs: index.arg,
+                    });
+                } else if let Slot::Literal(lit_id) = index.arg {
+                    let (literal_value, loc) = &literals[&lit_id];
+                    let discriminant = literal_value.discriminant()?;
+                    // Get a new literal slot for the discriminant
+                    let discriminant_id = literals.push((discriminant, loc.clone()));
+                    let discriminant_slot = Slot::Literal(discriminant_id);
+                    lop.op = OpCode::Assign(Assign {
+                        lhs: index.lhs,
+                        rhs: discriminant_slot,
+                    });
                 }
             }
         }

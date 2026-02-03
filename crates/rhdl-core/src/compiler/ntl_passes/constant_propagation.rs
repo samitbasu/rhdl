@@ -74,17 +74,17 @@ fn compute_unary(
         UnaryOp::Neg => AluUnary::Neg,
         UnaryOp::Xor => AluUnary::Xor,
     };
-    if let Some(arg) = arg {
-        if let Ok(val) = unary(alu, arg) {
-            for (&lhs, rhs) in unary_op.lhs.iter().zip(val) {
-                let res = input.symtab.lit(rhs, input.symtab[lhs].clone());
-                lop.push(LocatedOpCode {
-                    op: assign(lhs, res),
-                    loc: source,
-                })
-            }
-            return;
+    if let Some(arg) = arg
+        && let Ok(val) = unary(alu, arg)
+    {
+        for (&lhs, rhs) in unary_op.lhs.iter().zip(val) {
+            let res = input.symtab.lit(rhs, input.symtab[lhs].clone());
+            lop.push(LocatedOpCode {
+                op: assign(lhs, res),
+                loc: source,
+            })
         }
+        return;
     }
     lop.push(LocatedOpCode {
         op: OpCode::Unary(unary_op),

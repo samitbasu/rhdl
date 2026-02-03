@@ -4,14 +4,12 @@ use ena::unify::InPlaceUnificationTable;
 
 use crate::{
     RHDLError,
-    {
-        common::{symtab::RegisterId, unify_key::EnaKey},
-        compiler::ntl_passes::pass::Pass,
-        ntl::{
-            object::Object,
-            spec::{Assign, OpCode, Wire, WireKind},
-            visit::{visit_object_wires, visit_object_wires_mut},
-        },
+    common::{symtab::RegisterId, unify_key::EnaKey},
+    compiler::ntl_passes::pass::Pass,
+    ntl::{
+        object::Object,
+        spec::{Assign, OpCode, Wire, WireKind},
+        visit::{visit_object_wires, visit_object_wires_mut},
     },
 };
 
@@ -42,12 +40,12 @@ impl Pass for RemoveExtraRegistersPass {
         // union the arguments in the table
         log::debug!("Remove extra registers: {input:?}");
         for op in &input.ops {
-            if let OpCode::Assign(assign) = &op.op {
-                if let (Some(lhs_reg), Some(rhs_reg)) = (assign.lhs.reg(), assign.rhs.reg()) {
-                    let lhs_key = reg_map[&lhs_reg];
-                    let rhs_key = reg_map[&rhs_reg];
-                    table.union(lhs_key, rhs_key);
-                }
+            if let OpCode::Assign(assign) = &op.op
+                && let (Some(lhs_reg), Some(rhs_reg)) = (assign.lhs.reg(), assign.rhs.reg())
+            {
+                let lhs_key = reg_map[&lhs_reg];
+                let rhs_key = reg_map[&rhs_reg];
+                table.union(lhs_key, rhs_key);
             }
         }
         // Next, rewrite the ops, where for each operand, we take the root of the unify tree

@@ -30,12 +30,12 @@ impl Pass for RemoveExtraRegistersPass {
             reg_map.iter().map(|(&reg, &key)| (key, reg)).collect();
         // Loop over the assignment op codes, and union the arguments in the table
         for lop in &input.ops {
-            if let OpCode::Assign(Assign { lhs, rhs }) = &lop.op {
-                if let (Some(lhs_reg), Some(rhs_reg)) = (lhs.reg(), rhs.reg()) {
-                    let lhs_key = reg_map[&lhs_reg];
-                    let rhs_key = reg_map[&rhs_reg];
-                    table.union(lhs_key, rhs_key);
-                }
+            if let OpCode::Assign(Assign { lhs, rhs }) = &lop.op
+                && let (Some(lhs_reg), Some(rhs_reg)) = (lhs.reg(), rhs.reg())
+            {
+                let lhs_key = reg_map[&lhs_reg];
+                let rhs_key = reg_map[&rhs_reg];
+                table.union(lhs_key, rhs_key);
             }
         }
         // Next, rewrite the ops, where for each operand, we take the root of the unify tree

@@ -19,14 +19,12 @@ impl Pass for SymbolTableIsComplete {
         for lop in &input.ops {
             let mut err = None;
             visit_wires(&lop.op, |_sense, &wire| {
-                if err.is_none() {
-                    if !input.symtab.is_key_valid(wire) {
-                        err = Some(Err(Self::raise_ice(
-                            &input,
-                            ICE::IncompleteSymbolTableInNetList,
-                            lop.loc,
-                        )))
-                    }
+                if err.is_none() && !input.symtab.is_key_valid(wire) {
+                    err = Some(Err(Self::raise_ice(
+                        &input,
+                        ICE::IncompleteSymbolTableInNetList,
+                        lop.loc,
+                    )))
                 }
             });
             if let Some(err) = err {

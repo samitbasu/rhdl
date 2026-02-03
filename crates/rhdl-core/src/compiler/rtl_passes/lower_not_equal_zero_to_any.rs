@@ -32,17 +32,17 @@ fn replace_not_equal_zero(input: &Object, lop: LocatedOpCode) -> LocatedOpCode {
                     loc: lop.loc,
                 };
             }
-        } else if let Operand::Literal(l2) = arg2 {
-            if input.symtab[&l2].is_zero() {
-                return LocatedOpCode {
-                    op: OpCode::Unary(Unary {
-                        lhs,
-                        op: AluUnary::Any,
-                        arg1,
-                    }),
-                    loc: lop.loc,
-                };
-            }
+        } else if let Operand::Literal(l2) = arg2
+            && input.symtab[&l2].is_zero()
+        {
+            return LocatedOpCode {
+                op: OpCode::Unary(Unary {
+                    lhs,
+                    op: AluUnary::Any,
+                    arg1,
+                }),
+                loc: lop.loc,
+            };
         }
     }
     lop

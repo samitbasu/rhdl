@@ -40,7 +40,6 @@ use crate::{
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 #[rhdl(dq_no_prefix)]
-
 /// The FIFO Filler core
 pub struct FIFOFiller<const N: usize>
 where

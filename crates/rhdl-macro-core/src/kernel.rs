@@ -578,6 +578,7 @@ fn trace_wrap_function(function: &syn::ItemFn) -> Result<TS> {
             #[allow(clippy::manual_map)]
             #[allow(clippy::redundant_pattern_matching)]
             #[allow(clippy::manual_memcpy)]
+            #[allow(clippy::collapsible_if)]
             #[forbid(path_statements)]
             #[forbid(unused_variables)]
             #[allow(unused_doc_comments)]

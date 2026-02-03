@@ -27,10 +27,10 @@ impl Pass for DeadCodeElimination {
         let mut needed_set: HashSet<RegisterId<WireKind>> = HashSet::default();
         for lop in &input.ops {
             visit_wires(&lop.op, |sense, op| {
-                if sense.is_read() {
-                    if let Some(reg) = op.reg() {
-                        needed_set.insert(reg);
-                    }
+                if sense.is_read()
+                    && let Some(reg) = op.reg()
+                {
+                    needed_set.insert(reg);
                 }
             });
         }
@@ -39,10 +39,10 @@ impl Pass for DeadCodeElimination {
         input.ops.retain(|lop| {
             let mut output_used = false;
             visit_wires(&lop.op, |sense, op| {
-                if sense.is_write() {
-                    if let Some(reg) = op.reg() {
-                        output_used |= needed_set.contains(&reg);
-                    }
+                if sense.is_write()
+                    && let Some(reg) = op.reg()
+                {
+                    output_used |= needed_set.contains(&reg);
                 }
             });
             output_used

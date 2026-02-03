@@ -22,10 +22,10 @@ impl Pass for CheckForUndriven {
         let mut written_set: HashSet<RegisterId<WireKind>> = HashSet::default();
         for lop in &input.ops {
             visit_wires(&lop.op, |sense, op| {
-                if sense.is_write() {
-                    if let Some(reg) = op.reg() {
-                        written_set.insert(reg);
-                    }
+                if sense.is_write()
+                    && let Some(reg) = op.reg()
+                {
+                    written_set.insert(reg);
                 }
             })
         }
@@ -33,21 +33,20 @@ impl Pass for CheckForUndriven {
         for lop in &input.ops {
             let mut err = None;
             visit_wires(&lop.op, |sense, op| {
-                if sense.is_read() {
-                    if let Some(reg) = op.reg() {
-                        if !written_set.contains(&reg) {
-                            log::warn!("{:?}", input);
-                            err = Some(NetListError {
-                                cause: crate::ntl::error::NetListICE::UndrivenNetlistNode,
-                                src: input.code.source(),
-                                elements: lop
-                                    .loc
-                                    .iter()
-                                    .map(|&loc| input.code.span(loc).into())
-                                    .collect(),
-                            });
-                        }
-                    }
+                if sense.is_read()
+                    && let Some(reg) = op.reg()
+                    && !written_set.contains(&reg)
+                {
+                    log::warn!("{:?}", input);
+                    err = Some(NetListError {
+                        cause: crate::ntl::error::NetListICE::UndrivenNetlistNode,
+                        src: input.code.source(),
+                        elements: lop
+                            .loc
+                            .iter()
+                            .map(|&loc| input.code.span(loc).into())
+                            .collect(),
+                    });
                 }
             });
             if let Some(err) = err {

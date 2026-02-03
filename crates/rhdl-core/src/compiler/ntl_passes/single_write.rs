@@ -23,18 +23,16 @@ impl Pass for SingleRegisterWrite {
         let mut err = None;
         for lop in &input.ops {
             visit_wires(&lop.op, |sense, op| {
-                if sense.is_write() {
-                    if let Some(reg) = op.reg() {
-                        if !written_set.insert(reg) {
-                            if err.is_none() {
-                                err = Some(Self::raise_ice(
-                                    &input,
-                                    ICE::MultipleWritesToRegister { op: *op },
-                                    lop.loc,
-                                ));
-                            }
-                        }
-                    }
+                if sense.is_write()
+                    && let Some(reg) = op.reg()
+                    && !written_set.insert(reg)
+                    && err.is_none()
+                {
+                    err = Some(Self::raise_ice(
+                        &input,
+                        ICE::MultipleWritesToRegister { op: *op },
+                        lop.loc,
+                    ));
                 }
             });
             if let Some(err) = err {

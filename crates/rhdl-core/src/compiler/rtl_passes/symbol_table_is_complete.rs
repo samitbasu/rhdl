@@ -14,14 +14,12 @@ impl Pass for SymbolTableIsComplete {
         let mut error = None;
         let id = input.symbols.fallback(input.fn_id);
         visit_object_operands(&input, |sense, &operand| {
-            if error.is_none() {
-                if !input.symtab.is_key_valid(operand) {
-                    error = Some(Err(Self::raise_ice(
-                        &input,
-                        ICE::SymbolTableIsIncompleteForRTL { operand },
-                        id,
-                    )));
-                }
+            if error.is_none() && !input.symtab.is_key_valid(operand) {
+                error = Some(Err(Self::raise_ice(
+                    &input,
+                    ICE::SymbolTableIsIncompleteForRTL { operand },
+                    id,
+                )));
             }
             if sense.is_write() && operand.is_lit() {
                 log::info!("{input:?}");

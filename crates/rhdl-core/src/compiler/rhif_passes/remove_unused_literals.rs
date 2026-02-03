@@ -29,12 +29,11 @@ impl Pass for RemoveUnusedLiterals {
         let (mut literals, registers) = std::mem::take(&mut input.symtab).into_parts();
         let remap = literals.retain(|lid, _| used_set.contains(&Slot::Literal(lid)));
         visit_object_slots_mut(&mut input, |sense, slot| {
-            if sense.is_read() {
-                if let Some(lid) = slot.lit() {
-                    *slot = Slot::Literal(
-                        remap(lid).expect("New symtab should include all used literals"),
-                    );
-                }
+            if sense.is_read()
+                && let Some(lid) = slot.lit()
+            {
+                *slot =
+                    Slot::Literal(remap(lid).expect("New symtab should include all used literals"));
             }
         });
         input.symtab = SymbolTable::from_parts(literals, registers);

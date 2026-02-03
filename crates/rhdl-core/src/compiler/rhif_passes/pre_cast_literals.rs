@@ -33,25 +33,25 @@ impl Pass for PreCastLiterals {
         for lop in input.ops.iter_mut() {
             match &lop.op {
                 OpCode::AsBits(cast) => {
-                    if let Some(len) = cast.len {
-                        if let Some(id) = cast.arg.lit() {
-                            candidates.insert(CastCandidate {
-                                id,
-                                len,
-                                signed: false,
-                            });
-                        }
+                    if let Some(len) = cast.len
+                        && let Some(id) = cast.arg.lit()
+                    {
+                        candidates.insert(CastCandidate {
+                            id,
+                            len,
+                            signed: false,
+                        });
                     }
                 }
                 OpCode::AsSigned(cast) => {
-                    if let Some(len) = cast.len {
-                        if let Some(id) = cast.arg.lit() {
-                            candidates.insert(CastCandidate {
-                                id,
-                                len,
-                                signed: true,
-                            });
-                        }
+                    if let Some(len) = cast.len
+                        && let Some(id) = cast.arg.lit()
+                    {
+                        candidates.insert(CastCandidate {
+                            id,
+                            len,
+                            signed: true,
+                        });
                     }
                 }
                 _ => {}

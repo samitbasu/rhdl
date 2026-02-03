@@ -84,10 +84,10 @@ impl Pass for ReorderInstructions {
                 scheduled.push(ndx);
                 let op_code = &input.ops[ndx].op;
                 visit_wires(op_code, |sense, operand| {
-                    if sense.is_write() {
-                        if let Some(reg) = operand.reg() {
-                            satisfied.push_back(reg);
-                        }
+                    if sense.is_write()
+                        && let Some(reg) = operand.reg()
+                    {
+                        satisfied.push_back(reg);
                     }
                 });
             }
@@ -115,10 +115,10 @@ impl Pass for ReorderInstructions {
                     let op_code = &input.ops[op].op;
                     if !matches!(op_code, OpCode::BlackBox(_)) {
                         visit_wires(op_code, |sense, operand| {
-                            if sense.is_write() {
-                                if let Some(reg) = operand.reg() {
-                                    satisfied.push_back(reg);
-                                }
+                            if sense.is_write()
+                                && let Some(reg) = operand.reg()
+                            {
+                                satisfied.push_back(reg);
                             }
                         });
                     }

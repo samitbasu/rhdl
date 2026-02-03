@@ -21,26 +21,28 @@ impl Pass for RemoveUselessCastsPass {
                 OpCode::AsBits(cast) => {
                     if let Some(literal) = cast.arg.lit() {
                         let literal_val = &input.symtab[literal];
-                        if let Some(len) = cast.len {
-                            if literal_val.kind().is_unsigned() && literal_val.len() == len {
-                                lop.op = OpCode::Assign(Assign {
-                                    lhs: cast.lhs,
-                                    rhs: cast.arg,
-                                })
-                            }
+                        if let Some(len) = cast.len
+                            && literal_val.kind().is_unsigned()
+                            && literal_val.len() == len
+                        {
+                            lop.op = OpCode::Assign(Assign {
+                                lhs: cast.lhs,
+                                rhs: cast.arg,
+                            })
                         }
                     }
                 }
                 OpCode::AsSigned(cast) => {
                     if let Some(literal) = cast.arg.lit() {
                         let literal_val = &input.symtab[literal];
-                        if let Some(len) = cast.len {
-                            if literal_val.kind().is_signed() && literal_val.len() == len {
-                                lop.op = OpCode::Assign(Assign {
-                                    lhs: cast.lhs,
-                                    rhs: cast.arg,
-                                })
-                            }
+                        if let Some(len) = cast.len
+                            && literal_val.kind().is_signed()
+                            && literal_val.len() == len
+                        {
+                            lop.op = OpCode::Assign(Assign {
+                                lhs: cast.lhs,
+                                rhs: cast.arg,
+                            })
                         }
                     }
                 }
