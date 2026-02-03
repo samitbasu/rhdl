@@ -1,0 +1,1 @@
+TraceInfo({"testbench.clock_reset":Struct((name:"ClockReset",fields:[(name:"clock",ty:Clock),(name:"reset",ty:Reset)])),"testbench.i":Empty,"testbench.o":Bits(1),"testbench.rust_out":Bits(1)})

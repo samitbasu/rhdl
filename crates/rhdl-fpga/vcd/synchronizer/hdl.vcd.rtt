@@ -1,0 +1,1 @@
+TraceInfo({"testbench.i":Struct((name:"rhdl_fpga::cdc::synchronizer::In<rhdl_core::types::domain::Red,rhdl_core::types::domain::Blue>",fields:[(name:"data",ty:Signal(Bits(1),Red)),(name:"cr",ty:Signal(Struct((name:"ClockReset",fields:[(name:"clock",ty:Clock),(name:"reset",ty:Reset)])),Blue))])),"testbench.o":Signal(Bits(1),Blue),"testbench.rust_out":Signal(Bits(1),Blue)})

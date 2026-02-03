@@ -626,10 +626,7 @@ impl Kind {
 impl From<Kind> for rtt::TraceType {
     fn from(kind: Kind) -> Self {
         match kind {
-            Kind::Array(array) => rtt::TraceType::Array(rtt::Array {
-                base: Box::new((*array.base).into()),
-                size: array.size,
-            }),
+            Kind::Array(array) => rtt::make_array((*array.base).into(), array.size),
             Kind::Tuple(tuple) => {
                 rtt::make_tuple(tuple.elements.iter().map(|x| (*x).into()).collect())
             }

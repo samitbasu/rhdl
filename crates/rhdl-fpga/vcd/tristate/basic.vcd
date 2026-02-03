@@ -1,0 +1,169 @@
+$timescale 1 ps $end
+$scope module top $end
+$scope module rcv $end
+$scope module reg $end
+$scope module dff $end
+$var wire 8 - input $end
+$var wire 8 . output $end
+$upscope $end
+$upscope $end
+$scope module state $end
+$scope module dff $end
+$var wire 2 + input $end
+$var wire 2 , output $end
+$upscope $end
+$upscope $end
+$var wire 18 * input $end
+$var wire 16 / outputs $end
+$upscope $end
+$scope module snd $end
+$scope module reg $end
+$scope module dff $end
+$var wire 8 ' input $end
+$var wire 8 ( output $end
+$upscope $end
+$upscope $end
+$scope module state $end
+$scope module dff $end
+$var wire 3 % input $end
+$var wire 3 & output $end
+$upscope $end
+$upscope $end
+$var wire 26 $ input $end
+$var wire 27 ) outputs $end
+$upscope $end
+$var wire 1 ! clock $end
+$var wire 10 # input $end
+$var wire 9 0 outputs $end
+$var wire 1 " reset $end
+$upscope $end
+$enddefinitions $end
+#0
+b0 !
+b1 "
+b0000000000 #
+b00000000000000000000000000 $
+b000 %
+b000 &
+b00000000 '
+b00000000 (
+b000000000000000000000000000 )
+b000000000000000000 *
+b00 +
+b00 ,
+b00000000 -
+b00000000 .
+b0000000000000000 /
+b000000000 0
+#50
+b1 !
+#51
+b0 "
+#100
+b0 !
+#150
+b1 !
+#151
+#200
+b0 !
+#250
+b1 !
+#251
+b1000010101 #
+b10000101010000000000000000 $
+b001 %
+b00010101 '
+#300
+b0 !
+#350
+b1 !
+b001 &
+b00010101 (
+b000 %
+b000000000101111111100010101 )
+b101111111100010101 *
+b01 +
+b00010101 -
+#351
+b0000000000 #
+b00000000000000000000000000 $
+#400
+b0 !
+#450
+b1 !
+b000 &
+b000000000000000000000000000 )
+b01 ,
+b00010101 .
+b00 +
+b000000000000000000 *
+#451
+#500
+b0 !
+#550
+b1 !
+b00 ,
+#551
+b1100000000 #
+b11000000000000000000000000 $
+b010 %
+#600
+b0 !
+#650
+b1 !
+b010 &
+b011 %
+b000000000110000000000000000 )
+b110000000000000000 *
+b10 +
+#651
+b0000000000 #
+b00000000000000000000000000 $
+#700
+b0 !
+#750
+b1 !
+b011 &
+b100 %
+b00000000 '
+b000000000000000000000000000 )
+b10 ,
+b00 +
+b1111111100010101 /
+b00000000001111111100010101 $
+b00010101 '
+b000000000001111111100010101 )
+b000000000000000000 *
+b001111111100010101 *
+#751
+#800
+b0 !
+#850
+b1 !
+b100 &
+b000 %
+b100010101001111111100010101 )
+b00 ,
+b0000000000000000 /
+b00000000000000000000000000 $
+b100010101000000000000000000 )
+b000000000000000000 *
+b100010101 0
+#851
+#900
+b0 !
+#950
+b1 !
+b000 &
+b000000000000000000000000000 )
+b000000000 0
+#951
+#1000
+b0 !
+#1050
+b1 !
+#1051
+#1100
+b0 !
+#1150
+#1250

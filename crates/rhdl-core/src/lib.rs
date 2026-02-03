@@ -1,12 +1,7 @@
+//! The RHDL Core Library
 //#![warn(missing_docs)]
 #![deny(unsafe_code)]
-//#![deny(clippy::unwrap_used)]
-//#![deny(clippy::expect_used)]
-//#![deny(clippy::panic)]
 #![deny(unused_must_use)]
-pub use types::kind::Kind;
-pub mod clock_details;
-
 pub use circuit::circuit_impl::Circuit;
 pub use circuit::circuit_impl::CircuitDQ;
 pub use circuit::circuit_impl::CircuitIO;
@@ -17,8 +12,6 @@ pub use circuit::hdl_descriptor::HDLDescriptor;
 pub use circuit::synchronous::Synchronous;
 pub use circuit::synchronous::SynchronousDQ;
 pub use circuit::synchronous::SynchronousIO;
-pub use clock_details::ClockDetails;
-//pub use types::bitz::BitZ;
 pub use types::clock::Clock;
 pub use types::digital::Digital;
 pub use types::digital_fn::DigitalFn;
@@ -28,6 +21,7 @@ pub use types::domain::Color;
 pub use types::domain::Domain;
 pub use types::kernel::KernelFnKind;
 pub use types::kind::DiscriminantAlignment;
+pub use types::kind::Kind;
 pub use types::reset::Reset;
 pub use types::reset_n::ResetN;
 pub use types::signal::Signal;

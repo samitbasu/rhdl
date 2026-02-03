@@ -1,0 +1,82 @@
+$timescale 1 ps $end
+$scope module top $end
+$scope module reg $end
+$scope module dff $end
+$var wire 8 $ input $end
+$var wire 8 % output $end
+$upscope $end
+$upscope $end
+$var wire 1 ! clock $end
+$var wire 10 # input $end
+$var wire 1 & outputs $end
+$var wire 1 " reset $end
+$upscope $end
+$enddefinitions $end
+#0
+b0 !
+b1 "
+b0000000000 #
+b00000000 $
+b00000000 %
+b0 &
+#50
+b1 !
+#51
+b0 "
+#100
+b0 !
+#150
+b1 !
+#151
+b1000000110 #
+b00000011 $
+b1 &
+#200
+b0 !
+#250
+b1 !
+b00000011 %
+#251
+b1000000011 #
+b00000001 $
+#300
+b0 !
+#350
+b1 !
+b00000001 %
+#351
+b0000000000 #
+b0 &
+#400
+b0 !
+#450
+b1 !
+#451
+b1000000000 #
+b00000000 $
+#500
+b0 !
+#550
+b1 !
+b00000000 %
+#551
+b1000001011 #
+b00000101 $
+b1 &
+#600
+b0 !
+#650
+b1 !
+b00000101 %
+#651
+b0000000000 #
+b0 &
+#700
+b0 !
+#750
+b1 !
+#751
+#800
+b0 !
+#850
+#950

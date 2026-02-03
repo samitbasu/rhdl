@@ -1,0 +1,320 @@
+$timescale 1 ps $end
+$scope module top $end
+$scope module ram $end
+$scope module inner $end
+$scope module synchronous_ram $end
+$var wire 15 3 input $end
+$var wire 8 4 output $end
+$upscope $end
+$upscope $end
+$var wire 15 2 input $end
+$var wire 8 5 outputs $end
+$upscope $end
+$scope module read_logic $end
+$scope module ram_read_address $end
+$scope module dff $end
+$var wire 3 - input $end
+$var wire 3 . output $end
+$upscope $end
+$upscope $end
+$scope module underflow $end
+$scope module dff $end
+$var wire 1 / input $end
+$var wire 1 0 output $end
+$upscope $end
+$upscope $end
+$var wire 4 , input $end
+$var wire 7 1 outputs $end
+$upscope $end
+$scope module write_logic $end
+$scope module overflow $end
+$scope module dff $end
+$var wire 1 ) input $end
+$var wire 1 * output $end
+$upscope $end
+$upscope $end
+$scope module write_address $end
+$scope module dff $end
+$var wire 3 % input $end
+$var wire 3 & output $end
+$upscope $end
+$upscope $end
+$scope module write_address_delayed $end
+$scope module dff $end
+$var wire 3 ' input $end
+$var wire 3 ( output $end
+$upscope $end
+$upscope $end
+$var wire 4 $ input $end
+$var wire 9 + outputs $end
+$upscope $end
+$var wire 1 ! clock $end
+$var wire 10 # input $end
+$var wire 14 6 outputs $end
+$var wire 1 " reset $end
+$upscope $end
+$enddefinitions $end
+#0
+b0 !
+b1 "
+b0000000000 #
+b0000 $
+b000 %
+b000 &
+b000 '
+b000 (
+b0 )
+b0 *
+b000000000 +
+b0000 ,
+b000 -
+b000 .
+b0 /
+b0 0
+b0000011 1
+b000000000000000 2
+b000000000000000 3
+b00000000 4
+b00000000 5
+b00010000000000 6
+#50
+b1 !
+#51
+b0 "
+b0100000001 #
+b1000 $
+b001 %
+b100000001000000 2
+b100000001000000 3
+#100
+b0 !
+#150
+b1 !
+b001 &
+b010 %
+b001 '
+b000001000 +
+b100000001001000 2
+b100000001001000 3
+#151
+b0100000010 #
+b100000010001000 2
+b100000010001000 3
+#200
+b0 !
+#250
+b1 !
+b010 &
+b001 (
+b011 %
+b010 '
+b001010000 +
+b00000001 4
+b00000001 5
+b0001 ,
+b0000010 1
+b100000010010000 2
+b100000010010000 3
+b00010100000001 6
+#251
+b0100000011 #
+b100000011010000 2
+b100000011010000 3
+#300
+b0 !
+#350
+b1 !
+b011 &
+b010 (
+b100 %
+b011 '
+b010011000 +
+b0010 ,
+b0000000 1
+b100000011011000 2
+b100000011011000 3
+b00000100000001 6
+#351
+b0100000100 #
+b100000100011000 2
+b100000100011000 3
+#400
+b0 !
+#450
+b1 !
+b100 &
+b011 (
+b101 %
+b100 '
+b011100000 +
+b0011 ,
+b100000100100000 2
+b100000100100000 3
+#451
+b0100000101 #
+b100000101100000 2
+b100000101100000 3
+#500
+b0 !
+#550
+b1 !
+b101 &
+b100 (
+b110 %
+b101 '
+b100101000 +
+b0100 ,
+b100000101101000 2
+b100000101101000 3
+#551
+b0100000110 #
+b100000110101000 2
+b100000110101000 3
+#600
+b0 !
+#650
+b1 !
+b110 &
+b101 (
+b111 %
+b110 '
+b101110010 +
+b0101 ,
+b100000110110000 2
+b100000110110000 3
+b00100100000001 6
+#651
+b0100000111 #
+b100000111110000 2
+b100000111110000 3
+#700
+b0 !
+#750
+b1 !
+b111 &
+b110 (
+b111 '
+b1 )
+b110111111 +
+b0110 ,
+b100000111111000 2
+b100000111111000 3
+b01101100000001 6
+#751
+b1000000000 #
+b0000 $
+b0 )
+b110111011 +
+b1110 ,
+b001 -
+b1001000 1
+b000000000000000 2
+b000000000000000 3
+b0001 $
+b110111010 +
+b000000000000001 2
+b000000000000001 3
+b00100100000001 6
+#800
+b0 !
+#850
+b1 !
+b111 (
+b111111010 +
+b001 .
+b010 -
+b1010000 1
+b00000010 4
+b00000010 5
+b0010 $
+b111111000 +
+b1111 ,
+b000000000000010 2
+b000000000000010 3
+b00000100000010 6
+#851
+#900
+b0 !
+#950
+b1 !
+b010 .
+b011 -
+b1011000 1
+b00000011 4
+b00000011 5
+b0011 $
+b000000000000011 2
+b000000000000011 3
+b00000100000011 6
+#951
+#1000
+b0 !
+#1050
+b1 !
+b011 .
+b100 -
+b1100000 1
+b00000100 4
+b00000100 5
+b0100 $
+b000000000000100 2
+b000000000000100 3
+b00000100000100 6
+#1051
+#1100
+b0 !
+#1150
+b1 !
+b100 .
+b101 -
+b1101000 1
+b00000101 4
+b00000101 5
+b0101 $
+b000000000000101 2
+b000000000000101 3
+b00000100000101 6
+#1151
+#1200
+b0 !
+#1250
+b1 !
+b101 .
+b110 -
+b1110000 1
+b00000110 4
+b00000110 5
+b0110 $
+b000000000000110 2
+b000000000000110 3
+b00000100000110 6
+#1251
+#1300
+b0 !
+#1350
+b1 !
+b110 .
+b111 -
+b1111010 1
+b00000111 4
+b00000111 5
+b0111 $
+b000000000000111 2
+b000000000000111 3
+b00010100000111 6
+#1351
+#1400
+b0 !
+#1450
+b1 !
+b111 .
+b1 /
+b0111111 1
+b00000000 4
+b00000000 5
+b10010000000000 6
+#1451
+#1500
+b0 !
+#1550
+#1650

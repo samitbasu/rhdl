@@ -30,20 +30,17 @@ Running the test produces the following output:
 
 <!-- cmdrun to-html "cd ../code &&cargo test --package code --lib -- xor::step_8::test_iterators --exact --nocapture" -->
 
-
 RHDL then provides every `Circuit` with a method that consumes an iterator of `TimedSample<CircuitIO::I>` via the `RunExt` trait.  As you can see from the output of the test function, the output iterator of `.run(it)` yields items of type `TracedSample<CircuitIO::I, CircuitIO::O>`.  Let's upgrade our iterator test to check that the output meets our definition of an XorGate.  
 
 ```rust
 {{#rustdoc_include ../code/src/xor.rs:xor-step-13}}
 ```
 
-To break down the `for_each` argument, we have a `TimedSample<(I,O)>`.  To get the input, we compute
+To break down the `for_each` argument, we have a `TracedSample<I,O>`.  To get the input, we compute
 
-- `s.value` extracts the value from the `TimedSample`
-- `s.value.0` extracts the Input from the tuple
-- `s.value.0.val()` extracts the `(bool, bool)` value from the `Signal<(bool, bool), Red>`
-- `s.value.1.val()` extracts the `bool` value from the output `Signal<bool, Red>`
-
+- `s.input` extracts the Input from the tuple
+- `s.input.val()` extracts the `(bool, bool)` value from the `Signal<(bool, bool), Red>`
+- `s.output.val()` extracts the `bool` value from the output `Signal<bool, Red>`
 
 <!-- cmdrun to-html "cd ../code && cargo test --package code --lib -- xor::step_8::test_iterators_expected --exact --nocapture" -->
 

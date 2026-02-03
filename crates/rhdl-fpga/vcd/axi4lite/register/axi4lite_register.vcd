@@ -1,0 +1,929 @@
+$timescale 1 ps $end
+$comment
+    TraceInfo({"top.input":Struct((name:"rhdl_fpga::axi4lite::register::testing::fixture::I<rhdl::rhdl_core::types::domain::Redrhdl::rhdl_core::types::domain::Blue>",fields:[(name:"reset_n",ty:Signal(Reset,Red)),(name:"clock",ty:Signal(Clock,Blue)),(name:"axi",ty:Signal(Struct((name:"rhdl_fpga::axi4lite::types::MOSI",fields:[(name:"read",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadMOSI",fields:[(name:"araddr",ty:Bits(32)),(name:"arvalid",ty:Bits(1)),(name:"rready",ty:Bits(1))]))),(name:"write",ty:Struct((name:"rhdl_fpga::axi4lite::types::WriteMOSI",fields:[(name:"awaddr",ty:Bits(32)),(name:"awvalid",ty:Bits(1)),(name:"wdata",ty:Bits(32)),(name:"wstrb",ty:Bits(4)),(name:"wvalid",ty:Bits(1)),(name:"bready",ty:Bits(1))])))])),Blue))])),"top.outputs":Struct((name:"rhdl_fpga::axi4lite::register::testing::fixture::O<rhdl::rhdl_core::types::domain::Blue>",fields:[(name:"axi",ty:Signal(Struct((name:"rhdl_fpga::axi4lite::types::MISO",fields:[(name:"read",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadMISO",fields:[(name:"arready",ty:Bits(1)),(name:"rdata",ty:Bits(32)),(name:"rresp",ty:Bits(2)),(name:"rvalid",ty:Bits(1))]))),(name:"write",ty:Struct((name:"rhdl_fpga::axi4lite::types::WriteMISO",fields:[(name:"awready",ty:Bits(1)),(name:"wready",ty:Bits(1)),(name:"bresp",ty:Bits(2)),(name:"bvalid",ty:Bits(1))])))])),Blue)),(name:"read_data",ty:Signal(Bits(32),Blue))])),"top.register.input":Struct((name:"rhdl_fpga::axi4lite::register::single::I",fields:[(name:"axi",ty:Struct((name:"rhdl_fpga::axi4lite::types::MOSI",fields:[(name:"read",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadMOSI",fields:[(name:"araddr",ty:Bits(32)),(name:"arvalid",ty:Bits(1)),(name:"rready",ty:Bits(1))]))),(name:"write",ty:Struct((name:"rhdl_fpga::axi4lite::types::WriteMOSI",fields:[(name:"awaddr",ty:Bits(32)),(name:"awvalid",ty:Bits(1)),(name:"wdata",ty:Bits(32)),(name:"wstrb",ty:Bits(4)),(name:"wvalid",ty:Bits(1)),(name:"bready",ty:Bits(1))])))])))])),"top.register.outputs":Struct((name:"rhdl_fpga::axi4lite::register::single::O",fields:[(name:"axi",ty:Struct((name:"rhdl_fpga::axi4lite::types::MISO",fields:[(name:"read",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadMISO",fields:[(name:"arready",ty:Bits(1)),(name:"rdata",ty:Bits(32)),(name:"rresp",ty:Bits(2)),(name:"rvalid",ty:Bits(1))]))),(name:"write",ty:Struct((name:"rhdl_fpga::axi4lite::types::WriteMISO",fields:[(name:"awready",ty:Bits(1)),(name:"wready",ty:Bits(1)),(name:"bresp",ty:Bits(2)),(name:"bvalid",ty:Bits(1))])))]))),(name:"read_data",ty:Bits(32))])),"top.register.read_bridge.cmd.inner.input":Struct((name:"rhdl_fpga::stream::stream_to_fifo::In<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"next",ty:Bits(1))])),"top.register.read_bridge.cmd.inner.one_slot.dff.input":Bits(32),"top.register.read_bridge.cmd.inner.one_slot.dff.output":Bits(32),"top.register.read_bridge.cmd.inner.outputs":Struct((name:"rhdl_fpga::stream::stream_to_fifo::Out<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1)),(name:"error",ty:Bits(1))])),"top.register.read_bridge.cmd.inner.read_slot.dff.input":Bits(1),"top.register.read_bridge.cmd.inner.read_slot.dff.output":Bits(1),"top.register.read_bridge.cmd.inner.state.dff.input":Enum((name:"rhdl_fpga::stream::stream_to_fifo::State",variants:[(name:"Empty",discriminant:0,ty:Empty),(name:"OneLoaded",discriminant:1,ty:Empty),(name:"TwoLoaded",discriminant:2,ty:Empty),(name:"Error",discriminant:3,ty:Empty)],discriminant_layout:(width:2,alignment:Msb,ty:Unsigned))),"top.register.read_bridge.cmd.inner.state.dff.output":Enum((name:"rhdl_fpga::stream::stream_to_fifo::State",variants:[(name:"Empty",discriminant:0,ty:Empty),(name:"OneLoaded",discriminant:1,ty:Empty),(name:"TwoLoaded",discriminant:2,ty:Empty),(name:"Error",discriminant:3,ty:Empty)],discriminant_layout:(width:2,alignment:Msb,ty:Unsigned))),"top.register.read_bridge.cmd.inner.write_slot.dff.input":Bits(1),"top.register.read_bridge.cmd.inner.write_slot.dff.output":Bits(1),"top.register.read_bridge.cmd.inner.zero_slot.dff.input":Bits(32),"top.register.read_bridge.cmd.inner.zero_slot.dff.output":Bits(32),"top.register.read_bridge.cmd.input":Struct((name:"rhdl_fpga::axi4lite::channel::receiver::I<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",fields:[(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::DataValid<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",fields:[(name:"data",ty:Bits(32)),(name:"valid",ty:Bits(1))]))),(name:"next",ty:Bits(1))])),"top.register.read_bridge.cmd.outputs":Struct((name:"rhdl_fpga::axi4lite::channel::receiver::O<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::Ready",fields:[(name:"ready",ty:Bits(1))])))])),"top.register.read_bridge.input":Struct((name:"rhdl_fpga::axi4lite::basic::bridge::read::I",fields:[(name:"axi",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadMOSI",fields:[(name:"araddr",ty:Bits(32)),(name:"arvalid",ty:Bits(1)),(name:"rready",ty:Bits(1))]))),(name:"reply",ty:Enum((name:"Option::<core::result::Result<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>, rhdl_fpga::axi4lite::types::AXI4Error>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Enum((name:"Result::<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>, rhdl_fpga::axi4lite::types::AXI4Error>",variants:[(name:"Err",discriminant:0,ty:Tuple((elements:[Enum((name:"rhdl_fpga::axi4lite::types::AXI4Error",variants:[(name:"SLVERR",discriminant:0,ty:Empty),(name:"DECERR",discriminant:1,ty:Empty)],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))]))),(name:"Ok",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"cmd_next",ty:Bits(1))])),"top.register.read_bridge.outputs":Struct((name:"rhdl_fpga::axi4lite::basic::bridge::read::O",fields:[(name:"axi",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadMISO",fields:[(name:"arready",ty:Bits(1)),(name:"rdata",ty:Bits(32)),(name:"rresp",ty:Bits(2)),(name:"rvalid",ty:Bits(1))]))),(name:"cmd",ty:Enum((name:"Option::<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"reply_full",ty:Bits(1))])),"top.register.read_bridge.reply.inner.input":Struct((name:"rhdl_fpga::stream::StreamIO<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_fpga::axi4lite::types::ReadResponse>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1))])),"top.register.read_bridge.reply.inner.one_slot.dff.input":Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))])),"top.register.read_bridge.reply.inner.one_slot.dff.output":Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))])),"top.register.read_bridge.reply.inner.outputs":Struct((name:"rhdl_fpga::stream::fifo_to_stream::Out<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_fpga::axi4lite::types::ReadResponse>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"full",ty:Bits(1)),(name:"error",ty:Bits(1))])),"top.register.read_bridge.reply.inner.read_slot.dff.input":Bits(1),"top.register.read_bridge.reply.inner.read_slot.dff.output":Bits(1),"top.register.read_bridge.reply.inner.state.dff.input":Enum((name:"rhdl_fpga::stream::fifo_to_stream::State",variants:[(name:"Empty",discriminant:0,ty:Empty),(name:"OneLoaded",discriminant:1,ty:Empty),(name:"TwoLoaded",discriminant:2,ty:Empty),(name:"Error",discriminant:3,ty:Empty)],discriminant_layout:(width:2,alignment:Msb,ty:Unsigned))),"top.register.read_bridge.reply.inner.state.dff.output":Enum((name:"rhdl_fpga::stream::fifo_to_stream::State",variants:[(name:"Empty",discriminant:0,ty:Empty),(name:"OneLoaded",discriminant:1,ty:Empty),(name:"TwoLoaded",discriminant:2,ty:Empty),(name:"Error",discriminant:3,ty:Empty)],discriminant_layout:(width:2,alignment:Msb,ty:Unsigned))),"top.register.read_bridge.reply.inner.write_slot.dff.input":Bits(1),"top.register.read_bridge.reply.inner.write_slot.dff.output":Bits(1),"top.register.read_bridge.reply.inner.zero_slot.dff.input":Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))])),"top.register.read_bridge.reply.inner.zero_slot.dff.output":Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))])),"top.register.read_bridge.reply.input":Struct((name:"rhdl_fpga::axi4lite::channel::sender::I<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::Ready",fields:[(name:"ready",ty:Bits(1))]))),(name:"to_send",ty:Enum((name:"Option::<rhdl_fpga::axi4lite::types::ReadResponse>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))))])),"top.register.read_bridge.reply.outputs":Struct((name:"rhdl_fpga::axi4lite::channel::sender::O<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::DataValid<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))),(name:"valid",ty:Bits(1))]))),(name:"full",ty:Bits(1))])),"top.register.reg.dff.input":Bits(32),"top.register.reg.dff.output":Bits(32),"top.register.write_bridge.addr.inner.input":Struct((name:"rhdl_fpga::stream::stream_to_fifo::In<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"next",ty:Bits(1))])),"top.register.write_bridge.addr.inner.one_slot.dff.input":Bits(32),"top.register.write_bridge.addr.inner.one_slot.dff.output":Bits(32),"top.register.write_bridge.addr.inner.outputs":Struct((name:"rhdl_fpga::stream::stream_to_fifo::Out<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1)),(name:"error",ty:Bits(1))])),"top.register.write_bridge.addr.inner.read_slot.dff.input":Bits(1),"top.register.write_bridge.addr.inner.read_slot.dff.output":Bits(1),"top.register.write_bridge.addr.inner.state.dff.input":Enum((name:"rhdl_fpga::stream::stream_to_fifo::State",variants:[(name:"Empty",discriminant:0,ty:Empty),(name:"OneLoaded",discriminant:1,ty:Empty),(name:"TwoLoaded",discriminant:2,ty:Empty),(name:"Error",discriminant:3,ty:Empty)],discriminant_layout:(width:2,alignment:Msb,ty:Unsigned))),"top.register.write_bridge.addr.inner.state.dff.output":Enum((name:"rhdl_fpga::stream::stream_to_fifo::State",variants:[(name:"Empty",discriminant:0,ty:Empty),(name:"OneLoaded",discriminant:1,ty:Empty),(name:"TwoLoaded",discriminant:2,ty:Empty),(name:"Error",discriminant:3,ty:Empty)],discriminant_layout:(width:2,alignment:Msb,ty:Unsigned))),"top.register.write_bridge.addr.inner.write_slot.dff.input":Bits(1),"top.register.write_bridge.addr.inner.write_slot.dff.output":Bits(1),"top.register.write_bridge.addr.inner.zero_slot.dff.input":Bits(32),"top.register.write_bridge.addr.inner.zero_slot.dff.output":Bits(32),"top.register.write_bridge.addr.input":Struct((name:"rhdl_fpga::axi4lite::channel::receiver::I<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",fields:[(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::DataValid<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",fields:[(name:"data",ty:Bits(32)),(name:"valid",ty:Bits(1))]))),(name:"next",ty:Bits(1))])),"top.register.write_bridge.addr.outputs":Struct((name:"rhdl_fpga::axi4lite::channel::receiver::O<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::Ready",fields:[(name:"ready",ty:Bits(1))])))])),"top.register.write_bridge.input":Struct((name:"rhdl_fpga::axi4lite::basic::bridge::write::I",fields:[(name:"axi",ty:Struct((name:"rhdl_fpga::axi4lite::types::WriteMOSI",fields:[(name:"awaddr",ty:Bits(32)),(name:"awvalid",ty:Bits(1)),(name:"wdata",ty:Bits(32)),(name:"wstrb",ty:Bits(4)),(name:"wvalid",ty:Bits(1)),(name:"bready",ty:Bits(1))]))),(name:"reply",ty:Enum((name:"Option::<core::result::Result<(), rhdl_fpga::axi4lite::types::AXI4Error>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Enum((name:"Result::<(), rhdl_fpga::axi4lite::types::AXI4Error>",variants:[(name:"Err",discriminant:0,ty:Tuple((elements:[Enum((name:"rhdl_fpga::axi4lite::types::AXI4Error",variants:[(name:"SLVERR",discriminant:0,ty:Empty),(name:"DECERR",discriminant:1,ty:Empty)],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))]))),(name:"Ok",discriminant:1,ty:Tuple((elements:[Empty])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"cmd_next",ty:Bits(1))])),"top.register.write_bridge.outputs":Struct((name:"rhdl_fpga::axi4lite::basic::bridge::write::O",fields:[(name:"axi",ty:Struct((name:"rhdl_fpga::axi4lite::types::WriteMISO",fields:[(name:"awready",ty:Bits(1)),(name:"wready",ty:Bits(1)),(name:"bresp",ty:Bits(2)),(name:"bvalid",ty:Bits(1))]))),(name:"cmd",ty:Enum((name:"Option::<rhdl_fpga::axi4lite::types::WriteCommand>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Struct((name:"rhdl_fpga::axi4lite::types::WriteCommand",fields:[(name:"addr",ty:Bits(32)),(name:"strobed_data",ty:Struct((name:"rhdl_fpga::axi4lite::types::StrobedData",fields:[(name:"data",ty:Bits(32)),(name:"strobe",ty:Bits(4))])))]))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"reply_full",ty:Bits(1))])),"top.register.write_bridge.resp.inner.input":Struct((name:"rhdl_fpga::stream::StreamIO<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U2>>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U2>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(2)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1))])),"top.register.write_bridge.resp.inner.one_slot.dff.input":Bits(2),"top.register.write_bridge.resp.inner.one_slot.dff.output":Bits(2),"top.register.write_bridge.resp.inner.outputs":Struct((name:"rhdl_fpga::stream::fifo_to_stream::Out<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U2>>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U2>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(2)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"full",ty:Bits(1)),(name:"error",ty:Bits(1))])),"top.register.write_bridge.resp.inner.read_slot.dff.input":Bits(1),"top.register.write_bridge.resp.inner.read_slot.dff.output":Bits(1),"top.register.write_bridge.resp.inner.state.dff.input":Enum((name:"rhdl_fpga::stream::fifo_to_stream::State",variants:[(name:"Empty",discriminant:0,ty:Empty),(name:"OneLoaded",discriminant:1,ty:Empty),(name:"TwoLoaded",discriminant:2,ty:Empty),(name:"Error",discriminant:3,ty:Empty)],discriminant_layout:(width:2,alignment:Msb,ty:Unsigned))),"top.register.write_bridge.resp.inner.state.dff.output":Enum((name:"rhdl_fpga::stream::fifo_to_stream::State",variants:[(name:"Empty",discriminant:0,ty:Empty),(name:"OneLoaded",discriminant:1,ty:Empty),(name:"TwoLoaded",discriminant:2,ty:Empty),(name:"Error",discriminant:3,ty:Empty)],discriminant_layout:(width:2,alignment:Msb,ty:Unsigned))),"top.register.write_bridge.resp.inner.write_slot.dff.input":Bits(1),"top.register.write_bridge.resp.inner.write_slot.dff.output":Bits(1),"top.register.write_bridge.resp.inner.zero_slot.dff.input":Bits(2),"top.register.write_bridge.resp.inner.zero_slot.dff.output":Bits(2),"top.register.write_bridge.resp.input":Struct((name:"rhdl_fpga::axi4lite::channel::sender::I<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U2>>",fields:[(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::Ready",fields:[(name:"ready",ty:Bits(1))]))),(name:"to_send",ty:Enum((name:"Option::<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U2>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(2)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))))])),"top.register.write_bridge.resp.outputs":Struct((name:"rhdl_fpga::axi4lite::channel::sender::O<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U2>>",fields:[(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::DataValid<rhdl::rhdl_bits::bits_impl::Bits<rhdl::rhdl_typenum::consts::U2>>",fields:[(name:"data",ty:Bits(2)),(name:"valid",ty:Bits(1))]))),(name:"full",ty:Bits(1))])),"top.register.write_bridge.strobed_data.inner.input":Struct((name:"rhdl_fpga::stream::stream_to_fifo::In<rhdl_fpga::axi4lite::types::StrobedData>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_fpga::axi4lite::types::StrobedData>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Struct((name:"rhdl_fpga::axi4lite::types::StrobedData",fields:[(name:"data",ty:Bits(32)),(name:"strobe",ty:Bits(4))]))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"next",ty:Bits(1))])),"top.register.write_bridge.strobed_data.inner.one_slot.dff.input":Struct((name:"rhdl_fpga::axi4lite::types::StrobedData",fields:[(name:"data",ty:Bits(32)),(name:"strobe",ty:Bits(4))])),"top.register.write_bridge.strobed_data.inner.one_slot.dff.output":Struct((name:"rhdl_fpga::axi4lite::types::StrobedData",fields:[(name:"data",ty:Bits(32)),(name:"strobe",ty:Bits(4))])),"top.register.write_bridge.strobed_data.inner.outputs":Struct((name:"rhdl_fpga::stream::stream_to_fifo::Out<rhdl_fpga::axi4lite::types::StrobedData>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_fpga::axi4lite::types::StrobedData>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Struct((name:"rhdl_fpga::axi4lite::types::StrobedData",fields:[(name:"data",ty:Bits(32)),(name:"strobe",ty:Bits(4))]))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1)),(name:"error",ty:Bits(1))])),"top.register.write_bridge.strobed_data.inner.read_slot.dff.input":Bits(1),"top.register.write_bridge.strobed_data.inner.read_slot.dff.output":Bits(1),"top.register.write_bridge.strobed_data.inner.state.dff.input":Enum((name:"rhdl_fpga::stream::stream_to_fifo::State",variants:[(name:"Empty",discriminant:0,ty:Empty),(name:"OneLoaded",discriminant:1,ty:Empty),(name:"TwoLoaded",discriminant:2,ty:Empty),(name:"Error",discriminant:3,ty:Empty)],discriminant_layout:(width:2,alignment:Msb,ty:Unsigned))),"top.register.write_bridge.strobed_data.inner.state.dff.output":Enum((name:"rhdl_fpga::stream::stream_to_fifo::State",variants:[(name:"Empty",discriminant:0,ty:Empty),(name:"OneLoaded",discriminant:1,ty:Empty),(name:"TwoLoaded",discriminant:2,ty:Empty),(name:"Error",discriminant:3,ty:Empty)],discriminant_layout:(width:2,alignment:Msb,ty:Unsigned))),"top.register.write_bridge.strobed_data.inner.write_slot.dff.input":Bits(1),"top.register.write_bridge.strobed_data.inner.write_slot.dff.output":Bits(1),"top.register.write_bridge.strobed_data.inner.zero_slot.dff.input":Struct((name:"rhdl_fpga::axi4lite::types::StrobedData",fields:[(name:"data",ty:Bits(32)),(name:"strobe",ty:Bits(4))])),"top.register.write_bridge.strobed_data.inner.zero_slot.dff.output":Struct((name:"rhdl_fpga::axi4lite::types::StrobedData",fields:[(name:"data",ty:Bits(32)),(name:"strobe",ty:Bits(4))])),"top.register.write_bridge.strobed_data.input":Struct((name:"rhdl_fpga::axi4lite::channel::receiver::I<rhdl_fpga::axi4lite::types::StrobedData>",fields:[(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::DataValid<rhdl_fpga::axi4lite::types::StrobedData>",fields:[(name:"data",ty:Struct((name:"rhdl_fpga::axi4lite::types::StrobedData",fields:[(name:"data",ty:Bits(32)),(name:"strobe",ty:Bits(4))]))),(name:"valid",ty:Bits(1))]))),(name:"next",ty:Bits(1))])),"top.register.write_bridge.strobed_data.outputs":Struct((name:"rhdl_fpga::axi4lite::channel::receiver::O<rhdl_fpga::axi4lite::types::StrobedData>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_fpga::axi4lite::types::StrobedData>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Struct((name:"rhdl_fpga::axi4lite::types::StrobedData",fields:[(name:"data",ty:Bits(32)),(name:"strobe",ty:Bits(4))]))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::Ready",fields:[(name:"ready",ty:Bits(1))])))])),"top.resetn_conditioner.cond.clock":Clock,"top.resetn_conditioner.cond.output":Bits(1),"top.resetn_conditioner.cond.reset":Reset,"top.resetn_conditioner.input":Struct((name:"rhdl_fpga::reset::negating_conditioner::In<rhdl::rhdl_core::types::domain::Redrhdl::rhdl_core::types::domain::Blue>",fields:[(name:"reset_n",ty:Signal(Reset,Red)),(name:"clock",ty:Signal(Clock,Blue))])),"top.resetn_conditioner.neg.reset_negation.input":Signal(Reset,Red),"top.resetn_conditioner.neg.reset_negation.output":Reset,"top.resetn_conditioner.outputs":Signal(Reset,Blue)})
+$end
+$scope module top $end
+$var wire 107 ! input $end
+$var wire 73 " outputs $end
+$scope module register $end
+$var wire 105 # input $end
+$var wire 73 $ outputs $end
+$scope module read_bridge $end
+$var wire 69 % input $end
+$var wire 70 & outputs $end
+$scope module cmd $end
+$var wire 34 ' input $end
+$var wire 34 ( outputs $end
+$scope module inner $end
+$var wire 34 ) input $end
+$var wire 35 * outputs $end
+$scope module one_slot $end
+$scope module dff $end
+$var wire 32 + input $end
+$var wire 32 , output $end
+$upscope $end
+$upscope $end
+$scope module read_slot $end
+$scope module dff $end
+$var wire 1 - input $end
+$var wire 1 . output $end
+$upscope $end
+$upscope $end
+$scope module state $end
+$scope module dff $end
+$var wire 2 / input $end
+$var wire 2 0 output $end
+$upscope $end
+$upscope $end
+$scope module write_slot $end
+$scope module dff $end
+$var wire 1 1 input $end
+$var wire 1 2 output $end
+$upscope $end
+$upscope $end
+$scope module zero_slot $end
+$scope module dff $end
+$var wire 32 3 input $end
+$var wire 32 4 output $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$scope module reply $end
+$var wire 36 5 input $end
+$var wire 36 6 outputs $end
+$scope module inner $end
+$var wire 36 7 input $end
+$var wire 37 8 outputs $end
+$scope module one_slot $end
+$scope module dff $end
+$var wire 34 9 input $end
+$var wire 34 : output $end
+$upscope $end
+$upscope $end
+$scope module read_slot $end
+$scope module dff $end
+$var wire 1 ; input $end
+$var wire 1 < output $end
+$upscope $end
+$upscope $end
+$scope module state $end
+$scope module dff $end
+$var wire 2 = input $end
+$var wire 2 > output $end
+$upscope $end
+$upscope $end
+$scope module write_slot $end
+$scope module dff $end
+$var wire 1 ? input $end
+$var wire 1 @ output $end
+$upscope $end
+$upscope $end
+$scope module zero_slot $end
+$scope module dff $end
+$var wire 34 A input $end
+$var wire 34 B output $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$scope module reg $end
+$scope module dff $end
+$var wire 32 C input $end
+$var wire 32 D output $end
+$upscope $end
+$upscope $end
+$scope module write_bridge $end
+$var wire 75 E input $end
+$var wire 75 F outputs $end
+$scope module addr $end
+$var wire 34 G input $end
+$var wire 34 H outputs $end
+$scope module inner $end
+$var wire 34 I input $end
+$var wire 35 J outputs $end
+$scope module one_slot $end
+$scope module dff $end
+$var wire 32 K input $end
+$var wire 32 L output $end
+$upscope $end
+$upscope $end
+$scope module read_slot $end
+$scope module dff $end
+$var wire 1 M input $end
+$var wire 1 N output $end
+$upscope $end
+$upscope $end
+$scope module state $end
+$scope module dff $end
+$var wire 2 O input $end
+$var wire 2 P output $end
+$upscope $end
+$upscope $end
+$scope module write_slot $end
+$scope module dff $end
+$var wire 1 Q input $end
+$var wire 1 R output $end
+$upscope $end
+$upscope $end
+$scope module zero_slot $end
+$scope module dff $end
+$var wire 32 S input $end
+$var wire 32 T output $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$scope module resp $end
+$var wire 4 U input $end
+$var wire 4 V outputs $end
+$scope module inner $end
+$var wire 4 W input $end
+$var wire 5 X outputs $end
+$scope module one_slot $end
+$scope module dff $end
+$var wire 2 Y input $end
+$var wire 2 Z output $end
+$upscope $end
+$upscope $end
+$scope module read_slot $end
+$scope module dff $end
+$var wire 1 [ input $end
+$var wire 1 \ output $end
+$upscope $end
+$upscope $end
+$scope module state $end
+$scope module dff $end
+$var wire 2 ] input $end
+$var wire 2 ^ output $end
+$upscope $end
+$upscope $end
+$scope module write_slot $end
+$scope module dff $end
+$var wire 1 _ input $end
+$var wire 1 ` output $end
+$upscope $end
+$upscope $end
+$scope module zero_slot $end
+$scope module dff $end
+$var wire 2 a input $end
+$var wire 2 b output $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$scope module strobed_data $end
+$var wire 38 c input $end
+$var wire 38 d outputs $end
+$scope module inner $end
+$var wire 38 e input $end
+$var wire 39 f outputs $end
+$scope module one_slot $end
+$scope module dff $end
+$var wire 36 g input $end
+$var wire 36 h output $end
+$upscope $end
+$upscope $end
+$scope module read_slot $end
+$scope module dff $end
+$var wire 1 i input $end
+$var wire 1 j output $end
+$upscope $end
+$upscope $end
+$scope module state $end
+$scope module dff $end
+$var wire 2 k input $end
+$var wire 2 l output $end
+$upscope $end
+$upscope $end
+$scope module write_slot $end
+$scope module dff $end
+$var wire 1 m input $end
+$var wire 1 n output $end
+$upscope $end
+$upscope $end
+$scope module zero_slot $end
+$scope module dff $end
+$var wire 36 o input $end
+$var wire 36 p output $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$scope module resetn_conditioner $end
+$var wire 2 q input $end
+$var wire 1 r outputs $end
+$scope module cond $end
+$var wire 1 s clock $end
+$var wire 1 t output $end
+$var wire 1 u reset $end
+$upscope $end
+$scope module neg $end
+$scope module reset_negation $end
+$var wire 1 v input $end
+$var wire 1 w output $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000 !
+b0000000000000000000000000000000000000000000000000000000000000000000000000 "
+b100000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000 #
+b0000000000000000000000000000000000011000000000000000000000000000000000001 $
+b000000000000000000000000000000000001000000000000000000000000000000000 %
+b0000000000000000000000000000000000000000000000000000000000000000000001 &
+b0000000000000000000000000000000000 '
+b1000000000000000000000000000000000 (
+b0000000000000000000000000000000000 )
+b01000000000000000000000000000000000 *
+b00000000000000000000000000000000 +
+b00000000000000000000000000000000 ,
+b0 -
+b0 .
+b00 /
+b00 0
+b0 1
+b0 2
+b00000000000000000000000000000000 3
+b00000000000000000000000000000000 4
+b000000000000000000000000000000000001 5
+b000000000000000000000000000000000000 6
+b100000000000000000000000000000000000 7
+b0000000000000000000000000000000000000 8
+b0000000000000000000000000000000000 9
+b0000000000000000000000000000000000 :
+b0 ;
+b0 <
+b00 =
+b00 >
+b0 ?
+b0 @
+b0000000000000000000000000000000000 A
+b0000000000000000000000000000000000 B
+b00000000000000000000000000000000 C
+b00000000000000000000000000000000 D
+b000010000000000000000000000000000000000000000000000000000000000000000000000 E
+b000000000000000000000000000000000000000000000000000000000000000000000000011 F
+b0000000000000000000000000000000000 G
+b1000000000000000000000000000000000 H
+b0000000000000000000000000000000000 I
+b01000000000000000000000000000000000 J
+b00000000000000000000000000000000 K
+b00000000000000000000000000000000 L
+b0 M
+b0 N
+b00 O
+b00 P
+b0 Q
+b0 R
+b00000000000000000000000000000000 S
+b00000000000000000000000000000000 T
+b0001 U
+b0000 V
+b1000 W
+b00000 X
+b00 Y
+b00 Z
+b0 [
+b0 \
+b00 ]
+b00 ^
+b0 _
+b0 `
+b00 a
+b00 b
+b00000000000000000000000000000000000000 c
+b10000000000000000000000000000000000000 d
+b00000000000000000000000000000000000000 e
+b010000000000000000000000000000000000000 f
+b000000000000000000000000000000000000 g
+b000000000000000000000000000000000000 h
+b0 i
+b0 j
+b00 k
+b00 l
+b0 m
+b0 n
+b000000000000000000000000000000000000 o
+b000000000000000000000000000000000000 p
+b00 q
+b1 r
+b0 s
+b0 t
+b0 u
+b0 v
+b1 w
+b0000000000000000000000000000000000000000000000000000000000000000000000000 $
+b0000000000000000000000000000000000000000000000000000000000000000000000 &
+b0000000000000000000000000000000000 (
+b000000000000000000000000000000000000000000000000000000000000000000000000000 F
+b0000000000000000000000000000000000 H
+b00000000000000000000000000000000000000 d
+b1 t
+b1 u
+#39
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000010 !
+b10 q
+b1 s
+#51
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000011 !
+b11 q
+b0 u
+b1 v
+b0 w
+#78
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000001 !
+b01 q
+b0 s
+#117
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000011 !
+b11 q
+b1 s
+#156
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000001 !
+b01 q
+b0 s
+#195
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000011 !
+b0000000000000000000000000000000000011000000000000000000000000000000000001 "
+b0000000000000000000000000000000000011000000000000000000000000000000000001 $
+b0000000000000000000000000000000000000000000000000000000000000000000001 &
+b1000000000000000000000000000000000 (
+b000000000000000000000000000000000000000000000000000000000000000000000000011 F
+b1000000000000000000000000000000000 H
+b10000000000000000000000000000000000000 d
+b11 q
+b0 r
+b1 s
+b0 t
+#196
+b11111100000000000000000000000000101010100000000000000000000000000000000100000000000000000000000000000000011 !
+b111111000000000000000000000000001010101000000000000000000000000000000001000000000000000000000000000000000 #
+b000011111100000000000000000000000000101010100000000000000000000000000000000 E
+b0100000000000000000000000000000000 G
+b0100000000000000000000000000000000 I
+b01 O
+b1 Q
+b01111100000000000000000000000000101010 c
+b01111100000000000000000000000000101010 e
+b01 k
+b1 m
+b111100000000000000000000000000101010 o
+#234
+b11111100000000000000000000000000101010100000000000000000000000000000000100000000000000000000000000000000001 !
+b01 q
+b0 s
+#273
+b11111100000000000000000000000000101010100000000000000000000000000000000100000000000000000000000000000000011 !
+b00000000000000000000000000101010 C
+b111011111100000000000000000000000000101010100000000000000000000000000000000 E
+b011111000000000000000000000000001010100000000000000000000000000000000000011 F
+b1100000000000000000000000000000000 G
+b1100000000000000000000000000000000 H
+b1100000000000000000000000000000000 I
+b01100000000000000000000000000000000 J
+b1 M
+b10 O
+b01 P
+b0 Q
+b1 R
+b1001 U
+b1100 W
+b01 ]
+b1 _
+b11111100000000000000000000000000101010 c
+b11111100000000000000000000000000101010 d
+b11111100000000000000000000000000101010 e
+b011111100000000000000000000000000101010 f
+b111100000000000000000000000000101010 g
+b1 i
+b10 k
+b01 l
+b0 m
+b1 n
+b111100000000000000000000000000101010 p
+b11 q
+b1 s
+b01 O
+b01 k
+#274
+b10000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000011 !
+b100000000000000000000000000000000000000000000000000000000000000000000001100000000000000000000000000000000 #
+b000000000000000000000000000000000001100000000000000000000000000000000 %
+b0100000000000000000000000000000000 '
+b0100000000000000000000000000000000 )
+b01 /
+b1 1
+b111010000000000000000000000000000000000000000000000000000000000000000000000 E
+b1000000000000000000000000000000000 G
+b1000000000000000000000000000000000 I
+b00 O
+b1 Q
+b10000000000000000000000000000000000000 c
+b10000000000000000000000000000000000000 e
+b000000000000000000000000000000000000 g
+b00 k
+b1 m
+#312
+b10000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000001 !
+b01 q
+b0 s
+#351
+b10000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000011 !
+b0000000000000000000000000010101010011000000000000000000000000000000000001 "
+b0000000000000000000000000010101010011000000000000000000000000000000000001 $
+b111000000000000000000000000001010101100000000000000000000000000000000 %
+b0100000000000000000000000000000000000000000000000000000000000000000001 &
+b1100000000000000000000000000000000 '
+b1100000000000000000000000000000000 (
+b1100000000000000000000000000000000 )
+b01100000000000000000000000000000000 *
+b1 -
+b10 /
+b01 0
+b0 1
+b1 2
+b100000000000000000000000000101010001 5
+b110000000000000000000000000010101000 7
+b01 =
+b1 ?
+b0000000000000000000000000010101000 A
+b00000000000000000000000000101010 D
+b000010000000000000000000000000000000000000000000000000000000000000000000000 E
+b000000000000000000000000000000000000000000000000000000000000000000000010011 F
+b0000000000000000000000000000000000 G
+b1000000000000000000000000000000000 H
+b0000000000000000000000000000000000 I
+b01000000000000000000000000000000000 J
+b0 M
+b1 N
+b11 O
+b00 P
+b0001 U
+b0100 V
+b1000 W
+b00100 X
+b1 [
+b00 ]
+b01 ^
+b0 _
+b1 `
+b00000000000000000000000000000000000000 c
+b10000000000000000000000000000000000000 d
+b00000000000000000000000000000000000000 e
+b010000000000000000000000000000000000000 f
+b0 i
+b1 j
+b11 k
+b00 l
+b11 q
+b1 s
+b01 /
+b1 M
+b00 O
+b1 _
+b1 i
+b00 k
+#352
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000011 !
+b100000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000 #
+b111000000000000000000000000001010101000000000000000000000000000000000 %
+b1000000000000000000000000000000000 '
+b1000000000000000000000000000000000 )
+b00 /
+b1 1
+#390
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000001 !
+b01 q
+b0 s
+#429
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000011 !
+b0000000000000000000000000010101000011100000000000000000000000000001010101 "
+b0000000000000000000000000010101000011100000000000000000000000000001010101 $
+b000000000000000000000000000000000001000000000000000000000000000000000 %
+b0000000000000000000000000000000000100000000000000000000000000001010101 &
+b0000000000000000000000000000000000 '
+b1000000000000000000000000000000000 (
+b0000000000000000000000000000000000 )
+b01000000000000000000000000000000000 *
+b0 -
+b1 .
+b11 /
+b00 0
+b000000000000000000000000000000000001 5
+b010000000000000000000000000010101000 6
+b100000000000000000000000000000000000 7
+b0010000000000000000000000000010101000 8
+b0000000000000000000000000010101000 9
+b1 ;
+b00 =
+b01 >
+b0 ?
+b1 @
+b0000000000000000000000000010101000 B
+b000000000000000000000000000000000000000000000000000000000000000000000000011 F
+b0000 V
+b00000 X
+b1 \
+b00 ^
+b11 q
+b1 s
+b1 -
+b00 /
+b0000000000000000000000000000000000 9
+b1 ?
+#430
+b11111100000000000000000000000000101111100000000000000000000000000000000100000000000000000000000000000000011 !
+b111111000000000000000000000000001011111000000000000000000000000000000001000000000000000000000000000000000 #
+b000011111100000000000000000000000000101111100000000000000000000000000000000 E
+b0100000000000000000000000000000000 G
+b0100000000000000000000000000000000 I
+b01 O
+b0 Q
+b01111100000000000000000000000000101111 c
+b01111100000000000000000000000000101111 e
+b111100000000000000000000000000101111 g
+b01 k
+b0 m
+#468
+b11111100000000000000000000000000101111100000000000000000000000000000000100000000000000000000000000000000001 !
+b01 q
+b0 s
+#507
+b11111100000000000000000000000000101111100000000000000000000000000000000100000000000000000000000000000000011 !
+b0000000000000000000000000010101000011000000000000000000000000000000000001 "
+b0000000000000000000000000010101000011000000000000000000000000000000000001 $
+b0000000000000000000000000000000000000000000000000000000000000000000001 &
+b000000000000000000000000000000000000 6
+b0000000000000000000000000000000000000 8
+b1 <
+b00 >
+b00000000000000000000000000101111 C
+b111011111100000000000000000000000000101111100000000000000000000000000000000 E
+b011111000000000000000000000000001011110000000000000000000000000000000000011 F
+b1100000000000000000000000000000000 G
+b1100000000000000000000000000000000 H
+b1100000000000000000000000000000000 I
+b01100000000000000000000000000000000 J
+b0 M
+b10 O
+b01 P
+b1 Q
+b0 R
+b1001 U
+b1100 W
+b01 ]
+b0 _
+b11111100000000000000000000000000101111 c
+b11111100000000000000000000000000101111 d
+b11111100000000000000000000000000101111 e
+b011111100000000000000000000000000101111 f
+b111100000000000000000000000000101111 h
+b0 i
+b10 k
+b01 l
+b1 m
+b0 n
+b111100000000000000000000000000101111 o
+b11 q
+b1 s
+b01 O
+b01 k
+#508
+b10000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000011 !
+b100000000000000000000000000000000000000000000000000000000000000000000001100000000000000000000000000000000 #
+b000000000000000000000000000000000001100000000000000000000000000000000 %
+b0100000000000000000000000000000000 '
+b0100000000000000000000000000000000 )
+b01 /
+b0 1
+b111010000000000000000000000000000000000000000000000000000000000000000000000 E
+b1000000000000000000000000000000000 G
+b1000000000000000000000000000000000 I
+b00 O
+b0 Q
+b10000000000000000000000000000000000000 c
+b10000000000000000000000000000000000000 e
+b00 k
+b0 m
+b111100000000000000000000000000101010 o
+#546
+b10000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000001 !
+b01 q
+b0 s
+#585
+b10000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000011 !
+b0000000000000000000000000010111110011000000000000000000000000000000000001 "
+b0000000000000000000000000010111110011000000000000000000000000000000000001 $
+b111000000000000000000000000001011111100000000000000000000000000000000 %
+b0100000000000000000000000000000000000000000000000000000000000000000001 &
+b1100000000000000000000000000000000 '
+b1100000000000000000000000000000000 (
+b1100000000000000000000000000000000 )
+b01100000000000000000000000000000000 *
+b0 -
+b10 /
+b01 0
+b1 1
+b0 2
+b100000000000000000000000000101111001 5
+b110000000000000000000000000010111100 7
+b0000000000000000000000000010111100 9
+b01 =
+b0 ?
+b00000000000000000000000000101111 D
+b000010000000000000000000000000000000000000000000000000000000000000000000000 E
+b000000000000000000000000000000000000000000000000000000000000000000000010011 F
+b0000000000000000000000000000000000 G
+b1000000000000000000000000000000000 H
+b0000000000000000000000000000000000 I
+b01000000000000000000000000000000000 J
+b1 M
+b0 N
+b11 O
+b00 P
+b0001 U
+b0100 V
+b1000 W
+b00100 X
+b0 [
+b00 ]
+b01 ^
+b1 _
+b0 `
+b00000000000000000000000000000000000000 c
+b10000000000000000000000000000000000000 d
+b00000000000000000000000000000000000000 e
+b010000000000000000000000000000000000000 f
+b1 i
+b0 j
+b11 k
+b00 l
+b11 q
+b1 s
+b01 /
+b0 M
+b00 O
+b0 _
+b0 i
+b00 k
+#586
+b11111100000000000000000000000000110001100000000000000000000000000000000100000000000000000000000000000000011 !
+b111111000000000000000000000000001100011000000000000000000000000000000001000000000000000000000000000000000 #
+b111000000000000000000000000001011111000000000000000000000000000000000 %
+b1000000000000000000000000000000000 '
+b1000000000000000000000000000000000 )
+b00 /
+b0 1
+b000011111100000000000000000000000000110001100000000000000000000000000000000 E
+b0100000000000000000000000000000000 G
+b0100000000000000000000000000000000 I
+b01 O
+b1 Q
+b01111100000000000000000000000000110001 c
+b01111100000000000000000000000000110001 e
+b01 k
+b1 m
+b111100000000000000000000000000110001 o
+#624
+b11111100000000000000000000000000110001100000000000000000000000000000000100000000000000000000000000000000001 !
+b01 q
+b0 s
+#663
+b11111100000000000000000000000000110001100000000000000000000000000000000100000000000000000000000000000000011 !
+b0000000000000000000000000010111100011100000000000000000000000000001011111 "
+b0000000000000000000000000010111100011100000000000000000000000000001011111 $
+b000000000000000000000000000000000001000000000000000000000000000000000 %
+b0000000000000000000000000000000000100000000000000000000000000001011111 &
+b0000000000000000000000000000000000 '
+b1000000000000000000000000000000000 (
+b0000000000000000000000000000000000 )
+b01000000000000000000000000000000000 *
+b1 -
+b0 .
+b11 /
+b00 0
+b000000000000000000000000000000000001 5
+b010000000000000000000000000010111100 6
+b100000000000000000000000000000000000 7
+b0010000000000000000000000000010111100 8
+b0000000000000000000000000010111100 :
+b0 ;
+b00 =
+b01 >
+b1 ?
+b0 @
+b0000000000000000000000000010111100 A
+b00000000000000000000000000110001 C
+b111011111100000000000000000000000000110001100000000000000000000000000000000 E
+b011111000000000000000000000000001100010000000000000000000000000000000000011 F
+b1100000000000000000000000000000000 G
+b1100000000000000000000000000000000 H
+b1100000000000000000000000000000000 I
+b01100000000000000000000000000000000 J
+b1 M
+b10 O
+b01 P
+b0 Q
+b1 R
+b1001 U
+b0000 V
+b1100 W
+b00000 X
+b0 \
+b01 ]
+b00 ^
+b1 _
+b11111100000000000000000000000000110001 c
+b11111100000000000000000000000000110001 d
+b11111100000000000000000000000000110001 e
+b011111100000000000000000000000000110001 f
+b111100000000000000000000000000110001 g
+b1 i
+b10 k
+b01 l
+b0 m
+b1 n
+b111100000000000000000000000000110001 p
+b11 q
+b1 s
+b0 -
+b00 /
+b0 ?
+b0000000000000000000000000010101000 A
+b01 O
+b01 k
+#664
+b10000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000011 !
+b100000000000000000000000000000000000000000000000000000000000000000000001100000000000000000000000000000000 #
+b000000000000000000000000000000000001100000000000000000000000000000000 %
+b0100000000000000000000000000000000 '
+b0100000000000000000000000000000000 )
+b01 /
+b1 1
+b111010000000000000000000000000000000000000000000000000000000000000000000000 E
+b1000000000000000000000000000000000 G
+b1000000000000000000000000000000000 I
+b00 O
+b1 Q
+b10000000000000000000000000000000000000 c
+b10000000000000000000000000000000000000 e
+b111100000000000000000000000000101111 g
+b00 k
+b1 m
+#702
+b10000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000001 !
+b01 q
+b0 s
+#741
+b10000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000011 !
+b0000000000000000000000000011000110011000000000000000000000000000000000001 "
+b0000000000000000000000000011000110011000000000000000000000000000000000001 $
+b111000000000000000000000000001100011100000000000000000000000000000000 %
+b0100000000000000000000000000000000000000000000000000000000000000000001 &
+b1100000000000000000000000000000000 '
+b1100000000000000000000000000000000 (
+b1100000000000000000000000000000000 )
+b01100000000000000000000000000000000 *
+b1 -
+b10 /
+b01 0
+b0 1
+b1 2
+b100000000000000000000000000110001001 5
+b000000000000000000000000000000000000 6
+b110000000000000000000000000011000100 7
+b0000000000000000000000000000000000000 8
+b0 <
+b01 =
+b00 >
+b1 ?
+b0000000000000000000000000011000100 A
+b00000000000000000000000000110001 D
+b000010000000000000000000000000000000000000000000000000000000000000000000000 E
+b000000000000000000000000000000000000000000000000000000000000000000000010011 F
+b0000000000000000000000000000000000 G
+b1000000000000000000000000000000000 H
+b0000000000000000000000000000000000 I
+b01000000000000000000000000000000000 J
+b0 M
+b1 N
+b11 O
+b00 P
+b0001 U
+b0100 V
+b1000 W
+b00100 X
+b1 [
+b00 ]
+b01 ^
+b0 _
+b1 `
+b00000000000000000000000000000000000000 c
+b10000000000000000000000000000000000000 d
+b00000000000000000000000000000000000000 e
+b010000000000000000000000000000000000000 f
+b0 i
+b1 j
+b11 k
+b00 l
+b11 q
+b1 s
+b01 /
+b1 M
+b00 O
+b1 _
+b1 i
+b00 k
+#742
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000011 !
+b100000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000 #
+b111000000000000000000000000001100011000000000000000000000000000000000 %
+b1000000000000000000000000000000000 '
+b1000000000000000000000000000000000 )
+b00 /
+b1 1
+#780
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000001 !
+b01 q
+b0 s
+#819
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000011 !
+b0000000000000000000000000011000100011100000000000000000000000000001100011 "
+b0000000000000000000000000011000100011100000000000000000000000000001100011 $
+b000000000000000000000000000000000001000000000000000000000000000000000 %
+b0000000000000000000000000000000000100000000000000000000000000001100011 &
+b0000000000000000000000000000000000 '
+b1000000000000000000000000000000000 (
+b0000000000000000000000000000000000 )
+b01000000000000000000000000000000000 *
+b0 -
+b1 .
+b11 /
+b00 0
+b000000000000000000000000000000000001 5
+b010000000000000000000000000011000100 6
+b100000000000000000000000000000000000 7
+b0010000000000000000000000000011000100 8
+b0000000000000000000000000011000100 9
+b1 ;
+b00 =
+b01 >
+b0 ?
+b1 @
+b0000000000000000000000000011000100 B
+b000000000000000000000000000000000000000000000000000000000000000000000000011 F
+b0000 V
+b00000 X
+b1 \
+b00 ^
+b11 q
+b1 s
+b1 -
+b00 /
+b0000000000000000000000000010111100 9
+b1 ?
+#858
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000001 !
+b01 q
+b0 s
+#897
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000011 !
+b0000000000000000000000000011000100011000000000000000000000000000000000001 "
+b0000000000000000000000000011000100011000000000000000000000000000000000001 $
+b0000000000000000000000000000000000000000000000000000000000000000000001 &
+b000000000000000000000000000000000000 6
+b0000000000000000000000000000000000000 8
+b1 <
+b00 >
+b11 q
+b1 s
+#936
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000001 !
+b01 q
+b0 s
+#975
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000011 !
+b11 q
+b1 s
+#1014
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000001 !
+b01 q
+b0 s
+#1053
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000011 !
+b11 q
+b1 s
+#1092
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000001 !
+b01 q
+b0 s
+#1131
+b10000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000011 !
+b11 q
+b1 s

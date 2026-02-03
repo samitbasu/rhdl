@@ -145,6 +145,14 @@ impl VcdFile {
         std::io::copy(&mut file, &mut hash)?;
         Ok(format!("{:x}", hash.finalize()))
     }
+    /// Write the VCD file to the given path with the given options.
+    pub fn write_to_file(
+        self,
+        path: impl AsRef<std::path::Path>,
+        options: &VcdOptions,
+    ) -> std::io::Result<()> {
+        self.finalize(options, path)
+    }
 }
 
 impl TraceContainer for VcdFile {

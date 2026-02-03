@@ -1,0 +1,27 @@
+$timescale 1 ps $end
+$scope module top $end
+$var wire 8 ! input $end
+$var wire 4 " outputs $end
+$upscope $end
+$enddefinitions $end
+#25000
+b11111010 !
+b0110 "
+#25100
+b11111011 !
+b0111 "
+#25200
+b11111100 !
+b0110 "
+#25300
+b11111101 !
+b0111 "
+#25400
+b11111110 !
+#25500
+b11111111 !
+b1000 "
+#25600
+b00000000 !
+b0000 "
+#25700

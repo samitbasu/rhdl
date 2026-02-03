@@ -287,4 +287,41 @@ pub mod step_4 {
         Ok(())
     }
     // ANCHOR_END: adder-step-16
+
+    // ANCHOR: adder-step-17
+    #[test]
+    fn test_make_fixture() -> miette::Result<()> {
+        let mut fixture = Fixture::new("half_top", HalfAdder::default());
+        let (input, output) = fixture.io_dont_care();
+        bind!(fixture, a -> input.val().0);
+        bind!(fixture, b -> input.val().1);
+        bind!(fixture, sum <- output.sum);
+        bind!(fixture, carry <- output.carry);
+        let vlog = fixture.module()?;
+        std::fs::write("half_adder_fixture.v", vlog.to_string()).unwrap();
+        Ok(())
+    }
+    // ANCHOR_END: adder-step-17
+
+    // ANCHOR: adder-step-18
+    #[test]
+    #[ignore]
+    fn test_build_flash() -> miette::Result<()> {
+        const PCF: &str = "
+set_io a H11
+set_io b G11
+set_io sum E12
+set_io carry D14
+    ";
+        let mut fixture = Fixture::new("half_top", HalfAdder::default());
+        let (input, output) = fixture.io_dont_care();
+        bind!(fixture, a -> input.val().0);
+        bind!(fixture, b -> input.val().1);
+        bind!(fixture, sum <- output.sum.val());
+        bind!(fixture, carry <- output.carry.val());
+        rhdl_toolchains::icestorm::IceStorm::new("hx8k", "cb132", "/tmp/ice/build")
+            .clean()?
+            .build_and_flash(fixture, PCF)
+    }
+    // ANCHOR_END: adder-step-18
 }

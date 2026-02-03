@@ -1,0 +1,4 @@
+install:
+    cargo build -p rhdl-surfer-plugin
+    mkdir -p ~/Library/Application\ Support/org.surfer-project.surfer/translators
+    cp ../../target/wasm32-unknown-unknown/debug/rhdl_surfer_plugin.wasm ~/Library/Application\ Support/org.surfer-project.surfer/translators/.

@@ -1,0 +1,955 @@
+$timescale 1 ps $end
+$comment
+    TraceInfo({"top.clock":Clock,"top.input":Struct((name:"rhdl_fpga::axi4lite::basic::testing::read::I",fields:[(name:"cmd",ty:Enum((name:"Option::<rhdl_bits::bits_impl::Bits<32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))))])),"top.manager.addr.inner.inner.aux_ff.dff.input":Bits(32),"top.manager.addr.inner.inner.aux_ff.dff.output":Bits(32),"top.manager.addr.inner.inner.input":Struct((name:"rhdl_fpga::lid::carloni::I<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"data_in",ty:Bits(32)),(name:"void_in",ty:Bits(1)),(name:"stop_in",ty:Bits(1))])),"top.manager.addr.inner.inner.main_ff.dff.input":Bits(32),"top.manager.addr.inner.inner.main_ff.dff.output":Bits(32),"top.manager.addr.inner.inner.outputs":Struct((name:"rhdl_fpga::lid::carloni::O<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"data_out",ty:Bits(32)),(name:"void_out",ty:Bits(1)),(name:"stop_out",ty:Bits(1))])),"top.manager.addr.inner.inner.state_ff.dff.input":Enum((name:"rhdl_fpga::lid::carloni::State",variants:[(name:"Run",discriminant:0,ty:Empty),(name:"Stall",discriminant:1,ty:Empty)],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))),"top.manager.addr.inner.inner.state_ff.dff.output":Enum((name:"rhdl_fpga::lid::carloni::State",variants:[(name:"Run",discriminant:0,ty:Empty),(name:"Stall",discriminant:1,ty:Empty)],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))),"top.manager.addr.inner.inner.void_ff.dff.input":Bits(1),"top.manager.addr.inner.inner.void_ff.dff.output":Bits(1),"top.manager.addr.inner.input":Struct((name:"rhdl_fpga::lid::option_carloni::I<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_bits::bits_impl::Bits<32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1))])),"top.manager.addr.inner.outputs":Struct((name:"rhdl_fpga::lid::option_carloni::O<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_bits::bits_impl::Bits<32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1))])),"top.manager.addr.input":Struct((name:"rhdl_fpga::axi4lite::channel::sender::I<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::Ready",fields:[(name:"ready",ty:Bits(1))]))),(name:"to_send",ty:Enum((name:"Option::<rhdl_bits::bits_impl::Bits<32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))))])),"top.manager.addr.outputs":Struct((name:"rhdl_fpga::axi4lite::channel::sender::O<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::DataValid<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"data",ty:Bits(32)),(name:"valid",ty:Bits(1))]))),(name:"ready",ty:Bits(1))])),"top.manager.data.inner.inner.aux_ff.dff.input":Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))])),"top.manager.data.inner.inner.aux_ff.dff.output":Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))])),"top.manager.data.inner.inner.input":Struct((name:"rhdl_fpga::lid::carloni::I<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data_in",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))),(name:"void_in",ty:Bits(1)),(name:"stop_in",ty:Bits(1))])),"top.manager.data.inner.inner.main_ff.dff.input":Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))])),"top.manager.data.inner.inner.main_ff.dff.output":Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))])),"top.manager.data.inner.inner.outputs":Struct((name:"rhdl_fpga::lid::carloni::O<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data_out",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))),(name:"void_out",ty:Bits(1)),(name:"stop_out",ty:Bits(1))])),"top.manager.data.inner.inner.state_ff.dff.input":Enum((name:"rhdl_fpga::lid::carloni::State",variants:[(name:"Run",discriminant:0,ty:Empty),(name:"Stall",discriminant:1,ty:Empty)],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))),"top.manager.data.inner.inner.state_ff.dff.output":Enum((name:"rhdl_fpga::lid::carloni::State",variants:[(name:"Run",discriminant:0,ty:Empty),(name:"Stall",discriminant:1,ty:Empty)],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))),"top.manager.data.inner.inner.void_ff.dff.input":Bits(1),"top.manager.data.inner.inner.void_ff.dff.output":Bits(1),"top.manager.data.inner.input":Struct((name:"rhdl_fpga::lid::option_carloni::I<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_fpga::axi4lite::types::ReadResponse>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1))])),"top.manager.data.inner.outputs":Struct((name:"rhdl_fpga::lid::option_carloni::O<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_fpga::axi4lite::types::ReadResponse>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1))])),"top.manager.data.input":Struct((name:"rhdl_fpga::axi4lite::channel::receiver::I<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::DataValid<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))),(name:"valid",ty:Bits(1))]))),(name:"ready",ty:Bits(1))])),"top.manager.data.outputs":Struct((name:"rhdl_fpga::axi4lite::channel::receiver::O<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_fpga::axi4lite::types::ReadResponse>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::Ready",fields:[(name:"ready",ty:Bits(1))])))])),"top.manager.input":Struct((name:"rhdl_fpga::axi4lite::basic::manager::read::I",fields:[(name:"axi",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadMISO",fields:[(name:"arready",ty:Bits(1)),(name:"rdata",ty:Bits(32)),(name:"rresp",ty:Bits(2)),(name:"rvalid",ty:Bits(1))]))),(name:"cmd",ty:Enum((name:"Option::<rhdl_bits::bits_impl::Bits<32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))))])),"top.manager.outputs":Struct((name:"rhdl_fpga::axi4lite::basic::manager::read::O",fields:[(name:"axi",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadMOSI",fields:[(name:"araddr",ty:Bits(32)),(name:"arvalid",ty:Bits(1)),(name:"rready",ty:Bits(1))]))),(name:"data",ty:Enum((name:"Option::<core::result::Result<rhdl_bits::bits_impl::Bits<32>, rhdl_fpga::axi4lite::types::AXI4Error>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Enum((name:"Result::<rhdl_bits::bits_impl::Bits<32>, rhdl_fpga::axi4lite::types::AXI4Error>",variants:[(name:"Err",discriminant:0,ty:Tuple((elements:[Enum((name:"rhdl_fpga::axi4lite::types::AXI4Error",variants:[(name:"SLVERR",discriminant:0,ty:Empty),(name:"DECERR",discriminant:1,ty:Empty)],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))]))),(name:"Ok",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1))])),"top.manager.overflow.dff.input":Bits(1),"top.manager.overflow.dff.output":Bits(1),"top.memory.synchronous_ram.input":Struct((name:"rhdl_fpga::core::ram::synchronous::I<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"read_addr",ty:Bits(8)),(name:"write",ty:Struct((name:"rhdl_fpga::core::ram::synchronous::Write<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"addr",ty:Bits(8)),(name:"value",ty:Bits(32)),(name:"enable",ty:Bits(1))])))])),"top.memory.synchronous_ram.output":Bits(32),"top.outputs":Struct((name:"rhdl_fpga::axi4lite::basic::testing::read::O",fields:[(name:"data",ty:Enum((name:"Option::<core::result::Result<rhdl_bits::bits_impl::Bits<32>, rhdl_fpga::axi4lite::types::AXI4Error>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Enum((name:"Result::<rhdl_bits::bits_impl::Bits<32>, rhdl_fpga::axi4lite::types::AXI4Error>",variants:[(name:"Err",discriminant:0,ty:Tuple((elements:[Enum((name:"rhdl_fpga::axi4lite::types::AXI4Error",variants:[(name:"SLVERR",discriminant:0,ty:Empty),(name:"DECERR",discriminant:1,ty:Empty)],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))]))),(name:"Ok",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1))])),"top.read_pending.dff.input":Bits(1),"top.read_pending.dff.output":Bits(1),"top.reset":Reset,"top.subordinate.addr.inner.inner.aux_ff.dff.input":Bits(32),"top.subordinate.addr.inner.inner.aux_ff.dff.output":Bits(32),"top.subordinate.addr.inner.inner.input":Struct((name:"rhdl_fpga::lid::carloni::I<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"data_in",ty:Bits(32)),(name:"void_in",ty:Bits(1)),(name:"stop_in",ty:Bits(1))])),"top.subordinate.addr.inner.inner.main_ff.dff.input":Bits(32),"top.subordinate.addr.inner.inner.main_ff.dff.output":Bits(32),"top.subordinate.addr.inner.inner.outputs":Struct((name:"rhdl_fpga::lid::carloni::O<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"data_out",ty:Bits(32)),(name:"void_out",ty:Bits(1)),(name:"stop_out",ty:Bits(1))])),"top.subordinate.addr.inner.inner.state_ff.dff.input":Enum((name:"rhdl_fpga::lid::carloni::State",variants:[(name:"Run",discriminant:0,ty:Empty),(name:"Stall",discriminant:1,ty:Empty)],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))),"top.subordinate.addr.inner.inner.state_ff.dff.output":Enum((name:"rhdl_fpga::lid::carloni::State",variants:[(name:"Run",discriminant:0,ty:Empty),(name:"Stall",discriminant:1,ty:Empty)],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))),"top.subordinate.addr.inner.inner.void_ff.dff.input":Bits(1),"top.subordinate.addr.inner.inner.void_ff.dff.output":Bits(1),"top.subordinate.addr.inner.input":Struct((name:"rhdl_fpga::lid::option_carloni::I<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_bits::bits_impl::Bits<32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1))])),"top.subordinate.addr.inner.outputs":Struct((name:"rhdl_fpga::lid::option_carloni::O<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_bits::bits_impl::Bits<32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1))])),"top.subordinate.addr.input":Struct((name:"rhdl_fpga::axi4lite::channel::receiver::I<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::DataValid<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"data",ty:Bits(32)),(name:"valid",ty:Bits(1))]))),(name:"ready",ty:Bits(1))])),"top.subordinate.addr.outputs":Struct((name:"rhdl_fpga::axi4lite::channel::receiver::O<rhdl_bits::bits_impl::Bits<32>>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_bits::bits_impl::Bits<32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::Ready",fields:[(name:"ready",ty:Bits(1))])))])),"top.subordinate.data.inner.inner.aux_ff.dff.input":Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))])),"top.subordinate.data.inner.inner.aux_ff.dff.output":Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))])),"top.subordinate.data.inner.inner.input":Struct((name:"rhdl_fpga::lid::carloni::I<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data_in",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))),(name:"void_in",ty:Bits(1)),(name:"stop_in",ty:Bits(1))])),"top.subordinate.data.inner.inner.main_ff.dff.input":Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))])),"top.subordinate.data.inner.inner.main_ff.dff.output":Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))])),"top.subordinate.data.inner.inner.outputs":Struct((name:"rhdl_fpga::lid::carloni::O<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data_out",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))),(name:"void_out",ty:Bits(1)),(name:"stop_out",ty:Bits(1))])),"top.subordinate.data.inner.inner.state_ff.dff.input":Enum((name:"rhdl_fpga::lid::carloni::State",variants:[(name:"Run",discriminant:0,ty:Empty),(name:"Stall",discriminant:1,ty:Empty)],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))),"top.subordinate.data.inner.inner.state_ff.dff.output":Enum((name:"rhdl_fpga::lid::carloni::State",variants:[(name:"Run",discriminant:0,ty:Empty),(name:"Stall",discriminant:1,ty:Empty)],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))),"top.subordinate.data.inner.inner.void_ff.dff.input":Bits(1),"top.subordinate.data.inner.inner.void_ff.dff.output":Bits(1),"top.subordinate.data.inner.input":Struct((name:"rhdl_fpga::lid::option_carloni::I<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_fpga::axi4lite::types::ReadResponse>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1))])),"top.subordinate.data.inner.outputs":Struct((name:"rhdl_fpga::lid::option_carloni::O<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data",ty:Enum((name:"Option::<rhdl_fpga::axi4lite::types::ReadResponse>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"ready",ty:Bits(1))])),"top.subordinate.data.input":Struct((name:"rhdl_fpga::axi4lite::channel::sender::I<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::Ready",fields:[(name:"ready",ty:Bits(1))]))),(name:"to_send",ty:Enum((name:"Option::<rhdl_fpga::axi4lite::types::ReadResponse>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned))))])),"top.subordinate.data.outputs":Struct((name:"rhdl_fpga::axi4lite::channel::sender::O<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"bus",ty:Struct((name:"rhdl_fpga::axi4lite::channel::DataValid<rhdl_fpga::axi4lite::types::ReadResponse>",fields:[(name:"data",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadResponse",fields:[(name:"resp",ty:Bits(2)),(name:"data",ty:Bits(32))]))),(name:"valid",ty:Bits(1))]))),(name:"ready",ty:Bits(1))])),"top.subordinate.input":Struct((name:"rhdl_fpga::axi4lite::basic::bridge::read::I",fields:[(name:"axi",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadMOSI",fields:[(name:"araddr",ty:Bits(32)),(name:"arvalid",ty:Bits(1)),(name:"rready",ty:Bits(1))]))),(name:"reply",ty:Enum((name:"Option::<core::result::Result<rhdl_bits::bits_impl::Bits<32>, rhdl_fpga::axi4lite::types::AXI4Error>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Enum((name:"Result::<rhdl_bits::bits_impl::Bits<32>, rhdl_fpga::axi4lite::types::AXI4Error>",variants:[(name:"Err",discriminant:0,ty:Tuple((elements:[Enum((name:"rhdl_fpga::axi4lite::types::AXI4Error",variants:[(name:"SLVERR",discriminant:0,ty:Empty),(name:"DECERR",discriminant:1,ty:Empty)],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))]))),(name:"Ok",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"cmd_ready",ty:Bits(1))])),"top.subordinate.outputs":Struct((name:"rhdl_fpga::axi4lite::basic::bridge::read::O",fields:[(name:"axi",ty:Struct((name:"rhdl_fpga::axi4lite::types::ReadMISO",fields:[(name:"arready",ty:Bits(1)),(name:"rdata",ty:Bits(32)),(name:"rresp",ty:Bits(2)),(name:"rvalid",ty:Bits(1))]))),(name:"cmd",ty:Enum((name:"Option::<rhdl_bits::bits_impl::Bits<32>>",variants:[(name:"None",discriminant:0,ty:Empty),(name:"Some",discriminant:1,ty:Tuple((elements:[Bits(32)])))],discriminant_layout:(width:1,alignment:Msb,ty:Unsigned)))),(name:"reply_ready",ty:Bits(1))]))})
+$end
+$scope module top $end
+$var wire 1 ! clock $end
+$var wire 33 " input $end
+$var wire 35 # outputs $end
+$var wire 1 $ reset $end
+$scope module manager $end
+$var wire 69 % input $end
+$var wire 69 & outputs $end
+$scope module addr $end
+$var wire 34 ' input $end
+$var wire 34 ( outputs $end
+$scope module inner $end
+$var wire 34 ) input $end
+$var wire 34 * outputs $end
+$scope module inner $end
+$var wire 34 + input $end
+$var wire 34 , outputs $end
+$scope module aux_ff $end
+$scope module dff $end
+$var wire 32 - input $end
+$var wire 32 . output $end
+$upscope $end
+$upscope $end
+$scope module main_ff $end
+$scope module dff $end
+$var wire 32 / input $end
+$var wire 32 0 output $end
+$upscope $end
+$upscope $end
+$scope module state_ff $end
+$scope module dff $end
+$var wire 1 1 input $end
+$var wire 1 2 output $end
+$upscope $end
+$upscope $end
+$scope module void_ff $end
+$scope module dff $end
+$var wire 1 3 input $end
+$var wire 1 4 output $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$scope module data $end
+$var wire 36 5 input $end
+$var wire 36 6 outputs $end
+$scope module inner $end
+$var wire 36 7 input $end
+$var wire 36 8 outputs $end
+$scope module inner $end
+$var wire 36 9 input $end
+$var wire 36 : outputs $end
+$scope module aux_ff $end
+$scope module dff $end
+$var wire 34 ; input $end
+$var wire 34 < output $end
+$upscope $end
+$upscope $end
+$scope module main_ff $end
+$scope module dff $end
+$var wire 34 = input $end
+$var wire 34 > output $end
+$upscope $end
+$upscope $end
+$scope module state_ff $end
+$scope module dff $end
+$var wire 1 ? input $end
+$var wire 1 @ output $end
+$upscope $end
+$upscope $end
+$scope module void_ff $end
+$scope module dff $end
+$var wire 1 A input $end
+$var wire 1 B output $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$scope module overflow $end
+$scope module dff $end
+$var wire 1 C input $end
+$var wire 1 D output $end
+$upscope $end
+$upscope $end
+$upscope $end
+$scope module memory $end
+$scope module synchronous_ram $end
+$var wire 49 E input $end
+$var wire 32 F output $end
+$upscope $end
+$upscope $end
+$scope module read_pending $end
+$scope module dff $end
+$var wire 1 G input $end
+$var wire 1 H output $end
+$upscope $end
+$upscope $end
+$scope module subordinate $end
+$var wire 69 I input $end
+$var wire 70 J outputs $end
+$scope module addr $end
+$var wire 34 K input $end
+$var wire 34 L outputs $end
+$scope module inner $end
+$var wire 34 M input $end
+$var wire 34 N outputs $end
+$scope module inner $end
+$var wire 34 O input $end
+$var wire 34 P outputs $end
+$scope module aux_ff $end
+$scope module dff $end
+$var wire 32 Q input $end
+$var wire 32 R output $end
+$upscope $end
+$upscope $end
+$scope module main_ff $end
+$scope module dff $end
+$var wire 32 S input $end
+$var wire 32 T output $end
+$upscope $end
+$upscope $end
+$scope module state_ff $end
+$scope module dff $end
+$var wire 1 U input $end
+$var wire 1 V output $end
+$upscope $end
+$upscope $end
+$scope module void_ff $end
+$scope module dff $end
+$var wire 1 W input $end
+$var wire 1 X output $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$scope module data $end
+$var wire 36 Y input $end
+$var wire 36 Z outputs $end
+$scope module inner $end
+$var wire 36 [ input $end
+$var wire 36 \ outputs $end
+$scope module inner $end
+$var wire 36 ] input $end
+$var wire 36 ^ outputs $end
+$scope module aux_ff $end
+$scope module dff $end
+$var wire 34 _ input $end
+$var wire 34 ` output $end
+$upscope $end
+$upscope $end
+$scope module main_ff $end
+$scope module dff $end
+$var wire 34 a input $end
+$var wire 34 b output $end
+$upscope $end
+$upscope $end
+$scope module state_ff $end
+$scope module dff $end
+$var wire 1 c input $end
+$var wire 1 d output $end
+$upscope $end
+$upscope $end
+$scope module void_ff $end
+$scope module dff $end
+$var wire 1 e input $end
+$var wire 1 f output $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+b0 !
+b000000000000000000000000000000000 "
+b10000000000000000000000000000000000 #
+b1 $
+b000000000000000000000000000000000000000000000000000000000000000000000 %
+b100000000000000000000000000000000000000000000000000000000000000000000 &
+b0000000000000000000000000000000000 '
+b1000000000000000000000000000000000 (
+b0000000000000000000000000000000000 )
+b1100000000000000000000000000000000 *
+b1100000000000000000000000000000000 +
+b0000000000000000000000000000000000 ,
+b00000000000000000000000000000000 -
+b00000000000000000000000000000000 .
+b00000000000000000000000000000000 /
+b00000000000000000000000000000000 0
+b0 1
+b0 2
+b0 3
+b0 4
+b100000000000000000000000000000000000 5
+b000000000000000000000000000000000000 6
+b100000000000000000000000000000000000 7
+b110000000000000000000000000000000000 8
+b010000000000000000000000000000000000 9
+b000000000000000000000000000000000000 :
+b0000000000000000000000000000000000 ;
+b0000000000000000000000000000000000 <
+b0000000000000000000000000000000000 =
+b0000000000000000000000000000000000 >
+b0 ?
+b0 @
+b1 A
+b0 B
+b0 C
+b0 D
+b0000000000000000000000000000000000000000000000000 E
+b00000000000000000000000000000000 F
+b0 G
+b0 H
+b100000000000000000000000000000000000000000000000000000000000000000000 I
+b1000000000000000000000000000000000000000000000000000000000000000000000 J
+b0000000000000000000000000000000000 K
+b0000000000000000000000000000000000 L
+b0000000000000000000000000000000000 M
+b1100000000000000000000000000000000 N
+b1100000000000000000000000000000000 O
+b0000000000000000000000000000000000 P
+b00000000000000000000000000000000 Q
+b00000000000000000000000000000000 R
+b00000000000000000000000000000000 S
+b00000000000000000000000000000000 T
+b0 U
+b0 V
+b0 W
+b0 X
+b000000000000000000000000000000000000 Y
+b100000000000000000000000000000000000 Z
+b000000000000000000000000000000000000 [
+b110000000000000000000000000000000000 \
+b110000000000000000000000000000000000 ]
+b000000000000000000000000000000000000 ^
+b0000000000000000000000000000000000 _
+b0000000000000000000000000000000000 `
+b0000000000000000000000000000000000 a
+b0000000000000000000000000000000000 b
+b0 c
+b0 d
+b0 e
+b0 f
+#50
+b1 !
+b1000000000000000000000000000000000 *
+b0100000000000000000000000000000000 ,
+b1 3
+b1 4
+b100000000000000000000000000000000000 8
+b010000000000000000000000000000000000 :
+b1 B
+b1000000000000000000000000000000000 N
+b0100000000000000000000000000000000 P
+b1 W
+b1 X
+b100000000000000000000000000000000000 \
+b010000000000000000000000000000000000 ^
+b1 e
+b1 f
+#51
+b100000000000000000000000000000000 "
+b0 $
+b100000000000000000000000000000000000000000000000000000000000000000000 %
+b100000000000000000000000000000000001000000000000000000000000000000000 &
+b1000000000000000000000000000000000 '
+b0100000000000000000000000000000000 )
+b1000000000000000000000000000000000 +
+b0 3
+b100000000000000000000000000000000000 6
+b100000000000000000000000000000000001000000000000000000000000000000000 I
+b1000000000000000000000000000000000000000000000000000000000000000000001 J
+b1000000000000000000000000000000000 K
+b1000000000000000000000000000000000 L
+b1000000000000000000000000000000000 M
+b0100000000000000000000000000000000 O
+b000000000000000000000000000000000001 Y
+b100000000000000000000000000000000000 [
+b010000000000000000000000000000000000 ]
+b100000000000000000000000000000000000000000000000000000000000000000001 %
+b1000000000000000000000000000000001 '
+b1100000000000000000000000000000000 )
+b0000000000000000000000000000000000 +
+#100
+b0 !
+#150
+b1 !
+b100000000000000000000000000000000001100000000000000000000000000000000 &
+b1100000000000000000000000000000000 (
+b1100000000000000000000000000000000 *
+b0000000000000000000000000000000000 ,
+b0 4
+b100000000000000000000000000000000001100000000000000000000000000000000 I
+b1100000000000000000000000000000000 K
+b1100000000000000000000000000000000 M
+b0000000000000000000000000000000000 O
+b0 W
+#151
+b100000000000000000000000000001000 "
+b100000000000000000000000000001000000000000000000000000000000000000001 %
+b1000000000000000000000000000010001 '
+b1100000000000000000000000000001000 )
+b0000000000000000000000000000001000 +
+b00000000000000000000000000001000 /
+#200
+b0 !
+#250
+b1 !
+b100000000000000000000000000000000001100000000000000000000000000001000 &
+b1100000000000000000000000000001000 (
+b1100000000000000000000000000001000 *
+b0000000000000000000000000000001000 ,
+b00000000000000000000000000001000 0
+b1 G
+b100000000000000000000000000000000001100000000000000000000000000001000 I
+b1100000000000000000000000000000000000000000000000000000000000000000001 J
+b1100000000000000000000000000001000 K
+b1100000000000000000000000000000000 L
+b1100000000000000000000000000001000 M
+b1100000000000000000000000000000000 N
+b0000000000000000000000000000001000 O
+b0000000000000000000000000000000000 P
+b00000000000000000000000000001000 S
+b0 X
+#251
+b100000000000000000000000000010000 "
+b100000000000000000000000000010000000000000000000000000000000000000001 %
+b1000000000000000000000000000100001 '
+b1100000000000000000000000000010000 )
+b0000000000000000000000000000010000 +
+b00000000000000000000000000010000 /
+#300
+b0 !
+#350
+b1 !
+b100000000000000000000000000000000001100000000000000000000000000010000 &
+b1100000000000000000000000000010000 (
+b1100000000000000000000000000010000 *
+b0000000000000000000000000000010000 ,
+b00000000000000000000000000010000 0
+b0000000000000000000000000000000000000000000000001 E
+b1 H
+b111000000000000000000000000000000001100000000000000000000000000010000 I
+b1100000000000000000000000000001000000000000000000000000000000000000001 J
+b1100000000000000000000000000010000 K
+b1100000000000000000000000000001000 L
+b1100000000000000000000000000010000 M
+b1100000000000000000000000000001000 N
+b0000000000000000000000000000010000 O
+b0000000000000000000000000000001000 P
+b00000000000000000000000000010000 S
+b00000000000000000000000000001000 T
+b100000000000000000000000000000000001 Y
+b110000000000000000000000000000000000 [
+b000000000000000000000000000000000000 ]
+b0 e
+#351
+b100000000000000000000000000011000 "
+b100000000000000000000000000011000000000000000000000000000000000000001 %
+b1000000000000000000000000000110001 '
+b1100000000000000000000000000011000 )
+b0000000000000000000000000000011000 +
+b00000000000000000000000000011000 /
+#400
+b0 !
+#450
+b1 !
+b100000000000000000000000000011000100000000000000000000000000000000001 %
+b100000000000000000000000000000000001100000000000000000000000000011000 &
+b1100000000000000000000000000011000 (
+b1100000000000000000000000000011000 *
+b0000000000000000000000000000011000 ,
+b00000000000000000000000000011000 0
+b110000000000000000000000000000000000 5
+b110000000000000000000000000000000000 7
+b000000000000000000000000000000000000 9
+b0 A
+b0000000000000000000000000000000000000000000000010 E
+b00000000000000000000000100000001 F
+b111000000000000000000000001000000011100000000000000000000000000011000 I
+b1100000000000000000000000000010000100000000000000000000000000000000001 J
+b1100000000000000000000000000011000 K
+b1100000000000000000000000000010000 L
+b1100000000000000000000000000011000 M
+b1100000000000000000000000000010000 N
+b0000000000000000000000000000011000 O
+b0000000000000000000000000000010000 P
+b00000000000000000000000000011000 S
+b00000000000000000000000000010000 T
+b100000000000000000000000100000001001 Y
+b110000000000000000000000000000000000 Z
+b110000000000000000000000010000000100 [
+b110000000000000000000000000000000000 \
+b000000000000000000000000010000000100 ]
+b000000000000000000000000000000000000 ^
+b0000000000000000000000010000000100 a
+b0 f
+#451
+b100000000000000000000000000100000 "
+b100000000000000000000000000100000100000000000000000000000000000000001 %
+b1000000000000000000000000001000001 '
+b1100000000000000000000000000100000 )
+b0000000000000000000000000000100000 +
+b00000000000000000000000000100000 /
+#500
+b0 !
+#550
+b1 !
+b11100000000000000000000000000000000 #
+b100000000000000000000000000100000100000000000000000000000001000000011 %
+b111000000000000000000000000000000001100000000000000000000000000100000 &
+b1100000000000000000000000000100000 (
+b1100000000000000000000000000100000 *
+b0000000000000000000000000000100000 ,
+b00000000000000000000000000100000 0
+b110000000000000000000000010000000100 5
+b110000000000000000000000000000000000 6
+b110000000000000000000000010000000100 7
+b110000000000000000000000000000000000 8
+b000000000000000000000000010000000100 9
+b000000000000000000000000000000000000 :
+b0000000000000000000000010000000100 =
+b0 B
+b0000000000000000000000000000000000000000000000011 E
+b00000000000000000000001000000010 F
+b111000000000000000000000010000000101100000000000000000000000000100000 I
+b1100000000000000000000000000011000100000000000000000000000001000000011 J
+b1100000000000000000000000000100000 K
+b1100000000000000000000000000011000 L
+b1100000000000000000000000000100000 M
+b1100000000000000000000000000011000 N
+b0000000000000000000000000000100000 O
+b0000000000000000000000000000011000 P
+b00000000000000000000000000100000 S
+b00000000000000000000000000011000 T
+b100000000000000000000001000000010001 Y
+b110000000000000000000000010000000100 Z
+b110000000000000000000000100000001000 [
+b110000000000000000000000010000000100 \
+b000000000000000000000000100000001000 ]
+b000000000000000000000000010000000100 ^
+b0000000000000000000000100000001000 a
+b0000000000000000000000010000000100 b
+#551
+b000000000000000000000000000000000 "
+b000000000000000000000000000000000100000000000000000000000001000000011 %
+b0000000000000000000000000000000001 '
+b1000000000000000000000000000000000 )
+b0100000000000000000000000000000000 +
+b00000000000000000000000000000000 /
+b1 3
+#600
+b0 !
+#650
+b1 !
+b11100000000000000000000000100000001 #
+b000000000000000000000000000000000100000000000000000000000010000000101 %
+b111000000000000000000000001000000011000000000000000000000000000000000 &
+b1000000000000000000000000000000000 (
+b1000000000000000000000000000000000 *
+b0100000000000000000000000000000000 ,
+b00000000000000000000000000000000 0
+b1 4
+b110000000000000000000000100000001000 5
+b110000000000000000000000010000000100 6
+b110000000000000000000000100000001000 7
+b110000000000000000000000010000000100 8
+b000000000000000000000000100000001000 9
+b000000000000000000000000010000000100 :
+b0000000000000000000000100000001000 =
+b0000000000000000000000010000000100 >
+b0000000000000000000000000000000000000000000000100 E
+b00000000000000000000001100000011 F
+b111000000000000000000000011000000111000000000000000000000000000000000 I
+b1100000000000000000000000000100000100000000000000000000000010000000101 J
+b1000000000000000000000000000000000 K
+b1100000000000000000000000000100000 L
+b1000000000000000000000000000000000 M
+b1100000000000000000000000000100000 N
+b0100000000000000000000000000000000 O
+b0000000000000000000000000000100000 P
+b00000000000000000000000000000000 S
+b00000000000000000000000000100000 T
+b1 W
+b100000000000000000000001100000011001 Y
+b110000000000000000000000100000001000 Z
+b110000000000000000000000110000001100 [
+b110000000000000000000000100000001000 \
+b000000000000000000000000110000001100 ]
+b000000000000000000000000100000001000 ^
+b0000000000000000000000110000001100 a
+b0000000000000000000000100000001000 b
+#700
+b0 !
+#750
+b1 !
+b11100000000000000000000001000000010 #
+b000000000000000000000000000000000100000000000000000000000011000000111 %
+b111000000000000000000000010000000101000000000000000000000000000000000 &
+b110000000000000000000000110000001100 5
+b110000000000000000000000100000001000 6
+b110000000000000000000000110000001100 7
+b110000000000000000000000100000001000 8
+b000000000000000000000000110000001100 9
+b000000000000000000000000100000001000 :
+b0000000000000000000000110000001100 =
+b0000000000000000000000100000001000 >
+b0000000000000000000000000000000000000000000000000 E
+b00000000000000000000010000000100 F
+b0 G
+b111000000000000000000000100000001001000000000000000000000000000000000 I
+b1000000000000000000000000000000000100000000000000000000000011000000111 J
+b1000000000000000000000000000000000 L
+b1000000000000000000000000000000000 N
+b0100000000000000000000000000000000 P
+b00000000000000000000000000000000 T
+b1 X
+b100000000000000000000010000000100001 Y
+b110000000000000000000000110000001100 Z
+b110000000000000000000001000000010000 [
+b110000000000000000000000110000001100 \
+b000000000000000000000001000000010000 ]
+b000000000000000000000000110000001100 ^
+b0000000000000000000001000000010000 a
+b0000000000000000000000110000001100 b
+#800
+b0 !
+#850
+b1 !
+b11100000000000000000000001100000011 #
+b000000000000000000000000000000000100000000000000000000000100000001001 %
+b111000000000000000000000011000000111000000000000000000000000000000000 &
+b110000000000000000000001000000010000 5
+b110000000000000000000000110000001100 6
+b110000000000000000000001000000010000 7
+b110000000000000000000000110000001100 8
+b000000000000000000000001000000010000 9
+b000000000000000000000000110000001100 :
+b0000000000000000000001000000010000 =
+b0000000000000000000000110000001100 >
+b00000000000000000000000000000000 F
+b0 H
+b100000000000000000000000000000000001000000000000000000000000000000000 I
+b1000000000000000000000000000000000100000000000000000000000100000001001 J
+b000000000000000000000000000000000001 Y
+b110000000000000000000001000000010000 Z
+b100000000000000000000000000000000000 [
+b110000000000000000000001000000010000 \
+b010000000000000000000000000000000000 ]
+b000000000000000000000001000000010000 ^
+b0000000000000000000000000000000000 a
+b0000000000000000000001000000010000 b
+b1 e
+#900
+b0 !
+#950
+b1 !
+b11100000000000000000000010000000100 #
+b000000000000000000000000000000000000000000000000000000000000000000001 %
+b111000000000000000000000100000001001000000000000000000000000000000000 &
+b100000000000000000000000000000000000 5
+b110000000000000000000001000000010000 6
+b100000000000000000000000000000000000 7
+b110000000000000000000001000000010000 8
+b010000000000000000000000000000000000 9
+b000000000000000000000001000000010000 :
+b0000000000000000000000000000000000 =
+b0000000000000000000001000000010000 >
+b1 A
+b1000000000000000000000000000000000000000000000000000000000000000000001 J
+b100000000000000000000000000000000000 Z
+b100000000000000000000000000000000000 \
+b010000000000000000000000000000000000 ^
+b0000000000000000000000000000000000 b
+b1 f
+#1000
+b0 !
+#1050
+b1 !
+b10000000000000000000000000000000000 #
+b100000000000000000000000000000000001000000000000000000000000000000000 &
+b100000000000000000000000000000000000 6
+b100000000000000000000000000000000000 8
+b010000000000000000000000000000000000 :
+b0000000000000000000000000000000000 >
+b1 B
+#1100
+b0 !
+#1150
+b1 !
+#1200
+b0 !
+#1250
+b1 !
+#1300
+b0 !
+#1350
+b1 !
+#1400
+b0 !
+#1450
+b1 !
+#1500
+b0 !
+#1550
+b1 !
+#1600
+b0 !
+#1650
+b1 !
+#1700
+b0 !
+#1750
+b1 !
+#1800
+b0 !
+#1850
+b1 !
+#1900
+b0 !
+#1950
+b1 !
+#2000
+b0 !
+#2050
+b1 !
+#2100
+b0 !
+#2150
+b1 !
+#2200
+b0 !
+#2250
+b1 !
+#2300
+b0 !
+#2350
+b1 !
+#2400
+b0 !
+#2450
+b1 !
+#2500
+b0 !
+#2550
+b1 !
+#2600
+b0 !
+#2650
+b1 !
+#2700
+b0 !
+#2750
+b1 !
+#2800
+b0 !
+#2850
+b1 !
+#2900
+b0 !
+#2950
+b1 !
+#3000
+b0 !
+#3050
+b1 !
+#3100
+b0 !
+#3150
+b1 !
+#3200
+b0 !
+#3250
+b1 !
+#3300
+b0 !
+#3350
+b1 !
+#3400
+b0 !
+#3450
+b1 !
+#3500
+b0 !
+#3550
+b1 !
+#3600
+b0 !
+#3650
+b1 !
+#3700
+b0 !
+#3750
+b1 !
+#3800
+b0 !
+#3850
+b1 !
+#3900
+b0 !
+#3950
+b1 !
+#4000
+b0 !
+#4050
+b1 !
+#4100
+b0 !
+#4150
+b1 !
+#4200
+b0 !
+#4250
+b1 !
+#4300
+b0 !
+#4350
+b1 !
+#4400
+b0 !
+#4450
+b1 !
+#4500
+b0 !
+#4550
+b1 !
+#4600
+b0 !
+#4650
+b1 !
+#4700
+b0 !
+#4750
+b1 !
+#4800
+b0 !
+#4850
+b1 !
+#4900
+b0 !
+#4950
+b1 !
+#5000
+b0 !
+#5050
+b1 !
+#5100
+b0 !
+#5150
+b1 !
+#5200
+b0 !
+#5250
+b1 !
+#5300
+b0 !
+#5350
+b1 !
+#5400
+b0 !
+#5450
+b1 !
+#5500
+b0 !
+#5550
+b1 !
+#5600
+b0 !
+#5650
+b1 !
+#5700
+b0 !
+#5750
+b1 !
+#5800
+b0 !
+#5850
+b1 !
+#5900
+b0 !
+#5950
+b1 !
+#6000
+b0 !
+#6050
+b1 !
+#6100
+b0 !
+#6150
+b1 !
+#6200
+b0 !
+#6250
+b1 !
+#6300
+b0 !
+#6350
+b1 !
+#6400
+b0 !
+#6450
+b1 !
+#6500
+b0 !
+#6550
+b1 !
+#6600
+b0 !
+#6650
+b1 !
+#6700
+b0 !
+#6750
+b1 !
+#6800
+b0 !
+#6850
+b1 !
+#6900
+b0 !
+#6950
+b1 !
+#7000
+b0 !
+#7050
+b1 !
+#7100
+b0 !
+#7150
+b1 !
+#7200
+b0 !
+#7250
+b1 !
+#7300
+b0 !
+#7350
+b1 !
+#7400
+b0 !
+#7450
+b1 !
+#7500
+b0 !
+#7550
+b1 !
+#7600
+b0 !
+#7650
+b1 !
+#7700
+b0 !
+#7750
+b1 !
+#7800
+b0 !
+#7850
+b1 !
+#7900
+b0 !
+#7950
+b1 !
+#8000
+b0 !
+#8050
+b1 !
+#8100
+b0 !
+#8150
+b1 !
+#8200
+b0 !
+#8250
+b1 !
+#8300
+b0 !
+#8350
+b1 !
+#8400
+b0 !
+#8450
+b1 !
+#8500
+b0 !
+#8550
+b1 !
+#8600
+b0 !
+#8650
+b1 !
+#8700
+b0 !
+#8750
+b1 !
+#8800
+b0 !
+#8850
+b1 !
+#8900
+b0 !
+#8950
+b1 !
+#9000
+b0 !
+#9050
+b1 !
+#9100
+b0 !
+#9150
+b1 !
+#9200
+b0 !
+#9250
+b1 !
+#9300
+b0 !
+#9350
+b1 !
+#9400
+b0 !
+#9450
+b1 !
+#9500
+b0 !
+#9550
+b1 !
+#9600
+b0 !
+#9650
+b1 !
+#9700
+b0 !
+#9750
+b1 !
+#9800
+b0 !
+#9850
+b1 !
+#9900
+b0 !
+#9950
+b1 !
+#10000
+b0 !
+#10050
+b1 !

@@ -1,0 +1,21 @@
+{
+  "Point Down Comment": {
+    "prefix": "point-down",
+    "body": [
+      "// 👇"
+    ],
+    "description": "Insert pointing down comment for documentation"
+  },
+  "Point Left Comment": {
+    "prefix": "point-left",
+    "body": [
+      "// 👈"
+    ],
+    "description": "Insert pointing left comment for documentation"
+  },
+  "Anchor Block": {
+    "prefix": "anchor",
+    "body": "// ANCHOR: ${1:tag}\n${TM_SELECTED_TEXT}// ANCHOR_END: ${1:tag}\n",
+    "description": "Wrap selection with ANCHOR comments"
+  }
+}
