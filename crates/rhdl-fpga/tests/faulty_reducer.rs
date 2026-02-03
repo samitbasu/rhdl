@@ -16,6 +16,7 @@ pub enum State {
 }
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 pub struct U<const DW: usize, const DN: usize>
 where
     rhdl::bits::W<DW>: BitWidth,

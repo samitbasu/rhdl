@@ -9,12 +9,7 @@ In general to work with dynamic width bitvectors, you will do the following:
 An example is simpler to understand.  
 
 ```rust
-let a: b8 = 12; // 8 bits, compile time sized
-let b: b8 = 200; // 8 bits, compile time sized
-let a = a.dyn_bits(); // 8 bits, run time sized
-let b = b.dyn_bits(); // 8 bits, run time sized
-let c = a.xadd(b);  // 9 bits, run time sized
-let c: b9 = c.as_bits(); // 9 bits, compile time sized, run time checked
+{{#rustdoc_include ../code/src/bits/mod.rs:dyn-bits-ex}}
 ```
 
 While this example is not particularly interesting, it becomes much more difficult when the intermediate operations include bit shifting, sign conversion, etc.  For a more realistic example, consider linear interpolation.  We have two values `a: b8`, and `b: b8`, and an interpolant `x: b4`.  We want to compute as accurately as possible, the expression:
@@ -26,16 +21,7 @@ While this example is not particularly interesting, it becomes much more difficu
 This quickly becomes complicated, as the intermediate expressions need to have enough bits to store the products of `b8 x b4 -> b12`, but then a subtraction of a 5 bit literal and a 4 bit unsigned value, needs 6 bits for storage, etc.  However, the end result is still an 8 bit value, and so our function implementation looks like this:
 
 ```rust
-fn lerp(a: b8, b: b8, x: b4) -> b8 {
-   let a = a.dyn_bits();
-   let b = b.dyn_bits();
-   let prod_1 = a.xmul(x);
-   let prod_2 = b.xmul(16);
-   let prod_3 = b.xmul(x);
-   let sum = prod_1.xadd(prod_2.xadd(prod_3));
-   let c = sum.xshr(4);
-   c.as_unsigned().resize::<8>().as_bits()
-}
+{{#rustdoc_include ../code/src/bits/mod.rs:lerp-ex}}
 ```
 
 we can use dynamic bit widths internally to get fine grained control over which bits we keep and which we throw away.  And while in this case, you could hard code all of the intermediate bit widths, it becomes much more convenient when `lerp` is generic over the input and output bit widths.

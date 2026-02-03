@@ -14,7 +14,7 @@ fn define_children_fn(field_set: &FieldSet) -> TokenStream {
     quote! {
         fn children(&self, parent_scope: &rhdl::core::ScopedName) -> impl Iterator<Item = Result<rhdl::core::Descriptor<rhdl::core::AsyncKind>, rhdl::core::RHDLError>> {
             [
-                #(self.#component_name.descriptor(parent_scope.with(stringify!(#component_name)))),*
+                #(Circuit::descriptor(&self.#component_name, parent_scope.with(stringify!(#component_name)))),*
             ].into_iter()
         }
     }
@@ -35,7 +35,7 @@ fn define_sim_fn(field_set: &FieldSet) -> TokenStream {
                 #(
                     rhdl::core::trace_push_path(stringify!(#component_name));
                     state.0.#component_name =
-                    self.#component_name.sim(internal_inputs.#component_name, &mut state.#component_index);
+                    Circuit::sim(&self.#component_name, internal_inputs.#component_name, &mut state.#component_index);
                     rhdl::core::trace_pop_path();
                 )*
                 if state == &prev_state {
@@ -54,7 +54,7 @@ fn define_init_fn(field_set: &FieldSet) -> TokenStream {
         fn init(&self) -> Self::S {
             (
                 <<Self as rhdl::core::CircuitDQ>::Q as rhdl::core::Digital>::dont_care(),
-                #(self.#component_name.init(),)*
+                #(Circuit::init(&self.#component_name)),*
             )
         }
     }

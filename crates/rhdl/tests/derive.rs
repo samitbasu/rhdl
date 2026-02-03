@@ -6,7 +6,7 @@
 #![allow(dead_code)]
 
 use rhdl::prelude::*;
-use rhdl_core::trace::{TraceContainer, session::Session};
+use rhdl_core::trace::{container::TraceContainer, session::Session};
 
 #[test]
 #[allow(dead_code)]
@@ -136,7 +136,7 @@ fn test_derive_digital_complex_enum() {
 
     let foo_3 = Test::A;
     let session = Session::default();
-    let mut vcd_file = Vcd::new();
+    let mut vcd_file = VcdFile::new();
     let t0 = session.traced_at_time(0, || trace("test", &foo_1));
     vcd_file.record(&t0).unwrap();
     let t1 = session.traced_at_time(1_000, || trace("test", &foo_2));
@@ -145,10 +145,10 @@ fn test_derive_digital_complex_enum() {
     vcd_file.record(&t2).unwrap();
     let t3 = session.traced_at_time(3_000, || trace("test", &foo_1));
     vcd_file.record(&t3).unwrap();
-    let mut vcd = vec![];
-    vcd_file.finalize(&mut vcd);
-    expect_test::expect_file!["expect/derive_enum_vcd.expect"]
-        .assert_eq(&String::from_utf8(vcd).unwrap());
+    let manifest_dir = std::env!("CARGO_MANIFEST_DIR");
+    let vcd_path = std::path::Path::new(manifest_dir).join("tests/expect/vcd_ng_enum.vcd");
+    let hash = vcd_file.dump_to_file(&vcd_path).unwrap();
+    expect_test::expect!["4975c2d1c4c686d797a316de76445703538e2a888ed73bd36a3e88b65ad0140b"].assert_eq(&hash);
 }
 
 #[test]

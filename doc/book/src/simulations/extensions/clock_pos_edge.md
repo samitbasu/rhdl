@@ -55,40 +55,20 @@ Simulators use special case logic to detect clock signals, and then try to juggl
 To do this easily, there is another extension trait, `ClockPosEdgeExt`, which is described as follows:
 
 ```rust
-impl<I, Q> ClockPosEdgeExt<Q> for I
-where
-    I: IntoIterator<Item = ResetOrData<Q>>,
-    Q: Digital,
-{
-    fn clock_pos_edge(self, period: u64) -> ClockPosEdge<Self::IntoIter, Q>;
-}
+{{#rustdoc_include ../../code/src/simulations.rs:clock-pos-edge-ext}}
 ```
 
 Calling `clock_pos_edge(period)` on an iterator that yields items of type `ResetOrData<I>` where `I` is the input type of the circuit, produces a stream of input data that can be used to simulate the circuit.   For example, the following snippet of Rust code:
 
 ```rust
-(0..4).map(b8).without_reset().clock_pos_edge(10)
+{{#rustdoc_include ../../code/src/simulations.rs:cpe_demo}}
 ```
- 
-yields the following sequence of values:
 
+where `b8` is a function that converts an integer into an 8 bit digital value, and `without_reset()` is another extension trait that converts an iterator of `I` into an iterator of `ResetOrData<I>` with no resets, i.e., all data values.  Running this snippet and examining the output yields the following sequence of values:
 
-| time | clock | reset | value |
-|-----|--------|-------|--------|
-| 0  | false |  false |  b8(0) |
-| 5  | true |  false |  b8(0) | 
-| 6  | true |  false |  b8(1) |
-| 10 | false |  false |  b8(1) |
-| 15 | true |  false |  b8(1) |
-| 16 | true |  false |  b8(2) |
-| 20 | false |  false |  b8(2) |
-| 25 | true |  false |  b8(2) |
-| 26 | true |  false |  b8(3) |
-| 30 | false |  false |  b8(3) |
-| 35 | true |  false |  b8(3) |
+{{#include ../../code/clock_pos_edge_demo.txt}}
 
-
-Note the "extra" sampels at times `6, 16, 26`.  These are the result of the need to transition the input value 1 time step after the clock changes.  It's a detail, but important, particularly if you plan to drive your simulation yourself. 
+Note the "extra" samples at times `6, 16, 26`.  These are the result of the need to transition the input value 1 time step after the clock changes.  It's a detail, but important, particularly if you plan to drive your simulation yourself. 
 
 ```admonish warning
 To ensure correct behavior, make sure that all inputs to the circuit change at some time `t` that is strictly greater than the time at which the clock edge transitions. This extra "hold" time is not strictly required by RHDL.  But there are instances in which RHDL generates test benches run through external simulation tools.  Adding the hold of 1 time unit improves the simulation of those test benches.

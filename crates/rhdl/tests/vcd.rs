@@ -5,7 +5,7 @@
 #![allow(unused_must_use)]
 #![allow(dead_code)]
 use rhdl::prelude::*;
-use rhdl_core::trace::{TraceContainer, session::Session, svg::SvgFile, vcd::Vcd};
+use rhdl_core::trace::container::TraceContainer;
 
 #[test]
 fn test_svg_ng_enum_discontinuous() {
@@ -63,7 +63,7 @@ fn test_svg_ng_enum_discontinuous() {
     svg.record(&sample);
     let mut buf = vec![];
     svg.finalize(
-        &rhdl_core::trace::svg::options::SvgOptions {
+        &SvgOptions {
             pixels_per_time_unit: 0.1,
             ..Default::default()
         }
@@ -131,14 +131,14 @@ fn test_svg_ng_enum() {
     svg.record(&sample);
     let mut buf = vec![];
     svg.finalize(
-        &rhdl_core::trace::svg::options::SvgOptions {
+        &SvgOptions {
             pixels_per_time_unit: 0.1,
             ..Default::default()
         },
         &mut buf,
     )
     .unwrap();
-    expect_test::expect_file!["expect/svg_ng_enum_svg.expect"]
+    expect_test::expect_file!["./expect/svg_ng_enum_svg.expect"]
         .assert_eq(&String::from_utf8(buf).unwrap());
 }
 
@@ -155,7 +155,7 @@ fn test_vcd_ng_enum() {
         },
         C(bool),
     }
-    let mut vcd = Vcd::default();
+    let mut vcd = VcdFile::default();
     let trace_session = Session::default();
     let sample = trace_session.traced_at_time(0, || {
         trace("enum", &Enum::None);
@@ -196,10 +196,10 @@ fn test_vcd_ng_enum() {
         trace("enum", &Enum::None);
     });
     vcd.record(&sample);
-    let mut buf = vec![];
-    vcd.finalize(&mut buf).unwrap();
-    expect_test::expect_file!["expect/vcd_ng_enum_vcd.expect"]
-        .assert_eq(&String::from_utf8(buf).unwrap());
+    let manifest_dir = std::env!("CARGO_MANIFEST_DIR");
+    let vcd_path = std::path::Path::new(manifest_dir).join("tests/expect/vcd_ng_enum.vcd");
+    let hash = vcd.dump_to_file(&vcd_path).unwrap();
+    expect_test::expect!["bc9eb427e230378af8ba06f71a7d722a612c01ccf2ea2a30788839701abd39c3"].assert_eq(&hash);
 }
 
 #[test]
@@ -215,7 +215,7 @@ fn test_vcd_enum() {
         C(bool),
     }
     let session = Session::default();
-    let mut vcd = Vcd::default();
+    let mut vcd = VcdFile::default();
     let sample = session.traced_at_time(0, || {
         trace("enum", &Enum::None);
         trace("color", &b8(0b10101010));
@@ -255,8 +255,8 @@ fn test_vcd_enum() {
         trace("enum", &Enum::None);
     });
     vcd.record(&sample).unwrap();
-    let mut buf = vec![];
-    vcd.finalize(&mut buf).unwrap();
-    expect_test::expect_file!["expect/vcd_enum_vcd.expect"]
-        .assert_eq(&String::from_utf8(buf).unwrap());
+    let manifest_dir = std::env!("CARGO_MANIFEST_DIR");
+    let vcd_path = std::path::Path::new(manifest_dir).join("tests/expect/vcd_enum.vcd");
+    let hash = vcd.dump_to_file(&vcd_path).unwrap();
+    expect_test::expect!["a38b9f0c8075063f5b2b19c99d0a1eec63f2f91898728f543814a3db9c01f997"].assert_eq(&hash);
 }

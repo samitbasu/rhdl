@@ -831,6 +831,8 @@ fn write_kind_with_bits(
             write_kind_with_bits(base, bits, f)?;
             write!(f, "@{color:?}")
         }
+        Kind::Clock => write!(f, "clk {}", bitx_string(bits)),
+        Kind::Reset => write!(f, "rst {}", bitx_string(bits)),
     }
 }
 
@@ -1042,9 +1044,6 @@ mod tests {
                         DiscriminantType::Unsigned,
                     ),
                 )
-            }
-            fn static_trace_type() -> rhdl_trace_type::TraceType {
-                crate::rtt::test::kind_to_trace(&Self::static_kind())
             }
             fn bin(self) -> Box<[BitX]> {
                 self.kind().pad(match self {

@@ -199,14 +199,15 @@ impl<W: Domain, R: Domain> ResetConditioner<W, R> {
     fn hdl(&self, name: &str) -> Result<HDLDescriptor, RHDLError> {
         let module_name = name.to_owned();
         let module_name = format_ident!("{}", module_name);
+        let i = <Self as CircuitIO>::I::dont_care();
         let reset_index = bit_range(
             <<Self as CircuitIO>::I as Digital>::static_kind(),
-            &path!(.reset.val()),
+            &path!(i.reset.val()),
         )?;
         let reset_index = syn::Index::from(reset_index.0.start);
         let clock_index = bit_range(
             <<Self as CircuitIO>::I as Digital>::static_kind(),
-            &path!(.clock.val()),
+            &path!(i.clock.val()),
         )?;
         let clock_index = syn::Index::from(clock_index.0.start);
         let module: vlog::ModuleDef = parse_quote! {
@@ -296,13 +297,13 @@ mod tests {
     fn test_reset_conditioner_function() -> miette::Result<()> {
         let uut = ResetConditioner::<Red, Blue>::default();
         let input = sync_stream();
-        let output = uut.run(input).collect::<Vcd>();
+        let output = uut.run(input).collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("reset")
             .join("conditioner");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["fec90288ec3d30bb6e7d6c92c8d8b787be9987caf5fa706aa9487fd7b9bcd252"];
+        let expect = expect!["3c3b8b6d2c292387ebcd331bdda0917a2a5f012eb71ef0fdfc2c7229f8ba77b0"];
         let digest = output
             .dump_to_file(root.join("reset_conditioner.vcd"))
             .unwrap();

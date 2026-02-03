@@ -7,8 +7,8 @@ impl<const N: usize> rhdl::core::Circuit for Strobe<N> {
     fn init(&self) -> Self::S {
         (
             <<Self as rhdl::core::CircuitDQ>::Q as rhdl::core::Digital>::dont_care(),
-            self.strobe.init(),
-            self.value.init(),
+            Circuit::init(&self.strobe),
+            Circuit::init(&self.value),
         )
     }
     fn children(
@@ -21,8 +21,8 @@ impl<const N: usize> rhdl::core::Circuit for Strobe<N> {
         >,
     > {
         [
-            self.strobe.descriptor(parent_scope.with(stringify!(strobe))),
-            self.value.descriptor(parent_scope.with(stringify!(value))),
+            Circuit::descriptor(&self.strobe, parent_scope.with(stringify!(strobe))),
+            Circuit::descriptor(&self.value, parent_scope.with(stringify!(value))),
         ]
             .into_iter()
     }
@@ -37,10 +37,18 @@ impl<const N: usize> rhdl::core::Circuit for Strobe<N> {
             let prev_state = state.clone();
             let (outputs, internal_inputs) = update_fn(input, state.0);
             rhdl::core::trace_push_path(stringify!(strobe));
-            state.0.strobe = self.strobe.sim(internal_inputs.strobe, &mut state.1);
+            state.0.strobe = Circuit::sim(
+                &self.strobe,
+                internal_inputs.strobe,
+                &mut state.1,
+            );
             rhdl::core::trace_pop_path();
             rhdl::core::trace_push_path(stringify!(value));
-            state.0.value = self.value.sim(internal_inputs.value, &mut state.2);
+            state.0.value = Circuit::sim(
+                &self.value,
+                internal_inputs.value,
+                &mut state.2,
+            );
             rhdl::core::trace_pop_path();
             if state == &prev_state {
                 rhdl::core::trace("outputs", &outputs);

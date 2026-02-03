@@ -1118,6 +1118,28 @@ module testbench();
       clock_reset = 2'b01;
       i = 1'b0;
       rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b0;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 153 at time 5051", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b0;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 154 at time 5100", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b00;
+      i = 1'b0;
+      rust_out = 7'b0000000;
       $display("TESTBENCH OK");
       $finish;
    end

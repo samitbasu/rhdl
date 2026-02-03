@@ -2,7 +2,7 @@ use rhdl::prelude::*;
 use rhdl_fpga::{
     core::ram::{
         asynchronous::ReadI,
-        option_async::{In, OptionAsyncBRAM, WriteI},
+        option_async::{In, OptionAsyncBram, WriteI},
     },
     doc::write_svg_as_markdown,
 };
@@ -35,13 +35,9 @@ fn main() -> Result<(), RHDLError> {
         read: signal(r),
         write: signal(w),
     });
-    let uut: OptionAsyncBRAM<b8, Red, Blue, 3> =
-        OptionAsyncBRAM::new((0..).map(|x| (b3(x), b8(x))));
-    let vcd = uut.run(input).collect::<Svg>();
-    let options = SvgOptions {
-        label_width: 20,
-        ..Default::default()
-    };
-    write_svg_as_markdown(vcd, "option_async_bram.md", options)?;
+    let uut: OptionAsyncBram<b8, Red, Blue, 3> =
+        OptionAsyncBram::new((0..).map(|x| (b3(x), b8(x))));
+    let vcd = uut.run(input).collect::<SvgFile>();
+    write_svg_as_markdown(vcd, "option_async_bram.md", SvgOptions::default())?;
     Ok(())
 }

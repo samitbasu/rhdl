@@ -343,16 +343,19 @@ where
             }
         });
         let i_kind = <<Self as CircuitIO>::I as Digital>::static_kind();
-        let read_addr_range: vlog::BitRange = bit_range(i_kind, &path!(.read.val().addr))?.0.into();
-        let read_clk_range: vlog::BitRange = bit_range(i_kind, &path!(.read.val().clock))?.0.into();
+        let i = <Self as CircuitIO>::I::dont_care();
+        let read_addr_range: vlog::BitRange =
+            bit_range(i_kind, &path!(i.read.val().addr))?.0.into();
+        let read_clk_range: vlog::BitRange =
+            bit_range(i_kind, &path!(i.read.val().clock))?.0.into();
         let write_addr_range: vlog::BitRange =
-            bit_range(i_kind, &path!(.write.val().addr))?.0.into();
+            bit_range(i_kind, &path!(i.write.val().addr))?.0.into();
         let write_data_range: vlog::BitRange =
-            bit_range(i_kind, &path!(.write.val().data))?.0.into();
+            bit_range(i_kind, &path!(i.write.val().data))?.0.into();
         let write_enable_range: vlog::BitRange =
-            bit_range(i_kind, &path!(.write.val().enable))?.0.into();
+            bit_range(i_kind, &path!(i.write.val().enable))?.0.into();
         let write_clk_range: vlog::BitRange =
-            bit_range(i_kind, &path!(.write.val().clock))?.0.into();
+            bit_range(i_kind, &path!(i.write.val().clock))?.0.into();
         let module: vlog::ModuleDef = parse_quote! {
             module #module_ident(input wire [#input_bits] i, output reg [#data_bits] o);
                 wire [#address_bits] read_addr;
@@ -537,23 +540,23 @@ mod tests {
         let expected = vec![142, 0, 100, 0, 0, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23]
             .into_iter()
             .map(|x| signal(bits(x)));
-        let vcd = uut.run(stream.clone()).collect::<Vcd>();
+        let vcd = uut.run(stream.clone()).collect::<VcdFile>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("ram")
             .join("asynchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["69bcc94f85aed28e9cda52b0847f41458a0e7681e60ba76c2f4b65bffd468358"];
+        let expect = expect!["f111307141b63f359ab50f23adc17f76f547cb3fb6fb498a51180e662859587e"];
         let digest = vcd.dump_to_file(root.join("ram_write.vcd")).unwrap();
         expect.assert_eq(&digest);
         let output = uut
             .run(stream)
             .glitch_check(|x| (x.input.read.val().clock, x.output.val()))
-            .sample_at_pos_edge(|x| x.input.read.val().clock)
-            .skip(17)
-            .map(|x| x.output);
+            .sample_at_neg_edge(|x| x.input.read.val().clock)
+            .skip(16)
+            .map(|x| x.output)
+            .collect::<Vec<_>>();
         let expected = expected.collect::<Vec<_>>();
-        let output = output.collect::<Vec<_>>();
         assert_eq!(expected, output);
         Ok(())
     }
@@ -575,12 +578,12 @@ mod tests {
             read: signal(r),
             write: signal(w),
         });
-        let values = (0..16).map(|x| bits(15 - x)).cycle().take(32);
+        let values = (0..16).map(|x| bits::<8>(15 - x)).cycle().take(32);
         let samples = uut
             .run(stream)
-            .sample_at_pos_edge(|i| i.input.read.val().clock)
-            .skip(1);
-        let output = samples.map(|x| x.output.val());
+            .sample_at_neg_edge(|i| i.input.read.val().clock)
+            .collect::<Vec<_>>();
+        let output = samples.iter().map(|x| x.output.val());
         assert!(values.eq(output));
         Ok(())
     }

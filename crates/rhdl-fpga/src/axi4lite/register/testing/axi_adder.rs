@@ -9,6 +9,7 @@ use crate::{
 };
 use rhdl::prelude::*;
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 pub struct Adder {
     controller: BlockReadWriteController,
     bank: AxiRegBank<3>,
@@ -124,13 +125,13 @@ mod tests {
                 },
                 100,
             )
-            .collect::<Vcd>();
+            .collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("axi4lite")
             .join("bank");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["28ae5dbc2b711c69f6dff0359d982691a1f4d9ca7c8ef5be737a919cf998ba46"];
+        let expect = expect!["417c8b9395ed3aa964bb60bd48a03a5e9552d0066e1a9a0c5c6dc06f74521f25"];
         let digest = vcd.dump_to_file(root.join("adder.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

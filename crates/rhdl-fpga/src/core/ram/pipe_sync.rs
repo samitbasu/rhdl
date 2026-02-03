@@ -99,6 +99,7 @@ use crate::core::{
 use super::option_sync::OptionSyncBRAM;
 
 #[derive(PartialEq, Debug, Clone, Default, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The unit that implements the [PipeBRAM]
 /// The `T` parameter indicates the type of data held in the BRAM.
 /// The `N` parameter indicates the number of address bits.
@@ -186,7 +187,7 @@ mod tests {
         let uut = PipeSyncBRAM::new((0..).map(|x| (b3(x), b8(x))));
         let vcd = uut
             .run(inputs)
-            .sample_at_pos_edge(|x| x.input.0.clock)
+            .sample_at_neg_edge(|x| x.input.0.clock)
             .filter_map(|x| x.output)
             .collect::<Vec<b8>>();
         assert_eq!(vcd, vec![bits(2), bits(3), bits(42)]);

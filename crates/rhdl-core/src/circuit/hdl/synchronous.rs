@@ -6,7 +6,7 @@
 //! The returned [Descriptor](crate::circuit::descriptor::Descriptor) will contain
 //! the HDL description of the circuit.
 //!
-//!! See the book for more details on HDL generation in RHDL.
+//!! See the [book] for more details on HDL generation in RHDL.
 
 use crate::{
     CompilationMode, HDLDescriptor, Kind, RHDLError, Synchronous, SynchronousDQ, SynchronousIO,

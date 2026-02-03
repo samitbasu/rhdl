@@ -1,5 +1,10 @@
-use crate::{Digital, TimedSample, trace::trace_sample::TracedSample};
+//! Probe to detect edges in a stream of traced samples
 
+use crate::{Digital, trace::trace_sample::TracedSample};
+
+/// The EdgeTime struct.  Not intended to be used directly;
+/// use the [edge_time] function to create one, or use
+/// the extension trait in [crate::sim::probe::ext].
 pub struct EdgeTime<T, I, F> {
     iter: I,
     func: F,
@@ -23,6 +28,8 @@ where
     }
 }
 
+/// Create an edge-detecting iterator over the supplied stream of traced samples,
+/// using the supplied function to extract the value to monitor for edges/changes.
 pub fn edge_time<T, I, F>(stream: I, data_fn: F) -> EdgeTime<T, I, F>
 where
     T: Digital,

@@ -9,12 +9,13 @@
 //! generating any hardware for it.
 //!
 use crate::{
-    ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
+    AsyncKind, Circuit, CircuitDQ, CircuitIO, ClockReset, Digital, HDLDescriptor, Kind, RHDLError,
+    Synchronous, SynchronousDQ, SynchronousIO,
     circuit::{
         descriptor::{Descriptor, SyncKind},
         scoped_name::ScopedName,
     },
-    digital_fn::NoSynchronousKernel,
+    digital_fn::{NoCircuitKernel, NoSynchronousKernel},
 };
 
 use quote::format_ident;
@@ -73,4 +74,46 @@ impl<T: Digital + 'static> SynchronousIO for std::marker::PhantomData<T> {
 impl<T: Digital + 'static> SynchronousDQ for std::marker::PhantomData<T> {
     type D = ();
     type Q = ();
+}
+
+impl<T: Digital + 'static> CircuitIO for std::marker::PhantomData<T> {
+    type I = ();
+    type O = ();
+    type Kernel = NoCircuitKernel<(), (), ((), ())>;
+}
+
+impl<T: Digital + 'static> CircuitDQ for std::marker::PhantomData<T> {
+    type D = ();
+    type Q = ();
+}
+
+impl<T: Digital + 'static> Circuit for std::marker::PhantomData<T> {
+    type S = ();
+
+    fn init(&self) -> Self::S {}
+
+    fn sim(&self, _input: Self::I, _state: &mut Self::S) -> Self::O {}
+
+    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
+        let name = scoped_name.to_string();
+        let module_ident = format_ident!("{name}");
+        let module: vlog::ModuleDef = parse_quote! {
+            module #module_ident;
+            endmodule
+        };
+        Ok(Descriptor::<AsyncKind> {
+            name: scoped_name,
+            input_kind: Kind::Empty,
+            output_kind: Kind::Empty,
+            d_kind: Kind::Empty,
+            q_kind: Kind::Empty,
+            kernel: None,
+            netlist: None,
+            hdl: Some(HDLDescriptor {
+                name: name.to_string(),
+                modules: module.into(),
+            }),
+            _phantom: std::marker::PhantomData,
+        })
+    }
 }

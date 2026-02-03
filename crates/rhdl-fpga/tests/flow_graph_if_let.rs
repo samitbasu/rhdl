@@ -3,6 +3,7 @@ use rhdl::prelude::*;
 use rhdl_fpga::core::dff;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+#[rhdl(dq_no_prefix)]
 pub struct U {
     reg: dff::DFF<b8>,
 }
@@ -44,12 +45,12 @@ fn stream() -> impl Iterator<Item = TimedSample<(ClockReset, Option<(bool, b8)>)
 fn test_trace() -> miette::Result<()> {
     let uut = U::default();
     let input = stream();
-    let vcd = uut.run(input).collect::<Vcd>();
+    let vcd = uut.run(input).collect::<VcdFile>();
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("vcd")
         .join("flow_graph_if_let");
     std::fs::create_dir_all(&root).unwrap();
-    let expect = expect!["b5f6a5a0bbaf1da08f5d67d1f603eb579323ee890e5b044ec6c6fb3b301b7757"];
+    let expect = expect!["e2c7695a02fe1af9a92e6b69b4a68ba5e7d802d683cc93b3eb897432b05af697"];
     let digest = vcd
         .dump_to_file(root.join("flow_graph_if_let.vcd"))
         .unwrap();

@@ -626,6 +626,7 @@ mod match_4 {
 }
 
 pub mod match_5 {
+    #![allow(unused)]
     use rhdl::prelude::*;
 
     #[derive(PartialEq, Digital, Debug, Default, Clone, Copy)]
@@ -1017,7 +1018,7 @@ mod variables_8 {
 
 mod simulation_exhaustive {
     use rhdl::prelude::*;
-    fn counter(cr: ClockReset, i: bool, q: b8) -> (b8, b8) {
+    fn counter(_cr: ClockReset, i: bool, q: b8) -> (b8, b8) {
         let d = if i { q + 1 } else { q };
         let o = q;
         (o, d)

@@ -10,11 +10,11 @@ impl rhdl::core::Circuit for Push {
     fn init(&self) -> Self::S {
         (
             <<Self as rhdl::core::CircuitDQ>::Q as rhdl::core::Digital>::dont_care(),
-            self.strobe.init(),
-            self.value.init(),
-            self.buf_z.init(),
-            self.side.init(),
-            self.latch.init(),
+            Circuit::init(&self.strobe),
+            Circuit::init(&self.value),
+            Circuit::init(&self.buf_z),
+            Circuit::init(&self.side),
+            Circuit::init(&self.latch),
         )
     }
     fn children(
@@ -27,11 +27,11 @@ impl rhdl::core::Circuit for Push {
         >,
     > {
         [
-            self.strobe.descriptor(parent_scope.with(stringify!(strobe))),
-            self.value.descriptor(parent_scope.with(stringify!(value))),
-            self.buf_z.descriptor(parent_scope.with(stringify!(buf_z))),
-            self.side.descriptor(parent_scope.with(stringify!(side))),
-            self.latch.descriptor(parent_scope.with(stringify!(latch))),
+            Circuit::descriptor(&self.strobe, parent_scope.with(stringify!(strobe))),
+            Circuit::descriptor(&self.value, parent_scope.with(stringify!(value))),
+            Circuit::descriptor(&self.buf_z, parent_scope.with(stringify!(buf_z))),
+            Circuit::descriptor(&self.side, parent_scope.with(stringify!(side))),
+            Circuit::descriptor(&self.latch, parent_scope.with(stringify!(latch))),
         ]
             .into_iter()
     }
@@ -46,19 +46,35 @@ impl rhdl::core::Circuit for Push {
             let prev_state = state.clone();
             let (outputs, internal_inputs) = update_fn(input, state.0);
             rhdl::core::trace_push_path(stringify!(strobe));
-            state.0.strobe = self.strobe.sim(internal_inputs.strobe, &mut state.1);
+            state.0.strobe = Circuit::sim(
+                &self.strobe,
+                internal_inputs.strobe,
+                &mut state.1,
+            );
             rhdl::core::trace_pop_path();
             rhdl::core::trace_push_path(stringify!(value));
-            state.0.value = self.value.sim(internal_inputs.value, &mut state.2);
+            state.0.value = Circuit::sim(
+                &self.value,
+                internal_inputs.value,
+                &mut state.2,
+            );
             rhdl::core::trace_pop_path();
             rhdl::core::trace_push_path(stringify!(buf_z));
-            state.0.buf_z = self.buf_z.sim(internal_inputs.buf_z, &mut state.3);
+            state.0.buf_z = Circuit::sim(
+                &self.buf_z,
+                internal_inputs.buf_z,
+                &mut state.3,
+            );
             rhdl::core::trace_pop_path();
             rhdl::core::trace_push_path(stringify!(side));
-            state.0.side = self.side.sim(internal_inputs.side, &mut state.4);
+            state.0.side = Circuit::sim(&self.side, internal_inputs.side, &mut state.4);
             rhdl::core::trace_pop_path();
             rhdl::core::trace_push_path(stringify!(latch));
-            state.0.latch = self.latch.sim(internal_inputs.latch, &mut state.5);
+            state.0.latch = Circuit::sim(
+                &self.latch,
+                internal_inputs.latch,
+                &mut state.5,
+            );
             rhdl::core::trace_pop_path();
             if state == &prev_state {
                 rhdl::core::trace("outputs", &outputs);

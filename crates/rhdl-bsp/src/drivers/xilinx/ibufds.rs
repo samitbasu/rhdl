@@ -87,8 +87,8 @@ mod tests {
             type O = Signal<b2, Red>;
             type Kernel = NoCircuitKernel<Self::I, (), (Self::O, ())>;
         }
-
-        let driver = build::<U>("clk", &path!(.0.val()), &options)?;
+        let i = <U as CircuitIO>::I::dont_care();
+        let driver = build::<U>("clk", &path!(i.0.val()), &options)?;
         let hdl = expect_test::expect![[r#"
             IBUFDS #(.DIFF_TERM("TRUE"), .IBUF_LOW_PWR("FALSE"), .IOSTANDARD("LVCMOS15")) ibufds_clk(.O(inner_input[0:0]), .I(clk_p), .IB(clk_n));
         "#]];

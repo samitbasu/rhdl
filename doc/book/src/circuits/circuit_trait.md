@@ -43,14 +43,7 @@ We will start with the `Circuit` trait itself, and the cover the other traits ne
 The remainder of the `Circuit` trait is connected to the support mechanisms for synthesis and simulation.  Here is a break down of the `Circuit` trait:
 
 ```rust
-pub trait Circuit: 'static + CircuitIO + Sized {
-    type S: Clone + PartialEq;
-
-    fn init(&self) -> Self::S;
-    fn sim(&self, input: Self::I, state: &mut Self::S) -> Self::O;
-    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError>; 
-    fn children(&self, parent_scope: &ScopedName) -> impl Iterator<Item = Result<Descriptor<AsyncKind>, RHDLError>>;
-}
+{{#rustdoc_include ../code/src/circuits/traits.rs:circuit_trait}}
 ```
 
 Even though you will rarely `impl Circuit` manually, it's important to understand how it works, and what happens under the hood when you tag your struct with `#[derive(Circuit)]`.  

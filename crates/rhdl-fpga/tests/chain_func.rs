@@ -6,6 +6,7 @@ mod auto_counter {
     use rhdl_fpga::core::dff;
 
     #[derive(Debug, Clone, Default, SynchronousDQ, Synchronous)]
+    #[rhdl(dq_no_prefix)]
     pub struct U<const N: usize>
     where
         rhdl::bits::W<N>: BitWidth,
@@ -49,12 +50,12 @@ fn test_auto_counter_counts() -> miette::Result<()> {
         .with_reset(1)
         .clock_pos_edge(100);
     let uut = auto_counter::U::<4>::default();
-    let vcd = uut.run(input).collect::<Vcd>();
+    let vcd = uut.run(input).collect::<VcdFile>();
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("vcd")
         .join("chain_func");
     std::fs::create_dir_all(&root).unwrap();
-    let expect = expect!["3f85fc11ea2ae6ccbc480b1a0f3525365b0f22e302f7f1cfd9eebbe23c05922f"];
+    let expect = expect!["fd64b712f684a375502e2884b4f2f479b41117eeebc4e3cc3ca9f62ac2853bae"];
     let digest = vcd.dump_to_file(root.join("auto_counter.vcd")).unwrap();
     expect.assert_eq(&digest);
     Ok(())

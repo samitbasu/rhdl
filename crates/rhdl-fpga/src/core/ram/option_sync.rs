@@ -60,6 +60,7 @@
 use rhdl::prelude::*;
 
 #[derive(PartialEq, Debug, Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The unit to include that wraps the [SyncBRAM]
 /// The `T` parameter indicates the type of element stored in the
 /// BRAM.  It must implement [Digital].
@@ -200,13 +201,13 @@ mod tests {
         let expected = test.map(|item| item.1).take(16);
         let stream = inputs.with_reset(1).clock_pos_edge(100);
         let sim = uut.run(stream);
-        let vcd = sim.clone().collect::<Vcd>();
+        let vcd = sim.clone().collect::<VcdFile>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("ram")
             .join("option_sync");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["c867b57f34e1c694da5dc12142c9ca7023928e46f61c2a287081080691b8448b"];
+        let expect = expect!["9a731ebf940a9384dc9adcaea0d8cd4e903cb0a8cf2856ec6ae6ad552e825533"];
         let digest = vcd
             .dump_to_file(root.join("test_scan_out_option_ram.vcd"))
             .unwrap();

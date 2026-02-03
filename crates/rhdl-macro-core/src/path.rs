@@ -1,23 +1,23 @@
 /*
-    The path! macro takes a path expression and converts it into
+    The path! macro takes a full path expression and converts it into
     a Path type.  So for example:
 
-    path!(x.axi.val().clock.0)
+    path!(input.axi.val().clock.0)
 
     Translates into:
 
-    (x.kind,
+    {
+        _ = input.axi.val().clock.0; // Ensures the expression is valid
         Path::default()
             .field("axi")
-            .signal_val()
+            .signal_value()
             .field("clock")
             .tuple_index(0)
-    )
+    }
 
-    Unfortunately, in use, it's kind of clunky.  It is cleaner to
-    do something like:
-
-    path!([3].axi.val().clock.0)
+    The root identifier (e.g., `input`) is stripped and the expression
+    is validated at compile time, while the path segments are used to
+    build the Path.
 */
 
 use proc_macro2::Literal;
@@ -89,59 +89,84 @@ mod kw {
 
 #[derive(Debug)]
 struct PathExpression {
+    full_expr: TokenStream,
     elements: Vec<PathSegment>,
 }
 
 impl ToTokens for PathExpression {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let elements = &self.elements;
-        quote! { #(#elements).* }.to_tokens(tokens);
+        let full_expr = &self.full_expr;
+        quote! {
+            {
+                _ = #full_expr;
+                #(#elements).*
+            }
+        }
+        .to_tokens(tokens);
     }
 }
-
-// Change to accept
-//  input.foo[3].val()...
-//  output.baz.val()...
 
 impl Parse for PathExpression {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let elements = parse_path_sequence(input)?;
-        Ok(Self { elements })
+        // Store the full input for validation
+        let full_expr = input.parse::<proc_macro2::TokenStream>()?;
+
+        // Re-parse to extract the path segments
+        let mut iter = full_expr.clone().into_iter().peekable();
+
+        // Skip the root identifier (e.g., "input" or "output")
+        if let Some(proc_macro2::TokenTree::Ident(_)) = iter.peek() {
+            iter.next();
+        }
+
+        // Parse remaining path segments
+        let remaining: TokenStream = iter.collect();
+        let elements = syn::parse2::<PathSequence>(remaining)?.0;
+
+        Ok(Self {
+            full_expr,
+            elements,
+        })
     }
 }
 
-fn parse_path_sequence(input: ParseStream) -> syn::Result<Vec<PathSegment>> {
-    let mut ret = vec![PathSegment::Default];
-    loop {
-        if input.is_empty() {
-            break;
-        }
-        let lookahead = input.lookahead1();
-        if lookahead.peek(token::Bracket) {
-            let content;
-            let _bracket = bracketed!(content in input);
-            ret.push(PathSegment::ArrayIndex(content.parse()?));
-        } else if lookahead.peek(token::Dot) {
-            let _dot: token::Dot = input.parse()?;
-            if input.peek(kw::val) {
-                let _val: kw::val = input.parse()?;
-                if input.peek(token::Paren) {
-                    let _content;
-                    let _ = parenthesized!(_content in input);
-                    ret.push(PathSegment::SignalVal);
-                } else {
-                    ret.push(PathSegment::Field(FieldName::ValKeyWord));
-                }
-            } else if input.peek(Ident) {
-                ret.push(PathSegment::Field(FieldName::Ident(input.parse()?)));
-            } else {
-                ret.push(PathSegment::TupleIndex(input.parse()?));
+struct PathSequence(Vec<PathSegment>);
+
+impl Parse for PathSequence {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut ret = vec![PathSegment::Default];
+        loop {
+            if input.is_empty() {
+                break;
             }
-        } else {
-            return Err(lookahead.error());
+            let lookahead = input.lookahead1();
+            if lookahead.peek(token::Bracket) {
+                let content;
+                let _bracket = bracketed!(content in input);
+                ret.push(PathSegment::ArrayIndex(content.parse()?));
+            } else if lookahead.peek(token::Dot) {
+                let _dot: token::Dot = input.parse()?;
+                if input.peek(kw::val) {
+                    let _val: kw::val = input.parse()?;
+                    if input.peek(token::Paren) {
+                        let _content;
+                        let _ = parenthesized!(_content in input);
+                        ret.push(PathSegment::SignalVal);
+                    } else {
+                        ret.push(PathSegment::Field(FieldName::ValKeyWord));
+                    }
+                } else if input.peek(Ident) {
+                    ret.push(PathSegment::Field(FieldName::Ident(input.parse()?)));
+                } else {
+                    ret.push(PathSegment::TupleIndex(input.parse()?));
+                }
+            } else {
+                return Err(lookahead.error());
+            }
         }
+        Ok(PathSequence(ret))
     }
-    Ok(ret)
 }
 
 pub fn path_macro(input: TokenStream) -> syn::Result<TokenStream> {
@@ -156,11 +181,11 @@ mod test {
 
     #[test]
     fn test_custom_parser() -> syn::Result<()> {
-        let tokens = quote!([3]);
+        let tokens = quote!(input[3]);
         let paths1: PathExpression = syn::parse2(tokens)?;
-        let tokens = quote!([3].foo);
+        let tokens = quote!(input[3].foo);
         let paths2: PathExpression = syn::parse2(tokens)?;
-        let tokens = quote!([3].foo.val().4.val);
+        let tokens = quote!(input[3].foo.val().4.val);
         let paths3: PathExpression = syn::parse2(tokens)?;
         let expect = expect_file!["expect/custom_path_parser.expect"];
         expect.assert_debug_eq(&(paths1, paths2, paths3));
@@ -169,7 +194,7 @@ mod test {
 
     #[test]
     fn test_path_macro() -> syn::Result<()> {
-        let tokens = quote!([3].foo.val().4.val);
+        let tokens = quote!(input[3].foo.val().4.val);
         let macro_out = path_macro(tokens)?.to_string();
         let expect = expect_file!["expect/path_macro.expect"];
         expect.assert_eq(&macro_out);

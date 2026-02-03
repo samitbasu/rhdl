@@ -3,7 +3,7 @@ use crate::{Digital, TimedSample};
 
 /// An iterator that merges two timed streams into one, using a provided merging function.
 ///
-/// Generally, you will create this with the `merge` method on the `MergeExt` trait.
+/// Generally, you will create this with the `merge_map` method on the `MergeMapExt` trait.
 pub struct MergeMap<A, B, S: Digital, T: Digital, F> {
     stream1: A,
     stream2: B,
@@ -105,7 +105,7 @@ where
     }
 }
 
-/// Extension trait to provide a `merge` method on iterators.
+/// Extension trait to provide a `merge_map` method on iterators.
 pub trait MergeMapExt<I, S, T>: IntoIterator + Sized {
     /// Creates a Merge iterator that merges two timed streams using the provided merging function.
     fn merge_map<F, U>(

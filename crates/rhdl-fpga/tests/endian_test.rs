@@ -6,6 +6,7 @@ mod sub {
     use rhdl_fpga::core::dff;
 
     #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+    #[rhdl(dq_no_prefix)]
     pub struct U {
         data: dff::DFF<b2>,
     }
@@ -92,6 +93,7 @@ mod master {
 }
 
 #[derive(Synchronous, SynchronousDQ, Clone, Debug, Default)]
+#[rhdl(dq_no_prefix)]
 struct U {
     sub: sub::U,
     master: master::U,
@@ -141,12 +143,12 @@ fn test_input_stream() -> impl Iterator<Item = TimedSample<(ClockReset, Option<(
 fn test_trace() -> miette::Result<()> {
     let uut = U::default();
     let input = test_input_stream();
-    let vcd = uut.run(input).collect::<Vcd>();
+    let vcd = uut.run(input).collect::<VcdFile>();
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("vcd")
         .join("lid");
     std::fs::create_dir_all(&root).unwrap();
-    let expect = expect!["47297f586b1a4978d665a21d807da6b05c98c4cfac5a24f890af38a0d11c17df"];
+    let expect = expect!["bc2bed40719acbf166a1001b7e01dcb96a25e831624630b9ea99c3cab1c28734"];
     let digest = vcd.dump_to_file(root.join("twist.vcd")).unwrap();
     expect.assert_eq(&digest);
     Ok(())

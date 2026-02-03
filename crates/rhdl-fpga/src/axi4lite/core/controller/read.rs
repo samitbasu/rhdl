@@ -116,6 +116,7 @@ use crate::{
 use rhdl::prelude::*;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// AXI Read Controller
 ///
 /// This core sinks a RHDL stream of

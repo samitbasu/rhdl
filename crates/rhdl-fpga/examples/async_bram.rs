@@ -43,11 +43,7 @@ fn main() -> Result<(), RHDLError> {
         write: signal(w),
     });
     let uut: AsyncBRAM<b8, Red, Blue, 3> = AsyncBRAM::new((0..).map(|x| (b3(x), b8(x))));
-    let vcd = uut.run(input).collect::<Svg>();
-    let options = SvgOptions {
-        label_width: 20,
-        ..Default::default()
-    };
-    write_svg_as_markdown(vcd, "async_bram.md", options)?;
+    let vcd = uut.run(input).collect::<SvgFile>();
+    write_svg_as_markdown(vcd, "async_bram.md", SvgOptions::default())?;
     Ok(())
 }

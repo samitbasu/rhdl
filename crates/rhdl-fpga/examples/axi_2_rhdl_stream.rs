@@ -7,6 +7,7 @@ use rhdl_fpga::{
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 struct TestFixture {
     source: SourceFromFn<b8>,
     axi_2_rhdl: Axi2Rhdl<b8>,
@@ -43,7 +44,7 @@ fn main() -> Result<(), RHDLError> {
     let input = std::iter::repeat_n((), 15)
         .with_reset(1)
         .clock_pos_edge(100);
-    let vcd = uut.run(input).collect::<Svg>();
+    let vcd = uut.run(input).collect::<SvgFile>();
     let options = SvgOptions::default();
     rhdl_fpga::doc::write_svg_as_markdown(vcd, "axi_2_rhdl_stream.md", options)?;
     Ok(())

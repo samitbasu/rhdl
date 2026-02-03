@@ -41,6 +41,7 @@ use badascii_doc::badascii_formal;
 use rhdl::prelude::*;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+#[rhdl(dq_no_prefix)]
 /// The FIFO write logic as a core
 pub struct FIFOWriteCore<const N: usize>
 where

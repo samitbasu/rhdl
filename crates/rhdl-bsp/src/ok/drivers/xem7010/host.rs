@@ -584,28 +584,30 @@ mod tests {
         }
 
         let mut ok_host = super::Host::<U>::default();
-        ok_host.wire_in(0, &path!(.in1))?;
-        ok_host.wire_in(2, &path!(.in2))?;
-        ok_host.wire_out(0x20, &path!(.out1))?;
-        ok_host.wire_out(0x24, &path!(.out2))?;
-        ok_host.trigger_in(0x42, &path!(.t_clk.val()), &path!(.t_in))?;
-        ok_host.trigger_in(0x40, &path!(.t_clk.val()), &path!(.t_in2))?;
-        ok_host.trigger_out(0x60, &path!(.t_clk.val()), &path!(.t_out))?;
-        ok_host.pipe_in(0x80, &path!(.p_in), &path!(.p_in_write))?;
-        ok_host.pipe_out(0xA0, &path!(.p_out), &path!(.p_out_read))?;
+        let i = <U as CircuitIO>::I::dont_care();
+        let o = <U as CircuitIO>::O::dont_care();
+        ok_host.wire_in(0, &path!(i.in1))?;
+        ok_host.wire_in(2, &path!(i.in2))?;
+        ok_host.wire_out(0x20, &path!(o.out1))?;
+        ok_host.wire_out(0x24, &path!(o.out2))?;
+        ok_host.trigger_in(0x42, &path!(o.t_clk.val()), &path!(i.t_in))?;
+        ok_host.trigger_in(0x40, &path!(o.t_clk.val()), &path!(i.t_in2))?;
+        ok_host.trigger_out(0x60, &path!(o.t_clk.val()), &path!(o.t_out))?;
+        ok_host.pipe_in(0x80, &path!(i.p_in), &path!(i.p_in_write))?;
+        ok_host.pipe_out(0xA0, &path!(o.p_out), &path!(i.p_out_read))?;
         ok_host.bt_pipe_in(
             0x81,
-            &path!(.p_in),
-            &path!(.bt_ready),
-            &path!(.bt_strobe),
-            &path!(.p_in_write),
+            &path!(i.p_in),
+            &path!(o.bt_ready),
+            &path!(i.bt_strobe),
+            &path!(i.p_in_write),
         )?;
         ok_host.bt_pipe_out(
             0xA1,
-            &path!(.p_out),
-            &path!(.bt_ready),
-            &path!(.bt_strobe),
-            &path!(.p_out_read),
+            &path!(o.p_out),
+            &path!(o.bt_ready),
+            &path!(i.bt_strobe),
+            &path!(i.p_out_read),
         )?;
         let driver = ok_host.build()?;
         let expect = expect_file!("ok_host.expect");

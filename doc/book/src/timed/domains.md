@@ -3,34 +3,19 @@
 The `Signal` wrapper type has two generic arguments.  The entirety of the definition is:
 
 ```rust
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Signal<T: Digital, C: Domain> {
-    val: T,
-    domain: std::marker::PhantomData<C>,
-}
+{{#rustdoc_include ../code/src/timed/trait_def.rs:signal_def}}
 ```
 
 The `Domain` trait is also simple:
 
 ```rust
-pub trait Domain: Copy + PartialEq + 'static + Default {
-    fn color() -> Color;
-}
+{{#rustdoc_include ../code/src/timed/trait_def.rs:domain_trait}}
 ```
 
 where `Color` is an enum that uses a color to indicate the uniqueness of the time domain:
 
 ```rust
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Color {
-    Red,
-    Orange,
-    Yellow,
-    Green,
-    Blue,
-    Indigo,
-    Violet,
-}
+{{#rustdoc_include ../code/src/timed/trait_def.rs:color_enum}}
 ```
 
 ```admonish note

@@ -61,7 +61,7 @@ mod tests {
     fn test_transaction_trace() -> miette::Result<()> {
         let uut = U::default();
         let input = test_stream();
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input).collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("axi4lite")

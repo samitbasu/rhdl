@@ -15,6 +15,17 @@ pub struct ClockReset {
     pub reset: Reset,
 }
 
+impl std::fmt::Display for ClockReset {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "c={},r={}",
+            u8::from(self.clock.raw()),
+            u8::from(self.reset.raw())
+        )
+    }
+}
+
 /// Create a combined clock and reset from individual signals.
 /// This is not a synthesizable function.  It's for testing.
 pub fn clock_reset(clock: Clock, reset: Reset) -> ClockReset {

@@ -16,10 +16,10 @@ pub fn derive_timed(input: TokenStream) -> syn::Result<TokenStream> {
 fn derive_timed_struct(decl: syn::DeriveInput) -> syn::Result<TokenStream> {
     match &decl.data {
         Data::Struct(s) => match s.fields {
-            syn::Fields::Named(_) => derive_timed_named_struct(decl),
+            syn::Fields::Named(_) | syn::Fields::Unit => derive_timed_named_struct(decl),
             _ => Err(syn::Error::new_spanned(
                 decl,
-                "can only derive `Timed` for structs with named fields",
+                "can only derive `Timed` for structs with named fields or unit structs",
             )),
         },
         _ => unreachable!(),

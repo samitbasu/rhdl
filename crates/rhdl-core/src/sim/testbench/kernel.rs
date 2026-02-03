@@ -1,3 +1,4 @@
+//! Low level kernel testing functions (internal use only)
 use log::debug;
 use rhdl_vlog::Pretty;
 
@@ -69,6 +70,7 @@ fn decl_list(q_len: usize, arg_sizes: &[usize]) -> Vec<vlog::Declaration> {
         .collect()
 }
 
+#[doc(hidden)]
 pub trait TestArg {
     fn vec_tb(&self) -> Vec<TypedBits>;
 }
@@ -121,6 +123,7 @@ impl<T0: Digital, T1: Digital, T2: Digital, T3: Digital, T4: Digital> TestArg
     }
 }
 
+#[doc(hidden)]
 pub trait Testable<Args, T1> {
     fn apply(&self, args: Args) -> T1;
     fn declaration() -> Vec<vlog::Declaration>;
@@ -397,6 +400,7 @@ where
     Ok(())
 }
 
+#[doc(hidden)]
 pub fn test_kernel_vm_and_verilog<K, F, Args, T0>(
     uut: F,
     vals: impl Iterator<Item = Args> + Clone,
@@ -414,6 +418,7 @@ where
     )
 }
 
+#[doc(hidden)]
 pub fn test_kernel_vm_and_verilog_synchronous<K, F, Args, T0>(
     uut: F,
     vals: impl Iterator<Item = Args> + Clone,

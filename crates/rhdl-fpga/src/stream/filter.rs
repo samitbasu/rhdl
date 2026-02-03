@@ -63,6 +63,7 @@ use rhdl::prelude::*;
 use super::{stream_buffer::StreamBuffer, StreamIO};
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The [Filter] Stream Core
 ///
 /// Here `T` is the type flowing in the stream.

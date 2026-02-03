@@ -27,6 +27,7 @@ use rhdl::prelude::*;
 use super::dff;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The counter core
 ///   `N` is the bitwidth of the counter
 pub struct Counter<const N: usize>
@@ -83,7 +84,7 @@ mod tests {
         let inputs = inputs.collect::<Vec<_>>();
         let uut: Counter<6> = Counter::default();
         let output = uut.run(inputs).count();
-        assert_eq!(output, 311);
+        assert_eq!(output, 314);
         Ok(())
     }
 
@@ -94,12 +95,12 @@ mod tests {
         let input = inputs_1.chain(inputs_2);
         let input = input.clock_pos_edge(100);
         let uut: Counter<6> = Counter::default();
-        let vcd: Vcd = uut.run(input).collect();
+        let vcd: VcdFile = uut.run(input).collect();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("counter");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["c64b3514ea7c0e710acdf4c2a2d629339e52b65b540643986e32abe5636df339"];
+        let expect = expect!["407e788098bbdc11b1db9f5b17c19f27d44445c5b368ff6064811bf7a077ef59"];
         let digest = vcd.dump_to_file(root.join("counter.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

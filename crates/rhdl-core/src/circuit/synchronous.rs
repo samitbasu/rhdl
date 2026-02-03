@@ -37,7 +37,7 @@
   (c&r) |                   +-----------------------+                   |        
         +---------------------------------------------------------------+        
 ")]
-//! See the book for more details on the canonical diagram and how to use
+//! See the [book] for more details on the canonical diagram and how to use
 //! synchronous circuits in RHDL.
 
 use crate::{

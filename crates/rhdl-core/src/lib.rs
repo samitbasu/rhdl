@@ -1,7 +1,7 @@
+//! The RHDL Core Library
 //#![warn(missing_docs)]
-pub use types::kind::Kind;
-pub mod clock_details;
-
+#![deny(unsafe_code)]
+#![deny(unused_must_use)]
 pub use circuit::circuit_impl::Circuit;
 pub use circuit::circuit_impl::CircuitDQ;
 pub use circuit::circuit_impl::CircuitIO;
@@ -12,8 +12,6 @@ pub use circuit::hdl_descriptor::HDLDescriptor;
 pub use circuit::synchronous::Synchronous;
 pub use circuit::synchronous::SynchronousDQ;
 pub use circuit::synchronous::SynchronousIO;
-pub use clock_details::ClockDetails;
-pub use types::bitz::BitZ;
 pub use types::clock::Clock;
 pub use types::digital::Digital;
 pub use types::digital_fn::DigitalFn;
@@ -23,6 +21,7 @@ pub use types::domain::Color;
 pub use types::domain::Domain;
 pub use types::kernel::KernelFnKind;
 pub use types::kind::DiscriminantAlignment;
+pub use types::kind::Kind;
 pub use types::reset::Reset;
 pub use types::reset_n::ResetN;
 pub use types::signal::Signal;
@@ -62,7 +61,6 @@ pub use types::timed_sample::timed_sample;
 pub mod hdl;
 pub use bitx::dyn_bit_manip::move_nbits_to_msb;
 pub use rhdl_trace_type::TraceType;
-pub use trace::bit::TraceBit;
 pub use trace::rtt;
 pub mod bitx;
 pub use bitx::BitX;

@@ -14,9 +14,11 @@ assets_version = "3.1.0"    # do not edit: managed by `mdbook-admonish install`
 [preprocessor.rhdl]
 command = "/Users/samitbasu/Devel/rhdl/target/release/mdbook-rhdl"
 
+[preprocessor.cmdrun]
+
 [output]
 
 [output.html]
-additional-css = ["./mdbook-admonish.css"]
+additional-css = ["./mdbook-admonish.css", "./custom.css"]
 
 [output.linkcheck]

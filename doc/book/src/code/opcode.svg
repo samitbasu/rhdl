@@ -1,0 +1,75 @@
+<svg viewBox="0 -16 336 176" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#EEEEEE" height="144" stroke="darkblue" width="336" x="0" y="0"/>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="112" x="224" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="280" y="8">
+7:0
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="112" x="112" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="168" y="8">
+15:8
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="112" x="0" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="56" y="8">
+17:16
+</text>
+<rect fill="#99FFCC" height="16" stroke="gray" width="336" x="0" y="16"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="168" y="24">
+OpCode|18|
+</text>
+<rect fill="#CCCC99" height="16" stroke="gray" width="112" x="0" y="32"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="56" y="40">
+Nop(00)
+</text>
+<rect fill="#CCCCCC" height="32" stroke="gray" width="112" x="0" y="48"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="56" y="64">
+Add(01)
+</text>
+<rect fill="#CCCCFF" height="16" stroke="gray" width="224" x="112" y="48"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="224" y="56">
+(Add)
+</text>
+<rect fill="#CCFF99" height="16" stroke="gray" width="112" x="224" y="64"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="280" y="72">
+.0 b8
+</text>
+<rect fill="#CCFFCC" height="16" stroke="gray" width="112" x="112" y="64"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="168" y="72">
+.1 b8
+</text>
+<rect fill="#CCFFFF" height="32" stroke="gray" width="112" x="0" y="80"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="56" y="96">
+Sub(10)
+</text>
+<rect fill="#FFCC99" height="16" stroke="gray" width="224" x="112" y="80"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="224" y="88">
+(Sub)
+</text>
+<rect fill="#FFCCCC" height="16" stroke="gray" width="112" x="224" y="96"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="280" y="104">
+.0 b8
+</text>
+<rect fill="#FFCCFF" height="16" stroke="gray" width="112" x="112" y="96"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="168" y="104">
+.1 b8
+</text>
+<rect fill="#FFFF99" height="16" stroke="gray" width="112" x="0" y="112"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="56" y="120">
+Not(11)
+</text>
+<rect fill="#FFFFCC" height="16" stroke="gray" width="112" x="224" y="112"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="280" y="120">
+Not b8
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="112" x="224" y="128"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="280" y="136">
+7:0
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="112" x="112" y="128"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="168" y="136">
+15:8
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="112" x="0" y="128"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="56" y="136">
+17:16
+</text>
+</svg>

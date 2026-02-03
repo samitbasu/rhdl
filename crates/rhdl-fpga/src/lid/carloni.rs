@@ -107,6 +107,7 @@ use rhdl::prelude::*;
 use crate::core::dff;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// A Carloni (skid) buffer
 ///
 /// `T` is the type of the data flowing through

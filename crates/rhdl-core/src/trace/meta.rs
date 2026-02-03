@@ -1,4 +1,5 @@
-use rhdl_trace_type::{RTT, TraceType};
+//! Metadata about a traced value
+use rhdl_trace_type::RTT;
 
 use crate::{Kind, trace::trace_tree::TraceTree};
 
@@ -6,8 +7,6 @@ use crate::{Kind, trace::trace_tree::TraceTree};
 pub struct TraceDetails {
     /// The Trace ID for this time series (useful for reverse lookups)
     pub trace_id: super::TraceId,
-    /// The [TraceType] of the recorded value
-    pub trace_type: TraceType,
     /// The hierarchical path to the recorded value.
     pub path: Vec<&'static str>,
     /// The name of the recorded value.
@@ -54,7 +53,7 @@ impl TraceMetadata {
                         [&["top"], &details.path[..]].concat().join("."),
                         details.key
                     );
-                    (name, details.trace_type.clone())
+                    (name, details.kind.into())
                 })
                 .collect(),
         )

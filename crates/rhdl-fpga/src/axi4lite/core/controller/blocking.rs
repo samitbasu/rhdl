@@ -131,6 +131,7 @@ pub enum State {
 }
 
 #[derive(Clone, Synchronous, SynchronousDQ, Default)]
+#[rhdl(dq_no_prefix)]
 /// Blocking AXI Read/Write Controller
 ///
 /// Executes a sequence of read/write commands provided

@@ -1,0 +1,1 @@
+TraceInfo({"top.clock":Clock,"top.count.dff.input":Bits(4),"top.count.dff.output":Bits(4),"top.input":Empty,"top.outputs":Bits(4),"top.reset":Reset})

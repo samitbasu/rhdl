@@ -4,16 +4,7 @@
 After the `Bits` type, the next most critical trait is `Digital`.  Here are the critical elements of the `Digital` trait that must be provided for any type.  I've redacted those methods that are automatically provided by the trait itself so we can focus on the important ones:
 
 ```rust
-pub trait Digital: Copy + PartialEq + Sized + Clone + 'static {
-    /// Associated constant that gives the total number of bits needed to represent the value.
-    const BITS: usize;
-    /// Returns the [Kind] (run time type descriptor) of the value as a static method
-    fn static_kind() -> Kind;
-    /// Returns the binary representation of the value as a vector of [BitX].
-    fn bin(self) -> Box<[BitX]>;
-    /// Returns a "don't care" value for the type.
-    fn dont_care() -> Self;
-}
+{{#rustdoc_include ../code/src/digital/summary_ex.rs:digital-trait}}
 ```
 
 Most of these are fairly easy to understand.  A `Digital` value has a total of 3 representations:
@@ -30,13 +21,13 @@ An `impl Digital` type may have *ZERO* bits!  This is really quite important, as
 
 For the vast majority of cases, though, you will probably build data structures by composition of existing atomic types (like `Bits`, `bool`, `SignedBits`).  For example, these all `impl Digital`:
 
-```rust
-b4        // - a 4 bit vector
-()        // - a ZST
-(b4, b5)  // - a tuple of bit vectors
-[b4; 8]   // - an array of bit vectors
-u8        // - the core Rust integer types, like i8,u8,i16,etc.
-```
+| Expression | Description |
+|------------|-------------|
+| `b4`        | 4 bit vector |
+| `()`        | ZST |
+| `(b4, b5)`  | tuple of bit vectors |
+| `[b4; 8]`   | array of bit vectors |
+| `u8`        | core Rust integer types like `i8`, `u8`, `i16`, etc. |
 
 From these base types, you can construct more complicated types using structural composition.  But it's much easier to use `struct` and `enum` instead.  
 

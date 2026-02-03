@@ -1,6 +1,9 @@
+//! Lightweight test module for using Icarus Verilog
 use crate::RHDLError;
 use rhdl_vlog as vlog;
 
+/// A simple test module that can be used to run Verilog simulations
+/// using Icarus Verilog.
 pub struct TestModule(vlog::ModuleList);
 
 impl From<vlog::ModuleList> for TestModule {
@@ -16,6 +19,9 @@ impl std::fmt::Display for TestModule {
 }
 
 impl TestModule {
+    /// Run the test module using Icarus Verilog.
+    /// The test module should include a test bench that
+    /// prints "TESTBENCH OK" on success, and "FAILED" on failure.
     pub fn run_iverilog(&self) -> Result<(), RHDLError> {
         let d = tempfile::tempdir()?;
         // Write the test bench to a file

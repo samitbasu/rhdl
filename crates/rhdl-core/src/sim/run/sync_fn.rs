@@ -1,9 +1,10 @@
+//! Extension trait to provide a closed loop `run_fn` method on synchronous circuits.
 use crate::{
-    Clock, ClockReset, Digital, Synchronous, SynchronousIO, TimedSample,
+    Clock, ClockReset, Digital, Synchronous, SynchronousIO,
     clock::clock,
     clock_reset,
     sim::ResetOrData,
-    timed_sample, trace,
+    trace,
     trace::{
         page::{set_trace_page, take_trace_page},
         session::Session,
@@ -21,13 +22,14 @@ enum State {
     Done,
 }
 
-//
-// T - the Synchronous circuit being simulated
-// F - the function that generates the input
-// S - the state of the circuit
-// I - the input to the circuit
-// O - the output of the circuit
-//
+/// An iterator that runs a synchronous circuit with feedback,
+/// using a user-supplied function to generate the inputs
+/// based on the last output of the circuit.
+/// Generally, you will not construct this type directly,
+/// but instead use the `run_fn` extension method on the circuit under test.
+///
+/// See the [book] for an example of its use.
+#[must_use = "To run the simulation, you must exhaust the iterator or collect it into a VCD"]
 pub struct RunSynchronousFeedback<'a, T, F, S, I, O> {
     uut: &'a T,
     input_fn: F,
@@ -64,6 +66,8 @@ where
     }
 }
 
+/// Runs the synchronous circuit with feedback using the supplied input function.
+/// See the [book] for an example of its use.
 pub fn run_fn<T, F, S, I, O>(
     uut: &T,
     input_fn: F,
@@ -178,7 +182,10 @@ where
     }
 }
 
+/// Extension trait to provide a `run_fn` method on synchronous circuits.
 pub trait RunSynchronousFeedbackExt {
+    /// Runs the synchronous circuit with feedback using the supplied input function.
+    /// See the [book] for an example of its use.
     fn run_fn<F>(
         &self,
         input_fn: F,

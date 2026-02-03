@@ -3,8 +3,7 @@
 The `sim` method for synchronous circuits is notable different from the case of `Circuit` because of the introduction of the clock and reset signals into the argument list:
 
 ```rust
-//                 👇 - extra argument
-fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O;
+{{#rustdoc_include ../../code/src/synchronous.rs:sim-signature}}
 ```
 
 Roughly, this translates into the following with `#[derive(Synchronous)]`:

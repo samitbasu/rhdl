@@ -1,3 +1,4 @@
+//! Probe to write traced samples to a VCD file without consuming them
 use std::path::{Path, PathBuf};
 
 use crate::{
@@ -5,12 +6,15 @@ use crate::{
     trace::{TraceContainer, trace_sample::TracedSample, vcd::Vcd},
 };
 
+/// A probe that writes traced samples to a VCD file without consuming them.
+/// See the [book] for an example of its use.
 pub struct VCDFile<I> {
     inner: Vcd,
     iter: I,
     file_name: PathBuf,
 }
 
+/// Create a VCD file-writing probe over the supplied stream of traced samples.
 pub fn vcd_file<I>(stream: I, file: &Path) -> VCDFile<I> {
     VCDFile {
         inner: Vcd::default(),

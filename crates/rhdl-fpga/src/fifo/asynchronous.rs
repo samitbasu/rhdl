@@ -72,7 +72,7 @@ where
 {
     write_logic: Adapter<write_logic::FIFOWriteCore<N>, W>,
     read_logic: Adapter<read_logic::FIFOReadCore<N>, R>,
-    ram: ram::option_async::OptionAsyncBRAM<T, W, R, N>,
+    ram: ram::option_async::OptionAsyncBram<T, W, R, N>,
     read_count_for_write_logic: cross_counter::CrossCounter<R, W, N>,
     write_count_for_read_logic: cross_counter::CrossCounter<W, R, N>,
 }
@@ -120,12 +120,12 @@ where
 /// Async FIFO kernel
 pub fn async_fifo_kernel<T: Digital, W: Domain, R: Domain, const N: usize>(
     i: In<T, W, R>,
-    q: Q<T, W, R, N>,
-) -> (Out<T, W, R>, D<T, W, R, N>)
+    q: AsyncFIFOQ<T, W, R, N>,
+) -> (Out<T, W, R>, AsyncFIFOD<T, W, R, N>)
 where
     rhdl::bits::W<N>: BitWidth,
 {
-    let mut d = D::<T, W, R, N>::dont_care();
+    let mut d = AsyncFIFOD::<T, W, R, N>::dont_care();
     // Clock the various components
     d.write_logic.clock_reset = i.cr_w;
     d.read_logic.clock_reset = i.cr_r;
@@ -209,13 +209,13 @@ mod tests {
         });
         //        let input = test_stream();
         let uut = AsyncFIFO::<Bits<8>, Red, Blue, 5>::default();
-        let vcd = uut.run(input.clone()).collect::<Vcd>();
+        let vcd = uut.run(input.clone()).collect::<VcdFile>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo")
             .join("asynchronous");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["6ea6fd8b66bbcc4b8b5c0097921fec5dc5c938a6147580dbf420a6b6c8e852a6"];
+        let expect = expect!["e7749f770cd57651455c04b9081eb2ecc4949c7f23858a566260d864d75af61b"];
         let digest = vcd
             .dump_to_file(root.join("async_fifo_write_test.vcd"))
             .unwrap();

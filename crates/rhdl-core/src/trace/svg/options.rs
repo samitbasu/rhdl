@@ -1,3 +1,5 @@
+//! Options for generating SVG traces
+
 /// Gap detection options
 pub enum GapDetectionOptions {
     /// Use the median clock period to determine if gaps are present
@@ -82,7 +84,7 @@ impl SvgOptions {
             ..self
         }
     }
-
+    /// Enable automatic gap detection using the median clock period
     pub fn with_median_gap_detection(self) -> SvgOptions {
         Self {
             auto_gap_detection: Some(GapDetectionOptions::Median),

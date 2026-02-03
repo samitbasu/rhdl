@@ -339,7 +339,9 @@ pub(crate) fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
             .flat_map(|variant| leaf_paths(&variant.kind, base.clone().payload(&variant.name)))
             .chain(once(base.clone().discriminant()))
             .collect(),
-        Kind::Bits(_) | Kind::Signed(_) | Kind::Empty => vec![base.clone()],
+        Kind::Bits(_) | Kind::Signed(_) | Kind::Empty | Kind::Clock | Kind::Reset => {
+            vec![base.clone()]
+        }
     }
 }
 

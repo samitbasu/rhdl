@@ -18,9 +18,11 @@ fn test_simple_fixture_example() -> miette::Result<()> {
 
     let adder = AsyncFunc::new::<adder>()?;
     let mut fixture = Fixture::new("adder_top", adder);
+    let input = Signal::<(b4, b4), Red>::dont_care();
+    let output = Signal::<b4, Red>::dont_care();
     bind!(fixture, a -> input.val().0);
     bind!(fixture, b -> input.val().1);
-    bind!(fixture, sum -> output.val());
+    bind!(fixture, sum <- output.val());
     let vlog = fixture.module()?;
     let vlog_str = vlog.pretty();
     expect.assert_eq(&vlog_str);
@@ -37,22 +39,24 @@ fn test_bind_macro_with_expressions() -> miette::Result<()> {
     let circuit = AsyncFunc::new::<simple_passthrough>()?;
 
     // Test with array indexing expression
-    let mut fixtures = vec![
+    let mut fixtures = [
         Fixture::new("test0", circuit.clone()),
         Fixture::new("test1", circuit.clone()),
     ];
 
+    let input = Signal::<b4, Red>::dont_care();
+    let output = Signal::<b4, Red>::dont_care();
     // These should work now with expression instead of just identifier
     bind!(fixtures[0], input_signal -> input.val());
-    bind!(fixtures[0], output_signal -> output.val());
+    bind!(fixtures[0], output_signal <- output.val());
 
     bind!(fixtures[1], input_signal -> input.val());
-    bind!(fixtures[1], output_signal -> output.val());
+    bind!(fixtures[1], output_signal <- output.val());
 
     // Test with a new fixture to demonstrate method call expressions
     let mut another_fixture = Fixture::new("test2", circuit.clone());
     bind!(another_fixture, test_input -> input.val());
-    bind!(another_fixture, test_output -> output.val());
+    bind!(another_fixture, test_output <- output.val());
 
     // Basic test - should not panic and should compile
     assert!(fixtures[0].module().is_ok());

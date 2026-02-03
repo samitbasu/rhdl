@@ -141,6 +141,7 @@ use crate::{
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// AXI Write Endpoint
 ///
 /// This core translates an AXI write bus into

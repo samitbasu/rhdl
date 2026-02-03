@@ -77,15 +77,6 @@ pub(crate) fn make_svg_document(
         .set("stroke", "darkblue");
     document = document.add(background);
 
-    // Add a set of time labels
-    // The start time may not lie on the grid.  E.g., we may start at time 77, but the grid is 50
-    // We will start at the first grid point after the start time (or equal if it lies on a grid point)
-    let grid_start = (start_time / time_delta)
-        + if !start_time.is_multiple_of(time_delta) {
-            1
-        } else {
-            0
-        };
     let label_end = options.label_width as f32 * options.font_size_in_pixels;
     let times = (0..)
         .map(|ndx| ndx * time_delta - start_time)

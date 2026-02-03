@@ -9,7 +9,7 @@ fn main() -> Result<(), RHDLError> {
         .clock_pos_edge(100)
         .map(|t| t.map(|x| x.1));
     let uut = ResetNegation::<Red>::default();
-    let vcd = uut.run(input).collect::<Svg>();
+    let vcd = uut.run(input).collect::<SvgFile>();
     write_svg_as_markdown(vcd, "reset_negation.md", SvgOptions::default())?;
     Ok(())
 }

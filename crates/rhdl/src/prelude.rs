@@ -23,12 +23,9 @@ pub use rhdl_core::rhif::spec::OpCode;
 pub use rhdl_core::rtl::Object;
 pub use rhdl_core::rtl::vm::execute;
 pub use rhdl_core::trace;
-//pub use rhdl_core::trace::db::with_trace_db;
-//pub use rhdl_core::trace_init_db;
 pub use rhdl_core::trace_pop_path;
 pub use rhdl_core::trace_push_path;
-//pub use rhdl_core::trace_time;
-pub use rhdl_core::types::bitz::BitZ;
+//pub use rhdl_core::types::bitz::BitZ;
 pub use rhdl_core::types::clock::Clock;
 pub use rhdl_core::types::clock::clock;
 pub use rhdl_core::types::clock_reset::clock_reset;
@@ -57,7 +54,6 @@ pub use rhdl_core::types::signal::signal;
 pub use rhdl_core::types::timed::Timed;
 pub use rhdl_core::types::timed_sample::TimedSample;
 pub use rhdl_core::types::timed_sample::timed_sample;
-//pub use rhdl_core::{types::bit_string::BitString, util::hash_id};
 pub use rhdl_macro::Circuit;
 pub use rhdl_macro::CircuitDQ;
 pub use rhdl_macro::Digital;
@@ -84,6 +80,7 @@ pub use rhdl_core::circuit::fixture::Fixture;
 pub use rhdl_core::circuit::fixture::MountPoint;
 pub use rhdl_core::circuit::fixture::passthrough_input_driver;
 pub use rhdl_core::circuit::fixture::passthrough_output_driver;
+pub use rhdl_core::circuit::scoped_name::ScopedName;
 pub use rhdl_core::const_max;
 pub use rhdl_core::ntl::builder::circuit_black_box;
 pub use rhdl_core::ntl::builder::constant;
@@ -94,6 +91,7 @@ pub use rhdl_core::sim::iter::merge_map::merge_map;
 pub use rhdl_core::sim::iter::reset::with_reset;
 pub use rhdl_core::sim::iter::reset::without_reset;
 pub use rhdl_core::sim::iter::uniform::uniform;
+pub use rhdl_core::sim::probe::context_around::AroundEventExt;
 pub use rhdl_core::sim::probe::ext::ProbeExt;
 pub use rhdl_core::sim::probe::ext::SynchronousProbeExt;
 pub use rhdl_core::sim::run::async_fn::run_async_red_blue;
@@ -103,23 +101,24 @@ pub use rhdl_core::sim::run::synchronous::RunSynchronousExt;
 pub use rhdl_core::sim::testbench::TestBenchOptions;
 pub use rhdl_core::sim::testbench::asynchronous::TestBench;
 pub use rhdl_core::sim::testbench::synchronous::SynchronousTestBench;
+pub use rhdl_core::trace::container::svg::options::SvgOptions;
+pub use rhdl_core::trace::container::svg::svg_file::SvgFile;
+pub use rhdl_core::trace::container::vcd::options::VcdOptions;
+pub use rhdl_core::trace::container::vcd::vcd_file::VcdFile;
 pub use rhdl_core::trace::session::Session;
-pub use rhdl_core::trace::svg::SvgFile as Svg;
-pub use rhdl_core::trace::svg::options::SvgOptions;
-pub use rhdl_core::trace::vcd::Vcd;
+pub use rhdl_core::trace::trace_sample::TracedSample;
 pub use rhdl_core::types::path::sub_trace_type;
 pub use rhdl_macro::export;
 pub use rhdl_macro::path;
 pub use rhdl_vlog as vlog;
 pub use rhdl_vlog::formatter::Pretty;
 pub use rhdl_vlog::parse_quote_miette;
-
 /// A helper macro to bind a named input or output port to a path on the circuit.
 ///
 /// The syntax is either:
 /// `bind!(fixture, port_name -> input.<path.to.signal>)`
 /// or
-/// `bind!(fixture, port_name -> output.<path.to.signal>)`
+/// `bind!(fixture, port_name <- output.<path.to.signal>)`
 ///
 ///# Example
 ///
@@ -136,9 +135,10 @@ pub use rhdl_vlog::parse_quote_miette;
 ///
 ///let adder = AsyncFunc::new::<adder>()?;
 ///let mut fixture = Fixture::new("adder_top", adder);
+///let (input, output) = fixture.io();
 ///bind!(fixture, a -> input.val().0);
 ///bind!(fixture, b -> input.val().1);
-///bind!(fixture, sum -> output.val());
+///bind!(fixture, sum <- output.val());
 ///let vlog = fixture.module()?;  
 ///```
 /// When exported as Verilog, the fixture will look like this:
@@ -171,10 +171,10 @@ pub use rhdl_vlog::parse_quote_miette;
 /// ```
 #[macro_export]
 macro_rules! bind {
-    ($fixture:expr, $name:ident -> input $($path:tt)*) => {
+    ($fixture:expr, $name:ident -> $($path:tt)*) => {
         $fixture.pass_through_input(stringify!($name), &path!($($path)*))?
     };
-    ($fixture:expr, $name:ident -> output $($path:tt)*) => {
+    ($fixture:expr, $name:ident <- $($path:tt)*) => {
         $fixture.pass_through_output(stringify!($name), &path!($($path)*))?
     };
 }

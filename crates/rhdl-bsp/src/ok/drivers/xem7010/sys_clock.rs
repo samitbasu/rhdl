@@ -49,8 +49,8 @@ mod tests {
             type O = ();
             type Kernel = NoCircuitKernel<I, (), ((), ())>;
         }
-
-        let clock_driver = super::sys_clock::<T>(&path!(.clock.val())).unwrap();
+        let i = <T as CircuitIO>::I::dont_care();
+        let clock_driver = super::sys_clock::<T>(&path!(i.clock.val())).unwrap();
         let hdl = expect_file!("sys_clock_hdl.expect");
         hdl.assert_eq(&clock_driver.hdl.pretty());
         let xdc = expect_file!("sys_clock.xdc");

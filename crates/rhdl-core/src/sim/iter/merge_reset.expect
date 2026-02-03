@@ -254,4 +254,49 @@
         time: 55,
         trace_status: Traced,
     },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    true,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            4_b8,
+        ),
+        time: 56,
+        trace_status: Traced,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    false,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            4_b8,
+        ),
+        time: 60,
+        trace_status: Traced,
+    },
+    TimedSample {
+        value: (
+            ClockReset {
+                clock: Clock(
+                    false,
+                ),
+                reset: Reset(
+                    false,
+                ),
+            },
+            4_b8,
+        ),
+        time: 65,
+        trace_status: Traced,
+    },
 ]

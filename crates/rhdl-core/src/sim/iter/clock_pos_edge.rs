@@ -34,6 +34,8 @@ enum State {
     Hold,
     ClockLow,
     ClockHigh,
+    TailStart,
+    TailEnd,
     Done,
 }
 
@@ -138,13 +140,23 @@ where
                 if let Some(data) = self.input.next() {
                     self.sample = data;
                     self.state = State::ClockLow;
-                    self.time = self.next_time;
-                    self.next_time += self.period / 2 - 1;
-                    Some(self.this_sample(clock(true)))
                 } else {
-                    self.state = State::Done;
-                    None
+                    self.state = State::TailStart;
                 }
+                self.time = self.next_time;
+                self.next_time += self.period / 2 - 1;
+                Some(self.this_sample(clock(true)))
+            }
+            State::TailStart => {
+                self.state = State::TailEnd;
+                self.time = self.next_time;
+                self.next_time = self.time + self.period / 2;
+                Some(self.this_sample(clock(false)))
+            }
+            State::TailEnd => {
+                self.state = State::Done;
+                self.time = self.next_time;
+                Some(self.this_sample(clock(false)))
             }
             State::Done => None,
         }
@@ -153,7 +165,7 @@ where
 
 /// Creates a ClockPosEdge iterator that produces clock and reset signals along with the input samples.
 ///
-/// See the book for examples of how to use this iterator adaptor.
+/// See the [book] for examples of how to use this iterator adaptor.
 pub fn clock_pos_edge<I, S>(input: I, period: u64) -> ClockPosEdge<I, S>
 where
     I: Iterator<Item = ResetOrData<S>>,
@@ -207,6 +219,9 @@ mod tests {
             timed_sample(26, (clock_reset(clock(true), reset(false)), b8(3))),
             timed_sample(30, (clock_reset(clock(false), reset(false)), b8(3))),
             timed_sample(35, (clock_reset(clock(true), reset(false)), b8(3))),
+            timed_sample(36, (clock_reset(clock(true), reset(false)), b8(3))),
+            timed_sample(40, (clock_reset(clock(false), reset(false)), b8(3))),
+            timed_sample(45, (clock_reset(clock(false), reset(false)), b8(3))),
         ]
     }
 
