@@ -84,8 +84,6 @@ pub enum ICE {
     NoLocalVariableFoundForTypedPattern { pat: Box<Pat> },
     #[error("Unsupported pattern in type pattern {pat:?}")]
     UnsupportedPatternInTypePattern { pat: Box<Pat> },
-    #[error("Unsupported pattern in bind pattern {pat:?}")]
-    UnsupportedPatternInBindPattern { pat: Box<Pat> },
     #[error("Call made {call:?} to kernel with no code found")]
     CallToKernelWithNoCode { call: ExprCall },
     #[error("Missing local variable for binding {var:?} in then-branch")]
@@ -280,13 +278,18 @@ pub enum Syntax {
         "Use a turbofish to indicate how many bits you want to prepend (msb), e.g., a.xext::<4>() or how many bits to shift left or right, as a.xshr<2>()"
     ))]
     XOpsWithoutLength,
+    #[error("RHDL does not support this bind pattern")]
+    #[diagnostic(help(
+        "This pattern is not supported in RHDL.  Break it down into simpler patterns and match sequentially."
+    ))]
+    UnsupportedPatternInBindPattern,
 }
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum ClockError {
     #[error("Clock domain mismatch in binary operation {op:?}")]
     #[diagnostic(help(
-        "You cannot perform binary operations on signals from different clock domains"
+        "You cannot perform binary operation {op:?} on signals from different clock domains"
     ))]
     BinaryOperationClockMismatch { op: AluBinary },
     #[error("Clock domain mismatch in unary operation {op:?}")]

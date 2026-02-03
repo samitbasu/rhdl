@@ -1,3 +1,4 @@
+//! Synchronous testbench generation
 use quote::{format_ident, quote};
 use rhdl_trace_type::RTT;
 use rhdl_vlog::{self as vlog, maybe_decl_reg, maybe_decl_wire};
@@ -10,9 +11,12 @@ use crate::{
 
 use super::TestBenchOptions;
 
+/// A test bench for synchronous circuits
+///
+/// See the book for examples of how to use this container.
 #[derive(Clone)]
 pub struct SynchronousTestBench<I: Digital, O: Digital> {
-    pub samples: Vec<TimedSample<(ClockReset, I, O)>>,
+    samples: Vec<TimedSample<(ClockReset, I, O)>>,
 }
 
 impl<I, O> FromIterator<TracedSample<(ClockReset, I), O>> for SynchronousTestBench<I, O>
@@ -111,11 +115,11 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
                 [
                     (
                         "testbench.clock_reset".to_string(),
-                        ClockReset::static_trace_type(),
+                        ClockReset::static_kind().into(),
                     ),
-                    ("testbench.i".to_string(), I::static_trace_type()),
-                    ("testbench.o".to_string(), O::static_trace_type()),
-                    ("testbench.rust_out".to_string(), O::static_trace_type()),
+                    ("testbench.i".to_string(), I::static_kind().into()),
+                    ("testbench.o".to_string(), O::static_kind().into()),
+                    ("testbench.rust_out".to_string(), O::static_kind().into()),
                 ]
                 .into_iter()
                 .collect(),
@@ -197,6 +201,7 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
         Ok(module.into())
     }
 
+    /// Generate a RTL testbench module for the given synchronous UUT
     pub fn rtl<T>(&self, uut: &T, options: &TestBenchOptions) -> Result<TestModule, RHDLError>
     where
         T: Synchronous,
@@ -206,6 +211,7 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
         let module = &desc.hdl()?.modules;
         self.build_test_module(module, options)
     }
+    /// Generate a NTL testbench module for the given synchronous UUT   
     pub fn ntl<T>(&self, uut: &T, options: &TestBenchOptions) -> Result<TestModule, RHDLError>
     where
         T: Synchronous,

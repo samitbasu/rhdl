@@ -85,6 +85,7 @@ pub enum State {
 }
 
 #[derive(PartialEq, Debug, Clone, SynchronousDQ, Synchronous)]
+#[rhdl(dq_no_prefix)]
 /// The [StreamToFIFO] Buffer Core
 ///
 /// `T` is the type of the data elements flowing in the pipeline.

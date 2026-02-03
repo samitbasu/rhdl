@@ -12,6 +12,7 @@ use crate::{
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 pub struct Fixture {
     write_source: SourceFromFn<WriteCommand>,
     write: WriteController,
@@ -99,7 +100,7 @@ mod tests {
     fn synth_works() -> miette::Result<()> {
         let input = repeat_n((), 100).with_reset(1).clock_pos_edge(100);
         let uut = Fixture::default();
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input).collect::<VcdFile>();
         vcd.dump_to_file("thing.vcd").unwrap();
         Ok(())
     }

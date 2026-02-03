@@ -8,4 +8,4 @@ The pattern I used is also called `type erasure`.  We take a value with a compil
 
 1. You cannot use `DynBits` or `SignedDynBits` as part of your "public" API.  That is to say, you cannot compose them into data structures that go "on the wire" or are passed in or out of your compute kernels.
 2. Because you must ultimately convert `DynBits -> Bits<N>` to store or pass it on, you must ultimately know how many bits end up at the output of your calculations.  As a result, `DynBits` are best suited for scoped calculations where the bit width manipulation would be too tedius to explain to `rustc`, and where you know what the input and output bitwidths are going to be.
-3. If you get it wrong, then you will get errors.  How soon you get the error is up to you.  We'll take a look at how to constrain designs that use dynamic bitvectors in the [Late Checking] section.
+3. If you get it wrong, then you will get errors.  How soon you get the error is up to you.  We'll take a look at how to constrain designs that use dynamic bitvectors in the [Late Checking](dyn_late.md) section.

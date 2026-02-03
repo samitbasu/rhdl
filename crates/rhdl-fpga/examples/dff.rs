@@ -19,6 +19,7 @@ pub enum State {
 // This is the core itself.  We derive these
 // 4 traits to provide the needed functions
 #[derive(Synchronous, Clone, Debug, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 pub struct Recognizer {
     state: DFF<State>,
 }
@@ -59,7 +60,7 @@ fn main() -> Result<(), RHDLError> {
     let input = [false, true, false, true, true, false, false, true, false];
     let input = input.into_iter().with_reset(1).clock_pos_edge(100);
     let uut = Recognizer::default();
-    let vcd = uut.run(input).collect::<Svg>();
+    let vcd = uut.run(input).collect::<SvgFile>();
     let options = SvgOptions::default().with_label_width(20);
     write_svg_as_markdown(vcd, "dff.md", options)?;
     Ok(())

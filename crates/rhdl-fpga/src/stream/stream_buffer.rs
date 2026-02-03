@@ -73,6 +73,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// Option-based Carloni buffer core
 ///
 /// Here `T` is the data type being transported through

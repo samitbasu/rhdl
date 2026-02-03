@@ -773,12 +773,7 @@ impl<'a> MirContext<'a> {
             PatKind::Paren(paren) => self.bind_pattern(&paren.pat),
             PatKind::Wild => Ok(()),
             _ => Err(self
-                .raise_ice(
-                    ICE::UnsupportedPatternInBindPattern {
-                        pat: Box::new(pattern.clone()),
-                    },
-                    pattern.id,
-                )
+                .raise_syntax_error(Syntax::UnsupportedPatternInBindPattern, pattern.id)
                 .into()),
         }
     }

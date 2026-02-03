@@ -22,7 +22,7 @@ fn check_register_like(
 ) -> Result<(), RHDLError> {
     for (_slot, kind) in vals {
         let kind = kind.signal_data();
-        if !matches!(kind, Kind::Bits(_) | Kind::Signed(_)) {
+        if !matches!(kind, Kind::Bits(_) | Kind::Signed(_) | Kind::Reset) {
             return Err(Box::new(RHDLSyntaxError {
                 src: obj.symbols.source(),
                 cause,

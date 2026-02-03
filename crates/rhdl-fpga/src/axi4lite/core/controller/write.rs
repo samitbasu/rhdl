@@ -140,6 +140,7 @@ use crate::{
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// AXI Write Controller
 ///
 /// This core sinks a RHDL stream of [WriteCommand]

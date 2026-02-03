@@ -63,6 +63,7 @@ use rhdl::prelude::*;
 use crate::core::{dff::DFF, option::is_some};
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The Chunked Pipe Core
 ///
 /// This core takes a pipeline of `T` and produces
@@ -217,7 +218,7 @@ mod tests {
             .with_reset(1)
             .clock_pos_edge(100)
             .take(100);
-        let output = uut.run(input).collect::<Vcd>();
+        let output = uut.run(input).collect::<VcdFile>();
         output.dump_to_file("chunked_pipe.vcd")?;
         Ok(())
     }

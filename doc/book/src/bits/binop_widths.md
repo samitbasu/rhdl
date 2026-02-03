@@ -10,27 +10,19 @@ Bit width preservation is pretty natural for "regular" Rust.  But there are some
 1.  There is no such thing as a panic in a hardware design (unless you build one yourself).  So while `rustc` may cause your program to panic if it creates an out-of-range result, the RHDL operators will simply wrap the result (i.e., through away bits).
 2.  Bit widths can be tricky in some HDLs, as they attempt to preserve all information, or infer the number of bits needed, or pad arguments as needed to make operations make sense.  If you are used to `Rust`'s strict type rules, you will find RHDL to make sense.  You cannot add a `b4` to a `b8`, anymore than you can add a `u8` to a `u32`.
 
-There _are_ times you want "all the bits".  For example, if you want the carry out bit when adding two bit vectors, how do you do this?  An ALU may need to calculate the carry out on the sum of two 32-bit values.   There are two ways to do this in RHDL.  The first (and maybe easiest) is to simply extend the to operands by an extra bit, and then perform the operation.  The carry bit is then stashed in the MSB of the resulting 33-bit number.  
+There _are_ times you want "all the bits".  For example, if you want the carry out bit when adding two bit vectors, how do you do this?  An ALU may need to calculate the carry out on the sum of two 8-bit values.   There are two ways to do this in RHDL.  The first (and maybe easiest) is to simply extend the to operands by an extra bit, and then perform the operation.  The carry bit is then stashed in the MSB of the resulting 9-bit number.  
 
 ```rust
-let a = b8(200); 
-let b = b8(100);
-let a = a.resize::<9>(); // zero extend to 9 bits
-let b = b.resize::<9>(); // ditto
-let c = a + b;
-let carry = get_msb::<9>(c);
+{{#rustdoc_include ../code/src/bits/mod.rs:get_all_bits}}
 ```
 
-This may look somewhat inefficient, but it will reduce down to a simple adder with the carry out bit residing in `carry`.  The rest (like adding zero, or anding with `0`) will be optimized out.  The `get_msb` function might look something like this:
+This may look somewhat inefficient, but it will reduce down to a simple adder with the carry out bit residing in `carry`.  The rest (like adding zero, or anding with `0`) will be optimized out.  
+
+
+Because getting the MSB of a bit vector is a common operation, you may want to write a helper function for it.  The `get_msb` function might look something like this:
 
 ```rust
-#[kernel]
-fn get_msb<const N: usize>(a: Bits<N>) -> bool
-where
-    rhdl::bits::W<N>: BitWidth,
-{
-    (a & (1 << (N - 1))).any()
-}
+{{#rustdoc_include ../code/src/bits/mod.rs:get_msb_function}}
 ```
 
 For reduction operators, like `.any()`, `.all()` and `.xor()`, the output will be a single `bool` value.

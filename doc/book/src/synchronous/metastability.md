@@ -16,17 +16,22 @@ Consider a super simple synchronous circuit with a single 1-bit flip flop:
 ```
 Recall that this flip flop will sample the input right before the rising edge of the clock, and then update the output to correspond to this value, which it will hold until the next rising edge:
 ```badascii
-          +---+   +---+   +---+   +---+
- clk  +---+   +---+   +---+   +---+    
-                                       
-      +-+D1+--+-+D2+--+-+D3+--+-+D4+--+
- input+---+---+-------+-------+-------+
-          +---------+                  
-                    v                  
-      +-+XX+--+-+D1+--+-+D2+--+-+D3+--+
-output+-------+-------+-------+-------+
+   Sample   v           v           v           v         
+            :           :           :           :         
+            +-----+     +-----+     +-----+     +-----+   
+ clk  +-----+     +-----+     +-----+     +-----+         
+            :           :           :           :         
+      +-+D1+--+--+ D2 +---+---+ D3 +--+---+ D4 +--+---    
+ input+---+---+-----------+-----------+-----------+---    
+            :           :           :           :         
+           >:ε:<        :           :           :         
+              :         :           :           :         
+      +-+XX+--+--+ D1 +---+--+ D2 +---+--+ D3 +---+-+D4 --
+output+-------+-----------+-----------+-----------+------+
+              :           :           :           :       
+   Update     ^           ^           ^           ^       
 ```
-Here we show the output changing on the falling edge of the clock, but conventionally, the output is usually shown to change at the rising edge, since the time between the clock edge and the output changing is usually very _very_ short.
+Here we show the output changing at some time ε after the rising edge of the clock, but conventionally, the output is usually shown to change at the rising edge, since the time between the clock edge and the output changing is usually very _very_ short.
 
 There are many good resources on metastability, but let's look at a simplified example.  We have a circuit element that requires the input to be stable for some amount of time δt before the clock edge (called the "setup time").  Now suppose that we have an input that transitions close to the clock edge, within that time δt
 ```badascii

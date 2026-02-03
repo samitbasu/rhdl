@@ -69,14 +69,14 @@ use rhdl::prelude::*;
 /// the BRAM will hold `2^N` elements.
 /// The `W` domain is the clock domain where data is written.
 /// The `R` domain is the clock domain where the reads run.
-pub struct OptionAsyncBRAM<T: Digital, W: Domain, R: Domain, const N: usize>
+pub struct OptionAsyncBram<T: Digital, W: Domain, R: Domain, const N: usize>
 where
     rhdl::bits::W<N>: BitWidth,
 {
     inner: super::asynchronous::AsyncBRAM<T, W, R, N>,
 }
 
-impl<T: Digital, W: Domain, R: Domain, const N: usize> OptionAsyncBRAM<T, W, R, N>
+impl<T: Digital, W: Domain, R: Domain, const N: usize> OptionAsyncBram<T, W, R, N>
 where
     rhdl::bits::W<N>: BitWidth,
 {
@@ -114,7 +114,7 @@ where
     pub read: Signal<ReadI<N>, R>,
 }
 
-impl<T: Digital, W: Domain, R: Domain, const N: usize> CircuitIO for OptionAsyncBRAM<T, W, R, N>
+impl<T: Digital, W: Domain, R: Domain, const N: usize> CircuitIO for OptionAsyncBram<T, W, R, N>
 where
     rhdl::bits::W<N>: BitWidth,
 {
@@ -127,8 +127,8 @@ where
 /// Kernel function for [OptionAsyncBRAM]
 pub fn ram_kernel<T: Digital, W: Domain, R: Domain, const N: usize>(
     i: In<T, W, R, N>,
-    q: Q<T, W, R, N>,
-) -> (Signal<T, R>, D<T, W, R, N>)
+    q: OptionAsyncBramQ<T, W, R, N>,
+) -> (Signal<T, R>, OptionAsyncBramD<T, W, R, N>)
 where
     rhdl::bits::W<N>: BitWidth,
 {
@@ -146,7 +146,7 @@ where
         w.enable = false;
         w.addr = bits(0);
     }
-    let mut d = D::<T, W, R, N>::dont_care();
+    let mut d = OptionAsyncBramD::<T, W, R, N>::dont_care();
     d.inner.write = signal(w);
     d.inner.read = i.read;
     let o = q.inner;
@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn test_ram_netlist() -> miette::Result<()> {
-        let uut = OptionAsyncBRAM::<Bits<8>, Red, Green, 4>::new(
+        let uut = OptionAsyncBram::<Bits<8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn test_ram_as_verilog() -> miette::Result<()> {
-        let uut = OptionAsyncBRAM::<Bits<8>, Red, Green, 4>::new(
+        let uut = OptionAsyncBram::<Bits<8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn test_ram_write_behavior() -> miette::Result<()> {
-        let uut = OptionAsyncBRAM::<Bits<8>, Red, Green, 4>::new(
+        let uut = OptionAsyncBram::<Bits<8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits(0))),
@@ -253,20 +253,20 @@ mod tests {
         let expected = vec![142, 0, 100, 0, 0, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23]
             .into_iter()
             .map(|x| signal(bits(x)));
-        let vcd = uut.run(stream.clone()).collect::<Vcd>();
+        let vcd = uut.run(stream.clone()).collect::<VcdFile>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("ram")
             .join("option_async");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["ca4d34a0c5a04a200e24276c9ca2870d1e6040e2444e7ba587c307455be8a80f"];
+        let expect = expect!["7af413cdca0b6d77821ea40a42b60062f468113d04a00375a9892834704761c6"];
         let digest = vcd.dump_to_file(root.join("ram_write.vcd")).unwrap();
         expect.assert_eq(&digest);
         let output = uut
             .run(stream)
             .glitch_check(|x| (x.input.read.val().clock, x.output.val()))
-            .sample_at_pos_edge(|x| x.input.read.val().clock)
-            .skip(17)
+            .sample_at_neg_edge(|x| x.input.read.val().clock)
+            .skip(16)
             .map(|x| x.output);
         let expected = expected.collect::<Vec<_>>();
         let output = output.collect::<Vec<_>>();
@@ -278,7 +278,7 @@ mod tests {
     fn test_ram_read_only_behavior() -> miette::Result<()> {
         // Let's start with a simple test where the RAM is pre-initialized,
         // and we just want to read it.
-        let uut = OptionAsyncBRAM::<Bits<8>, Red, Green, 4>::new(
+        let uut = OptionAsyncBram::<Bits<8>, Red, Green, 4>::new(
             (0..)
                 .enumerate()
                 .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
@@ -294,8 +294,7 @@ mod tests {
         let values = (0..16).map(|x| bits(15 - x)).cycle().take(32);
         let samples = uut
             .run(stream)
-            .sample_at_pos_edge(|i| i.input.read.val().clock)
-            .skip(1);
+            .sample_at_neg_edge(|i| i.input.read.val().clock);
         let output = samples.map(|x| x.output.val());
         assert!(values.eq(output));
         Ok(())

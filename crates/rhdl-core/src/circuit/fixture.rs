@@ -159,8 +159,13 @@ pub enum ExportError {
         required: Kind,
     },
     /// Attempt to feed a clock signal to a non-clock input
-    #[error("Path {0:?} on input is not a clock input")]
-    NotAClockInput(Path),
+    #[error("Path {path:?} on input is not a clock input - it is of type {kind:?} ")]
+    NotAClockInput {
+        /// The path to the signal
+        path: Path,
+        /// The kind of the signal
+        kind: Kind,
+    },
     #[error(
         "Mismatch in signal width on input: expected {expected} bits, but got {actual} with path {path:?}"
     )]
@@ -186,8 +191,13 @@ pub enum ExportError {
         path: Path,
     },
     /// Attempt to feed a clock signal from a non-clock input
-    #[error("Path {0:?} on input is not a clock output")]
-    NotAClockOutput(Path),
+    #[error("Path {path:?} on output is not a clock output, it is of type {kind:?}")]
+    NotAClockOutput {
+        /// The path to the signal
+        path: Path,
+        /// The kind of the signal
+        kind: Kind,
+    },
     /// The circuit cannot be exported as a fixture, due to some BSP specific issue.
     #[error("BSP Error {0}")]
     Custom(anyhow::Error),
@@ -572,5 +582,12 @@ impl<T: Circuit> Fixture<T> {
             .map(|x| x.constraints.clone())
             .collect::<Vec<_>>();
         xdc.join("\n")
+    }
+    /// Get an input/output value pair for the circuit wrapped by this fixture.
+    pub fn io_dont_care(&self) -> (<T as CircuitIO>::I, <T as CircuitIO>::O) {
+        (
+            <T::I as Digital>::dont_care(),
+            <T::O as Digital>::dont_care(),
+        )
     }
 }

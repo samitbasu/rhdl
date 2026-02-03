@@ -1,79 +1,79 @@
-<svg viewBox="0 -16 336 192" xmlns="http://www.w3.org/2000/svg">
-<rect fill="#EEEEEE" height="160" stroke="darkblue" width="336" x="0" y="0"/>
-<rect fill="#EEEEEE" height="16" stroke="darkblue" width="112" x="224" y="0"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="280" y="8">
+<svg viewBox="0 -16 432 192" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#EEEEEE" height="160" stroke="darkblue" width="432" x="0" y="0"/>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="144" x="288" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="360" y="8">
 7:0
 </text>
-<rect fill="#EEEEEE" height="16" stroke="darkblue" width="112" x="112" y="0"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="168" y="8">
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="144" x="144" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="216" y="8">
 15:8
 </text>
-<rect fill="#EEEEEE" height="16" stroke="darkblue" width="112" x="0" y="0"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="56" y="8">
-17:16
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="144" x="0" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="72" y="8">
+19:16
 </text>
-<rect fill="#99FFCC" height="16" stroke="gray" width="336" x="0" y="16"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="168" y="24">
-OpCode|18|
+<rect fill="#99FFCC" height="16" stroke="gray" width="432" x="0" y="16"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="216" y="24">
+OpCode|20|
 </text>
-<rect fill="#CCCC99" height="16" stroke="gray" width="112" x="0" y="32"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="56" y="40">
-Nop(00)
+<rect fill="#CCCC99" height="16" stroke="gray" width="144" x="0" y="32"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="72" y="40">
+Nop(0000)
 </text>
-<rect fill="#CCCCCC" height="32" stroke="gray" width="112" x="0" y="48"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="56" y="64">
-Add(01)
+<rect fill="#CCCCCC" height="32" stroke="gray" width="144" x="0" y="48"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="72" y="64">
+Add(0001)
 </text>
-<rect fill="#CCCCFF" height="16" stroke="gray" width="224" x="112" y="48"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="224" y="56">
+<rect fill="#CCCCFF" height="16" stroke="gray" width="288" x="144" y="48"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="288" y="56">
 (Add)
 </text>
-<rect fill="#CCFF99" height="16" stroke="gray" width="112" x="224" y="64"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="280" y="72">
+<rect fill="#CCFF99" height="16" stroke="gray" width="144" x="288" y="64"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="360" y="72">
 .0 b8
 </text>
-<rect fill="#CCFFCC" height="16" stroke="gray" width="112" x="112" y="64"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="168" y="72">
+<rect fill="#CCFFCC" height="16" stroke="gray" width="144" x="144" y="64"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="216" y="72">
 .1 b8
 </text>
-<rect fill="#CCFFFF" height="32" stroke="gray" width="112" x="0" y="80"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="56" y="96">
-Sub(10)
+<rect fill="#CCFFFF" height="32" stroke="gray" width="144" x="0" y="80"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="72" y="96">
+Sub(0010)
 </text>
-<rect fill="#FFCC99" height="16" stroke="gray" width="224" x="112" y="80"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="224" y="88">
+<rect fill="#FFCC99" height="16" stroke="gray" width="288" x="144" y="80"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="288" y="88">
 (Sub)
 </text>
-<rect fill="#FFCCCC" height="16" stroke="gray" width="112" x="224" y="96"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="280" y="104">
+<rect fill="#FFCCCC" height="16" stroke="gray" width="144" x="288" y="96"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="360" y="104">
 .0 b8
 </text>
-<rect fill="#FFCCFF" height="16" stroke="gray" width="112" x="112" y="96"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="168" y="104">
+<rect fill="#FFCCFF" height="16" stroke="gray" width="144" x="144" y="96"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="216" y="104">
 .1 b8
 </text>
-<rect fill="#FFFF99" height="32" stroke="gray" width="112" x="0" y="112"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="56" y="128">
-Not(11)
+<rect fill="#FFFF99" height="32" stroke="gray" width="144" x="0" y="112"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="72" y="128">
+Not(0011)
 </text>
-<rect fill="#FFFFCC" height="16" stroke="gray" width="112" x="224" y="112"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="280" y="120">
+<rect fill="#FFFFCC" height="16" stroke="gray" width="144" x="288" y="112"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="360" y="120">
 (Not)
 </text>
-<rect fill="#99FFCC" height="16" stroke="gray" width="112" x="224" y="128"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="280" y="136">
+<rect fill="#99FFCC" height="16" stroke="gray" width="144" x="288" y="128"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="360" y="136">
 .0 b8
 </text>
-<rect fill="#EEEEEE" height="16" stroke="darkblue" width="112" x="224" y="144"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="280" y="152">
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="144" x="288" y="144"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="360" y="152">
 7:0
 </text>
-<rect fill="#EEEEEE" height="16" stroke="darkblue" width="112" x="112" y="144"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="168" y="152">
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="144" x="144" y="144"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="216" y="152">
 15:8
 </text>
-<rect fill="#EEEEEE" height="16" stroke="darkblue" width="112" x="0" y="144"/>
-<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="56" y="152">
-17:16
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="144" x="0" y="144"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="72" y="152">
+19:16
 </text>
 </svg>

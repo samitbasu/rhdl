@@ -1,0 +1,175 @@
+<svg viewBox="0 0 860 100" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<clipPath id="clip">
+<rect height="100" width="860" x="0" y="0"/>
+</clipPath>
+</defs>
+<rect fill="#0B151D" height="100" stroke="darkblue" width="860" x="0" y="0"/>
+<line stroke="#333333" stroke-width="1" x1="260" x2="260" y1="0" y2="100"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="260" y="10">
+0
+</text>
+<line stroke="#333333" stroke-width="1" x1="360" x2="360" y1="0" y2="100"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="360" y="10">
+100
+</text>
+<line stroke="#333333" stroke-width="1" x1="460" x2="460" y1="0" y2="100"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="460" y="10">
+200
+</text>
+<line stroke="#333333" stroke-width="1" x1="560" x2="560" y1="0" y2="100"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="560" y="10">
+300
+</text>
+<line stroke="#333333" stroke-width="1" x1="660" x2="660" y1="0" y2="100"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="660" y="10">
+400
+</text>
+<line stroke="#333333" stroke-width="1" x1="760" x2="760" y1="0" y2="100"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="760" y="10">
+500
+</text>
+<line stroke="#333333" stroke-width="1" x1="860" x2="860" y1="0" y2="100"/>
+<text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="end" x="860" y="10">
+600
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" y="10">
+Time:
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="30">
+.kernel_4.a
+<title>top.kernel_4.a</title>
+</text>
+<path d="M 260 30 L 263 23 L 357 23 L 360 30 L 357 37 L 263 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="310" xml:space="preserve" y="30">
+00
+<title>00</title>
+</text>
+<path d="M 360 30 L 363 23 L 457 23 L 460 30 L 457 37 L 363 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="410" xml:space="preserve" y="30">
+14
+<title>14</title>
+</text>
+<path d="M 460 30 L 463 23 L 557 23 L 560 30 L 557 37 L 463 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="510" xml:space="preserve" y="30">
+0f
+<title>0f</title>
+</text>
+<path d="M 560 30 L 563 23 L 657 23 L 660 30 L 657 37 L 563 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="610" xml:space="preserve" y="30">
+17
+<title>17</title>
+</text>
+<path d="M 660 30 L 663 23 L 757 23 L 760 30 L 757 37 L 663 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="710" xml:space="preserve" y="30">
+2a
+<title>2a</title>
+</text>
+<path d="M 760 30 L 763 23 L 857 23 L 860 30 L 857 37 L 763 37 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="810" xml:space="preserve" y="30">
+38
+<title>38</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="50">
+.kernel_4.b
+<title>top.kernel_4.b</title>
+</text>
+<path d="M 260 50 L 263 43 L 357 43 L 360 50 L 357 57 L 263 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="310" xml:space="preserve" y="50">
+00
+<title>00</title>
+</text>
+<path d="M 360 50 L 363 43 L 457 43 L 460 50 L 457 57 L 363 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="410" xml:space="preserve" y="50">
+03
+<title>03</title>
+</text>
+<path d="M 460 50 L 463 43 L 557 43 L 560 50 L 557 57 L 463 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="510" xml:space="preserve" y="50">
+05
+<title>05</title>
+</text>
+<path d="M 560 50 L 563 43 L 657 43 L 660 50 L 657 57 L 563 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="610" xml:space="preserve" y="50">
+07
+<title>07</title>
+</text>
+<path d="M 660 50 L 663 43 L 757 43 L 760 50 L 757 57 L 663 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="710" xml:space="preserve" y="50">
+09
+<title>09</title>
+</text>
+<path d="M 760 50 L 763 43 L 857 43 L 860 50 L 857 57 L 763 57 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="810" xml:space="preserve" y="50">
+0b
+<title>0b</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
+.kernel_4.kernel.after_add
+<title>top.kernel_4.kernel.after_add</title>
+</text>
+<path d="M 260 70 L 263 63 L 357 63 L 360 70 L 357 77 L 263 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="310" xml:space="preserve" y="70">
+00
+<title>00</title>
+</text>
+<path d="M 360 70 L 363 63 L 457 63 L 460 70 L 457 77 L 363 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="410" xml:space="preserve" y="70">
+17
+<title>17</title>
+</text>
+<path d="M 460 70 L 463 63 L 557 63 L 560 70 L 557 77 L 463 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="510" xml:space="preserve" y="70">
+14
+<title>14</title>
+</text>
+<path d="M 560 70 L 563 63 L 657 63 L 660 70 L 657 77 L 563 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="610" xml:space="preserve" y="70">
+1e
+<title>1e</title>
+</text>
+<path d="M 660 70 L 663 63 L 757 63 L 760 70 L 757 77 L 663 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="710" xml:space="preserve" y="70">
+33
+<title>33</title>
+</text>
+<path d="M 760 70 L 763 63 L 857 63 L 860 70 L 857 77 L 763 77 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="810" xml:space="preserve" y="70">
+03
+<title>03</title>
+</text>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="90">
+.kernel_4.output
+<title>top.kernel_4.output</title>
+</text>
+<path d="M 260 90 L 263 83 L 357 83 L 360 90 L 357 97 L 263 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="310" xml:space="preserve" y="90">
+00
+<title>00</title>
+</text>
+<path d="M 360 90 L 363 83 L 457 83 L 460 90 L 457 97 L 363 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="410" xml:space="preserve" y="90">
+2e
+<title>2e</title>
+</text>
+<path d="M 460 90 L 463 83 L 557 83 L 560 90 L 557 97 L 463 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="510" xml:space="preserve" y="90">
+28
+<title>28</title>
+</text>
+<path d="M 560 90 L 563 83 L 657 83 L 660 90 L 657 97 L 563 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="610" xml:space="preserve" y="90">
+3c
+<title>3c</title>
+</text>
+<path d="M 660 90 L 663 83 L 757 83 L 760 90 L 757 97 L 663 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="710" xml:space="preserve" y="90">
+26
+<title>26</title>
+</text>
+<path d="M 760 90 L 763 83 L 857 83 L 860 90 L 857 97 L 763 97 Z" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="810" xml:space="preserve" y="90">
+06
+<title>06</title>
+</text>
+</svg>

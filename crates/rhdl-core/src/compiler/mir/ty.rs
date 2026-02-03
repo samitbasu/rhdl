@@ -27,12 +27,14 @@ pub enum SignFlag {
 // generic over any other types.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Const {
-    Clock(Color),
+    Color(Color),
     Length(usize),
     Empty,
     Signed(SignFlag),
     String(Intern<String>),
-    Unclocked,
+    Uncolored,
+    Clock,
+    Reset,
 }
 
 // These are types that are generic over one or more other types.
@@ -58,8 +60,8 @@ pub enum UnifyError {
     ExpectedSignFlagButFound { kind: TypeKind },
     #[error("Expected a length, found {kind:?}")]
     ExpectedLengthButFound { kind: TypeKind },
-    #[error("Expected a clock, found {kind:?}")]
-    ExpectedClockButFound { kind: TypeKind },
+    #[error("Expected a color, found {kind:?}")]
+    ExpectedColorButFound { kind: TypeKind },
     #[error("Unbound variable {kind:?}")]
     UnboundVariable { kind: TypeKind },
     #[error("Expected constant {kind:?}")]
@@ -85,8 +87,8 @@ pub enum UnifyError {
     ExpectedAppType { x: TypeKind },
     #[error("Cannot unify applicative types {x:?} and {y:?}")]
     CannotUnifyApplicativeTypes { x: AppType, y: AppType },
-    #[error("Cannot unify {x:?} and unclocked")]
-    CannotUnifyUnclocked { x: AppType },
+    #[error("Cannot unify {x:?} and uncolored")]
+    CannotUnifyUncolored { x: AppType },
     #[error("Expected a string, but found {x:?}")]
     ExpectedStringNot { x: TypeKind },
     #[error("Field {field} missing in struct definition")]
@@ -169,23 +171,23 @@ impl AppTypeKind for AppBits {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct AppSignal {
     data: TypeId,
-    clock: TypeId,
+    color: TypeId,
 }
 
 impl AppTypeKind for AppSignal {
     fn sub_types(&self) -> Vec<TypeId> {
-        vec![self.data, self.clock]
+        vec![self.data, self.color]
     }
     fn apply(self, context: &mut UnifyContext) -> Self {
         AppSignal {
             data: context.apply(self.data),
-            clock: context.apply(self.clock),
+            color: context.apply(self.color),
         }
     }
     fn into_kind(self, context: &mut UnifyContext) -> Result<Kind, RHDLError> {
         let data = context.into_kind(self.data)?;
-        let clock = context.cast_ty_as_clock(self.clock)?;
-        Ok(Kind::Signal(internment::Intern::new(data), clock))
+        let color = context.cast_ty_as_color(self.color)?;
+        Ok(Kind::Signal(internment::Intern::new(data), color))
     }
 }
 
@@ -414,6 +416,14 @@ impl UnifyContext {
         }
     }
 
+    pub fn ty_clock(&mut self, loc: SourceLocation) -> TypeId {
+        self.ty_const(loc, Const::Clock)
+    }
+
+    pub fn ty_reset(&mut self, loc: SourceLocation) -> TypeId {
+        self.ty_const(loc, Const::Reset)
+    }
+
     pub fn ty_const_len(&mut self, loc: SourceLocation, len: usize) -> TypeId {
         self.ty_const(loc, Const::Length(len))
     }
@@ -442,8 +452,8 @@ impl UnifyContext {
         self.ty_app(loc, AppType::Bits(AppBits { sign_flag, len }))
     }
 
-    pub fn ty_signal(&mut self, loc: SourceLocation, data: TypeId, clock: TypeId) -> TypeId {
-        self.ty_app(loc, AppType::Signal(AppSignal { data, clock }))
+    pub fn ty_signal(&mut self, loc: SourceLocation, data: TypeId, color: TypeId) -> TypeId {
+        self.ty_app(loc, AppType::Signal(AppSignal { data, color }))
     }
 
     pub fn ty_result(&mut self, loc: SourceLocation, ok_ty: TypeId, err_ty: TypeId) -> TypeId {
@@ -712,12 +722,12 @@ impl UnifyContext {
         enumerate.discriminant
     }
 
-    pub fn ty_unclocked(&mut self, loc: SourceLocation) -> TypeId {
-        self.ty_const(loc, Const::Unclocked)
+    pub fn ty_uncolored(&mut self, loc: SourceLocation) -> TypeId {
+        self.ty_const(loc, Const::Uncolored)
     }
 
-    pub fn ty_clock(&mut self, loc: SourceLocation, clock: Color) -> TypeId {
-        self.ty_const(loc, Const::Clock(clock))
+    pub fn ty_color(&mut self, loc: SourceLocation, color: Color) -> TypeId {
+        self.ty_const(loc, Const::Color(color))
     }
 
     pub fn ty_empty(&mut self, loc: SourceLocation) -> TypeId {
@@ -752,12 +762,12 @@ impl UnifyContext {
         }
     }
 
-    pub fn cast_ty_as_clock(&mut self, ty: TypeId) -> Result<Color, RHDLError> {
+    pub fn cast_ty_as_color(&mut self, ty: TypeId) -> Result<Color, RHDLError> {
         let x = self.apply(ty);
-        if let TypeKind::Const(Const::Clock(c)) = x.kind.as_ref() {
+        if let TypeKind::Const(Const::Color(c)) = x.kind.as_ref() {
             Ok(*c)
         } else {
-            Err(self.raise_type_error(UnifyError::ExpectedClockButFound {
+            Err(self.raise_type_error(UnifyError::ExpectedColorButFound {
                 kind: x.kind.as_ref().clone(),
             }))
         }
@@ -771,6 +781,8 @@ impl UnifyContext {
             })),
             TypeKind::Const(c) => match c {
                 Const::Empty => Ok(Kind::Empty),
+                Const::Clock => Ok(Kind::Clock),
+                Const::Reset => Ok(Kind::Reset),
                 _ => Err(self.raise_type_error(UnifyError::ExpectedConstant {
                     kind: x.kind.as_ref().clone(),
                 })),
@@ -805,11 +817,13 @@ impl UnifyContext {
                 let len = self.ty_const_len(loc, array.size);
                 self.ty_array(loc, base, len)
             }
-            Kind::Signal(kind, clock) => {
+            Kind::Signal(kind, color) => {
                 let kind = self.from_kind(loc, *kind);
-                let clock = self.ty_clock(loc, clock);
-                self.ty_signal(loc, kind, clock)
+                let color = self.ty_color(loc, color);
+                self.ty_signal(loc, kind, color)
             }
+            Kind::Clock => self.ty_clock(loc),
+            Kind::Reset => self.ty_reset(loc),
         }
     }
 
@@ -821,7 +835,7 @@ impl UnifyContext {
         match ty.kind.as_ref() {
             TypeKind::Var(v) => format!("V{}", v.0),
             TypeKind::Const(c) => match c {
-                Const::Clock(c) => format!("{c:?}"),
+                Const::Color(c) => format!("{c:?}"),
                 Const::Length(n) => format!("{n}"),
                 Const::Signed(f) => {
                     if f.eq(&SignFlag::Signed) {
@@ -832,7 +846,9 @@ impl UnifyContext {
                 }
                 Const::String(s) => s.to_string(),
                 Const::Empty => "()".to_string(),
-                Const::Unclocked => "*".to_string(),
+                Const::Uncolored => "*".to_string(),
+                Const::Clock => "clk".to_string(),
+                Const::Reset => "rst".to_string(),
             },
             TypeKind::App(app) => match app {
                 AppType::Struct(strukt) => format!(
@@ -872,7 +888,7 @@ impl UnifyContext {
                 AppType::Signal(signal) => format!(
                     "signal<{}, {}>",
                     Self::desc(signal.data),
-                    Self::desc(signal.clock)
+                    Self::desc(signal.color)
                 ),
                 AppType::Array(array) => {
                     format!("[{}; {}]", Self::desc(array.base), Self::desc(array.len))
@@ -948,10 +964,10 @@ impl UnifyContext {
         let ty = self.apply(ty);
         matches!(ty.kind.as_ref(), TypeKind::App(AppType::Signal(_)))
     }
-    pub fn project_signal_clock(&mut self, ty: TypeId) -> Option<TypeId> {
+    pub fn project_signal_color(&mut self, ty: TypeId) -> Option<TypeId> {
         let ty = self.apply(ty);
         if let TypeKind::App(AppType::Signal(signal)) = ty.kind.as_ref() {
-            Some(signal.clock)
+            Some(signal.color)
         } else {
             None
         }
@@ -1011,10 +1027,10 @@ impl UnifyContext {
         match (x.kind.as_ref(), y.kind.as_ref()) {
             (TypeKind::Var(_), _) => self.unify_variable(x, y),
             (_, TypeKind::Var(_)) => self.unify_variable(y, x),
-            (TypeKind::Const(Const::Unclocked), TypeKind::Const(Const::Clock(_)))
-            | (TypeKind::Const(Const::Clock(_)), TypeKind::Const(Const::Unclocked)) => Ok(()),
-            (TypeKind::App(_), TypeKind::Const(Const::Unclocked)) => self.unify_app_unclocked(x, y),
-            (TypeKind::Const(Const::Unclocked), TypeKind::App(_)) => self.unify_app_unclocked(y, x),
+            (TypeKind::Const(Const::Uncolored), TypeKind::Const(Const::Color(_)))
+            | (TypeKind::Const(Const::Color(_)), TypeKind::Const(Const::Uncolored)) => Ok(()),
+            (TypeKind::App(_), TypeKind::Const(Const::Uncolored)) => self.unify_app_uncolored(x, y),
+            (TypeKind::Const(Const::Uncolored), TypeKind::App(_)) => self.unify_app_uncolored(y, x),
             (TypeKind::Const(x), TypeKind::Const(y)) if x == y => Ok(()),
             (TypeKind::App(_), TypeKind::App(_)) => self.unify_app(x, y),
             _ => Err(self.raise_type_error(UnifyError::CannotUnifyKinds {
@@ -1056,7 +1072,7 @@ impl UnifyContext {
         // All is good, so add the substitution to the map.
         self.add_subst(v, x)
     }
-    fn unify_unclocked_tuple(&mut self, x: &AppTuple, y: TypeId) -> Result<(), RHDLError> {
+    fn unify_uncolored_tuple(&mut self, x: &AppTuple, y: TypeId) -> Result<(), RHDLError> {
         if x.elements.is_empty() {
             return Ok(());
         }
@@ -1079,14 +1095,14 @@ impl UnifyContext {
         }
         Ok(())
     }
-    fn unify_unclocked_array(&mut self, x: &AppArray, y: TypeId) -> Result<(), RHDLError> {
+    fn unify_uncolored_array(&mut self, x: &AppArray, y: TypeId) -> Result<(), RHDLError> {
         self.unify(x.base, y)
     }
     fn unify_array(&mut self, x: &AppArray, y: &AppArray) -> Result<(), RHDLError> {
         self.unify(x.base, y.base)?;
         self.unify(x.len, y.len)
     }
-    fn unify_unclocked_struct(&mut self, x: &AppStruct, y: TypeId) -> Result<(), RHDLError> {
+    fn unify_uncolored_struct(&mut self, x: &AppStruct, y: TypeId) -> Result<(), RHDLError> {
         for (_, t) in x.fields.iter() {
             self.unify(*t, y)?;
         }
@@ -1114,7 +1130,7 @@ impl UnifyContext {
         }
         Ok(())
     }
-    fn unify_unclocked_enum(&mut self, x: &AppEnum, y: TypeId) -> Result<(), RHDLError> {
+    fn unify_uncolored_enum(&mut self, x: &AppEnum, y: TypeId) -> Result<(), RHDLError> {
         self.unify(x.discriminant, y)?;
         for (_, t) in x.variants.iter() {
             self.unify(*t, y)?;
@@ -1146,7 +1162,7 @@ impl UnifyContext {
     }
     fn unify_signal(&mut self, x: &AppSignal, y: &AppSignal) -> Result<(), RHDLError> {
         self.unify(x.data, y.data)?;
-        self.unify(x.clock, y.clock)
+        self.unify(x.color, y.color)
     }
     fn unify_app(&mut self, x: TypeId, y: TypeId) -> Result<(), RHDLError> {
         let TypeKind::App(app1) = (*x.kind).clone() else {
@@ -1174,18 +1190,18 @@ impl UnifyContext {
             ),
         }
     }
-    fn unify_app_unclocked(&mut self, x: TypeId, y: TypeId) -> Result<(), RHDLError> {
+    fn unify_app_uncolored(&mut self, x: TypeId, y: TypeId) -> Result<(), RHDLError> {
         let TypeKind::App(app) = (*x.kind).clone() else {
             return Err(self.raise_type_error(UnifyError::ExpectedAppType {
                 x: x.kind.as_ref().clone(),
             }));
         };
         match &app {
-            AppType::Tuple(t1) => self.unify_unclocked_tuple(t1, y),
-            AppType::Array(a1) => self.unify_unclocked_array(a1, y),
-            AppType::Struct(s1) => self.unify_unclocked_struct(s1, y),
-            AppType::Enum(e1) => self.unify_unclocked_enum(e1, y),
-            _ => Err(self.raise_type_error(UnifyError::CannotUnifyUnclocked { x: app.clone() })),
+            AppType::Tuple(t1) => self.unify_uncolored_tuple(t1, y),
+            AppType::Array(a1) => self.unify_uncolored_array(a1, y),
+            AppType::Struct(s1) => self.unify_uncolored_struct(s1, y),
+            AppType::Enum(e1) => self.unify_uncolored_enum(e1, y),
+            _ => Err(self.raise_type_error(UnifyError::CannotUnifyUncolored { x: app.clone() })),
         }
     }
     fn occurs(&self, v: TypeId, term: TypeId) -> bool {

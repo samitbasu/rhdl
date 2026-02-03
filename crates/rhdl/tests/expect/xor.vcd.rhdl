@@ -1,0 +1,1 @@
+TraceInfo({"top.input":Signal(Tuple((elements:[Bits(1),Bits(1)])),Red),"top.outputs":Signal(Bits(1),Red)})

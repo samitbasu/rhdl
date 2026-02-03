@@ -1,0 +1,8 @@
+pre.terminal {
+    background-color: #282c34;
+    color: #abb2bf;
+    padding: 1em;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.875em;
+}

@@ -12,4 +12,4 @@ The other significant limitation is the fact that `N <= 128`.  If you want to ma
 But in short, there are 2 classes of bit vectors in RHDL:
 
 1. The statically sized, compile-time vectors `Bits::<N>` and `SignedBits::<N>` where `N` is a `const usize`, and `N <=128`.  Due to a trait bound on these two types, you will need to constrain `N` anywhere you use it generically to satisfy `W<N>: BitWidth`.
-2. The dynamically sized, run-time vectors `DynBits` and `SignedDynBits`, which store their size as a field at run time.  These are meant to be used with the extension operations, like `xadd` and `xmul`, when you need bit-widths to change based on the sizes of the arguments and are not working with all fixed-at-compile-time widths.  We will cover these in more detail later.
+2. The dynamically sized, run-time vectors `DynBits` and `SignedDynBits`, which store their size as a field at run time.  These are meant to be used with the extension operations, like `xadd` and `xmul`, when you need bit-widths to change based on the sizes of the arguments and are not working with all fixed-at-compile-time widths.  We will cover these in more detail [later](dyn_bits.md).

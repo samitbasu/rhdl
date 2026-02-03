@@ -64,9 +64,9 @@ impl<W: Domain, R: Domain> CircuitIO for NegatingConditioner<W, R> {
 #[doc(hidden)]
 pub fn negating_conditioner_kernel<W: Domain, R: Domain>(
     i: In<W, R>,
-    q: Q<W, R>,
-) -> (Signal<Reset, R>, D<W, R>) {
-    let mut d = D::<W, R>::dont_care();
+    q: NegatingConditionerQ<W, R>,
+) -> (Signal<Reset, R>, NegatingConditionerD<W, R>) {
+    let mut d = NegatingConditionerD::<W, R>::dont_care();
     d.neg = i.reset_n;
     d.cond.reset = q.neg;
     d.cond.clock = i.clock;
@@ -99,13 +99,13 @@ mod tests {
     fn test_stream_function() -> miette::Result<()> {
         let uut = NegatingConditioner::<Red, Blue>::default();
         let stream = istream();
-        let vcd = uut.run(stream).collect::<Vcd>();
+        let vcd = uut.run(stream).collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("reset")
             .join("negating_conditioner");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["58d27e6ed2271dc9b2367e6ef8684aecf66ce8dd4cd764d87347972bfaf60f8b"];
+        let expect = expect!["3299f2c9d76d2f96848313fd732925bc329c56dc38ec1cdd834a8bec73d6cb14"];
         let digest = vcd
             .dump_to_file(root.join("negating_conditioner.vcd"))
             .unwrap();

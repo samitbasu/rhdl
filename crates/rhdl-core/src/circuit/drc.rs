@@ -7,7 +7,7 @@
 //! other black box components.  Some specifications discourage or even forbid combinatorial paths, as they can
 //! lead to timing issues.  This module provides a function to check for such paths and report them.
 //!
-//! See the book for an example of how to use it.
+//! See the [book] for an example of how to use it.
 use crate::{
     Synchronous,
     ast::SourcePool,

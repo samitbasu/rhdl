@@ -34,10 +34,7 @@ If this seems strange, well, it is a little.  But real circuitry behaves _exactl
 The `CircuitDQ` trait is pretty simple, and only tells part of the story:
 
 ```rust
-pub trait CircuitDQ: 'static {
-    type D: Timed;
-    type Q: Timed;
-}
+{{#rustdoc_include ../code/src/circuits/dq.rs:circuit-dq}}
 ```
 
 It explicitly requires that we define the two types `D` and `Q`, and that they `impl Timed`.  In general a `Timed` type is either a `Signal<T, D>` where `T: Digital` and `D: Domain` or `()`.
@@ -51,51 +48,30 @@ However, the trait does not provide the full set of constraints on the `D` and `
 It's easier to illustrate than explain.  Suppose we have a circuit that contains 3 subcircuits of type `A`, `B` and `C`, and suppose that these circuits are members of the parent circuit `X` with field names `child_1`, `child_2` and `child_3`.  So the declaration of `X` looks like
 
 ```rust
-#[derive(Circuit)]
-pub struct X {
-    child_1: A,
-    child_2: B,
-    child_3: C
-}
+{{#rustdoc_include ../code/src/circuits/dq.rs:circuit-x}}
 ```
 
 In this case, the type of `D` must be equivalent to:
 
 ```rust
-#[derive(Digital, Timed, Clone, Copy, PartialEq)]
-pub struct D {
-    child_1: <A as CircuitIO>::I,
-    child_2: <B as CircuitIO>::I,
-    child_3: <C as CircuitIO>::I,
-}
+{{#rustdoc_include ../code/src/circuits/dq.rs:circuit-x-d}}
 ```
 
 and similarly, the type of `Q` must be equivalent to
 
 ```rust
-#[derive(Digital, Timed, Clone, Copy, PartialEq)]
-pub struct Q {
-    child_1: <A as CircuitIO>::O,
-    child_2: <B as CircuitIO>::O,
-    child_3: <C as CircuitIO>::O,
-}
+{{#rustdoc_include ../code/src/circuits/dq.rs:circuit-x-q}}
 ```
 
 There is a macro that automatically derives these exact type definitions, and you can simply add it to the list for `X`:
 
 ```rust
-//                  👇 new!
-#[derive(Circuit, CircuitDQ)]
-pub struct X {
-    child_1: A,
-    child_2: B,
-    child_3: C
-}
+{{#rustdoc_include ../code/src/circuits/dq.rs:circuit-x-derive}}
 ```
 
-This will cause RHDL to derive a pair of structs named `D` and `Q` and give them the definitions described above (with the appropriate generics as needed).
+This will cause RHDL to derive a pair of structs named `XD` and `XQ` (and more generally, for a struct of name `Name`, a pair of structs named `NameD` and `NameQ`) and give them the definitions described above (with the appropriate generics as needed).
 
 ```admonish note
-It might seem like `D` and `Q` should have just been defined as tuples, so that `D = (child_1::I, child_2::I, ...)` and similarly `Q = (child_1::O, child_2::O, ...)`.  And while from a Rust idiomatic perspective, these definitions may be the best, they do not lead to particularly clean kernels.  The approach I adopted here is messier because there is an implicit requirement on `D` and `Q` that is not otherwise expressed.  An alternate strategy would have been to define a pair of _traits_ and then `impl` the traits on structs.  I'm not sure the extra complexity is really worth it.  But I acknowledge that this aspect of the implementation is not particularly elegant.
+It might seem like `XD` and `XQ` should have just been defined as tuples, so that `D = (child_1::I, child_2::I, ...)` and similarly `Q = (child_1::O, child_2::O, ...)`.  And while from a Rust idiomatic perspective, these definitions may be the best, they do not lead to particularly clean kernels.  The approach I adopted here is messier because there is an implicit requirement on `D` and `Q` that is not otherwise expressed.  An alternate strategy would have been to define a pair of _traits_ and then `impl` the traits on structs.  I'm not sure the extra complexity is really worth it.  But I acknowledge that this aspect of the implementation is not particularly elegant.
 ```
 

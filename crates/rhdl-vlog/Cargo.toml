@@ -20,7 +20,7 @@ expect-test = "1.5.1"
 test-log = "0.2.18"
 
 # Optional: Add coverage-specific configuration
-[profile.coverage]
-inherits = "test"
-debug = true
-opt-level = 0
+#[profile.coverage]
+#inherits = "test"
+#debug = true
+#opt-level = 0

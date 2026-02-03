@@ -25,10 +25,7 @@ pub fn clock(b: bool) -> Clock {
 impl Digital for Clock {
     const BITS: usize = 1;
     fn static_kind() -> Kind {
-        Kind::make_bool()
-    }
-    fn static_trace_type() -> rhdl_trace_type::TraceType {
-        rhdl_trace_type::TraceType::Clock
+        Kind::Clock
     }
     fn bin(self) -> Box<[BitX]> {
         [self.0.into()].into()

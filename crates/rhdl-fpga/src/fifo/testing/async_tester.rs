@@ -53,13 +53,13 @@ where
 /// Tester kernel
 pub fn fixture_kernel<W: Domain, R: Domain, const N: usize, const Z: usize>(
     i: In<W, R>,
-    q: Q<W, R, N, Z>,
-) -> (Signal<bool, R>, D<W, R, N, Z>)
+    q: AsyncFIFOTesterQ<W, R, N, Z>,
+) -> (Signal<bool, R>, AsyncFIFOTesterD<W, R, N, Z>)
 where
     rhdl::bits::W<Z>: BitWidth,
     rhdl::bits::W<N>: BitWidth,
 {
-    let mut d = D::<W, R, N, Z>::dont_care();
+    let mut d = AsyncFIFOTesterD::<W, R, N, Z>::dont_care();
     // The filler needs access to the full signal of the FIFO
     d.filler.clock_reset = i.cr_w;
     d.filler.input = signal(crate::fifo::testing::filler::In {
@@ -100,7 +100,7 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let svg = uut.run(input.take(100)).collect::<Svg>();
+        let svg = uut.run(input.take(100)).collect::<SvgFile>();
         let svg = svg.to_string(&Default::default()).into_diagnostic()?;
         let expect = expect_file!["async_fifo.svg.expect"];
         expect.assert_eq(&svg);
@@ -121,12 +121,12 @@ mod tests {
             cr_w: signal(r.0),
             cr_r: signal(b.0),
         });
-        let vcd = uut.run(input.take(10000)).collect::<Vcd>();
+        let vcd = uut.run(input.take(10000)).collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["fd371831ec299169033aac74bbad443cbadb09a207923799d189a5bbe5e36edd"];
+        let expect = expect!["38c9fad89b2583f06cdd314b568d10163bac4c40c907e2ae99dd09cf40356017"];
         let digest = vcd.dump_to_file(root.join("async_fifo_trace.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

@@ -8,20 +8,14 @@ The documentation of `rhdl-bits` is fairly extensive, but basically, the followi
 - There are aliased types for each size from 1 to 128 bits.  These types are called `b1, b2, ..., b128`, and are simply aliases like: `type b2 = Bits<2>`.
 - There are constructor functions also called `b1, b2, ..., b128` that allow you to make `Bits<>` from a literal `u128` value, and will panic if you provide an out-of-range value.
 
-```admonish, warning
+```admonish warning
 The `rhdl-bits` crate is not meant to provide a general bit-width integer type for use in your Rust applications.  There are several better alternatives for that available on [crates.io](https://crates.io).  Instead, this crate is meant to provide types that behave the same way as hardware fixed-width integers.
 ```
-
 
 All of these are basically illustrated in the following short code snippet:
 
 ```rust
-use rhdl_bits::prelude::*;
-
-let a = b4(6); // a is a 4-bit wide bit-vector
-let b = a;     // It implements copy
-let c: b4 = b; // b4 is both the type and constructor name
-let d: Bits<4> = c; // Long form for writing a nibble.
+{{#rustdoc_include ../code/src/bits/mod.rs:basic_usage}}
 ```
 
 - There is a `Copy` type that is generic over the bit width, and can hold up to a 128 bit _signed_ integer.  It is called `SignedBits<>`.
@@ -29,14 +23,8 @@ let d: Bits<4> = c; // Long form for writing a nibble.
 - There are constructor functions also called `s1, s2, ..., s128` that allow you to make `SignedBits<>` from a literal `i128` value and will panic if you provide an out-of-range value.
 
 ```rust
-use rhdl_bits::prelude::*;
-
-let a = s4(-3); // a is a 4-bit wide signed bit-vector 
-let b = a;     // It implements copy
-let c: b4 = b; // b4 is both the type and constructor name
-let d: SignedBits<4> = c; // Long form for writing a nibble.
+{{#rustdoc_include ../code/src/bits/mod.rs:basic_signed_usage}}
 ```
-
 
 Roughly speaking the type `b4` tries to work as much like `u8` as possible, but with the following restrictions:
 
@@ -47,11 +35,13 @@ Roughly speaking the type `b4` tries to work as much like `u8` as possible, but 
 You _cannot_ freely cast from one bitwidth to another.  So this won't work in RHDL:
 
 ```rust
-use rhdl_bits::prelude::*;
-
-let a : b4 = b4(8);
-let b : b6 = a; // 👈 Illegal!
+{{#rustdoc_include ../code/src/bits/mod.rs:failed_bitcast}}
 ```
+
+Attempting to compile this will cause an error:
+
+<!-- cmdrun to-html "cd ../code && cargo test --features failed_bitcast 2>&1" -->
+
 
 This may come as a bit of a shock if you are used to the permissive casting allowed in other HDLs like Verilog, but in Rust, you can't do this with "normal" integers, and in RHDL, you cannot either.  In general, if you find yourself needing to cast (and there are explicit cast operations), you may have the wrong data structure in hand.  More on that later.
 
@@ -62,7 +52,9 @@ With the exception of division, most other operations are available on bit vecto
 Finally, note that `b1` and `bool` are not the same thing.  a `b1` is a 1-bit unsigned integer that can either be `1` or `0`, while a `bool` can either be `true` or `false`.  You may use `bool` in your design (it `impl Digital`), but it is not interchangable with `b1`.  In particular, Rust expressions that require a `bool` will not accept a `b1`:
 
 ```rust
-let a = b1(1);
-let b = b4(if a {3} else {4});  // 👈 Illegal! a is not a bool
+{{#rustdoc_include ../code/src/bits/mod.rs:bool_not_b1}}
 ```
 
+with error:
+
+<!-- cmdrun to-html "cd ../code && cargo test --features bool_not_b1 2>&1" -->

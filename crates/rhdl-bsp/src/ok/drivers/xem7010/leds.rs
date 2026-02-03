@@ -48,7 +48,8 @@ mod tests {
             type Kernel = NoCircuitKernel<(), (), (O, ())>;
         }
 
-        let led_driver = super::leds::<U>(&path!(.leds.val())).unwrap();
+        let o = <U as CircuitIO>::O::dont_care();
+        let led_driver = super::leds::<U>(&path!(o.leds.val())).unwrap();
         let hdl = expect_file!("led_hdl.expect");
         hdl.assert_eq(&led_driver.hdl.pretty());
         let xdc = expect_file!("led.xdc");

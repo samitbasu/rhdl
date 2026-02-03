@@ -25,13 +25,13 @@ In RHDL, "exhaustive testing" is fairly easy to do.  Recall from the canonical d
 that the `kernel` is a _pure function_ that maps the current set of child circuit outputs `q` and the input `input` into an output `output` and a new set of child circuit inputs `d`.  The function signature is something like:
 
 ```rust
-fn kernel(i: Self::I, q: self::Q) -> (Self::O, Self::D);
+{{#rustdoc_include ../code/src/simulations.rs:async_fn}}
 ```
 
 for asynchronous circuits, and
 
 ```rust
-fn kernel(cr: ClockReset, i: Self::I, q: self::Q) -> (Self::O, Self::D);
+{{#rustdoc_include ../code/src/simulations.rs:sync_fn}}
 ```
 
 for synchronous circuits.  The functions must be pure, meaning no side effects (tracing is considered irrelevant here - the trace mechanism cannot change the result of computing the function as it is write only).  
@@ -41,8 +41,8 @@ What is interesting about this design, is that you can, in principle, exhaustive
 Remember that the `kernel` is just a Rust function.  So you can test it like any other Rust function.  To make the example concrete, suppose we have the kernel of a counter.  It has an enable signal as the only (boolean) input, and a set of digital flip flops that store the current count.  The kernel function would probably have a signature like this:
 
 ```rust
-fn counter(cr: ClockReset, i: bool, q: b8) -> (b8, b8);
-e```
+{{#rustdoc_include ../code/src/simulations.rs:counter_fn}}
+```
 
 (where we have assumed that the counter is 8 bits wide).  We can now test this function exhaustively.  The function itself shouldn't care about the clock or reset values (those are handled in the flip flops).  So we just want an invariant like:
 
@@ -53,21 +53,7 @@ e```
 These requirements can be coded into a test that looks something like:
 
 ```rust
-#[test]
-fn test_counter_exhaustively() {
-    let cr = clock_reset(clock(false), reset(false));
-    for i in [false, true] {
-        for q in (0..256).map(b8) {
-            let (o, d) = counter(cr, i, q);
-            if i {
-                assert_eq!(d, q + 1);
-            } else {
-                assert_eq!(d, q);
-            }
-            assert_eq!(o, q);
-        }
-    }
-}
+{{#rustdoc_include ../code/src/simulations.rs:test_counter_exhaustive}}
 ```
 
 Note that there is nothing RHDL specific about the function or the test harness.  We are simply using the fact that the function is pure to ensure we can test 100% of the possible inputs and it could see, and then verify that in all cases, the expected behavior is observed.  This can be really powerful when the inner workings of the function are complicated, but the output and next state can be checked for correctness somewhat easily.

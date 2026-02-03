@@ -25,11 +25,7 @@ fn main() -> Result<(), RHDLError> {
     let vcd = uut
         .run(inputs)
         .take_while(|x| x.time < 1000)
-        .collect::<Svg>();
-    let options = SvgOptions {
-        label_width: 20,
-        ..Default::default()
-    };
-    write_svg_as_markdown(vcd, "cross_counter.md", options)?;
+        .collect::<SvgFile>();
+    write_svg_as_markdown(vcd, "cross_counter.md", SvgOptions::default())?;
     Ok(())
 }

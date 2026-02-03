@@ -13,66 +13,52 @@ Let's work through some examples so you can get a sense of what kinds of functio
 
 The first is a simple function with a couple of arguments, a couple of returns.  Nothing too exciting.
 
-```rust,kernel:functions
-#[kernel]
-pub fn kernel(a: b8, b: b8) -> (b8, bool) {
-    (a, b == a)
-}
+```rust
+{{#rustdoc_include ../code/src/kernels/functions.rs:step_0}}
 ```
 
 The following is _not_ allowed, because it returns a zero-sized type
 
 ```rust
-#[kernel]
-pub fn kernel(a: b8, b: b8) -> () {
-    ()
-}
+{{#rustdoc_include ../code/src/kernels/functions.rs:step_1}}
 ```
+
+This `kernel` does not cause a `rustc` compilation error, but it will fail when you attempt to use it in a RHDL design.  To see this, we can explicitly compile the kernel using the `compile_design` function:
+
+```rust
+{{#rustdoc_include ../code/src/kernels/functions.rs:step_1_test}}
+```
+
+This results in the following error:
+
+<!-- cmdrun to-html "cd ../code && cargo test --lib -- kernels::functions::step_1::test_empty_return_kernel --exact --nocapture --ignored 2>&1" -->
+
+```admonish note
+RHDL does not allow functions with empty return types since a pure function with an empty return would not correspond to any hardware.  While I guess you could use such a function to log or trace messages, RHDL requires you to put those `trace` calls directly into a kernel that does something.
+```
+
+## Infallible Pattern Matching Arguments
 
 You can use infallible pattern matching in the arguments for tuples.  Struct and enum patterns are currently unsupported.
 
-```rust,kernel:functions
-#[kernel]
-pub fn kernel((a,b): (b8, b8)) -> b8 {
-    a + b
-}
+```rust
+{{#rustdoc_include ../code/src/kernels/functions.rs:step_2}}
 ```
 
 You can make your function generic and add bounds as needed.
 
-```rust,kernel:functions
-#[kernel]
-pub fn generic_kernel<const N: usize>(a: Bits<N>, b: Bits<N>) -> Bits<N> 
-    where rhdl::bits::W<N>: BitWidth {
-    a + b
-}
-
-#[kernel]
-pub fn kernel(a: b7, b: b7) -> b7 {
-    generic_kernel::<7>(a,b)
-}
+```rust
+{{#rustdoc_include ../code/src/kernels/functions.rs:step_3}}
 ```
 
 ```admonish note
-When calling a generic function from within a kernel, due to limitations of how the `#[kernel]` attribute works, you will generally need to supply all of the generic types.  Type inference across function calls is not great in RHDL at the moment.  This can be annoying, but it may improve in the future as the RHDL compiler improves.
+When calling a generic function from within a kernel, due to limitations of how the `#[kernel]` attribute works, you will need to **explicitly** supply all of the generic types.  Type inference across function calls is not great in RHDL at the moment.  This can be annoying, but it may improve in the future as the RHDL compiler improves.
 ```
 
 Of course, you can pass `Digital` values into functions, and return `Digital` values out of the functions:
 
-```rust,kernel:functions
-#[derive(Copy, Clone, PartialEq, Digital)]
-pub struct MyStruct {
-    x: b8,
-    y: b8
-}
-
-#[kernel]
-pub fn kernel(s: MyStruct) -> MyStruct {
-    MyStruct {
-        x: s.x + s.y,
-        y: s.y
-    }
-}
+```rust
+{{#rustdoc_include ../code/src/kernels/functions.rs:step_4}}
 ```
 
 ```admonish warning
@@ -81,36 +67,14 @@ You cannot use `impl Digital` in return position with `kernel` functions.  The r
 
 You can _call_ functions just like you normally would in rust, provided the named function is available at the call site, and that the referenced function is annotated with `#[kernel]`.  So, for example:
 
-```rust,kernel:functions
-#[kernel]
-pub fn my_add(a: b8, b: b8) -> b8 {
-    a + b
-}
-
-#[kernel]
-pub fn kernel(a: b8, b: b8, c: b8) -> b8 {
-    let p1 = my_add(a,b);
-    let p2 = my_add(p1, c);
-    p2
-}
+```rust
+{{#rustdoc_include ../code/src/kernels/functions.rs:step_4}}
 ```
 
 When the function you are calling is generic, you must provide the generic parameters explicitly at the call site.  This is due to a limitation on how the RHDL compiler works.  So if we had instead:
 
-```rust,kernel:functions
-#[kernel]
-pub fn my_add<const N: usize>(a: Bits::<N>, b: Bits::<N>) -> Bits::<N> 
-where rhdl::bits::W<N>: BitWidth {
-    a + b
-}
-
-#[kernel]
-pub fn kernel(a: b8, b: b8, c: b8) -> b8 {
-    //               👇 Must be explicit here!
-    let p1 = my_add::<8>(a, b);
-    let p2 = my_add::<8>(p1, c);
-    p2
-}
+```rust
+{{#rustdoc_include ../code/src/kernels/functions.rs:step_5}}
 ```
 
 Getting type inference to work at these sites would involve some pretty substantial changes to the way the RHDL compiler works.  It's not impossible, so maybe in a future version.

@@ -86,33 +86,33 @@ Time:
 
 <title>{incr: r@(0), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
 </text>
-<path d="M 351 30 L 353 22 L 354 22 L 356 30 L 354 38 L 353 38 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
+<path d="M 350 30 L 353 23 L 353 23 L 356 30 L 353 37 L 353 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="353" xml:space="preserve" y="30">
 
-<title>{incr: r@(1), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
+<title>{incr: r@(0), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
 </text>
 <path d="M 356 30 L 359 23 L 392 23 L 395 30 L 392 37 L 359 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="375" xml:space="preserve" y="30">
 
-<title>{incr: r@(1), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
+<title>{incr: r@(0), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
 </text>
 <path d="M 395 30 L 397 22 L 398 22 L 400 30 L 398 38 L 397 38 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="397" xml:space="preserve" y="30">
 
-<title>{incr: r@(1), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
+<title>{incr: r@(0), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
 </text>
 <path d="M 400 30 L 403 23 L 431 23 L 434 30 L 431 37 L 403 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="417" xml:space="preserve" y="30">
 
-<title>{incr: r@(1), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
+<title>{incr: r@(0), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
 </text>
 <path d="M 434 30 L 437 23 L 447 23 L 450 30 L 447 37 L 437 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="442" xml:space="preserve" y="30">
 
-<title>{incr: r@(1), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
+<title>{incr: r@(0), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
 </text>
-<path d="M 450 30 L 453 23 L 470 23 L 473 30 L 470 37 L 453 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="461" xml:space="preserve" y="30">
+<path d="M 451 30 L 454 23 L 470 23 L 473 30 L 470 37 L 454 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="462" xml:space="preserve" y="30">
 
 <title>{incr: r@(1), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
 </text>
@@ -134,50 +134,50 @@ Time:
 <path d="M 551 30 L 554 23 L 587 23 L 590 30 L 587 37 L 554 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="570" xml:space="preserve" y="30">
 
-<title>{incr: r@(1), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
+<title>{incr: r@(0), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
 </text>
 <path d="M 590 30 L 593 23 L 597 23 L 600 30 L 597 37 L 593 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="595" xml:space="preserve" y="30">
 
-<title>{incr: r@(1), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
+<title>{incr: r@(0), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
 </text>
 <path d="M 600 30 L 603 23 L 626 23 L 629 30 L 626 37 L 603 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="614" xml:space="preserve" y="30">
 
-<title>{incr: r@(1), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
+<title>{incr: r@(0), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
 </text>
 <path d="M 629 30 L 632 23 L 647 23 L 650 30 L 647 37 L 632 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="639" xml:space="preserve" y="30">
 
-<title>{incr: r@(1), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
+<title>{incr: r@(0), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
 </text>
 <path d="M 651 30 L 654 23 L 665 23 L 668 30 L 665 37 L 654 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="659" xml:space="preserve" y="30">
 
-<title>{incr: r@(0), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
+<title>{incr: r@(1), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
 </text>
 <path d="M 668 30 L 671 23 L 697 23 L 700 30 L 697 37 L 671 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="684" xml:space="preserve" y="30">
 
-<title>{incr: r@(0), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
+<title>{incr: r@(1), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
 </text>
 <path d="M 700 30 L 703 23 L 704 23 L 707 30 L 704 37 L 703 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="703" xml:space="preserve" y="30">
 
-<title>{incr: r@(0), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
+<title>{incr: r@(1), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
 </text>
 <path d="M 707 30 L 710 23 L 743 23 L 746 30 L 743 37 L 710 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="726" xml:space="preserve" y="30">
 
-<title>{incr: r@(0), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
+<title>{incr: r@(1), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 1, reset: 0})}</title>
 </text>
 <path d="M 746 30 L 748 22 L 748 22 L 750 30 L 748 38 L 748 38 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="748" xml:space="preserve" y="30">
 
-<title>{incr: r@(0), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
+<title>{incr: r@(1), incr_cr: r@({clock: 0, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
 </text>
-<path d="M 750 30 L 753 23 L 782 23 L 785 30 L 782 37 L 753 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="767" xml:space="preserve" y="30">
+<path d="M 751 30 L 754 23 L 782 23 L 785 30 L 782 37 L 754 37 Z" fill="none" stroke="#E7ECEF" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="768" xml:space="preserve" y="30">
 
 <title>{incr: r@(0), incr_cr: r@({clock: 1, reset: 0}), cr: b@({clock: 0, reset: 0})}</title>
 </text>
@@ -280,20 +280,26 @@ Time:
    .incr
 <title>top.input.incr</title>
 </text>
-<path d="M 200 50 L 200 57 L 351 57 L 351 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="298" x="352" y="43"/>
-<path d="M 351 50 L 351 43 L 651 43 L 651 50" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 651 50 L 651 57 L 1051 57 L 1051 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 200 50 L 200 57 L 451 57 L 451 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="98" x="452" y="43"/>
+<path d="M 451 50 L 451 43 L 551 43 L 551 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 551 50 L 551 57 L 651 57 L 651 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="98" x="652" y="43"/>
+<path d="M 651 50 L 651 43 L 751 43 L 751 50" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 751 50 L 751 57 L 1051 57 L 1051 50" fill="none" stroke="#D62246" stroke-width="1"/>
 <rect fill="#470B17" height="14" stroke="none" width="123" x="1052" y="43"/>
 <path d="M 1051 50 L 1051 43 L 1176 43 L 1176 50" fill="none" stroke="#D62246" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="70">
    .incr@
 <title>top.input.incr@</title>
 </text>
-<path d="M 200 70 L 200 77 L 351 77 L 351 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<rect fill="#470B17" height="14" stroke="none" width="298" x="352" y="63"/>
-<path d="M 351 70 L 351 63 L 651 63 L 651 70" fill="none" stroke="#D62246" stroke-width="1"/>
-<path d="M 651 70 L 651 77 L 1051 77 L 1051 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 200 70 L 200 77 L 451 77 L 451 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="98" x="452" y="63"/>
+<path d="M 451 70 L 451 63 L 551 63 L 551 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 551 70 L 551 77 L 651 77 L 651 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<rect fill="#470B17" height="14" stroke="none" width="98" x="652" y="63"/>
+<path d="M 651 70 L 651 63 L 751 63 L 751 70" fill="none" stroke="#D62246" stroke-width="1"/>
+<path d="M 751 70 L 751 77 L 1051 77 L 1051 70" fill="none" stroke="#D62246" stroke-width="1"/>
 <rect fill="#470B17" height="14" stroke="none" width="123" x="1052" y="63"/>
 <path d="M 1051 70 L 1051 63 L 1176 63 L 1176 70" fill="none" stroke="#D62246" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="90">
@@ -855,72 +861,57 @@ r@...
 .outputs
 <title>top.outputs</title>
 </text>
-<path d="M 200 250 L 203 243 L 548 243 L 551 250 L 548 257 L 203 257 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="375" xml:space="preserve" y="250">
+<path d="M 200 250 L 203 243 L 626 243 L 629 250 L 626 257 L 203 257 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="414" xml:space="preserve" y="250">
 {count: b@(0)}
 <title>{count: b@(0)}</title>
 </text>
-<path d="M 551 250 L 554 243 L 626 243 L 629 250 L 626 257 L 554 257 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="590" xml:space="preserve" y="250">
-{cou...
+<path d="M 629 250 L 632 243 L 860 243 L 863 250 L 860 257 L 632 257 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="746" xml:space="preserve" y="250">
+{count: b@(1)}
 <title>{count: b@(1)}</title>
 </text>
-<path d="M 629 250 L 632 243 L 782 243 L 785 250 L 782 257 L 632 257 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="707" xml:space="preserve" y="250">
+<path d="M 863 250 L 866 243 L 1173 243 L 1176 250 L 1173 257 L 866 257 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1019" xml:space="preserve" y="250">
 {count: b@(2)}
 <title>{count: b@(2)}</title>
-</text>
-<path d="M 785 250 L 788 243 L 1173 243 L 1176 250 L 1173 257 L 788 257 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="980" xml:space="preserve" y="250">
-{count: b@(3)}
-<title>{count: b@(3)}</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="270">
    .count
 <title>top.outputs.count</title>
 </text>
-<path d="M 200 270 L 203 263 L 548 263 L 551 270 L 548 277 L 203 277 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="375" xml:space="preserve" y="270">
+<path d="M 200 270 L 203 263 L 626 263 L 629 270 L 626 277 L 203 277 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="414" xml:space="preserve" y="270">
 b@(0)
 <title>b@(0)</title>
 </text>
-<path d="M 551 270 L 554 263 L 626 263 L 629 270 L 626 277 L 554 277 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="590" xml:space="preserve" y="270">
+<path d="M 629 270 L 632 263 L 860 263 L 863 270 L 860 277 L 632 277 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="746" xml:space="preserve" y="270">
 b@(1)
 <title>b@(1)</title>
 </text>
-<path d="M 629 270 L 632 263 L 782 263 L 785 270 L 782 277 L 632 277 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="707" xml:space="preserve" y="270">
+<path d="M 863 270 L 866 263 L 1173 263 L 1176 270 L 1173 277 L 866 277 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1019" xml:space="preserve" y="270">
 b@(2)
 <title>b@(2)</title>
-</text>
-<path d="M 785 270 L 788 263 L 1173 263 L 1176 270 L 1173 277 L 788 277 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="980" xml:space="preserve" y="270">
-b@(3)
-<title>b@(3)</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="290">
    .count@
 <title>top.outputs.count@</title>
 </text>
-<path d="M 200 290 L 203 283 L 548 283 L 551 290 L 548 297 L 203 297 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="375" xml:space="preserve" y="290">
+<path d="M 200 290 L 203 283 L 626 283 L 629 290 L 626 297 L 203 297 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="414" xml:space="preserve" y="290">
 0
 <title>0</title>
 </text>
-<path d="M 551 290 L 554 283 L 626 283 L 629 290 L 626 297 L 554 297 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="590" xml:space="preserve" y="290">
+<path d="M 629 290 L 632 283 L 860 283 L 863 290 L 860 297 L 632 297 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="746" xml:space="preserve" y="290">
 1
 <title>1</title>
 </text>
-<path d="M 629 290 L 632 283 L 782 283 L 785 290 L 782 297 L 632 297 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="707" xml:space="preserve" y="290">
+<path d="M 863 290 L 866 283 L 1173 283 L 1176 290 L 1173 297 L 866 297 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1019" xml:space="preserve" y="290">
 2
 <title>2</title>
-</text>
-<path d="M 785 290 L 788 283 L 1173 283 L 1176 290 L 1173 297 L 788 297 Z" fill="none" stroke="#5C95FF" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="980" xml:space="preserve" y="290">
-3
-<title>3</title>
 </text>
 </svg>

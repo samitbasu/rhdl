@@ -3,6 +3,7 @@ use rhdl::prelude::*;
 use crate::stream::ready;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 pub struct U<const N: usize>
 where
     rhdl::bits::W<N>: BitWidth,
@@ -76,12 +77,12 @@ mod tests {
         let input = std::iter::repeat_n((), 5000)
             .with_reset(1)
             .clock_pos_edge(100);
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input).collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("lid");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!("63a5b85af64b21703f44ca6716ee13f4434c2a5a4637a2a0b64b2c9e3d5095e7");
+        let expect = expect!("cf7d5e42d6d1f225a890539fd56921a7152f1009c3e5ab3dfce7c6af23fc85f8");
         let digest = vcd.dump_to_file(root.join("double.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())

@@ -11,6 +11,7 @@ mod blinker {
     use super::*;
 
     #[derive(Clone, Synchronous, SynchronousDQ, Default)]
+    #[rhdl(dq_no_prefix)]
     pub struct U {
         // We need a 32 bit counter.
         counter: rhdl_fpga::core::counter::Counter<32>,
@@ -41,12 +42,13 @@ fn test_blinker_fixture() -> miette::Result<()> {
     //    let inp: <T as CircuitIO>::I;
     //inp.clock_reset.val().clock
     let mut fixture = Fixture::new("top", blinker);
+    let i = <T as CircuitIO>::I::dont_care();
+    let o = <T as CircuitIO>::O::dont_care();
     fixture.add_driver(rhdl_bsp::ok::drivers::xem7010::sys_clock::sys_clock(
-        &path!(.clock_reset.val().clock),
+        &path!(i.clock_reset.val().clock),
     )?);
-    fixture.constant_input(reset(false), &path!(.clock_reset.val().reset))?;
-    fixture.add_driver(rhdl_bsp::ok::drivers::xem7010::leds::leds(&path!(.val()
-    ))?);
+    fixture.constant_input(reset(false), &path!(i.clock_reset.val().reset))?;
+    fixture.add_driver(rhdl_bsp::ok::drivers::xem7010::leds::leds(&path!(o.val()))?);
     let root = env!("CARGO_TARGET_TMPDIR");
     let path = Utf8PathBuf::from(root);
     let path = path.join("ok").join("xem7010").join("blinker");

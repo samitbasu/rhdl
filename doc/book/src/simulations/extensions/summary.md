@@ -19,7 +19,7 @@ When working with asynchronous circuits, it is generally useful to build iterato
 Here, a series of input values of type `I` are passed through a `Uniform` block that generates a series of equally spaced time samples.  These then pass through the unit under test (using the `.run()` method), and are then checked by some output logic.  With extension traits, this looks something like
 
 ```rust
-let outputs = uut.run(inputs.uniform(N)); // Yields Item=TimedSample<(I,O)>
+{{#rustdoc_include ../../code/src/simulations.rs:uniform-summary}}
 ```
 
 When working with synchronous circuits in [open loop](../open_loop.md) testing, you will generally build test pipelines like this:
@@ -39,16 +39,15 @@ When working with synchronous circuits in [open loop](../open_loop.md) testing, 
 Here, a series of input values of type `I` are passed into a `WithReset` block that generates either reset signals or input data, and is generally used to prepend a number of reset pulses onto the beginning of the test data.  Next the `ResetOrData` items are passed into the `ClockPosEdge` block, which generates timed samples containing the clock information.  After testing, the input is augmented with the simulated output of the circuit using the `.run` method, and fed to the output checker.  Again, in code, this looks something like
 
 ```rust
-/// 👇 Iterator with Item=TimedSample<(ClockReset, I, O)>
-let outputs = uut.run(inputs.with_reset(1).clock_pos_edge(100));
+{{#rustdoc_include ../../code/src/simulations.rs:synchronous-summary}}
 ```
 
 These compact forms are possible due to a set of extension traits that are helpful for working with open loop testing.  In summary, these are:
 
-- `.run`, which converts any `impl Circuit` or `imply Synchronous` into an iterator-driven simulator.
+- `.run`, which converts any `impl Circuit` or `impl Synchronous` into an iterator-driven simulator.
 - `.unform(n)`, which converts a sequence of values into a sequence of `TimedSample` with equi-spaced time values.
 - `.with_reset(n)`, which prepends a set of `n` reset pulses on to a data sequence.
 - `.clock_pos_edge(n)`, which converts a sequence into a clock, reset and data sequence such that changes occur only after the positive edge of the clock.
-- `.merge`, which merges two different timed streams into a single time stream.
+- `.merge_map`, which merges two different timed streams into a single time stream.
 
 We will cover each of these in detail in the following.

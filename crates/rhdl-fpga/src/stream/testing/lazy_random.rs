@@ -67,6 +67,7 @@ use crate::{
 use rhdl::prelude::*;
 
 #[derive(Clone, Synchronous, SynchronousDQ, Default)]
+#[rhdl(dq_no_prefix)]
 /// Lazy, bursty random number generator as
 /// a stream.
 pub struct LazyRng {
@@ -135,7 +136,7 @@ mod tests {
             .clock_pos_edge(100)
             .take(1000);
         let uut = LazyRng::default();
-        let vcd = uut.run(input).collect::<Vcd>();
+        let vcd = uut.run(input).collect::<VcdFile>();
         vcd.dump_to_file("lazy_rng.vcd")?;
         Ok(())
     }

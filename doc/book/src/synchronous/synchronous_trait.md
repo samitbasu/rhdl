@@ -34,16 +34,7 @@ Just as we did for the `Circuit` trait, we will start with the `Synchronous` tra
 The remainder of the `Synchronous` trait is related to simulation and synthesis of the circuit.  We can look at the `Synchronous` trait in its entirety.  It's pretty simple:
 
 ```rust
-pub trait Synchronous: 'static + Sized + SynchronousIO {
-    type S: PartialEq + Clone;
-    fn init(&self) -> Self::S;
-    fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O;
-    fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError>;
-    fn children(
-        &self,
-        _parent_scope: &ScopedName,
-    ) -> impl Iterator<Item = Result<Descriptor<SyncKind>, RHDLError>>;
-}
+{{#rustdoc_include ../code/src/synchronous.rs:synchronous_trait}}
 ```
 
 You will rarely implement this trait manually, since the `derive` macros make it much easier, but just as we did with `Circuit`, we will walk through this trait and the methods so you understand how it works, and what each piece does.

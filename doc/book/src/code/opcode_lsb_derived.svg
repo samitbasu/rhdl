@@ -1,0 +1,79 @@
+<svg viewBox="0 -16 480 192" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#EEEEEE" height="160" stroke="darkblue" width="480" x="0" y="0"/>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="160" x="320" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="400" y="8">
+1:0
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="160" x="160" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="240" y="8">
+9:2
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="160" x="0" y="0"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="80" y="8">
+17:10
+</text>
+<rect fill="#99FFCC" height="16" stroke="gray" width="480" x="0" y="16"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="240" y="24">
+OpCodeLsb (Autoderive LSB)|18|
+</text>
+<rect fill="#CCCC99" height="16" stroke="gray" width="160" x="320" y="32"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="400" y="40">
+Nop(00)
+</text>
+<rect fill="#CCCCCC" height="32" stroke="gray" width="160" x="320" y="48"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="400" y="64">
+Add(01)
+</text>
+<rect fill="#CCCCFF" height="16" stroke="gray" width="320" x="0" y="48"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="160" y="56">
+(Add)
+</text>
+<rect fill="#CCFF99" height="16" stroke="gray" width="160" x="160" y="64"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="240" y="72">
+.0 b8
+</text>
+<rect fill="#CCFFCC" height="16" stroke="gray" width="160" x="0" y="64"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="80" y="72">
+.1 b8
+</text>
+<rect fill="#CCFFFF" height="32" stroke="gray" width="160" x="320" y="80"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="400" y="96">
+Sub(10)
+</text>
+<rect fill="#FFCC99" height="16" stroke="gray" width="320" x="0" y="80"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="160" y="88">
+(Sub)
+</text>
+<rect fill="#FFCCCC" height="16" stroke="gray" width="160" x="160" y="96"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="240" y="104">
+.0 b8
+</text>
+<rect fill="#FFCCFF" height="16" stroke="gray" width="160" x="0" y="96"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="80" y="104">
+.1 b8
+</text>
+<rect fill="#FFFF99" height="32" stroke="gray" width="160" x="320" y="112"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="400" y="128">
+Not(11)
+</text>
+<rect fill="#FFFFCC" height="16" stroke="gray" width="160" x="160" y="112"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="240" y="120">
+(Not)
+</text>
+<rect fill="#99FFCC" height="16" stroke="gray" width="160" x="160" y="128"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="240" y="136">
+.0 b8
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="160" x="320" y="144"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="400" y="152">
+1:0
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="160" x="160" y="144"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="240" y="152">
+9:2
+</text>
+<rect fill="#EEEEEE" height="16" stroke="darkblue" width="160" x="0" y="144"/>
+<text dominant-baseline="middle" font-family="monospace" font-size="10px" text-anchor="middle" x="80" y="152">
+17:10
+</text>
+</svg>

@@ -1,3 +1,4 @@
+//! An individual record on a trace page
 use crate::trace::{TraceId, traceable::Traceable};
 
 /// An event reorded on a trace page.  Captures the trace

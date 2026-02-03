@@ -46,14 +46,13 @@ use rhdl::prelude::*;
 use crate::{
     axi4lite::{
         core::endpoint::read::ReadEndpoint,
-        types::{
-            AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI,
-        },
+        types::{AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI},
     },
     core::constant::Constant,
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// AXI ROM
 ///
 /// This core provides a single ROM that has an

@@ -3,26 +3,13 @@
 Just as in for `Circuit`, the `sim` method is responsible for simulating the circuit given it's current state and an input.  The circuit is allowed to mutate the state as a result of the input.  Unlike the `Circuit` case described [here](../circuits/simulation.md), we need to also provide the state of the `clock` and `reset` signals to the simulation.  Hence the signature of the relevant method 
 
 ```rust
-pub trait Synchronous: 'static + Sized + SynchronousIO {
-    type S: PartialEq + Clone;
-    fn init(&self) -> Self::S;
-    fn sim(&self, clock_reset: ClockReset, input: Self::I, state: &mut Self::S) -> Self::O;
-    // snip
-}
+{{#rustdoc_include ../code/src/synchronous.rs:synchronous-sim-trait}}
 ```
 
 The `Synchronous` trait makes it trivial for you to simulate the circuit using a simple loop.  Roughly, a simulation loop would look something like:
 
 ```rust
-let mut uut = T::new(); // Or whatever to get an instance of T : Synchronous
-let mut state = T::init(); // Get the initial state
-loop {
-    let clock_reset = // get the next clock and reset value
-    let input = // get the next input
-    let output = uut.sim(clock_reset, input, &mut state);
-    // Do something with the output
-    // check for simulation complete.
-}
+{{#rustdoc_include ../code/src/synchronous.rs:synchronous-sim}}
 ```
 
 You can build your own, but RHDL has an easier way to run simulations using iterators and extension traits.  We will cover those in their own section later.  

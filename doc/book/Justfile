@@ -1,6 +1,11 @@
+all:
+	just clean
+	just build
+	just serve
+
 clean:
 	just plugin
-	rm -rf src/db/*.json
+	rm -rf db/*.json
 
 build:
 	just plugin
@@ -8,7 +13,7 @@ build:
 
 serve:
 	just plugin
-	RUST_LOG=info mdbook serve
+	RUST_LOG=info mdbook serve --watcher native
 
 plugin:
 	cd ../mdbook-rhdl && cargo build --release

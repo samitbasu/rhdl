@@ -13,42 +13,43 @@ These are the normal rules for Rust as well.  The remaining literal types (strin
 
 You can also segment your literals using the `_` spacer to make them more readable, and the literals are case insensitive.  Note that a bare constant like `42` is not synthesizable, since it doesn't have a well defined length.  But where the length can be inferred from context, you can use a bare constant.  So in this kernel, all literals are passed into the `b8` constructor function:
 
-```rust,kernel:literals
-#[kernel]
-fn kernel(a: b8) -> b8 {
-    let c1 = b8(0xbe); // hexadecimal constant
-    let c2 = b8(0b1101_0110); // binary constant
-    let c3 = b8(0o03_42); // octal constant
-    let c4 = b8(135); // decimal constant
-    a + c1 - c2 + c3 + c4
-}
+```rust
+{{#rustdoc_include ../code/src/kernels/literals.rs:step_1}}
 ```
 
 In this example, we use a bare literal, and RHDL determines that it must be an 8-bit literal, as it is being added to an 8-bit literal:
 
-```rust,kernel:literals
-#[kernel]
-fn kernel(a: b8) -> b8 {
-    a + 42 // 👈 inferred as a 42 bit constant
-}
+```rust
+{{#rustdoc_include ../code/src/kernels/literals.rs:step_2}}
 ```
 
 If RHDL infers a size for your literal that won't hold the value you specify, you will get an error during the RHDL compilation of your kernel function, or a run time panic if you try to exercise the `kernel` manually.
 
 ```rust
-#[kernel]
-fn kernel(a: b8) -> b8 {
-    a + 270 // 👈 panics at runtime or fails at RHDL compile time
-}
+{{#rustdoc_include ../code/src/kernels/literals.rs:step_3}}
 ```
+
+Here is an example of a runtime panic when the function is called
+
+```rust
+{{#rustdoc_include ../code/src/kernels/literals.rs:step_3_runtime}}
+```
+
+<!-- cmdrun to-html "cd ../code && cargo test --lib -- kernels::literals::step_3::test_panic_at_runtime --exact --nocapture --ignored 2>&1" -->
+
+And here, we try tp compile it using RHDL's `compile_design` function, which results in a compilation error from the RHDL compiler:
+
+```rust
+{{#rustdoc_include ../code/src/kernels/literals.rs:step_3_compile}}
+```
+
+<!-- cmdrun to-html "cd ../code && cargo test --lib -- kernels::literals::step_3::test_fail_at_rhdl_compile --exact --nocapture --ignored 2>&1" -->
+
 
 For booleans, the literals of `true` and `false` are used as usual:
 
-```rust,kernel:literals
-#[kernel]
-fn kernel(a: bool) -> bool {
-    (a ^ true) || false
-}
+```rust
+{{#rustdoc_include ../code/src/kernels/literals.rs:step_4}}
 ```
 
 ```admonish note

@@ -22,6 +22,7 @@ pub mod delay {
 
     use super::*;
     #[derive(Clone, Synchronous, SynchronousDQ, Default)]
+    #[rhdl(dq_no_prefix)]
     pub struct DelayLine {
         stage_0: DFF<Option<b6>>,
         stage_1: DFF<Option<b6>>,
@@ -62,6 +63,7 @@ pub mod delay {
               +------------+               
 ")]
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 struct TestFixture {
     source: SourceFromFn<b6>,
     delay: DelayLine,
@@ -107,7 +109,7 @@ fn main() -> Result<(), RHDLError> {
     };
     // Run a few samples through
     let input = repeat_n((), 15).with_reset(1).clock_pos_edge(100);
-    let vcd = uut.run(input).collect::<Svg>();
+    let vcd = uut.run(input).collect::<SvgFile>();
     rhdl_fpga::doc::write_svg_as_markdown(
         vcd,
         "pipe_wrap.md",

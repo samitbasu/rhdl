@@ -105,6 +105,7 @@ pub enum State {
 }
 
 #[derive(Debug, Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// The [Flatten] Core
 ///
 /// This core takes a stream of `[T; N]`, and produces

@@ -62,6 +62,7 @@ pub enum State {
 pub type Command = Result<(b4, AxilAddr), AXI4Error>;
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
+#[rhdl(dq_no_prefix)]
 /// AXI Read Switch
 ///
 /// This core provides an AXI endpoint that can
@@ -260,6 +261,7 @@ mod tests {
     //             rdy +--------+       +------+     +------+
     //
     #[derive(Clone, Synchronous, SynchronousDQ)]
+    #[rhdl(dq_no_prefix)]
     pub struct TestFixture {
         source: SourceFromFn<AxilAddr>,
         controller: ReadController,

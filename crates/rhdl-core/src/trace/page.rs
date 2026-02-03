@@ -84,10 +84,9 @@ impl TracePage {
             // populate it.  This is expensive, but done rarely.
             let details = TraceDetails {
                 trace_id,
-                trace_type: value.trace_type(),
                 path: self.path.clone(),
                 key: key.as_string().to_string(),
-                width: (T::TRACE_BITS as u32).max(1) as usize,
+                width: (T::BITS as u32).max(1) as usize,
                 kind: value.kind(),
             };
             self.details.write().unwrap().insert(trace_id, details);
@@ -97,6 +96,7 @@ impl TracePage {
             data: Box::new(*value),
         });
     }
+    /// Get an iterator over the records in this trace page.
     pub fn records(&self) -> impl Iterator<Item = &Record> {
         self.records.iter()
     }
@@ -111,6 +111,7 @@ pub fn set_trace_page(page: Option<Box<TracePage>>) {
     PAGE.replace(page);
 }
 
+/// Take the current trace page for tracing in this thread
 pub fn take_trace_page() -> Option<Box<TracePage>> {
     PAGE.take()
 }

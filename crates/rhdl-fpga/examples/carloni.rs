@@ -38,7 +38,7 @@ fn main() -> Result<(), RHDLError> {
             100,
         )
         .take_while(|t| t.time < 1500)
-        .collect::<Svg>();
+        .collect::<SvgFile>();
     rhdl_fpga::doc::write_svg_as_markdown(vcd, "carloni.md", SvgOptions::default())?;
     Ok(())
 }
