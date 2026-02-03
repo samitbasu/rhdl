@@ -71,6 +71,7 @@ pub mod step_3 {
 }
 
 pub mod step_4 {
+    #[cfg(test)]
     use miette::IntoDiagnostic;
     // ANCHOR: ones-step-4
     use rhdl::prelude::*;
@@ -203,7 +204,7 @@ set_io leds[3] E14
         let (input, output) = fixture.io_dont_care();
         bind!(fixture, dips -> input.val());
         bind!(fixture, leds <- output.val());
-        rhdl_toolchains::icestorm::IceStorm::new("hx8k", "cb132", "/tmp/ice/build")
+        rhdl_toolchains::icestorm::IceStorm::new("hx8k", "cb132", "/tmp/ice-ones-step-11/build")
             .clean()?
             .build_and_flash(fixture, PCF)
     }
@@ -213,8 +214,12 @@ set_io leds[3] E14
     #[test]
     fn test_base_timing() -> miette::Result<()> {
         let uut = OneCounter {};
-        let timing = rhdl_toolchains::icestorm::IceStorm::new("hx8k", "cb132", "/tmp/ice/build")
-            .time(uut)?;
+        let timing = rhdl_toolchains::icestorm::IceStorm::new(
+            "hx8k",
+            "cb132",
+            "/tmp/ice-ones-step-12/build",
+        )
+        .time(uut)?;
         eprintln!("Timing: {timing:?}");
         eprintln!(
             "Total delay: {} nsec",
@@ -338,8 +343,12 @@ pub mod step_6 {
     #[test]
     fn test_timing_divided() -> miette::Result<()> {
         let uut = OneCounterDivided {};
-        let timing = rhdl_toolchains::icestorm::IceStorm::new("hx8k", "cb132", "/tmp/ice/build")
-            .time(uut)?;
+        let timing = rhdl_toolchains::icestorm::IceStorm::new(
+            "hx8k",
+            "cb132",
+            "/tmp/ice-ones-step-18/build",
+        )
+        .time(uut)?;
         eprintln!("Timing: {timing:?}");
         eprintln!(
             "Total delay: {} nsec",
@@ -402,8 +411,12 @@ pub mod step_7 {
     #[test]
     fn test_timing_divided_four() -> miette::Result<()> {
         let uut = OneCounterDividedFour {};
-        let timing = rhdl_toolchains::icestorm::IceStorm::new("hx8k", "cb132", "/tmp/ice/build")
-            .time(uut)?;
+        let timing = rhdl_toolchains::icestorm::IceStorm::new(
+            "hx8k",
+            "cb132",
+            "/tmp/ice-ones-step-20/build",
+        )
+        .time(uut)?;
         eprintln!("Timing: {timing:?}");
         eprintln!(
             "Total delay: {} nsec",

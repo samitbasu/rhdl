@@ -319,7 +319,7 @@ set_io carry D14
         bind!(fixture, b -> input.val().1);
         bind!(fixture, sum <- output.sum.val());
         bind!(fixture, carry <- output.carry.val());
-        rhdl_toolchains::icestorm::IceStorm::new("hx8k", "cb132", "/tmp/ice/build")
+        rhdl_toolchains::icestorm::IceStorm::new("hx8k", "cb132", "/tmp/ice-adder-step-18/build")
             .clean()?
             .build_and_flash(fixture, PCF)
     }

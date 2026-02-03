@@ -296,7 +296,7 @@ set_io y E12
         bind!(fixture, a -> input.val().0);
         bind!(fixture, b -> input.val().1);
         bind!(fixture, y <- output.val());
-        rhdl_toolchains::icestorm::IceStorm::new("hx8k", "cb132", "/tmp/ice/build")
+        rhdl_toolchains::icestorm::IceStorm::new("hx8k", "cb132", "/tmp/ice-xor-step-19/build")
             .clean()?
             .build_and_flash(fixture, PCF)
     }
