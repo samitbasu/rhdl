@@ -1,0 +1,11 @@
+{
+    "Wrap with mdbook anchor": {
+        "prefix": "anchor",
+        "body": [
+            "// ANCHOR: ${1:label}",
+            "${TM_SELECTED_TEXT}// ANCHOR_END: ${1:label}",
+            ""
+        ],
+        "description": "Wrap selection with mdbook anchor tags"
+    }
+}

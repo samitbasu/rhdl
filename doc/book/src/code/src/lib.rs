@@ -1,4 +1,5 @@
 pub mod bits;
+pub mod blinky;
 pub mod circuits;
 pub mod count_ones;
 pub mod digital;
