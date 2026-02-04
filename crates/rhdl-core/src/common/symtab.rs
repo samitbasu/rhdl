@@ -194,7 +194,7 @@ impl<K: SymbolKind> Symbol<K> {
 /// The `K` type is a marker used so that literal and register IDs from different
 /// symbol tables are not confused with each other.
 ///
-#[derive(Clone, Hash)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub struct SymbolTable<L, R, M, K: SymbolKind> {
     lit: SlotVec<(L, M), LiteralId<K>>,
     reg: SlotVec<(R, M), RegisterId<K>>,

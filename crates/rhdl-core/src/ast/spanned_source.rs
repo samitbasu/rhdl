@@ -70,7 +70,7 @@ impl SourceCode for SourcePool {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SpannedSource {
     pub source: String,
     pub name: String,
@@ -112,7 +112,7 @@ impl Hash for SpannedSource {
     }
 }
 
-#[derive(Clone, Debug, Default, Hash)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub struct SpannedSourceSet {
     pub sources: BTreeMap<FunctionId, SpannedSource>,
 }

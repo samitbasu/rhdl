@@ -26,7 +26,7 @@ type Result<T> = std::result::Result<T, RHDLError>;
 
 /// A struct that holds a [Kind](crate::types::kind::Kind) and a bit representation
 /// of a value that conforms to that kind.
-#[derive(Clone, PartialEq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TypedBits {
     bits: Vec<BitX>,
     kind: Kind,

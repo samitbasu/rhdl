@@ -20,7 +20,7 @@ use crate::{
 use super::spec::FuncId;
 use super::spec::OpCode;
 
-#[derive(Debug, Clone, Hash, Default)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Default)]
 pub struct SymbolMap {
     pub source_set: SpannedSourceSet,
 }
@@ -37,7 +37,7 @@ impl SymbolMap {
     }
 }
 
-#[derive(Clone, Hash)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub struct LocatedOpCode {
     pub op: OpCode,
     pub loc: SourceLocation,
@@ -64,7 +64,7 @@ impl From<(OpCode, SourceLocation)> for LocatedOpCode {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub struct SourceDetails {
     pub location: SourceLocation,
     pub name: Option<String>,
@@ -79,7 +79,7 @@ impl From<SourceLocation> for SourceDetails {
     }
 }
 
-#[derive(Clone, Hash)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub struct Object {
     pub symbols: SymbolMap,
     pub symtab: SymbolTable<TypedBits, Kind, SourceDetails, SlotKind>,

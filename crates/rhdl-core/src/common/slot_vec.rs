@@ -28,7 +28,7 @@ pub(crate) trait SlotKey: Copy + Clone + PartialEq + Eq + Ord + PartialOrd + Has
     fn index(self) -> usize;
 }
 
-#[derive(Clone, Hash)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub(crate) struct SlotVec<T, I> {
     id: u64,
     vals: Vec<T>,

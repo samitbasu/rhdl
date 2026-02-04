@@ -91,7 +91,7 @@ pub enum PathElement {
 }
 
 /// A path for indexing into [Digital](crate::types::digital::Digital) types.
-#[derive(Clone, PartialEq, Hash, Default)]
+#[derive(Clone, PartialEq, Eq, Hash, Default)]
 pub struct Path {
     elements: Vec<PathElement>,
 }

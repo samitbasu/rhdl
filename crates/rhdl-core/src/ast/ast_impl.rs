@@ -526,7 +526,7 @@ impl std::fmt::LowerHex for FunctionId {
 
 /// Flags for kernel functions
 /// These flags can be used to modify the behavior of kernel functions.
-#[derive(Copy, Clone, Debug, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum KernelFlags {
     /// Allow weak partial initialization checking
     AllowWeakPartial,
@@ -582,7 +582,7 @@ impl KernelFn {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum WrapOp {
     Ok,
     Err,

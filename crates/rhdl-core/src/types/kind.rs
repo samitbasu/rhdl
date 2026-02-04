@@ -6,6 +6,7 @@ use crate::{
     bitx::BitX,
     error::{RHDLError, rhdl_error},
     rhif::spec::Member,
+    types::path::Path,
 };
 
 use super::{domain::Color, error::DynamicTypeError};

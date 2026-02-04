@@ -8,7 +8,7 @@ use crate::{
     types::path::Path,
 };
 
-#[derive(Clone, PartialEq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum OpCode {
     Noop,
     // lhs <- arg1 op arg2
@@ -75,7 +75,7 @@ impl OpCode {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Wrap {
     pub op: WrapOp,
     pub lhs: Slot,
@@ -83,7 +83,7 @@ pub struct Wrap {
     pub kind: Option<Kind>,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Binary {
     pub op: AluBinary,
     pub lhs: Slot,
@@ -91,14 +91,14 @@ pub struct Binary {
     pub arg2: Slot,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Unary {
     pub op: AluUnary,
     pub lhs: Slot,
     pub arg1: Slot,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Select {
     pub lhs: Slot,
     pub cond: Slot,
@@ -106,20 +106,20 @@ pub struct Select {
     pub false_value: Slot,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Index {
     pub lhs: Slot,
     pub arg: Slot,
     pub path: Path,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Assign {
     pub lhs: Slot,
     pub rhs: Slot,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Splice {
     pub lhs: Slot,
     pub orig: Slot,
@@ -127,14 +127,14 @@ pub struct Splice {
     pub subst: Slot,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Repeat {
     pub lhs: Slot,
     pub value: Slot,
     pub len: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Struct {
     pub lhs: Slot,
     pub fields: Vec<FieldValue>,
@@ -142,45 +142,45 @@ pub struct Struct {
     pub template: TypedBits,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Case {
     pub lhs: Slot,
     pub discriminant: Slot,
     pub table: Vec<(CaseArgument, Slot)>,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Array {
     pub lhs: Slot,
     pub elements: Vec<Slot>,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Tuple {
     pub lhs: Slot,
     pub fields: Vec<Slot>,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Exec {
     pub lhs: Slot,
     pub id: FuncId,
     pub args: Vec<Slot>,
 }
 
-#[derive(Clone, PartialEq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum CaseArgument {
     Slot(Slot),
     Wild,
 }
 
-#[derive(Clone, PartialEq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct FieldValue {
     pub member: Member,
     pub value: Slot,
 }
 
-#[derive(Clone, Copy, PartialEq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AluBinary {
     Add,
     Sub,
@@ -219,7 +219,7 @@ impl AluBinary {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AluUnary {
     Neg,
     Not,
@@ -245,7 +245,7 @@ impl SymbolKind for SlotKind {
 
 pub type Slot = Symbol<SlotKind>;
 
-#[derive(Clone, PartialEq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Member {
     Named(Intern<String>),
     Unnamed(u32),
@@ -266,21 +266,21 @@ impl From<usize> for FuncId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Enum {
     pub lhs: Slot,
     pub fields: Vec<FieldValue>,
     pub template: TypedBits,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Cast {
     pub lhs: Slot,
     pub arg: Slot,
     pub len: Option<usize>,
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Retime {
     pub lhs: Slot,
     pub arg: Slot,

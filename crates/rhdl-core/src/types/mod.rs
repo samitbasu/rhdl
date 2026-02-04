@@ -1,5 +1,6 @@
 //! Core RHDL types.
 #![warn(missing_docs)]
+pub mod atom;
 pub mod bit_string;
 pub mod clock;
 pub mod clock_reset;
