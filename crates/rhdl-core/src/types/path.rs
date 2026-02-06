@@ -611,6 +611,24 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
     Ok((range, kind))
 }
 
+pub(crate) trait PathExt {
+    fn sub_kind(&self, path: &Path) -> Result<Kind>;
+    fn leaf_paths(&self, base: Path) -> Vec<Path>;
+    fn all_leafs(&self) -> Vec<Path>;
+}
+
+impl PathExt for Kind {
+    fn sub_kind(&self, path: &Path) -> Result<Kind> {
+        sub_kind(*self, path)
+    }
+    fn leaf_paths(&self, base: Path) -> Vec<Path> {
+        leaf_paths(self, base)
+    }
+    fn all_leafs(&self) -> Vec<Path> {
+        leaf_paths(self, Path::default())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{Kind, types::kind::DiscriminantLayout};

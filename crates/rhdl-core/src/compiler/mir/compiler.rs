@@ -8,6 +8,7 @@
 // ArmEnum
 // KernelFn (ret)
 
+use internment::Intern;
 use log::debug;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -151,7 +152,7 @@ pub struct MirContext<'a> {
     symtab: SymbolTable<ExprLit, Option<String>, NodeId, SlotKind>,
     ty: BTreeMap<Slot, Kind>,
     ty_equate: HashSet<TypeEquivalence>,
-    stash: BTreeMap<FuncId, Box<Object>>,
+    stash: BTreeMap<FuncId, Intern<Object>>,
     return_slot: Option<Slot>,
     arguments: Vec<Slot>,
     fn_id: FunctionId,
@@ -447,7 +448,7 @@ impl<'a> MirContext<'a> {
     fn stash(&mut self, kernel: &ast_impl::KernelFn) -> Result<FuncId> {
         let ndx = self.stash.len().into();
         let object = compile(kernel, self.mode)?;
-        self.stash.insert(ndx, Box::new(object));
+        self.stash.insert(ndx, Intern::new(object));
         Ok(ndx)
     }
     fn op(&mut self, op: OpCode, node: NodeId) {

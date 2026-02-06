@@ -1,3 +1,4 @@
+use internment::Intern;
 use log::debug;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
@@ -31,7 +32,7 @@ pub struct Mir {
     pub symtab: SymbolTable<ExprLit, Option<String>, SourceLocation, SlotKind>,
     pub ty: BTreeMap<Slot, Kind>,
     pub ty_equate: HashSet<TypeEquivalence>,
-    pub stash: BTreeMap<FuncId, Box<Object>>,
+    pub stash: BTreeMap<FuncId, Intern<Object>>,
     pub return_slot: Slot,
     pub arguments: Vec<Slot>,
     pub fn_id: FunctionId,

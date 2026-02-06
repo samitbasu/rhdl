@@ -8,7 +8,7 @@ use crate::{
             check_clock_domain::CheckClockDomain, check_for_rolled_types::CheckForRolledTypesPass,
             check_rhif_flow::DataFlowCheckPass, check_rhif_type::TypeCheckPass,
             constant_propagation::ConstantPropagation,
-            dead_code_elimination::DeadCodeEliminationPass,
+            dead_code_elimination::DeadCodeEliminationPass, flow_graph_check::FlowGraphCheckPass,
             lower_dynamic_indices_with_constant_arguments::LowerDynamicIndicesWithConstantArguments,
             lower_inferred_casts::LowerInferredCastsPass,
             lower_inferred_retimes::LowerInferredRetimesPass,
@@ -90,6 +90,7 @@ pub(crate) fn compile(kernel: &KernelFn, mode: CompilationMode) -> Result<Object
         obj = wrap_pass::<LowerInferredRetimesPass>(obj)?;
         obj = wrap_pass::<LowerDynamicIndicesWithConstantArguments>(obj)?;
         obj = wrap_pass::<ConstantPropagation>(obj)?;
+        obj = wrap_pass::<FlowGraphCheckPass>(obj)?;
         let new_hash = obj.hash_value();
         if new_hash == hash {
             break;

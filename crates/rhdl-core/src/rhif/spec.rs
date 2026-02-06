@@ -251,6 +251,25 @@ pub enum Member {
     Unnamed(u32),
 }
 
+impl std::fmt::Display for Member {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Member::Named(name) => write!(f, "{}", name),
+            Member::Unnamed(idx) => write!(f, "{}", idx),
+        }
+    }
+}
+
+impl From<Intern<String>> for Member {
+    fn from(name: Intern<String>) -> Self {
+        if let Ok(idx) = name.parse::<u32>() {
+            Member::Unnamed(idx)
+        } else {
+            Member::Named(name)
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FuncId(usize);
 

@@ -1,4 +1,5 @@
 use fnv::FnvHasher;
+use internment::Intern;
 use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::hash::Hash;
@@ -84,7 +85,7 @@ pub struct Object {
     pub symbols: SymbolMap,
     pub symtab: SymbolTable<TypedBits, Kind, SourceDetails, SlotKind>,
     pub return_slot: Slot,
-    pub externals: BTreeMap<FuncId, Box<Object>>,
+    pub externals: BTreeMap<FuncId, Intern<Object>>,
     pub ops: Vec<LocatedOpCode>,
     pub arguments: Vec<RegisterId<SlotKind>>,
     pub name: String,

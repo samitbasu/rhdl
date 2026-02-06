@@ -53,7 +53,6 @@ pub mod step_3 {
             dff: DFF<b8>,
         }
 
-        // ANCHOR: step-3
         #[derive(Digital, Clone, Copy, PartialEq)]
         pub struct I {
             enable: bool,
@@ -64,7 +63,6 @@ pub mod step_3 {
             count: b8,
             overflow: bool,
         }
-        // ANCHOR_END: step-3
 
         impl SynchronousIO for Count8 {
             type I = I;

@@ -20,6 +20,9 @@ pub enum RHDLError {
     #[error("RHDL ICE")]
     #[diagnostic(transparent)]
     RHDLInternalCompilerError(#[from] Box<crate::compiler::mir::error::RHDLCompileError>),
+    #[error("RHDL Flow Graph Error")]
+    #[diagnostic(transparent)]
+    RHDLFlowGraphError(#[from] Box<crate::rhif::flow_graph::FlowGraphError>),
     #[error("RHDL Type Error")]
     #[diagnostic(transparent)]
     RHDLTypeError(#[from] Box<crate::compiler::mir::error::RHDLTypeError>),

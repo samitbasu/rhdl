@@ -21,16 +21,17 @@ mod arrays_1 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        let kernel = compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        let kernel = compile_design::<kernel>(CompilationMode::Synchronous)?;
         expect_test::expect_file!["expect/book_kernel_arrays_1.expect"].assert_debug_eq(&kernel);
         let netlist: rhdl_core::ntl::Object = rhdl_core::ntl::from_rtl::build_ntl_from_rtl(&kernel);
-        let netlist = rhdl_core::compiler::optimize_ntl(netlist).unwrap();
+        let netlist = rhdl_core::compiler::optimize_ntl(netlist)?;
         expect_test::expect_file!["expect/book_kernel_arrays_1_ntl.expect"]
             .assert_debug_eq(&netlist);
-        let vlog = kernel.as_vlog().unwrap();
+        let vlog = kernel.as_vlog()?;
         let vlog_str = vlog.pretty();
         expect_test::expect_file!["expect/book_kernel_arrays_1_vlog.expect"].assert_eq(&vlog_str);
+        Ok(())
     }
 }
 
@@ -43,8 +44,9 @@ mod arrays_2 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -58,8 +60,9 @@ mod arrays_3 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -72,8 +75,9 @@ mod arrays_4 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -90,8 +94,9 @@ mod binary_1 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -109,8 +114,9 @@ mod blocks_1 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -128,8 +134,9 @@ mod early_1 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -163,8 +170,9 @@ mod early_2 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -178,8 +186,9 @@ mod early_3 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -192,8 +201,9 @@ mod functions_1 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -206,8 +216,9 @@ mod functions_2 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -228,8 +239,9 @@ mod functions_3 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -251,8 +263,9 @@ mod functions_4 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -272,8 +285,9 @@ mod functions_5 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -297,8 +311,9 @@ mod functions_6 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -317,8 +332,9 @@ mod if_1 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -335,8 +351,9 @@ mod if_2 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -357,8 +374,9 @@ mod if_3 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -390,8 +408,9 @@ mod literals_2 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -419,8 +438,9 @@ mod literals_4 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -439,8 +459,9 @@ mod loops_1 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -468,8 +489,9 @@ mod loops_2 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -498,8 +520,9 @@ mod loops_3 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -521,8 +544,9 @@ mod loops_4 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -540,8 +564,9 @@ mod match_1 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -559,8 +584,9 @@ mod match_2 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -582,8 +608,9 @@ mod match_3 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -620,8 +647,9 @@ mod match_4 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -654,8 +682,9 @@ pub mod match_5 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -679,8 +708,9 @@ mod match_6 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -693,8 +723,9 @@ mod match_7 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -715,8 +746,9 @@ mod methods_1 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -742,8 +774,9 @@ mod structs_1 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -766,8 +799,9 @@ mod structs_2 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -788,8 +822,9 @@ mod structs_3 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -810,8 +845,9 @@ mod structs_4 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -834,8 +870,9 @@ mod structs_5 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -852,8 +889,9 @@ mod structs_6 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -869,8 +907,9 @@ mod tuples_1 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -901,8 +940,9 @@ mod variables_2 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -918,8 +958,9 @@ mod variables_3 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -933,8 +974,9 @@ mod variables_4 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -954,8 +996,9 @@ mod variables_5 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -972,8 +1015,9 @@ mod variables_6 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -987,8 +1031,9 @@ mod variables_7 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -1011,8 +1056,9 @@ mod variables_8 {
     }
 
     #[test]
-    fn test_kernel_block() {
-        compile_design::<kernel>(CompilationMode::Synchronous).unwrap();
+    fn test_kernel_block() -> miette::Result<()> {
+        compile_design::<kernel>(CompilationMode::Synchronous)?;
+        Ok(())
     }
 }
 
@@ -1042,7 +1088,7 @@ mod simulation_exhaustive {
 }
 
 #[test]
-fn test_iterator_timed_from_map() {
+fn test_iterator_timed_from_map() -> miette::Result<()> {
     use rhdl::prelude::*;
     let i = (0..)
         .map(b8)
@@ -1051,5 +1097,6 @@ fn test_iterator_timed_from_map() {
         .map(|(ndx, s)| timed_sample(ndx as u64 * 50, s));
     i.take(10).for_each(|x| {
         println!("{x}");
-    })
+    });
+    Ok(())
 }
