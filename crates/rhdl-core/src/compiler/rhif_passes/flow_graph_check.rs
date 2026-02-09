@@ -1,4 +1,4 @@
-use internment::Intern;
+use std::sync::Arc;
 
 use crate::{
     RHDLError,
@@ -11,9 +11,8 @@ pub struct FlowGraphCheckPass;
 
 impl Pass for FlowGraphCheckPass {
     fn run(input: Object) -> Result<Object, RHDLError> {
-        let interned = Intern::new(input);
-        let _ = build_flow_graph(interned)?;
-        Ok((*interned).clone())
+        let _ = build_flow_graph(Arc::new(input.clone()))?;
+        Ok(input)
     }
     fn description() -> &'static str {
         "Check that flow graph can be built."

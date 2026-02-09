@@ -33,7 +33,7 @@ pub mod types;
 pub mod util;
 pub use util::id;
 
-pub use compiler::compile_design;
+//pub use compiler::compile_design;
 pub use trace::key::TraceKey;
 pub use trace::page::trace;
 pub use trace::page::trace_pop_path;

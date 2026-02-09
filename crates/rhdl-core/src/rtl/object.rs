@@ -1,6 +1,7 @@
 use std::fmt::Write;
 use std::hash::Hash;
 use std::hash::Hasher;
+use std::sync::Arc;
 
 use fnv::FnvHasher;
 
@@ -54,6 +55,7 @@ pub struct Object {
     pub arguments: Vec<Option<RegisterId<OperandKind>>>,
     pub name: String,
     pub fn_id: FunctionId,
+    pub source: Arc<crate::rhif::Object>,
 }
 
 impl Object {
@@ -119,5 +121,13 @@ impl std::fmt::Debug for Object {
             writeln!(f, "{line}")?;
         }
         writeln!(f, "Done")
+    }
+}
+
+impl TryFrom<Arc<crate::rhif::Object>> for Object {
+    type Error = RHDLError;
+
+    fn try_from(value: Arc<crate::rhif::Object>) -> Result<Self, Self::Error> {
+        crate::compiler::compile_stage2(value)
     }
 }

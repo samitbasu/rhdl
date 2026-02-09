@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use log::debug;
 
 use crate::{
@@ -45,7 +47,7 @@ pub enum CompilationMode {
     Synchronous,
 }
 
-pub(crate) fn compile(kernel: &KernelFn, mode: CompilationMode) -> Result<Object> {
+pub(crate) fn compile(kernel: &KernelFn, mode: CompilationMode) -> Result<Arc<Object>> {
     let mir = compile_mir(kernel, mode)?;
     let mut obj = infer(mir)?;
     obj = SymbolTableIsComplete::run(obj)?;
@@ -90,7 +92,6 @@ pub(crate) fn compile(kernel: &KernelFn, mode: CompilationMode) -> Result<Object
         obj = wrap_pass::<LowerInferredRetimesPass>(obj)?;
         obj = wrap_pass::<LowerDynamicIndicesWithConstantArguments>(obj)?;
         obj = wrap_pass::<ConstantPropagation>(obj)?;
-        obj = wrap_pass::<FlowGraphCheckPass>(obj)?;
         let new_hash = obj.hash_value();
         if new_hash == hash {
             break;
@@ -112,5 +113,10 @@ pub(crate) fn compile(kernel: &KernelFn, mode: CompilationMode) -> Result<Object
         PartialInitializationCheck::description()
     );
     obj = PartialInitializationCheck::run(obj)?;
-    Ok(obj)
+    debug!(
+        "Running Stage 1 Compiler Pass {}",
+        FlowGraphCheckPass::description()
+    );
+    obj = FlowGraphCheckPass::run(obj)?;
+    Ok(Arc::new(obj))
 }

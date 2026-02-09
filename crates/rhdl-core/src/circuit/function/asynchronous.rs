@@ -25,7 +25,7 @@ use crate::{
         descriptor::{AsyncKind, Descriptor},
         scoped_name::ScopedName,
     },
-    compile_design,
+    compiler::compile_design,
     digital_fn::{DigitalFn1, NoCircuitKernel},
     ntl::from_rtl::build_ntl_from_rtl,
     rtl::Object,

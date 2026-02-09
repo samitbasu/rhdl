@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
+    sync::Arc,
 };
 
 use crate::{
@@ -11,7 +12,7 @@ use crate::{
 use internment::Intern;
 use log::debug;
 use miette::{Diagnostic, SourceSpan};
-use petgraph::graph::NodeIndex;
+use petgraph::graph::{DiGraph, NodeIndex};
 use thiserror::Error;
 
 use crate::{
@@ -84,7 +85,7 @@ impl Diagnostic for FlowGraphError {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct PathRef {
-    pub object: Intern<Object>,
+    pub object: Arc<Object>,
     pub slot: Slot,
     pub path: Path,
 }
@@ -94,15 +95,41 @@ pub enum EdgeKind {
     OpCode(LocatedOpCode),
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Hash, PartialEq, Eq)]
+pub enum NodeKind {
+    Slot(PathRef),
+    Buffer(Kind),
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct InputRef {
+    pub index: usize,
+    pub kind: Kind,
+    pub path: Path,
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct OutputRef {
+    pub kind: Kind,
+    pub path: Path,
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum NodePort {
+    Input(usize, Path),
+    Output(Path),
+}
+
+#[derive(Clone)]
 pub struct FlowGraph {
+    /// The name of the thing this flow graph represents
+    pub name: String,
     pub graph: petgraph::graph::DiGraph<PathRef, EdgeKind>,
-    pub atom_map: HashMap<PathRef, NodeIndex>,
+    pub ports: HashMap<NodePort, NodeIndex>,
 }
 
 // Enumerate all possible concrete paths that a dynamic path could take.
 fn path_star(kind: Kind, path: &Path) -> Result<Vec<Path>, RHDLError> {
-    debug!("path star called with kind {kind:?} and path {path:?}");
     if !path.any_dynamic() {
         return Ok(vec![path.clone()]);
     }
@@ -159,35 +186,56 @@ impl FlowGraph {
         })
         .into()
     }
-    fn lookup(
-        &self,
-        object: Intern<Object>,
-        slot: Slot,
-        path: Path,
-        loc: SourceLocation,
-    ) -> Result<NodeIndex, RHDLError> {
-        let atom = PathRef {
-            object,
-            slot,
-            path: path.clone(),
-        };
-        if let Some(&ndx) = self.atom_map.get(&atom) {
-            Ok(ndx)
-        } else {
-            Err(self.raise_error(FlowGraphErrorKind::MissingNode { slot, path }, object, loc))
-        }
-    }
 }
 
 struct FlowGraphBuilder {
     fg: FlowGraph,
-    object: Intern<Object>,
+    atom_map: HashMap<PathRef, NodeIndex>,
+    object: Arc<Object>,
 }
 
 impl FlowGraphBuilder {
-    fn new(object: Intern<Object>) -> Self {
+    fn new(object: Arc<Object>) -> Self {
+        let mut graph = DiGraph::default();
+        let mut atom_map = HashMap::new();
+        let mut ports = HashMap::new();
+        let mut inputs = vec![];
+        for (index, arg) in object.arguments.iter().enumerate() {
+            let arg_kind: Kind = object.kind(arg.into());
+            let mut input_indices = vec![];
+            for path in arg_kind.all_leafs() {
+                let input_ref = PathRef {
+                    object: Arc::clone(&object),
+                    slot: (*arg).into(),
+                    path: path.clone(),
+                };
+                let ndx = graph.add_node(input_ref.clone());
+                atom_map.insert(input_ref, ndx);
+                ports.insert(NodePort::Input(index, path), ndx);
+                input_indices.push(ndx);
+            }
+            inputs.push(input_indices);
+        }
+        let output_kind: Kind = object.kind(object.return_slot);
+        let mut output_indices = vec![];
+        for path in output_kind.all_leafs() {
+            let output_ref = PathRef {
+                object: Arc::clone(&object),
+                slot: object.return_slot,
+                path: path.clone(),
+            };
+            let ndx = graph.add_node(output_ref.clone());
+            atom_map.insert(output_ref, ndx);
+            ports.insert(NodePort::Output(path), ndx);
+            output_indices.push(ndx);
+        }
         Self {
-            fg: FlowGraph::default(),
+            fg: FlowGraph {
+                name: object.name.clone(),
+                graph,
+                ports,
+            },
+            atom_map,
             object,
         }
     }
@@ -203,7 +251,7 @@ impl FlowGraphBuilder {
         let mut remap = HashMap::new();
         for ndx in fg.graph.node_indices() {
             let node = fg.graph[ndx].clone();
-            let new_ndx = self.node(node);
+            let new_ndx = self.fg.graph.add_node(node);
             remap.insert(ndx, new_ndx);
         }
         for edge in fg.graph.edge_indices() {
@@ -218,17 +266,17 @@ impl FlowGraphBuilder {
         remap
     }
     fn node(&mut self, path_ref: PathRef) -> NodeIndex {
-        if let Some(&ndx) = self.fg.atom_map.get(&path_ref) {
+        if let Some(&ndx) = self.atom_map.get(&path_ref) {
             ndx
         } else {
             let ndx = self.fg.graph.add_node(path_ref.clone());
-            self.fg.atom_map.insert(path_ref, ndx);
+            self.atom_map.insert(path_ref, ndx);
             ndx
         }
     }
     fn slot_with_path(&mut self, slot: Slot, path: Path) -> NodeIndex {
         let path_ref = PathRef {
-            object: self.object,
+            object: Arc::clone(&self.object),
             slot,
             path,
         };
@@ -311,9 +359,10 @@ impl FlowGraphBuilder {
     }
 }
 
-pub(crate) fn build_flow_graph(object: Intern<Object>) -> Result<FlowGraph, RHDLError> {
+pub(crate) fn build_flow_graph(object: Arc<Object>) -> Result<FlowGraph, RHDLError> {
+    debug!("Building flow graph for object: {:?}", object);
     // Import the arguments
-    let mut builder = FlowGraphBuilder::new(object);
+    let mut builder = FlowGraphBuilder::new(Arc::clone(&object));
     // Create entries for all the leaves in the input arguments
     for arg in object.arguments.iter() {
         for atom in object.symtab[*arg].all_leafs() {
@@ -324,6 +373,7 @@ pub(crate) fn build_flow_graph(object: Intern<Object>) -> Result<FlowGraph, RHDL
         let _ = builder.slot_with_path(object.return_slot, atom);
     }
     for lop in object.ops.iter() {
+        debug!("Processing operation: {:?}", lop.op);
         match &lop.op {
             OpCode::Noop => {}
             // Binary operations will mix changes from either argument
@@ -444,8 +494,8 @@ pub(crate) fn build_flow_graph(object: Intern<Object>) -> Result<FlowGraph, RHDL
             // Exec is basically a set of copy-in and copy-out.  But it is special cased to deal with
             // the fact that the subfuction's flow graph needs to be imported and remapped.
             OpCode::Exec(exec) => {
-                let sub_func = object.externals[&exec.id];
-                let sub_fg = build_flow_graph(sub_func)?;
+                let sub_func = Arc::clone(&object.externals[&exec.id]);
+                let sub_fg = build_flow_graph(Arc::clone(&sub_func))?;
                 let remap = builder.import(&sub_fg);
                 // The copy to/from logic is duplicated here, because we are copying
                 // across function boundaries.
@@ -470,7 +520,7 @@ pub(crate) fn build_flow_graph(object: Intern<Object>) -> Result<FlowGraph, RHDL
                         // This is the node for the atom in our function
                         let from_ndx = builder.slot_with_path(arg, path.clone());
                         // Lookup the corresponding node in the sub function's flow graph and remap it to our flow graph
-                        let to_ndx = sub_fg.lookup(sub_func, sub_arg.into(), path, lop.loc)?;
+                        let to_ndx = sub_fg.ports[&NodePort::Input(i, path.clone())];
                         let to_ndx = remap[&to_ndx];
                         builder.add_edge(from_ndx, to_ndx, lop);
                     }
@@ -489,7 +539,7 @@ pub(crate) fn build_flow_graph(object: Intern<Object>) -> Result<FlowGraph, RHDL
                 }
                 for path in my_return_kind.all_leafs() {
                     let from_ndx = builder.slot_with_path(exec.lhs, path.clone());
-                    let to_ndx = sub_fg.lookup(sub_func, sub_func.return_slot, path, lop.loc)?;
+                    let to_ndx = sub_fg.ports[&NodePort::Output(path.clone())];
                     let to_ndx = remap[&to_ndx];
                     builder.add_edge(to_ndx, from_ndx, lop);
                 }

@@ -23,7 +23,7 @@
 //! kinds of circuits.
 use std::marker::PhantomData;
 
-use crate::{HDLDescriptor, Kind, RHDLError, circuit::scoped_name::ScopedName, ntl, rtl};
+use crate::{HDLDescriptor, Kind, RHDLError, circuit::scoped_name::ScopedName, ntl, rhif, rtl};
 
 /// Marker type for asynchronous circuits.
 pub struct AsyncKind;

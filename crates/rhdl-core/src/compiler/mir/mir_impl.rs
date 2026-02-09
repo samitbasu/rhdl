@@ -1,8 +1,8 @@
-use internment::Intern;
 use log::debug;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     ops::Range,
+    sync::Arc,
 };
 
 use crate::{
@@ -32,7 +32,7 @@ pub struct Mir {
     pub symtab: SymbolTable<ExprLit, Option<String>, SourceLocation, SlotKind>,
     pub ty: BTreeMap<Slot, Kind>,
     pub ty_equate: HashSet<TypeEquivalence>,
-    pub stash: BTreeMap<FuncId, Intern<Object>>,
+    pub stash: BTreeMap<FuncId, Arc<Object>>,
     pub return_slot: Slot,
     pub arguments: Vec<Slot>,
     pub fn_id: FunctionId,

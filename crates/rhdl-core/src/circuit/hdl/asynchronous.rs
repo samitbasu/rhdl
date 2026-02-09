@@ -13,8 +13,9 @@ use crate::{
         descriptor::{AsyncKind, Descriptor},
         scoped_name::ScopedName,
     },
-    compile_design,
+    compiler::driver::{compile_design, compile_design_stage1},
     ntl::{self, from_rtl::build_ntl_from_rtl},
+    rhif::flow_graph::{FlowGraph, build_flow_graph},
     rtl,
     types::{
         digital::Digital,
@@ -93,6 +94,13 @@ fn build_circuit_hdl<C: Circuit>(
         name: local_name,
         modules,
     })
+}
+
+fn build_circuit_flow_graph<C: Circuit>() -> Result<FlowGraph, RHDLError> {
+    // Get the kernel and it's flow graph
+    let kernel = compile_design_stage1::<C::Kernel>(CompilationMode::Asynchronous)?;
+    let kernel_fg = build_flow_graph(kernel)?;
+    todo!()
 }
 
 fn build_circuit_netlist<C: Circuit>(

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     RHDLError,
     compiler::{
@@ -31,7 +33,7 @@ fn wrap_pass<P: Pass>(obj: rtl::Object) -> Result<rtl::Object> {
     P::run(obj)
 }
 
-pub(crate) fn compile(object: &crate::rhif::Object) -> Result<rtl::Object> {
+pub fn compile(object: Arc<crate::rhif::Object>) -> Result<rtl::Object> {
     let mut rtl = compile_to_rtl(object)?;
     let mut hash = rtl.hash_value();
     loop {

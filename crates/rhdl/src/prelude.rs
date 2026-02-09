@@ -16,7 +16,7 @@ pub use rhdl_core::circuit::hdl_descriptor::HDLDescriptor;
 pub use rhdl_core::circuit::synchronous::Synchronous;
 pub use rhdl_core::circuit::synchronous::SynchronousDQ;
 pub use rhdl_core::circuit::synchronous::SynchronousIO;
-pub use rhdl_core::compile_design;
+pub use rhdl_core::compiler::compile_design;
 pub use rhdl_core::compiler::driver::compile_design_stage1;
 pub use rhdl_core::error::RHDLError;
 pub use rhdl_core::rhif::spec::OpCode;

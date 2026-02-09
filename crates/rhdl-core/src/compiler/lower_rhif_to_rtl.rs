@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use fnv::FnvHashMap;
 use log::debug;
@@ -681,7 +682,7 @@ impl<'a> RTLCompiler<'a> {
         // Look up the function ID from the external functions.
         let func = &self.object.externals[id];
         // Compile it...
-        let func = compile_rtl(func)?;
+        let func = compile_rtl(Arc::clone(&func))?;
         // Merge in the symbols.  Each symbol in the executed function, now has a corresponding
         // symbol in our symbol table
         let mut op_remap = self.symtab.merge(func.symtab);
@@ -1148,8 +1149,8 @@ impl<'a> RTLCompiler<'a> {
     }
 }
 
-fn compile_rtl(object: &rhif::Object) -> Result<rtl::object::Object> {
-    let mut compiler = RTLCompiler::new(object).translate()?;
+fn compile_rtl(object: Arc<rhif::Object>) -> Result<rtl::object::Object> {
+    let mut compiler = RTLCompiler::new(object.as_ref()).translate()?;
     let arguments = object
         .arguments
         .iter()
@@ -1172,9 +1173,10 @@ fn compile_rtl(object: &rhif::Object) -> Result<rtl::object::Object> {
         arguments,
         name: object.name.clone(),
         fn_id: object.fn_id,
+        source: Arc::clone(&object),
     })
 }
 
-pub fn compile_to_rtl(object: &rhif::object::Object) -> Result<rtl::object::Object> {
+pub fn compile_to_rtl(object: Arc<rhif::object::Object>) -> Result<rtl::object::Object> {
     compile_rtl(object)
 }

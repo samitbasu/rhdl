@@ -27,7 +27,7 @@ use crate::{
         descriptor::{Descriptor, SyncKind},
         scoped_name::ScopedName,
     },
-    compile_design,
+    compiler::compile_design,
     digital_fn::{DigitalFn2, NoSynchronousKernel},
     ntl::from_rtl::build_ntl_from_rtl,
     rtl::Object,

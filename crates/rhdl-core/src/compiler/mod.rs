@@ -1,5 +1,4 @@
 pub mod driver;
-pub use driver::compile_design;
 pub mod mir;
 mod rhif_passes;
 mod rtl_passes;
@@ -9,4 +8,6 @@ mod stage3;
 pub use stage1::CompilationMode;
 mod lower_rhif_to_rtl;
 mod ntl_passes;
+pub use driver::compile_design;
+pub use stage2::compile as compile_stage2;
 pub use stage3::optimize_ntl;

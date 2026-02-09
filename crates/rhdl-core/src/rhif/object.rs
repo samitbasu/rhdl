@@ -1,10 +1,10 @@
 use fnv::FnvHasher;
-use internment::Intern;
 use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::ops::Range;
+use std::sync::Arc;
 
 use crate::ast::KernelFlags;
 use crate::ast::SourceLocation;
@@ -85,7 +85,7 @@ pub struct Object {
     pub symbols: SymbolMap,
     pub symtab: SymbolTable<TypedBits, Kind, SourceDetails, SlotKind>,
     pub return_slot: Slot,
-    pub externals: BTreeMap<FuncId, Intern<Object>>,
+    pub externals: BTreeMap<FuncId, Arc<Object>>,
     pub ops: Vec<LocatedOpCode>,
     pub arguments: Vec<RegisterId<SlotKind>>,
     pub name: String,

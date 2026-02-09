@@ -1,4 +1,6 @@
 //! Low level kernel testing functions (internal use only)
+use std::sync::Arc;
+
 use log::debug;
 use rhdl_vlog::Pretty;
 
@@ -349,7 +351,7 @@ where
     Args: TestArg,
 {
     let design = compile_design_stage1::<K>(mode)?;
-    let rtl = compile_design_stage2(&design)?;
+    let rtl = compile_design_stage2(Arc::clone(&design))?;
     let vm_inputs = vals.clone();
     debug!("Testing kernel function");
     debug!("----- RHIF -----");

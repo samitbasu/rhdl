@@ -16,6 +16,7 @@ Cargo.lock
 **/*.vcd.rtt
 **/*.vcd
 **/*.v
+**/.DS_Store
 
 # Added by cargo
 

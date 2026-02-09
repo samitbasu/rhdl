@@ -14,7 +14,7 @@ use crate::{
         descriptor::{Descriptor, SyncKind},
         scoped_name::ScopedName,
     },
-    compile_design,
+    compiler::compile_design,
     ntl::{self, from_rtl::build_ntl_from_rtl},
     rtl,
     types::{

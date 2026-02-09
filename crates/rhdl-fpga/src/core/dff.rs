@@ -61,7 +61,7 @@ output+-------+-------+-------+-------+
 #![doc = include_str!("../../doc/dff.md")]
 use quote::format_ident;
 use rhdl::{
-    core::{circuit::descriptor::SyncKind, ScopedName},
+    core::{ScopedName, circuit::descriptor::SyncKind},
     prelude::*,
 };
 use syn::parse_quote;

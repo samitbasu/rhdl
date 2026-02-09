@@ -96,7 +96,7 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 use quote::{format_ident, quote};
 use rhdl::{
-    core::{circuit::descriptor::AsyncKind, ScopedName},
+    core::{ScopedName, circuit::descriptor::AsyncKind},
     prelude::*,
 };
 use syn::parse_quote;
