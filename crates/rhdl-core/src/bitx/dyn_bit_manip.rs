@@ -141,16 +141,17 @@ pub fn move_nbits_to_msb<T: Copy>(a: &[T], n: usize) -> Vec<T> {
     [right, left].concat()
 }
 
+/// Const helper to compute maximum of two usize values.
+pub const fn const_max2(a: usize, b: usize) -> usize {
+    if a > b { a } else { b }
+}
+
 #[macro_export]
 /// Macro to compute the maximum of a list of constant expressions at compile time.
 macro_rules! const_max {
     ($x: expr) => ($x);
     ($x: expr, $($z: expr), +) => (
-        if $x > const_max!($($z), +) {
-            $x
-        } else {
-            const_max!($($z), +)
-        }
+        $crate::bitx::dyn_bit_manip::const_max2($x, const_max!($($z),+))
     );
 }
 
