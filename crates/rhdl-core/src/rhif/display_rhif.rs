@@ -3,7 +3,7 @@ use crate::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
         FieldValue, Index, Member, OpCode, Repeat, Splice, Struct, Tuple, Unary,
     },
-    util::splice,
+    util::{display_splice, splice},
 };
 
 use super::spec::{Retime, Select, Wrap};
@@ -24,7 +24,7 @@ impl std::fmt::Debug for OpCode {
                 write!(f, " {lhs} <- {op:?}{arg1}")
             }
             OpCode::Array(Array { lhs, elements }) => {
-                write!(f, " {:?} <- [{}]", lhs, splice(elements, ", "))
+                write!(f, " {lhs} <- [{}]", display_splice(elements, ", "))
             }
             OpCode::Assign(Assign { lhs, rhs }) => {
                 write!(f, "{lhs} <- {rhs}")
@@ -46,7 +46,7 @@ impl std::fmt::Debug for OpCode {
                 write!(f, " {lhs} <- {cond} ? {true_value} : {false_value}")
             }
             OpCode::Tuple(Tuple { lhs, fields }) => {
-                write!(f, " {lhs} <- ({})", splice(fields, ", "))
+                write!(f, " {lhs} <- ({})", display_splice(fields, ", "))
             }
             OpCode::Index(Index { lhs, arg, path }) => {
                 write!(f, " {lhs} <- {arg}{path:?}")
@@ -63,7 +63,7 @@ impl std::fmt::Debug for OpCode {
                 writeln!(f, " }}")
             }
             OpCode::Exec(Exec { lhs, id, args }) => {
-                write!(f, " {lhs} <- {:?}({})", id, splice(args, ", "))
+                write!(f, " {lhs} <- {:?}({})", id, display_splice(args, ", "))
             }
             OpCode::Struct(Struct {
                 lhs,
@@ -76,7 +76,7 @@ impl std::fmt::Debug for OpCode {
                     " {:?} <- {} {{ {} {} }}",
                     lhs,
                     template.kind().get_name(),
-                    splice(fields, ", "),
+                    display_splice(fields, ", "),
                     rest.map(|x| format!("..{x}")).unwrap_or_default(),
                 )
             }
@@ -93,7 +93,7 @@ impl std::fmt::Debug for OpCode {
                     " {lhs} <- {}#{:?}({})",
                     template.kind().get_name(),
                     template.discriminant().unwrap(),
-                    splice(fields, ", ")
+                    display_splice(fields, ", ")
                 )
             }
             OpCode::AsBits(Cast { lhs, arg, len }) => {
@@ -134,6 +134,12 @@ impl std::fmt::Debug for OpCode {
 impl std::fmt::Debug for FieldValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}: {}", self.member, self.value)
+    }
+}
+
+impl std::fmt::Display for FieldValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.member, self.value)
     }
 }
 

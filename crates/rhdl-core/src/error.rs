@@ -2,7 +2,10 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::{
-    TypedBits, compiler::mir::ty::UnifyError, kernel::KernelFnKind, types::path::PathError,
+    TypedBits,
+    compiler::mir::{error, ty::UnifyError},
+    kernel::KernelFnKind,
+    types::path::PathError,
 };
 
 #[derive(Error, Debug, Diagnostic)]
@@ -22,7 +25,10 @@ pub enum RHDLError {
     RHDLInternalCompilerError(#[from] Box<crate::compiler::mir::error::RHDLCompileError>),
     #[error("RHDL Flow Graph Error")]
     #[diagnostic(transparent)]
-    RHDLFlowGraphError(#[from] Box<crate::rhif::flow_graph::FlowGraphError>),
+    RHDLFlowGraphError(#[from] Box<crate::flow_graph::errors::FlowGraphError>),
+    #[error("RHDL Flow Graph ICE")]
+    #[diagnostic(transparent)]
+    RHDLFlowGraphICE(#[from] crate::flow_graph::errors::FlowGraphICE),
     #[error("RHDL Type Error")]
     #[diagnostic(transparent)]
     RHDLTypeError(#[from] Box<crate::compiler::mir::error::RHDLTypeError>),
@@ -72,6 +78,9 @@ pub enum RHDLError {
     #[error("Logic Loop")]
     #[diagnostic(transparent)]
     NetLoopError(#[from] Box<crate::ntl::error::NetLoopError>),
+    #[error("Loop Error")]
+    #[diagnostic(transparent)]
+    LoopError(#[from] Box<crate::flow_graph::errors::LogicLoopError>),
     #[error("Type Inference Error")]
     #[diagnostic(transparent)]
     TypeInferenceError(#[from] Box<UnifyError>),
@@ -81,6 +90,8 @@ pub enum RHDLError {
     HDLNotAvailable { name: String },
     #[error("Netlist not available for circuit {name}")]
     NetlistNotAvailable { name: String },
+    #[error("Flow graph not available for circuit {name}")]
+    FlowGraphNotAvailable { name: String },
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

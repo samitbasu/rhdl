@@ -38,7 +38,7 @@ impl SymbolMap {
     }
 }
 
-#[derive(Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Hash, PartialEq, Debug, Eq)]
 pub struct LocatedOpCode {
     pub op: OpCode,
     pub loc: SourceLocation,

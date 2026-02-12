@@ -1,5 +1,13 @@
 use std::hash::{Hash, Hasher};
 
+pub fn display_splice<T: std::fmt::Display>(elems: &[T], sep: &str) -> String {
+    elems
+        .iter()
+        .map(|x| format!("{x}"))
+        .collect::<Vec<_>>()
+        .join(sep)
+}
+
 pub fn splice<T: std::fmt::Debug>(elems: &[T], sep: &str) -> String {
     elems
         .iter()

@@ -10,8 +10,8 @@ use std::{
 
 #[derive(Clone, Debug, Default, Hash)]
 pub struct SourcePool {
-    pub source: BTreeMap<FunctionId, SpannedSource>,
-    pub ranges: BTreeMap<FunctionId, Range<usize>>,
+    source: BTreeMap<FunctionId, SpannedSource>,
+    ranges: BTreeMap<FunctionId, Range<usize>>,
 }
 
 impl SourcePool {
@@ -138,6 +138,15 @@ impl SpannedSourceSet {
     }
     pub fn filename(&self, id: FunctionId) -> &str {
         &self.sources[&id].filename
+    }
+}
+
+impl IntoIterator for SpannedSourceSet {
+    type Item = (FunctionId, SpannedSource);
+    type IntoIter = std::collections::btree_map::IntoIter<FunctionId, SpannedSource>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.sources.into_iter()
     }
 }
 

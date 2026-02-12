@@ -168,7 +168,9 @@ clk   +----+    +----+    +----+
 
 use quote::format_ident;
 use rhdl::{
-    core::{ScopedName, circuit::descriptor::AsyncKind},
+    core::{
+        ScopedName, circuit::descriptor::AsyncKind, flow_graph::black_box::build_circuit_blackbox,
+    },
     prelude::*,
 };
 use syn::parse_quote;
@@ -250,6 +252,7 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
     fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
         let name = scoped_name.to_string();
         Descriptor::<AsyncKind> {
+            flow_graph: Some(build_circuit_blackbox::<Self>(&scoped_name)?),
             name: scoped_name,
             input_kind: <<Self as CircuitIO>::I as Digital>::static_kind(),
             output_kind: <<Self as CircuitIO>::O as Digital>::static_kind(),
@@ -259,6 +262,7 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
             netlist: None,
             hdl: Some(self.hdl(&name)?),
             _phantom: std::marker::PhantomData,
+            type_name: std::any::type_name::<Self>(),
         }
         .with_netlist_black_box()
     }

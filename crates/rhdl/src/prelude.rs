@@ -11,6 +11,7 @@ pub use rhdl_core::TraceKey;
 pub use rhdl_core::circuit::adapter::Adapter;
 pub use rhdl_core::circuit::circuit_impl::Circuit;
 pub use rhdl_core::circuit::circuit_impl::CircuitIO;
+pub use rhdl_core::circuit::function::asynchronous::AsyncFunc;
 pub use rhdl_core::circuit::function::synchronous::Func;
 pub use rhdl_core::circuit::hdl_descriptor::HDLDescriptor;
 pub use rhdl_core::circuit::synchronous::Synchronous;
@@ -139,7 +140,7 @@ pub use rhdl_vlog::parse_quote_miette;
 ///bind!(fixture, a -> input.val().0);
 ///bind!(fixture, b -> input.val().1);
 ///bind!(fixture, sum <- output.val());
-///let vlog = fixture.module()?;  
+///let vlog = fixture.module();  
 ///```
 /// When exported as Verilog, the fixture will look like this:
 ///

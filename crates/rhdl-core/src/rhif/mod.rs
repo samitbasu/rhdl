@@ -4,7 +4,6 @@ pub mod spec;
 pub mod vm;
 pub use object::Object;
 pub mod display_rhif;
-pub mod flow_graph;
 pub mod remap;
 pub mod runtime_ops;
 pub mod visit;

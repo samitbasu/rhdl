@@ -50,12 +50,14 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
         // for the clock reset and input vecs (both empty)
         Ok(Descriptor::<SyncKind> {
             name: scoped_name,
+            type_name: std::any::type_name::<Self>(),
             input_kind: Kind::Empty,
             output_kind: Kind::Empty,
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             kernel: None,
             netlist: None,
+            flow_graph: None,
             hdl: Some(HDLDescriptor {
                 name: name.to_string(),
                 modules: module.into(),
@@ -103,12 +105,14 @@ impl<T: Digital + 'static> Circuit for std::marker::PhantomData<T> {
         };
         Ok(Descriptor::<AsyncKind> {
             name: scoped_name,
+            type_name: std::any::type_name::<Self>(),
             input_kind: Kind::Empty,
             output_kind: Kind::Empty,
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             kernel: None,
             netlist: None,
+            flow_graph: None,
             hdl: Some(HDLDescriptor {
                 name: name.to_string(),
                 modules: module.into(),

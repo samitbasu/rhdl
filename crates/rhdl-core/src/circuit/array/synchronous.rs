@@ -40,6 +40,7 @@ use crate::{
         scoped_name::ScopedName,
     },
     digital_fn::NoSynchronousKernel,
+    flow_graph::{self, FlowGraph},
     ntl, trace_pop_path, trace_push_path,
     types::path::{Path, bit_range},
 };
@@ -96,6 +97,7 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
         let name = scoped_name.to_string();
         Ok(Descriptor {
             name: scoped_name,
+            type_name: std::any::type_name::<Self>(),
             input_kind: Self::I::static_kind(),
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,
@@ -103,6 +105,7 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
             kernel: None,
             hdl: Some(hdl::<T, N>(&name, &children)?),
             netlist: Some(netlist::<T, N>(&name, &children)?),
+            flow_graph: Some(flow_graph::<T, N>(&name, &children)?),
             _phantom: std::marker::PhantomData,
         })
     }
@@ -193,4 +196,44 @@ fn netlist<T: Synchronous, const N: usize>(
         }
     }
     builder.build(ntl::builder::BuilderMode::Synchronous)
+}
+
+fn flow_graph<T: Synchronous, const N: usize>(
+    name: &str,
+    children: &[Descriptor<SyncKind>],
+) -> Result<FlowGraph, RHDLError> {
+    let mut builder = flow_graph::builder::Builder::new(name);
+    let cr_kind = ClockReset::static_kind();
+    let input_kind = <[T; N] as SynchronousIO>::I::static_kind();
+    let output_kind = <[T; N] as SynchronousIO>::O::static_kind();
+    builder.add_input_port(cr_kind, 0);
+    builder.add_input_port(input_kind, 1);
+    builder.add_output_port(output_kind);
+    for (i, child_descriptor) in children.iter().enumerate() {
+        let child_flow_graph = child_descriptor.flow_graph()?;
+        let remap = builder.import(child_flow_graph);
+        builder.forward_input_to_child(
+            cr_kind,
+            &Path::default(),
+            0,
+            child_flow_graph,
+            0,
+            &remap,
+        )?;
+        builder.forward_input_to_child(
+            child_descriptor.input_kind,
+            &Path::default().index(i),
+            1,
+            child_flow_graph,
+            1,
+            &remap,
+        )?;
+        builder.forward_output_from_child(
+            child_descriptor.output_kind,
+            &Path::default().index(i),
+            child_flow_graph,
+            &remap,
+        )?;
+    }
+    Ok(builder.build())
 }

@@ -13,9 +13,9 @@ use crate::{
         descriptor::{AsyncKind, Descriptor},
         scoped_name::ScopedName,
     },
-    compiler::driver::{compile_design, compile_design_stage1},
+    compiler::driver::compile_design,
+    flow_graph::circuit_builder::build_circuit_flowgraph,
     ntl::{self, from_rtl::build_ntl_from_rtl},
-    rhif::flow_graph::{FlowGraph, build_flow_graph},
     rtl,
     types::{
         digital::Digital,
@@ -94,13 +94,6 @@ fn build_circuit_hdl<C: Circuit>(
         name: local_name,
         modules,
     })
-}
-
-fn build_circuit_flow_graph<C: Circuit>() -> Result<FlowGraph, RHDLError> {
-    // Get the kernel and it's flow graph
-    let kernel = compile_design_stage1::<C::Kernel>(CompilationMode::Asynchronous)?;
-    let kernel_fg = build_flow_graph(kernel)?;
-    todo!()
 }
 
 fn build_circuit_netlist<C: Circuit>(
@@ -186,12 +179,15 @@ pub fn build_asynchronous_descriptor<C: Circuit>(
         .collect::<Result<Vec<Descriptor<AsyncKind>>, RHDLError>>()?;
     let hdl = build_circuit_hdl::<C>(&scoped_name, &kernel, &children)?;
     let netlist = build_circuit_netlist::<C>(&scoped_name, &kernel, &children)?;
+    let flow_graph =
+        build_circuit_flowgraph::<C>(&scoped_name, &kernel, &children)?.loop_checked()?;
     let circuit_output = <C as CircuitIO>::O::static_kind();
     let circuit_input = <C as CircuitIO>::I::static_kind();
     let d_kind = <C as CircuitDQ>::D::static_kind();
     let q_kind = <C as CircuitDQ>::Q::static_kind();
     Ok(Descriptor {
         name: scoped_name,
+        type_name: std::any::type_name::<C>(),
         input_kind: circuit_input,
         output_kind: circuit_output,
         d_kind,
@@ -199,6 +195,7 @@ pub fn build_asynchronous_descriptor<C: Circuit>(
         kernel: Some(kernel),
         hdl: Some(hdl),
         netlist: Some(netlist),
+        flow_graph: Some(flow_graph),
         _phantom: std::marker::PhantomData,
     })
 }

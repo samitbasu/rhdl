@@ -611,7 +611,7 @@ pub fn bit_range(kind: Kind, path: &Path) -> Result<(Range<usize>, Kind)> {
     Ok((range, kind))
 }
 
-pub(crate) trait PathExt {
+pub trait PathExt {
     fn sub_kind(&self, path: &Path) -> Result<Kind>;
     fn leaf_paths(&self, base: Path) -> Vec<Path>;
     fn all_leafs(&self) -> Vec<Path>;

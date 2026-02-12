@@ -3,7 +3,10 @@ use std::fmt::Display;
 use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
-use crate::ast::SourcePool;
+use crate::{
+    ast::SourcePool,
+    flow_graph::{EdgeKind, NodeKind},
+};
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum NetListICE {

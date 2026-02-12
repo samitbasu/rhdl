@@ -61,7 +61,10 @@ output+-------+-------+-------+-------+
 #![doc = include_str!("../../doc/dff.md")]
 use quote::format_ident;
 use rhdl::{
-    core::{ScopedName, circuit::descriptor::SyncKind},
+    core::{
+        ScopedName, circuit::descriptor::SyncKind,
+        flow_graph::black_box::build_synchronous_blackbox,
+    },
     prelude::*,
 };
 use syn::parse_quote;
@@ -144,7 +147,9 @@ impl<T: Digital> Synchronous for DFF<T> {
     fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError> {
         let name = scoped_name.to_string();
         Descriptor::<SyncKind> {
+            flow_graph: Some(build_synchronous_blackbox::<Self>(&scoped_name)?),
             name: scoped_name,
+            type_name: std::any::type_name::<Self>(),
             input_kind: Self::I::static_kind(),
             output_kind: Self::O::static_kind(),
             d_kind: Kind::Empty,

@@ -24,6 +24,8 @@ use syn::parse_quote;
 
 use crate::circuit::descriptor::{Descriptor, SyncKind};
 use crate::circuit::scoped_name::ScopedName;
+use crate::flow_graph::{self, FlowGraph};
+use crate::types::path::{Path, PathExt};
 use crate::{
     ClockReset, Digital, HDLDescriptor, Kind, Synchronous, SynchronousDQ, SynchronousIO,
     digital_fn::NoSynchronousKernel, trace_pop_path, trace_push_path,
@@ -88,12 +90,14 @@ where
         let name = scoped_name.to_string();
         Ok(Descriptor::<SyncKind> {
             name: scoped_name,
+            type_name: std::any::type_name::<Self>(),
             input_kind: a_descriptor.input_kind,
             output_kind: b_descriptor.output_kind,
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             kernel: None,
             netlist: Some(self.netlist(&name, &a_descriptor, &b_descriptor)?),
+            flow_graph: Some(self.flow_graph(&name, &a_descriptor, &b_descriptor)?),
             hdl: Some(self.hdl(&name, &a_descriptor, &b_descriptor)?),
             _phantom: std::marker::PhantomData,
         })
@@ -202,5 +206,50 @@ where
             builder.copy_from_to(b_offset(*bo), *to)
         }
         builder.build(ntl::builder::BuilderMode::Synchronous)
+    }
+
+    fn flow_graph(
+        &self,
+        name: &str,
+        a_descriptor: &Descriptor<SyncKind>,
+        b_descriptor: &Descriptor<SyncKind>,
+    ) -> Result<FlowGraph, RHDLError> {
+        let mut builder = flow_graph::builder::Builder::new(name);
+        let cr_kind = ClockReset::static_kind();
+        builder.add_input_port(cr_kind, 0);
+        builder.add_input_port(a_descriptor.input_kind, 1);
+        builder.add_output_port(b_descriptor.output_kind);
+        let a_flow_graph = a_descriptor.flow_graph()?;
+        let a_map = builder.import(a_flow_graph);
+        builder.forward_input_to_child(cr_kind, &Path::default(), 0, a_flow_graph, 0, &a_map)?;
+        builder.forward_input_to_child(
+            a_descriptor.input_kind,
+            &Path::default(),
+            1,
+            a_flow_graph,
+            1,
+            &a_map,
+        )?;
+        let b_flow_graph = b_descriptor.flow_graph()?;
+        let b_map = builder.import(b_flow_graph);
+        builder.forward_input_to_child(cr_kind, &Path::default(), 0, b_flow_graph, 0, &b_map)?;
+        builder.forward_output_from_child(
+            b_descriptor.output_kind,
+            &Path::default(),
+            b_flow_graph,
+            &b_map,
+        )?;
+        // Link the two children together by forwarding the output of A to the input of B
+        let link_kind = a_descriptor.output_kind;
+        for path in link_kind.all_leafs() {
+            let a_output_port = a_map[&a_flow_graph.output_port(&path)?];
+            let b_input_port = b_map[&b_flow_graph.input_port(1, &path)?];
+            builder.add_edge(
+                a_output_port,
+                b_input_port,
+                crate::flow_graph::EdgeKind::ChildToChild,
+            );
+        }
+        Ok(builder.build())
     }
 }

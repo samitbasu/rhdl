@@ -1,6 +1,29 @@
 // This component contains an intentional logic loop.
 use rhdl::prelude::*;
 
+mod simplest {
+    use rhdl::prelude::*;
+
+    #[derive(Clone, Debug, Synchronous, Default)]
+    pub struct U;
+
+    impl SynchronousIO for U {
+        type I = bool;
+        type O = bool;
+        type Kernel = simplest;
+    }
+
+    impl SynchronousDQ for U {
+        type D = ();
+        type Q = ();
+    }
+
+    #[kernel]
+    pub fn simplest(_cr: ClockReset, i: bool, _q: ()) -> (bool, ()) {
+        (i, ())
+    }
+}
+
 mod inverter {
     use rhdl::prelude::*;
 
@@ -70,6 +93,7 @@ mod common;
 mod tests {
     use super::*;
     use common::*;
+    use miette::IntoDiagnostic;
 
     #[test]
     fn test_logic_loop() -> miette::Result<()> {
@@ -79,6 +103,18 @@ mod tests {
         };
         let report = miette_report(err);
         expect_test::expect_file!["expect/logic_loop.expect"].assert_eq(&report);
+        Ok(())
+    }
+
+    #[test]
+    fn test_simplest_flow() -> miette::Result<()> {
+        let pass_through =
+            compile_design_stage1::<simplest::simplest>(CompilationMode::Synchronous)?;
+        std::fs::write("simplest.rhif", format!("{:#?}", pass_through)).into_diagnostic()?;
+        let fg = rhdl_core::flow_graph::rhif_builder::build_flow_graph(pass_through)?;
+        std::fs::write("simplest.dot", fg.dot()).into_diagnostic()?;
+        let uut = simplest::U;
+        let _descriptor = uut.descriptor("uut".into())?;
         Ok(())
     }
 }

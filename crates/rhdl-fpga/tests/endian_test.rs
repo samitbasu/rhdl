@@ -156,6 +156,9 @@ fn test_trace() -> miette::Result<()> {
 
 #[test]
 fn test_hdl_generation() -> miette::Result<()> {
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Debug)
+        .init();
     let uut = U::default();
     let input = test_input_stream();
     let tb = uut.run(input).collect::<SynchronousTestBench<_, _>>();

@@ -23,7 +23,12 @@
 //! kinds of circuits.
 use std::marker::PhantomData;
 
-use crate::{HDLDescriptor, Kind, RHDLError, circuit::scoped_name::ScopedName, ntl, rhif, rtl};
+use crate::{
+    HDLDescriptor, Kind, RHDLError,
+    circuit::scoped_name::ScopedName,
+    flow_graph::{FlowGraph, black_box::build_circuit_blackbox},
+    ntl, rtl,
+};
 
 /// Marker type for asynchronous circuits.
 pub struct AsyncKind;
@@ -35,6 +40,8 @@ pub struct SyncKind;
 pub struct Descriptor<T> {
     /// The scoped name of the circuit.
     pub name: ScopedName,
+    /// The type name of the circuit.
+    pub type_name: &'static str,
     /// The kind of the input type.
     pub input_kind: Kind,
     /// The kind of the output type.
@@ -47,6 +54,8 @@ pub struct Descriptor<T> {
     pub kernel: Option<rtl::Object>,
     /// The netlist representation of the circuit, if available.
     pub netlist: Option<ntl::Object>,
+    /// The flow graph representation of the circuit, if available.
+    pub flow_graph: Option<FlowGraph>,
     /// The HDL (Verilog) description of the circuit, if available.
     pub hdl: Option<HDLDescriptor>,
     /// Phantom data for the marker type.
@@ -67,6 +76,14 @@ impl<T> Descriptor<T> {
         self.netlist.as_ref().ok_or(RHDLError::NetlistNotAvailable {
             name: self.name.to_string(),
         })
+    }
+    /// Get a reference to the flow graph representation of the circuit, if available.
+    pub fn flow_graph(&self) -> Result<&FlowGraph, RHDLError> {
+        self.flow_graph
+            .as_ref()
+            .ok_or(RHDLError::FlowGraphNotAvailable {
+                name: self.name.to_string(),
+            })
     }
 }
 

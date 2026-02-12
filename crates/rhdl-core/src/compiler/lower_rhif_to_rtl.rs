@@ -1173,7 +1173,7 @@ fn compile_rtl(object: Arc<rhif::Object>) -> Result<rtl::object::Object> {
         arguments,
         name: object.name.clone(),
         fn_id: object.fn_id,
-        source: Arc::clone(&object),
+        rhif: Arc::clone(&object),
     })
 }
 

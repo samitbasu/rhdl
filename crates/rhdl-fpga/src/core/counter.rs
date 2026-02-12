@@ -128,4 +128,12 @@ mod tests {
         tm.run_iverilog()?;
         Ok(())
     }
+
+    #[test]
+    fn test_counter_has_netlist() -> miette::Result<()> {
+        let uut = Counter::<6>::default();
+        let netlist = uut.descriptor(ScopedName::top())?.netlist;
+        assert!(netlist.is_some());
+        Ok(())
+    }
 }

@@ -55,7 +55,7 @@ pub struct Object {
     pub arguments: Vec<Option<RegisterId<OperandKind>>>,
     pub name: String,
     pub fn_id: FunctionId,
-    pub source: Arc<crate::rhif::Object>,
+    pub rhif: Arc<crate::rhif::Object>,
 }
 
 impl Object {

@@ -15,6 +15,7 @@ use crate::{
         scoped_name::ScopedName,
     },
     compiler::compile_design,
+    flow_graph::synchronous_builder::build_synchronous_flowgraph,
     ntl::{self, from_rtl::build_ntl_from_rtl},
     rtl,
     types::{
@@ -202,6 +203,8 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         .children(&scoped_name)
         .collect::<Result<Vec<Descriptor<SyncKind>>, RHDLError>>()?;
     let hdl = build_synchronous_hdl::<C>(&scoped_name, &kernel, &children)?;
+    let flow_graph =
+        build_synchronous_flowgraph::<C>(&scoped_name, &kernel, &children)?.loop_checked()?;
     let netlist = build_synchronous_netlist::<C>(&scoped_name, &kernel, &children)?;
     let circuit_output = <C as SynchronousIO>::O::static_kind();
     let circuit_input = <C as SynchronousIO>::I::static_kind();
@@ -209,6 +212,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     let q_kind = <C as SynchronousDQ>::Q::static_kind();
     Ok(Descriptor {
         name: scoped_name,
+        type_name: std::any::type_name::<C>(),
         input_kind: circuit_input,
         output_kind: circuit_output,
         d_kind,
@@ -216,6 +220,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         kernel: Some(kernel),
         netlist: Some(netlist),
         hdl: Some(hdl),
+        flow_graph: Some(flow_graph),
         _phantom: std::marker::PhantomData,
     })
 }

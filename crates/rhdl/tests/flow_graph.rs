@@ -1,5 +1,6 @@
 use common::exhaustive;
 use rhdl::{core::ntl::spec::OpCode, prelude::*};
+use rhdl_core::flow_graph::rhif_builder::build_flow_graph;
 use test_log::test;
 
 pub mod common;
@@ -408,5 +409,41 @@ fn test_constant_propagates_through_splicing() -> miette::Result<()> {
     let inputs = [false, true].with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
     let _desc = uut.descriptor("uut".into())?;
+    Ok(())
+}
+
+#[test]
+fn test_flow_graph_missing_output_port() -> miette::Result<()> {
+    #[derive(Circuit, Clone)]
+    pub struct OneCounter {}
+
+    impl CircuitIO for OneCounter {
+        type I = Signal<b8, Red>;
+        type O = Signal<b4, Red>;
+        type Kernel = one_counter;
+    }
+
+    impl CircuitDQ for OneCounter {
+        type D = ();
+        type Q = ();
+    }
+
+    #[kernel]
+    pub fn one_counter(input: Signal<b8, Red>, _q: ()) -> (Signal<b4, Red>, ()) {
+        let mut count = b4(0);
+        let input = input.val();
+        for i in 0..8 {
+            //      👇 Test that i-th bit is set
+            if input & (1 << i) != 0 {
+                count += 1;
+            }
+        }
+        (signal(count), ())
+    }
+
+    let obj = compile_design_stage1::<one_counter>(CompilationMode::Asynchronous)?;
+    let flow_graph = build_flow_graph(obj)?;
+    let uut = OneCounter {};
+    let _flow_graph = uut.descriptor(ScopedName::top())?;
     Ok(())
 }

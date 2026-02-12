@@ -18,6 +18,8 @@
 //! For an example of how to use it, see the book.
 //!
 
+use std::sync::Arc;
+
 use crate::{
     Circuit, CircuitDQ, CircuitIO, CompilationMode, Digital, DigitalFn, HDLDescriptor, Kind,
     RHDLError, Timed,
@@ -27,6 +29,7 @@ use crate::{
     },
     compiler::compile_design,
     digital_fn::{DigitalFn1, NoCircuitKernel},
+    flow_graph::rhif_builder::build_flow_graph,
     ntl::from_rtl::build_ntl_from_rtl,
     rtl::Object,
 };
@@ -95,11 +98,13 @@ impl<I: Timed, O: Timed> Circuit for AsyncFunc<I, O> {
         };
         Ok(Descriptor {
             name: scoped_name,
+            type_name: std::any::type_name::<Self>(),
             input_kind: <Self::I as Digital>::static_kind(),
             output_kind: <Self::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             netlist: Some(build_ntl_from_rtl(&self.kernel)),
+            flow_graph: Some(build_flow_graph(Arc::clone(&self.kernel.rhif))?),
             kernel: Some(self.kernel.clone()),
             hdl: Some(HDLDescriptor {
                 name: module_name,
