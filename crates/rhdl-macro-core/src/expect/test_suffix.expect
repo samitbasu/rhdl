@@ -161,6 +161,7 @@ impl rhdl::core::digital_fn::DigitalFn for update {
                 None,
                 rhdl::serde_json::from_str(META_DATA).unwrap(),
                 vec![],
+                std::any::type_name::<update>(),
             ),
         )
     }

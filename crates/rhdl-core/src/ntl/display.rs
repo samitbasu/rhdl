@@ -4,7 +4,7 @@ use crate::{
         object::Object,
         spec::{Assign, Binary, OpCode, Wire},
     },
-    types::path::{Path, bit_range, leaf_paths},
+    types::path::{PathExt, bit_range},
 };
 
 fn vec_disp(f: &mut std::fmt::Formatter<'_>, data: &[Wire]) -> std::fmt::Result {
@@ -19,7 +19,7 @@ fn vec_disp(f: &mut std::fmt::Formatter<'_>, data: &[Wire]) -> std::fmt::Result 
 }
 
 pub fn summarize_path(ty: Kind, bit: usize) -> String {
-    let paths = leaf_paths(&ty, Path::default());
+    let paths = ty.all_leafs();
     if let Some(path) = paths.iter().find(|p| {
         let Ok((bits1, _)) = bit_range(ty, p) else {
             return false;

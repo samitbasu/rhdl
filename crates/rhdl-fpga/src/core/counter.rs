@@ -72,6 +72,7 @@ where
 mod tests {
     use expect_test::expect;
     use rand::random;
+    use rhdl::core::circuit::descriptor;
 
     use super::*;
     use std::{iter::once, path::PathBuf};
@@ -134,6 +135,16 @@ mod tests {
         let uut = Counter::<6>::default();
         let netlist = uut.descriptor(ScopedName::top())?.netlist;
         assert!(netlist.is_some());
+        Ok(())
+    }
+
+    #[test]
+    fn test_counter_as_schematic() -> miette::Result<()> {
+        let uut = Counter::<6>::default();
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        let schematic = descriptor.schematic()?;
+        expect_test::expect_file!("counter_schematic.json")
+            .assert_eq(&rhdl::serde_json::to_string_pretty(&schematic).unwrap());
         Ok(())
     }
 }

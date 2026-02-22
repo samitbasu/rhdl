@@ -2,6 +2,7 @@
 use rhdl::prelude::*;
 
 mod simplest {
+    use badascii_doc::badascii;
     use rhdl::prelude::*;
 
     #[derive(Clone, Debug, Synchronous, Default)]

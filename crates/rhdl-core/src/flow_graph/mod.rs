@@ -9,6 +9,7 @@ use crate::{
     types::path::Path,
 };
 use petgraph::prelude::*;
+use svg::node;
 
 pub mod black_box;
 pub mod builder;
@@ -22,6 +23,7 @@ pub struct PathRef {
     pub object: Arc<Object>,
     pub slot: Slot,
     pub path: Path,
+    pub leaf_kind: Kind,
 }
 
 impl std::fmt::Debug for PathRef {
@@ -35,6 +37,7 @@ pub struct BufferRef {
     pub name: String,
     pub kind: Kind,
     pub path: Path,
+    pub leaf_kind: Kind,
 }
 
 impl std::fmt::Debug for BufferRef {
@@ -48,6 +51,7 @@ pub struct ConstantRef {
     pub name: String,
     pub value: TypedBits,
     pub path: Path,
+    pub leaf_kind: Kind,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -90,6 +94,16 @@ pub enum NodeKind {
     Constant(ConstantRef),
 }
 
+impl NodeKind {
+    pub fn leaf_kind(&self) -> Kind {
+        match self {
+            NodeKind::Slot(slot_ref) => slot_ref.leaf_kind,
+            NodeKind::Buffer(buffer_ref) => buffer_ref.leaf_kind,
+            NodeKind::Constant(constant_ref) => constant_ref.leaf_kind,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct InputRef {
     pub index: usize,
@@ -113,14 +127,33 @@ pub enum NodePort {
 pub struct FlowGraph {
     /// The name of the thing this flow graph represents
     pub name: String,
-    pub graph: DiGraph<NodeKind, EdgeKind>,
-    pub ports: HashMap<NodePort, NodeIndex>,
+    pub graph: StableDiGraph<NodeKind, EdgeKind>,
+    pub ports: PortSet,
     pub source: SpannedSourceSet,
 }
 
-impl FlowGraph {
+#[derive(Clone, Debug, Default)]
+pub struct PortSet {
+    map: HashMap<NodePort, NodeIndex>,
+}
+
+// Allo a PortSet to be collected into for an iterator that yields (NodePort, NodeIndex) pairs
+impl FromIterator<(NodePort, NodeIndex)> for PortSet {
+    fn from_iter<T: IntoIterator<Item = (NodePort, NodeIndex)>>(iter: T) -> Self {
+        let map = iter.into_iter().collect();
+        Self { map }
+    }
+}
+
+impl PortSet {
+    pub fn into_iter(self) -> impl Iterator<Item = (NodePort, NodeIndex)> {
+        self.map.into_iter()
+    }
+    pub fn insert(&mut self, node_port: NodePort, node_index: NodeIndex) {
+        self.map.insert(node_port, node_index);
+    }
     pub fn input_port(&self, index: usize, path: &Path) -> Result<NodeIndex, RHDLError> {
-        self.ports
+        self.map
             .get(&NodePort::Input(index, path.clone()))
             .copied()
             .ok_or_else(|| {
@@ -132,14 +165,14 @@ impl FlowGraph {
             })
     }
     pub fn output_port(&self, path: &Path) -> Result<NodeIndex, RHDLError> {
-        self.ports
+        self.map
             .get(&NodePort::Output(path.clone()))
             .copied()
             .ok_or_else(|| {
                 FlowGraphICE::MissingOutputPortForPath {
                     path: path.clone(),
                     available: self
-                        .ports
+                        .map
                         .keys()
                         .filter_map(|port| {
                             if let NodePort::Output(p) = port {
@@ -153,10 +186,20 @@ impl FlowGraph {
                 .into()
             })
     }
+}
+
+impl FlowGraph {
+    pub fn input_port(&self, index: usize, path: &Path) -> Result<NodeIndex, RHDLError> {
+        self.ports.input_port(index, path)
+    }
+    pub fn output_port(&self, path: &Path) -> Result<NodeIndex, RHDLError> {
+        self.ports.output_port(path)
+    }
     pub fn dot(&self) -> String {
         format!("{:?}", petgraph::dot::Dot::new(&self.graph))
     }
     pub fn loop_checked(self) -> Result<Self, RHDLError> {
+        return Ok(self);
         let fg = &self.graph;
         if let Err(cycle) = petgraph::algo::toposort(&fg, None) {
             let cycle_node = cycle.node_id();

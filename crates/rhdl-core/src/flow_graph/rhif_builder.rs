@@ -7,8 +7,8 @@ use crate::{
     ast::{SourceLocation, ast_impl::WrapOp},
     error::rhdl_error,
     flow_graph::{
-        EdgeKind, FlowGraph, NodeKind, NodePort, PathRef,
-        errors::{FlowGraphError, FlowGraphErrorKind},
+        EdgeKind, FlowGraph, NodeKind, NodePort, PathRef, PortSet,
+        errors::{FlowGraphError, FlowGraphErrorKind, FlowGraphICE},
     },
     types::path::{PathElement, PathError, PathExt},
 };
@@ -61,7 +61,7 @@ fn path_star(kind: Kind, path: &Path) -> Result<Vec<Path>, RHDLError> {
                 let mut suffix_star = path_star(prefix_kind, &suffix_path)?;
                 suffix_star
                     .iter_mut()
-                    .for_each(|item| *item = prefix_path.clone().join(item));
+                    .for_each(|item| *item = prefix_path.join(item));
                 return Ok(suffix_star);
             }
         }
@@ -76,18 +76,20 @@ pub struct FlowGraphRhifBuilder {
 }
 
 impl FlowGraphRhifBuilder {
-    pub fn new_from_rhif(object: Arc<Object>) -> Self {
-        let mut graph = DiGraph::default();
+    pub fn new_from_rhif(object: Arc<Object>) -> Result<Self, RHDLError> {
+        let mut graph = StableDiGraph::default();
         let mut atom_map = HashMap::new();
-        let mut ports = HashMap::new();
+        let mut ports = PortSet::default();
         let mut inputs = vec![];
         for (index, arg) in object.arguments.iter().enumerate() {
             let arg_kind: Kind = object.kind(arg.into());
             let mut input_indices = vec![];
             for path in arg_kind.all_leafs() {
+                let leaf_kind = sub_kind(arg_kind, &path)?;
                 let input_ref = NodeKind::Slot(PathRef {
                     object: Arc::clone(&object),
                     slot: (*arg).into(),
+                    leaf_kind,
                     path: path.clone(),
                 });
                 let ndx = graph.add_node(input_ref.clone());
@@ -100,9 +102,11 @@ impl FlowGraphRhifBuilder {
         let output_kind: Kind = object.kind(object.return_slot);
         let mut output_indices = vec![];
         for path in output_kind.all_leafs() {
+            let leaf_kind = sub_kind(output_kind, &path)?;
             let output_ref = NodeKind::Slot(PathRef {
                 object: Arc::clone(&object),
                 slot: object.return_slot,
+                leaf_kind,
                 path: path.clone(),
             });
             let ndx = graph.add_node(output_ref.clone());
@@ -110,7 +114,7 @@ impl FlowGraphRhifBuilder {
             ports.insert(NodePort::Output(path), ndx);
             output_indices.push(ndx);
         }
-        Self {
+        Ok(Self {
             fg: FlowGraph {
                 name: object.name.clone(),
                 graph,
@@ -119,7 +123,7 @@ impl FlowGraphRhifBuilder {
             },
             atom_map,
             object,
-        }
+        })
     }
     fn raise_error(&self, kind: FlowGraphErrorKind, loc: SourceLocation) -> RHDLError {
         Box::new(FlowGraphError {
@@ -129,7 +133,7 @@ impl FlowGraphRhifBuilder {
         })
         .into()
     }
-    pub fn import(&mut self, fg: &FlowGraph) -> HashMap<NodeIndex, NodeIndex> {
+    pub fn import(&mut self, fg: FlowGraph) -> PortSet {
         let mut remap = HashMap::new();
         for ndx in fg.graph.node_indices() {
             let node = fg.graph[ndx].clone();
@@ -146,7 +150,10 @@ impl FlowGraphRhifBuilder {
                 .add_edge(new_start, new_end, edge_kind.clone());
         }
         self.fg.source.extend(fg.source.clone());
-        remap
+        fg.ports
+            .into_iter()
+            .map(|(port, node)| (port.clone(), remap[&node]))
+            .collect()
     }
     pub fn node(&mut self, node_kind: NodeKind) -> NodeIndex {
         if let Some(&ndx) = self.atom_map.get(&node_kind) {
@@ -159,7 +166,7 @@ impl FlowGraphRhifBuilder {
     }
     fn slot_with_path(&mut self, slot: Slot, path: Path) -> NodeIndex {
         let slot_kind = self.object.kind(slot);
-        let _subkind = slot_kind.sub_kind(&path).unwrap_or_else(|err| {
+        let leaf_kind = slot_kind.sub_kind(&path).unwrap_or_else(|err| {
             panic!(
                 "Error computing subkind for slot {:?} with path {:?}: {:?}",
                 slot, path, err
@@ -169,10 +176,24 @@ impl FlowGraphRhifBuilder {
             object: Arc::clone(&self.object),
             slot,
             path,
+            leaf_kind,
         });
         self.node(path_ref)
     }
-    fn add_edge(&mut self, from: NodeIndex, to: NodeIndex, lop: &LocatedOpCode) {
+    fn add_edge(
+        &mut self,
+        from: NodeIndex,
+        to: NodeIndex,
+        lop: &LocatedOpCode,
+    ) -> Result<(), RHDLError> {
+        let from_kind = self.fg.graph.node_weight(from).unwrap().leaf_kind();
+        let to_kind = self.fg.graph.node_weight(to).unwrap().leaf_kind();
+        if from_kind != to_kind {
+            panic!(
+                "Mismatched kinds in edge from {:?} to {:?}: {:?} vs {:?}",
+                from, to, from_kind, to_kind
+            );
+        }
         self.fg.graph.add_edge(
             from,
             to,
@@ -181,6 +202,7 @@ impl FlowGraphRhifBuilder {
                 object: Arc::clone(&self.object),
             }),
         );
+        Ok(())
     }
     /// [a.0, a.1, ...] --> [b.0, b.1, ...] (pairwise)
     fn assign(&mut self, from: Slot, to: Slot, lop: &LocatedOpCode) -> Result<(), RHDLError> {
@@ -195,7 +217,14 @@ impl FlowGraphRhifBuilder {
             for to_slot_path in to_kind.all_leafs() {
                 let from_ndx = self.slot_with_path(from, from_slot_path.clone());
                 let to_ndx = self.slot_with_path(to, to_slot_path);
-                self.add_edge(from_ndx, to_ndx, lop);
+                self.fg.graph.add_edge(
+                    from_ndx,
+                    to_ndx,
+                    EdgeKind::OpCode(super::OpCodeRef {
+                        opcode: lop.clone(),
+                        object: Arc::clone(&self.object),
+                    }),
+                );
             }
         }
     }
@@ -248,11 +277,11 @@ impl FlowGraphRhifBuilder {
         // the thing T being copied must be the same on both sides.  So the leaf paths
         // are all leaf paths of T, but with different prefixes.
         for path in to_dest_kind.all_leafs() {
-            let source_path = from_base_path.clone().join(&path);
-            let dest_path = to_base_path.clone().join(&path);
+            let source_path = from_base_path.join(&path);
+            let dest_path = to_base_path.join(&path);
             let from_ndx = self.slot_with_path(from, source_path);
             let to_ndx = self.slot_with_path(to, dest_path);
-            self.add_edge(from_ndx, to_ndx, lop);
+            self.add_edge(from_ndx, to_ndx, lop).unwrap();
         }
         Ok(())
     }
@@ -261,7 +290,7 @@ impl FlowGraphRhifBuilder {
 pub fn build_flow_graph(object: Arc<Object>) -> Result<FlowGraph, RHDLError> {
     debug!("Building flow graph for object: {:?}", object);
     // Import the arguments
-    let mut builder = FlowGraphRhifBuilder::new_from_rhif(Arc::clone(&object));
+    let mut builder = FlowGraphRhifBuilder::new_from_rhif(Arc::clone(&object))?;
     // Create entries for all the leaves in the input arguments
     for arg in object.arguments.iter() {
         for atom in object.symtab[*arg].all_leafs() {
@@ -409,7 +438,7 @@ pub fn build_flow_graph(object: Arc<Object>) -> Result<FlowGraph, RHDLError> {
             OpCode::Exec(exec) => {
                 let sub_func = Arc::clone(&object.externals[&exec.id]);
                 let sub_fg = build_flow_graph(Arc::clone(&sub_func))?;
-                let remap = builder.import(&sub_fg);
+                let remap = builder.import(sub_fg);
                 // The copy to/from logic is duplicated here, because we are copying
                 // across function boundaries.
                 for (i, &arg) in exec.args.iter().enumerate() {
@@ -433,9 +462,8 @@ pub fn build_flow_graph(object: Arc<Object>) -> Result<FlowGraph, RHDLError> {
                         // This is the node for the atom in our function
                         let from_ndx = builder.slot_with_path(arg, path.clone());
                         // Lookup the corresponding node in the sub function's flow graph and remap it to our flow graph
-                        let to_ndx = sub_fg.ports[&NodePort::Input(i, path.clone())];
-                        let to_ndx = remap[&to_ndx];
-                        builder.add_edge(from_ndx, to_ndx, lop);
+                        let to_ndx = remap.input_port(i, &path)?;
+                        builder.add_edge(from_ndx, to_ndx, lop).unwrap();
                     }
                 }
                 // Handle the return type
@@ -452,9 +480,8 @@ pub fn build_flow_graph(object: Arc<Object>) -> Result<FlowGraph, RHDLError> {
                 }
                 for path in my_return_kind.all_leafs() {
                     let from_ndx = builder.slot_with_path(exec.lhs, path.clone());
-                    let to_ndx = sub_fg.ports[&NodePort::Output(path.clone())];
-                    let to_ndx = remap[&to_ndx];
-                    builder.add_edge(to_ndx, from_ndx, lop);
+                    let to_ndx = remap.output_port(&path)?;
+                    builder.add_edge(to_ndx, from_ndx, lop).unwrap();
                 }
             }
             // Arrays are like tuples.  Each element of the output array changes only if the corresponding input element changes.

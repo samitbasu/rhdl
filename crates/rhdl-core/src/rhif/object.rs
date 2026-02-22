@@ -89,6 +89,7 @@ pub struct Object {
     pub ops: Vec<LocatedOpCode>,
     pub arguments: Vec<RegisterId<SlotKind>>,
     pub name: String,
+    pub type_name: &'static str,
     pub fn_id: FunctionId,
     pub flags: Vec<KernelFlags>,
 }

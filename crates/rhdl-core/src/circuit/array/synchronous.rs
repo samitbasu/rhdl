@@ -37,6 +37,10 @@ use crate::{
     ClockReset, Digital, HDLDescriptor, Kind, RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
     circuit::{
         descriptor::{Descriptor, SyncKind},
+        schematic::{
+            CanonicalPath, Schematic,
+            builder::{QueryPortSet, SchematicBuilder},
+        },
         scoped_name::ScopedName,
     },
     digital_fn::NoSynchronousKernel,
@@ -106,6 +110,7 @@ impl<T: Synchronous, const N: usize> Synchronous for [T; N] {
             hdl: Some(hdl::<T, N>(&name, &children)?),
             netlist: Some(netlist::<T, N>(&name, &children)?),
             flow_graph: Some(flow_graph::<T, N>(&name, &children)?),
+            schematic: Some(schematic::<T, N>(&name, &children)?),
             _phantom: std::marker::PhantomData,
         })
     }
@@ -206,33 +211,63 @@ fn flow_graph<T: Synchronous, const N: usize>(
     let cr_kind = ClockReset::static_kind();
     let input_kind = <[T; N] as SynchronousIO>::I::static_kind();
     let output_kind = <[T; N] as SynchronousIO>::O::static_kind();
-    builder.add_input_port(cr_kind, 0);
-    builder.add_input_port(input_kind, 1);
-    builder.add_output_port(output_kind);
+    builder.add_input_port(cr_kind, 0)?;
+    builder.add_input_port(input_kind, 1)?;
+    builder.add_output_port(output_kind)?;
     for (i, child_descriptor) in children.iter().enumerate() {
-        let child_flow_graph = child_descriptor.flow_graph()?;
-        let remap = builder.import(child_flow_graph);
-        builder.forward_input_to_child(
-            cr_kind,
-            &Path::default(),
-            0,
-            child_flow_graph,
-            0,
-            &remap,
-        )?;
+        let child_flow_graph = child_descriptor.flow_graph()?.clone();
+        let child_flow_graph = builder.import(child_flow_graph);
+        builder.forward_input_to_child(cr_kind, &Path::default(), 0, &child_flow_graph, 0)?;
         builder.forward_input_to_child(
             child_descriptor.input_kind,
             &Path::default().index(i),
             1,
-            child_flow_graph,
+            &child_flow_graph,
             1,
-            &remap,
         )?;
         builder.forward_output_from_child(
             child_descriptor.output_kind,
             &Path::default().index(i),
-            child_flow_graph,
-            &remap,
+            &child_flow_graph,
+        )?;
+    }
+    Ok(builder.build())
+}
+
+fn schematic<T: Synchronous, const N: usize>(
+    name: &str,
+    children: &[Descriptor<SyncKind>],
+) -> Result<Schematic, RHDLError> {
+    let cr_kind = ClockReset::static_kind();
+    let mut builder = SchematicBuilder::synchronous::<[T; N]>(name)?;
+    for (index, child) in children.iter().enumerate() {
+        let child_index = builder.import(child.schematic()?.clone());
+        builder.select_and_link(
+            QueryPortSet::Input { index: 0 },
+            QueryPortSet::ChildInput {
+                child_index,
+                index: 0,
+            },
+            cr_kind,
+            &CanonicalPath::default(),
+            &CanonicalPath::default(),
+        )?;
+        builder.select_and_link(
+            QueryPortSet::Input { index: 1 },
+            QueryPortSet::ChildInput {
+                child_index,
+                index: 1,
+            },
+            child.input_kind,
+            &CanonicalPath::default().index(index),
+            &CanonicalPath::default(),
+        )?;
+        builder.select_and_link(
+            QueryPortSet::ChildOutput { child_index },
+            QueryPortSet::Output,
+            child.output_kind,
+            &CanonicalPath::default(),
+            &CanonicalPath::default().index(index),
         )?;
     }
     Ok(builder.build())

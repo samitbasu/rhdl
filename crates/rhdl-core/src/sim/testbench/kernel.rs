@@ -389,6 +389,8 @@ where
     debug!("{}", vlog.pretty());
     let tm = test_module(&uut, vlog, vals.clone());
     tm.run_iverilog()?;
+    debug!("Generating schematic from RHIF");
+    let _schematic = crate::circuit::schematic::kernel::build_schematic(Arc::clone(&design))?;
     debug!("Generating netlist from rtl");
     let ntl = build_ntl_from_rtl(&rtl);
     let ntl = optimize_ntl(ntl)?;

@@ -70,7 +70,7 @@ pub enum PathError {
 type Result<T> = std::result::Result<T, RHDLError>;
 
 /// An element of a [Path](crate::types::path::Path).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum PathElement {
     /// An index into an array, e.g. `x[3]`
     Index(usize),
@@ -91,7 +91,7 @@ pub enum PathElement {
 }
 
 /// A path for indexing into [Digital](crate::types::digital::Digital) types.
-#[derive(Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, PartialEq, Eq, Hash, Default, serde::Serialize, serde::Deserialize)]
 pub struct Path {
     elements: Vec<PathElement>,
 }
@@ -195,9 +195,15 @@ impl Path {
         self
     }
     /// Add a payload by value element to the path.
-    pub fn join(mut self, other: &Path) -> Self {
-        self.elements.extend(other.elements.clone());
-        self
+    pub fn join(&self, other: &Path) -> Self {
+        Path {
+            elements: self
+                .elements
+                .iter()
+                .chain(other.elements.iter())
+                .cloned()
+                .collect(),
+        }
     }
     /// Check if the path is empty.
     pub fn is_empty(&self) -> bool {
@@ -316,33 +322,48 @@ impl From<Member> for Path {
 // Given a path and a kind, generate all leaf paths starting
 // at the given path - these are paths that terminate in
 // non-composite elements of a data structure.
-pub(crate) fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
+fn leaf_paths_inner(kind: &Kind, base: Path) -> Vec<Path> {
     match kind {
         Kind::Array(array) => (0..array.size)
-            .flat_map(|i| leaf_paths(&array.base, base.clone().index(i)))
+            .flat_map(|i| leaf_paths_inner(&array.base, base.clone().index(i)))
             .collect(),
         Kind::Tuple(tuple) => tuple
             .elements
             .iter()
             .enumerate()
-            .flat_map(|(i, k)| leaf_paths(k, base.clone().tuple_index(i)))
+            .flat_map(|(i, k)| leaf_paths_inner(k, base.clone().tuple_index(i)))
             .collect(),
         Kind::Struct(structure) => structure
             .fields
             .iter()
-            .flat_map(|field| leaf_paths(&field.kind, base.clone().field(&field.name)))
+            .flat_map(|field| leaf_paths_inner(&field.kind, base.clone().field(&field.name)))
             .collect(),
-        Kind::Signal(root, _) => leaf_paths(root, base.clone().signal_value()),
+        Kind::Signal(root, _) => leaf_paths_inner(root, base.clone().signal_value()),
         Kind::Enum(enumeration) => enumeration
             .variants
             .iter()
-            .flat_map(|variant| leaf_paths(&variant.kind, base.clone().payload(&variant.name)))
+            .flat_map(|variant| {
+                leaf_paths_inner(&variant.kind, base.clone().payload(&variant.name))
+            })
             .chain(once(base.clone().discriminant()))
             .collect(),
         Kind::Bits(_) | Kind::Signed(_) | Kind::Empty | Kind::Clock | Kind::Reset => {
             vec![base.clone()]
         }
     }
+}
+
+pub(crate) fn leaf_paths(kind: &Kind, base: Path) -> Vec<Path> {
+    leaf_paths_inner(kind, base)
+        .into_iter()
+        .filter(|p| {
+            if let Ok(k) = sub_kind(*kind, p) {
+                !k.is_empty()
+            } else {
+                false
+            }
+        })
+        .collect()
 }
 
 /// Given a [Kind] and a [Path], compute the [Kind] at the endpoint of the path.
@@ -633,7 +654,7 @@ impl PathExt for Kind {
 mod tests {
     use crate::{Kind, types::kind::DiscriminantLayout};
 
-    use super::{Path, leaf_paths};
+    use super::{Path, leaf_paths_inner};
 
     #[test]
     fn test_leaf_path() {
@@ -667,7 +688,7 @@ mod tests {
             },
         );
         let mut bit_mask = vec![false; kind.bits()];
-        for path in leaf_paths(&kind, Path::default()) {
+        for path in leaf_paths_inner(&kind, Path::default()) {
             let (range, _) = super::bit_range(kind, &path).unwrap();
             for i in range {
                 bit_mask[i] = true;

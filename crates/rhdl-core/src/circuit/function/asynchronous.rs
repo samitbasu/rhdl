@@ -25,12 +25,14 @@ use crate::{
     RHDLError, Timed,
     circuit::{
         descriptor::{AsyncKind, Descriptor},
+        schematic::{Schematic, builder::SchematicBuilder},
         scoped_name::ScopedName,
     },
-    compiler::compile_design,
+    compiler::{compile_design, driver::compile_design_stage1},
     digital_fn::{DigitalFn1, NoCircuitKernel},
     flow_graph::rhif_builder::build_flow_graph,
     ntl::from_rtl::build_ntl_from_rtl,
+    rhif,
     rtl::Object,
 };
 
@@ -41,6 +43,7 @@ use syn::parse_quote;
 /// Wrap a pure (synthesizable) function into an asynchronous [Circuit](crate::Circuit).
 #[derive(Clone)]
 pub struct AsyncFunc<I: Timed, O: Timed> {
+    rhif: Arc<rhif::Object>,
     kernel: Object,
     update: fn(I) -> O,
 }
@@ -65,9 +68,14 @@ impl<I: Timed, O: Timed> AsyncFunc<I, O> {
         T: DigitalFn,
         T: DigitalFn1<A0 = I, O = O>,
     {
+        let rhif = compile_design_stage1::<T>(CompilationMode::Asynchronous)?;
         let kernel = compile_design::<T>(CompilationMode::Asynchronous)?;
         let update = T::func();
-        Ok(Self { kernel, update })
+        Ok(Self {
+            rhif,
+            kernel,
+            update,
+        })
     }
 }
 
@@ -106,11 +114,24 @@ impl<I: Timed, O: Timed> Circuit for AsyncFunc<I, O> {
             netlist: Some(build_ntl_from_rtl(&self.kernel)),
             flow_graph: Some(build_flow_graph(Arc::clone(&self.kernel.rhif))?),
             kernel: Some(self.kernel.clone()),
+            schematic: Some(self.schematic(&module_name)?),
             hdl: Some(HDLDescriptor {
                 name: module_name,
                 modules: module.into(),
             }),
             _phantom: std::marker::PhantomData,
         })
+    }
+}
+
+impl<I: Timed, O: Timed> AsyncFunc<I, O> {
+    fn schematic(&self, name: &str) -> Result<Schematic, RHDLError> {
+        let mut builder = SchematicBuilder::circuit::<Self>(name)?;
+        let kernel = builder.import(crate::circuit::schematic::kernel::build_schematic(
+            Arc::clone(&self.rhif),
+        )?);
+        builder.forward_input_to_child(0, kernel, 0);
+        builder.forward_output_from_child(kernel);
+        Ok(builder.build())
     }
 }

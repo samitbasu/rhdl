@@ -86,6 +86,7 @@ impl<T: Digital, S: Digital> rhdl::core::digital_fn::DigitalFn for do_stuff<T, S
                 None,
                 rhdl::serde_json::from_str(META_DATA).unwrap(),
                 vec![],
+                std::any::type_name::<do_stuff<T, S>>(),
             ),
         )
     }

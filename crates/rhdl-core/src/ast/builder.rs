@@ -619,6 +619,7 @@ pub fn kernel_fn(
     text: Option<&'static str>,
     meta_db: MetaDB,
     flags: Vec<KernelFlags>,
+    type_name: &'static str,
 ) -> KernelFnKind {
     // Hash the typeID into a 64 bit unsigned int
     let mut hasher = fnv::FnvHasher::default();
@@ -634,6 +635,7 @@ pub fn kernel_fn(
         text,
         meta_db,
         flags,
+        type_name,
     }))
 }
 

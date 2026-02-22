@@ -50,7 +50,7 @@ use crate::{
     axi4lite::{
         core::endpoint::{read::ReadEndpoint, write::WriteEndpoint},
         types::{
-            strobe_to_mask, AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI, WriteMISO, WriteMOSI,
+            AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI, WriteMISO, WriteMOSI, strobe_to_mask,
         },
     },
     core::{constant::Constant, dff::DFF},
@@ -157,6 +157,8 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
 
 #[cfg(test)]
 mod tests {
+    use rhdl::{core::circuit::descriptor, serde_json};
+
     use super::*;
 
     #[test]
@@ -168,9 +170,30 @@ mod tests {
     }
 
     #[test]
+    fn write_schematic() -> miette::Result<()> {
+        let uut = AxiRegister::new(bits(0), bits(0));
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        let schematic = descriptor.schematic()?;
+        expect_test::expect_file!("schematic.json")
+            .assert_eq(&serde_json::to_string_pretty(schematic).unwrap());
+        Ok(())
+    }
+
+    #[test]
+    fn write_schematic_svg() -> miette::Result<()> {
+        let uut = AxiRegister::new(bits(0), bits(0));
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        let schematic = descriptor.schematic()?;
+        let svg = schematic.to_svg();
+        expect_test::expect_file!("schematic.svg").assert_eq(&svg.to_string());
+        Ok(())
+    }
+
+    #[test]
     fn hdl_is_ok() -> miette::Result<()> {
         let uut = AxiRegister::new(bits(0), bits(0));
-        let _ = uut.descriptor("top".into())?.hdl()?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        let _ = descriptor.hdl()?;
         Ok(())
     }
 }

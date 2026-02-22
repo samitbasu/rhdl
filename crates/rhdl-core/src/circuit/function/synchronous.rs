@@ -27,12 +27,17 @@ use crate::{
     SynchronousDQ, SynchronousIO,
     circuit::{
         descriptor::{Descriptor, SyncKind},
+        schematic::{
+            Schematic,
+            builder::{QueryPortSet, SchematicBuilder},
+        },
         scoped_name::ScopedName,
     },
-    compiler::compile_design,
+    compiler::{compile_design, driver::compile_design_stage1},
     digital_fn::{DigitalFn2, NoSynchronousKernel},
     flow_graph::rhif_builder::build_flow_graph,
     ntl::from_rtl::build_ntl_from_rtl,
+    rhif,
     rtl::Object,
     trace, trace_pop_path, trace_push_path,
 };
@@ -45,6 +50,7 @@ use rhdl_vlog::{self as vlog, maybe_port_wire};
 /// and must be marked with `#[digital]`.
 #[derive(Clone)]
 pub struct Func<I: Digital, O: Digital> {
+    rhif: Arc<rhif::Object>,
     kernel: Object,
     update: fn(ClockReset, I) -> O,
 }
@@ -69,9 +75,14 @@ impl<I: Digital, O: Digital> Func<I, O> {
         T: DigitalFn,
         T: DigitalFn2<A0 = ClockReset, A1 = I, O = O>,
     {
+        let rhif = compile_design_stage1::<T>(CompilationMode::Synchronous)?;
         let kernel = compile_design::<T>(CompilationMode::Synchronous)?;
         let update = T::func();
-        Ok(Self { kernel, update })
+        Ok(Self {
+            rhif,
+            kernel,
+            update,
+        })
     }
 }
 
@@ -119,11 +130,25 @@ impl<I: Digital, O: Digital> Synchronous for Func<I, O> {
             kernel: Some(self.kernel.clone()),
             netlist: Some(build_ntl_from_rtl(&self.kernel)),
             flow_graph: Some(build_flow_graph(Arc::clone(&self.kernel.rhif))?),
+            schematic: Some(self.schematic(&module_name)?),
             hdl: Some(HDLDescriptor {
                 name: module_name,
                 modules: module.into(),
             }),
             _phantom: std::marker::PhantomData,
         })
+    }
+}
+
+impl<I: Digital, O: Digital> Func<I, O> {
+    fn schematic(&self, name: &str) -> Result<Schematic, RHDLError> {
+        let mut builder = SchematicBuilder::synchronous::<Self>(name)?;
+        let kernel_index = builder.import(crate::circuit::schematic::kernel::build_schematic(
+            Arc::clone(&self.rhif),
+        )?);
+        builder.forward_input_to_child(0, kernel_index, 0);
+        builder.forward_input_to_child(1, kernel_index, 1);
+        builder.forward_output_from_child(kernel_index);
+        Ok(builder.build())
     }
 }

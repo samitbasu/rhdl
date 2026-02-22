@@ -25,8 +25,8 @@ use std::marker::PhantomData;
 
 use crate::{
     HDLDescriptor, Kind, RHDLError,
-    circuit::scoped_name::ScopedName,
-    flow_graph::{FlowGraph, black_box::build_circuit_blackbox},
+    circuit::{schematic::Schematic, scoped_name::ScopedName},
+    flow_graph::FlowGraph,
     ntl, rtl,
 };
 
@@ -58,6 +58,8 @@ pub struct Descriptor<T> {
     pub flow_graph: Option<FlowGraph>,
     /// The HDL (Verilog) description of the circuit, if available.
     pub hdl: Option<HDLDescriptor>,
+    /// The schematic description of the circuit
+    pub schematic: Option<Schematic>,
     /// Phantom data for the marker type.
     pub _phantom: PhantomData<T>,
 }
@@ -82,6 +84,14 @@ impl<T> Descriptor<T> {
         self.flow_graph
             .as_ref()
             .ok_or(RHDLError::FlowGraphNotAvailable {
+                name: self.name.to_string(),
+            })
+    }
+    /// Get a reference to the schematic representation of the circuit, if available.
+    pub fn schematic(&self) -> Result<&Schematic, RHDLError> {
+        self.schematic
+            .as_ref()
+            .ok_or(RHDLError::SchematicNotAvailable {
                 name: self.name.to_string(),
             })
     }

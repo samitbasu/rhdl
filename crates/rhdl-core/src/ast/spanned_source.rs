@@ -1,3 +1,4 @@
+use internment::Intern;
 use miette::{MietteError, SourceCode, SourceSpan, SpanContents};
 
 use crate::ast::ast_impl::{FunctionId, NodeId, SourceLocation};
@@ -8,7 +9,7 @@ use std::{
     ops::Range,
 };
 
-#[derive(Clone, Debug, Default, Hash)]
+#[derive(Clone, Debug, Default, Hash, serde::Serialize, serde::Deserialize)]
 pub struct SourcePool {
     source: BTreeMap<FunctionId, SpannedSource>,
     ranges: BTreeMap<FunctionId, Range<usize>>,
@@ -70,9 +71,9 @@ impl SourceCode for SourcePool {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct SpannedSource {
-    pub source: String,
+    pub source: Intern<String>,
     pub name: String,
     pub span_map: HashMap<NodeId, Range<usize>>,
     pub fallback: NodeId,
@@ -112,7 +113,7 @@ impl Hash for SpannedSource {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct SpannedSourceSet {
     pub sources: BTreeMap<FunctionId, SpannedSource>,
 }

@@ -30,7 +30,9 @@ pub trait SymbolKind: Copy + Ord + Hash + Default {
 ///
 /// The `K` type parameter is used to differentiate between different
 /// kinds of symbols, e.g., operand literals, slot literals, etc.
-#[derive(Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[derive(
+    Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize,
+)]
 pub struct LiteralId<K> {
     id: u64,
     index: usize,
@@ -66,7 +68,9 @@ impl<K: SymbolKind> std::fmt::Debug for LiteralId<K> {
 /// Identifier for a register in the symbol table.
 /// The `K` type parameter is used to differentiate between different
 /// kinds of symbols, e.g., operand registers, slot registers, etc.
-#[derive(Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[derive(
+    Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize,
+)]
 pub struct RegisterId<K>
 where
     K: Hash,
@@ -107,7 +111,9 @@ impl<K: SymbolKind> std::fmt::Debug for RegisterId<K> {
 /// A symbol in the symbol table, which can be either a literal or a register.
 /// The `K` type parameter is used to differentiate between different
 /// kinds of symbols, e.g., operand symbols, slot symbols, etc.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
+#[derive(
+    Copy, Clone, PartialEq, Eq, Hash, Ord, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub enum Symbol<K: SymbolKind> {
     /// A literal symbol.
     Literal(LiteralId<K>),

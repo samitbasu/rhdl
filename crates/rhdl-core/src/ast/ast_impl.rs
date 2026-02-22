@@ -7,7 +7,9 @@ use rhdl_span::MetaDB;
 
 // Modeled after rustc's AST
 
-#[derive(Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord)]
+#[derive(
+    Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub struct NodeId(u32);
 
 impl NodeId {
@@ -31,7 +33,9 @@ impl std::fmt::Debug for NodeId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Hash, PartialOrd, Eq, Ord)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Hash, PartialOrd, Eq, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub struct SourceLocation {
     pub func: FunctionId,
     pub node: NodeId,
@@ -503,7 +507,9 @@ pub struct FieldPat {
     pub pat: Box<Pat>,
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(
+    Clone, Copy, Hash, PartialEq, PartialOrd, Ord, Eq, serde::Serialize, serde::Deserialize,
+)]
 pub struct FunctionId(u64);
 
 impl From<u64> for FunctionId {
@@ -543,6 +549,7 @@ pub struct KernelFn {
     pub text: Option<&'static str>,
     pub meta_db: MetaDB,
     pub flags: Vec<KernelFlags>,
+    pub type_name: &'static str,
 }
 
 impl KernelFn {
@@ -572,7 +579,7 @@ impl KernelFn {
             })
             .collect();
         Ok(SpannedSource {
-            source,
+            source: source.into(),
             name: self.name.into(),
             span_map,
             fallback: self.id,

@@ -5,7 +5,7 @@ use crate::{
     TypedBits,
     compiler::mir::{error, ty::UnifyError},
     kernel::KernelFnKind,
-    types::path::PathError,
+    types::path::{Path, PathError},
 };
 
 #[derive(Error, Debug, Diagnostic)]
@@ -92,6 +92,11 @@ pub enum RHDLError {
     NetlistNotAvailable { name: String },
     #[error("Flow graph not available for circuit {name}")]
     FlowGraphNotAvailable { name: String },
+    #[error("Schematic construction error")]
+    #[diagnostic(transparent)]
+    SchematicConstructionError(#[from] Box<crate::circuit::schematic::error::SchematicICE>),
+    #[error("Schematic not available for circuit {name}")]
+    SchematicNotAvailable { name: String },
 }
 
 pub fn rhdl_error<T>(error: T) -> RHDLError

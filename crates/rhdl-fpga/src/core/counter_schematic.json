@@ -1,0 +1,932 @@
+{
+  "name": "top",
+  "type_name": "rhdl_fpga::core::counter::Counter<6>",
+  "kind": "Synchronous",
+  "inputs": [
+    [
+      {
+        "path": [
+          {
+            "Field": "clock"
+          }
+        ],
+        "bits": 1,
+        "ty": "Clock",
+        "id": 0
+      },
+      {
+        "path": [
+          {
+            "Field": "reset"
+          }
+        ],
+        "bits": 1,
+        "ty": "Reset",
+        "id": 1
+      }
+    ],
+    [
+      {
+        "path": [],
+        "bits": 1,
+        "ty": {
+          "Bits": 1
+        },
+        "id": 2
+      }
+    ]
+  ],
+  "outputs": [
+    {
+      "path": [],
+      "bits": 6,
+      "ty": {
+        "Bits": 6
+      },
+      "id": 3
+    }
+  ],
+  "inner": [
+    {
+      "name": "counter",
+      "type_name": "rhdl_fpga::core::counter::counter<6>",
+      "kind": "Kernel",
+      "inputs": [
+        [
+          {
+            "path": [
+              {
+                "Field": "clock"
+              }
+            ],
+            "bits": 1,
+            "ty": "Clock",
+            "id": 4
+          },
+          {
+            "path": [
+              {
+                "Field": "reset"
+              }
+            ],
+            "bits": 1,
+            "ty": "Reset",
+            "id": 5
+          }
+        ],
+        [
+          {
+            "path": [],
+            "bits": 1,
+            "ty": {
+              "Bits": 1
+            },
+            "id": 6
+          }
+        ],
+        [
+          {
+            "path": [
+              {
+                "Field": "count"
+              }
+            ],
+            "bits": 6,
+            "ty": {
+              "Bits": 6
+            },
+            "id": 7
+          }
+        ]
+      ],
+      "outputs": [
+        {
+          "path": [
+            {
+              "TupleIndex": 0
+            }
+          ],
+          "bits": 6,
+          "ty": {
+            "Bits": 6
+          },
+          "id": 8
+        },
+        {
+          "path": [
+            {
+              "TupleIndex": 1
+            },
+            {
+              "Field": "count"
+            }
+          ],
+          "bits": 6,
+          "ty": {
+            "Bits": 6
+          },
+          "id": 9
+        }
+      ],
+      "inner": [
+        {
+          "name": " NOP",
+          "type_name": "",
+          "kind": "OpCode",
+          "inputs": [],
+          "outputs": [],
+          "inner": [],
+          "links": [],
+          "sources": {
+            "sources": {}
+          },
+          "location": {
+            "func": 795318925744745655,
+            "node": 0
+          }
+        },
+        {
+          "name": " NOP",
+          "type_name": "",
+          "kind": "OpCode",
+          "inputs": [],
+          "outputs": [],
+          "inner": [],
+          "links": [],
+          "sources": {
+            "sources": {}
+          },
+          "location": {
+            "func": 795318925744745655,
+            "node": 0
+          }
+        },
+        {
+          "name": " r4 <- r2.count",
+          "type_name": "",
+          "kind": "OpCode",
+          "inputs": [
+            [
+              {
+                "path": [
+                  {
+                    "Field": "count"
+                  }
+                ],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
+                "id": 15
+              }
+            ]
+          ],
+          "outputs": [
+            {
+              "path": [],
+              "bits": 6,
+              "ty": {
+                "Bits": 6
+              },
+              "id": 14
+            }
+          ],
+          "inner": [],
+          "links": [
+            {
+              "from": 15,
+              "to": 14,
+              "kind": "Strong"
+            }
+          ],
+          "sources": {
+            "sources": {}
+          },
+          "location": {
+            "func": 795318925744745655,
+            "node": 8
+          }
+        },
+        {
+          "name": " r5 <- r4 + l0",
+          "type_name": "",
+          "kind": "OpCode",
+          "inputs": [
+            [
+              {
+                "path": [],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
+                "id": 18
+              }
+            ],
+            [
+              {
+                "path": [],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
+                "id": 19
+              }
+            ]
+          ],
+          "outputs": [
+            {
+              "path": [],
+              "bits": 6,
+              "ty": {
+                "Bits": 6
+              },
+              "id": 17
+            }
+          ],
+          "inner": [],
+          "links": [
+            {
+              "from": 18,
+              "to": 17,
+              "kind": "Weak"
+            },
+            {
+              "from": 19,
+              "to": 17,
+              "kind": "Weak"
+            }
+          ],
+          "sources": {
+            "sources": {}
+          },
+          "location": {
+            "func": 795318925744745655,
+            "node": 7
+          }
+        },
+        {
+          "name": " r6 <- r2.count",
+          "type_name": "",
+          "kind": "OpCode",
+          "inputs": [
+            [
+              {
+                "path": [
+                  {
+                    "Field": "count"
+                  }
+                ],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
+                "id": 22
+              }
+            ]
+          ],
+          "outputs": [
+            {
+              "path": [],
+              "bits": 6,
+              "ty": {
+                "Bits": 6
+              },
+              "id": 21
+            }
+          ],
+          "inner": [],
+          "links": [
+            {
+              "from": 22,
+              "to": 21,
+              "kind": "Strong"
+            }
+          ],
+          "sources": {
+            "sources": {}
+          },
+          "location": {
+            "func": 795318925744745655,
+            "node": 14
+          }
+        },
+        {
+          "name": " r3 <- r1 ? r5 : r6",
+          "type_name": "",
+          "kind": "OpCode",
+          "inputs": [
+            [
+              {
+                "path": [],
+                "bits": 1,
+                "ty": {
+                  "Bits": 1
+                },
+                "id": 25
+              }
+            ],
+            [
+              {
+                "path": [],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
+                "id": 26
+              }
+            ],
+            [
+              {
+                "path": [],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
+                "id": 27
+              }
+            ]
+          ],
+          "outputs": [
+            {
+              "path": [],
+              "bits": 6,
+              "ty": {
+                "Bits": 6
+              },
+              "id": 24
+            }
+          ],
+          "inner": [],
+          "links": [
+            {
+              "from": 25,
+              "to": 24,
+              "kind": "Weak"
+            },
+            {
+              "from": 26,
+              "to": 24,
+              "kind": "Strong"
+            },
+            {
+              "from": 27,
+              "to": 24,
+              "kind": "Strong"
+            }
+          ],
+          "sources": {
+            "sources": {}
+          },
+          "location": {
+            "func": 795318925744745655,
+            "node": 3
+          }
+        },
+        {
+          "name": " r9 <- r0.reset",
+          "type_name": "",
+          "kind": "OpCode",
+          "inputs": [
+            [
+              {
+                "path": [
+                  {
+                    "Field": "clock"
+                  }
+                ],
+                "bits": 1,
+                "ty": "Clock",
+                "id": 30
+              },
+              {
+                "path": [
+                  {
+                    "Field": "reset"
+                  }
+                ],
+                "bits": 1,
+                "ty": "Reset",
+                "id": 31
+              }
+            ]
+          ],
+          "outputs": [
+            {
+              "path": [],
+              "bits": 1,
+              "ty": "Reset",
+              "id": 29
+            }
+          ],
+          "inner": [],
+          "links": [
+            {
+              "from": 31,
+              "to": 29,
+              "kind": "Strong"
+            }
+          ],
+          "sources": {
+            "sources": {}
+          },
+          "location": {
+            "func": 795318925744745655,
+            "node": 20
+          }
+        },
+        {
+          "name": " r8 <- |r9",
+          "type_name": "",
+          "kind": "OpCode",
+          "inputs": [
+            [
+              {
+                "path": [],
+                "bits": 1,
+                "ty": "Reset",
+                "id": 34
+              }
+            ]
+          ],
+          "outputs": [
+            {
+              "path": [],
+              "bits": 1,
+              "ty": {
+                "Bits": 1
+              },
+              "id": 33
+            }
+          ],
+          "inner": [],
+          "links": [
+            {
+              "from": 34,
+              "to": 33,
+              "kind": "Weak"
+            }
+          ],
+          "sources": {
+            "sources": {}
+          },
+          "location": {
+            "func": 795318925744745655,
+            "node": 19
+          }
+        },
+        {
+          "name": " NOP",
+          "type_name": "",
+          "kind": "OpCode",
+          "inputs": [],
+          "outputs": [],
+          "inner": [],
+          "links": [],
+          "sources": {
+            "sources": {}
+          },
+          "location": {
+            "func": 795318925744745655,
+            "node": 25
+          }
+        },
+        {
+          "name": " r7 <- r8 ? l1 : r3",
+          "type_name": "",
+          "kind": "OpCode",
+          "inputs": [
+            [
+              {
+                "path": [],
+                "bits": 1,
+                "ty": {
+                  "Bits": 1
+                },
+                "id": 39
+              }
+            ],
+            [
+              {
+                "path": [],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
+                "id": 40
+              }
+            ],
+            [
+              {
+                "path": [],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
+                "id": 41
+              }
+            ]
+          ],
+          "outputs": [
+            {
+              "path": [],
+              "bits": 6,
+              "ty": {
+                "Bits": 6
+              },
+              "id": 38
+            }
+          ],
+          "inner": [],
+          "links": [
+            {
+              "from": 39,
+              "to": 38,
+              "kind": "Weak"
+            },
+            {
+              "from": 40,
+              "to": 38,
+              "kind": "Strong"
+            },
+            {
+              "from": 41,
+              "to": 38,
+              "kind": "Strong"
+            }
+          ],
+          "sources": {
+            "sources": {}
+          },
+          "location": {
+            "func": 795318925744745655,
+            "node": 18
+          }
+        },
+        {
+          "name": " r10 <- r2.count",
+          "type_name": "",
+          "kind": "OpCode",
+          "inputs": [
+            [
+              {
+                "path": [
+                  {
+                    "Field": "count"
+                  }
+                ],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
+                "id": 44
+              }
+            ]
+          ],
+          "outputs": [
+            {
+              "path": [],
+              "bits": 6,
+              "ty": {
+                "Bits": 6
+              },
+              "id": 43
+            }
+          ],
+          "inner": [],
+          "links": [
+            {
+              "from": 44,
+              "to": 43,
+              "kind": "Strong"
+            }
+          ],
+          "sources": {
+            "sources": {}
+          },
+          "location": {
+            "func": 795318925744745655,
+            "node": 34
+          }
+        },
+        {
+          "name": " sr11 <- rhdl_fpga::core::counter::D { count: r7  }",
+          "type_name": "",
+          "kind": "OpCode",
+          "inputs": [
+            [
+              {
+                "path": [],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
+                "id": 47
+              }
+            ]
+          ],
+          "outputs": [
+            {
+              "path": [
+                {
+                  "Field": "count"
+                }
+              ],
+              "bits": 6,
+              "ty": {
+                "Bits": 6
+              },
+              "id": 46
+            }
+          ],
+          "inner": [],
+          "links": [
+            {
+              "from": 47,
+              "to": 46,
+              "kind": "Strong"
+            }
+          ],
+          "sources": {
+            "sources": {}
+          },
+          "location": {
+            "func": 795318925744745655,
+            "node": 36
+          }
+        },
+        {
+          "name": " r12 <- (r10, r11)",
+          "type_name": "",
+          "kind": "OpCode",
+          "inputs": [
+            [
+              {
+                "path": [],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
+                "id": 51
+              }
+            ],
+            [
+              {
+                "path": [
+                  {
+                    "Field": "count"
+                  }
+                ],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
+                "id": 52
+              }
+            ]
+          ],
+          "outputs": [
+            {
+              "path": [
+                {
+                  "TupleIndex": 0
+                }
+              ],
+              "bits": 6,
+              "ty": {
+                "Bits": 6
+              },
+              "id": 49
+            },
+            {
+              "path": [
+                {
+                  "TupleIndex": 1
+                },
+                {
+                  "Field": "count"
+                }
+              ],
+              "bits": 6,
+              "ty": {
+                "Bits": 6
+              },
+              "id": 50
+            }
+          ],
+          "inner": [],
+          "links": [
+            {
+              "from": 51,
+              "to": 49,
+              "kind": "Strong"
+            },
+            {
+              "from": 52,
+              "to": 50,
+              "kind": "Strong"
+            }
+          ],
+          "sources": {
+            "sources": {}
+          },
+          "location": {
+            "func": 795318925744745655,
+            "node": 33
+          }
+        }
+      ],
+      "links": [
+        {
+          "from": 7,
+          "to": 15,
+          "kind": "Strong"
+        },
+        {
+          "from": 14,
+          "to": 18,
+          "kind": "Strong"
+        },
+        {
+          "from": 7,
+          "to": 22,
+          "kind": "Strong"
+        },
+        {
+          "from": 6,
+          "to": 25,
+          "kind": "Strong"
+        },
+        {
+          "from": 17,
+          "to": 26,
+          "kind": "Strong"
+        },
+        {
+          "from": 21,
+          "to": 27,
+          "kind": "Strong"
+        },
+        {
+          "from": 4,
+          "to": 30,
+          "kind": "Strong"
+        },
+        {
+          "from": 5,
+          "to": 31,
+          "kind": "Strong"
+        },
+        {
+          "from": 29,
+          "to": 34,
+          "kind": "Strong"
+        },
+        {
+          "from": 33,
+          "to": 39,
+          "kind": "Strong"
+        },
+        {
+          "from": 24,
+          "to": 41,
+          "kind": "Strong"
+        },
+        {
+          "from": 7,
+          "to": 44,
+          "kind": "Strong"
+        },
+        {
+          "from": 38,
+          "to": 47,
+          "kind": "Strong"
+        },
+        {
+          "from": 43,
+          "to": 51,
+          "kind": "Strong"
+        },
+        {
+          "from": 46,
+          "to": 52,
+          "kind": "Strong"
+        },
+        {
+          "from": 49,
+          "to": 8,
+          "kind": "Strong"
+        },
+        {
+          "from": 50,
+          "to": 9,
+          "kind": "Strong"
+        }
+      ],
+      "sources": {
+        "sources": {}
+      },
+      "location": null
+    },
+    {
+      "name": "top_count",
+      "type_name": "rhdl_fpga::core::dff::DFF<rhdl_bits::bits_impl::Bits<6>>",
+      "kind": "Synchronous",
+      "inputs": [
+        [
+          {
+            "path": [
+              {
+                "Field": "clock"
+              }
+            ],
+            "bits": 1,
+            "ty": "Clock",
+            "id": 54
+          },
+          {
+            "path": [
+              {
+                "Field": "reset"
+              }
+            ],
+            "bits": 1,
+            "ty": "Reset",
+            "id": 55
+          }
+        ],
+        [
+          {
+            "path": [],
+            "bits": 6,
+            "ty": {
+              "Bits": 6
+            },
+            "id": 56
+          }
+        ]
+      ],
+      "outputs": [
+        {
+          "path": [],
+          "bits": 6,
+          "ty": {
+            "Bits": 6
+          },
+          "id": 57
+        }
+      ],
+      "inner": [],
+      "links": [],
+      "sources": {
+        "sources": {}
+      },
+      "location": null
+    }
+  ],
+  "links": [
+    {
+      "from": 0,
+      "to": 4,
+      "kind": "Strong"
+    },
+    {
+      "from": 1,
+      "to": 5,
+      "kind": "Strong"
+    },
+    {
+      "from": 2,
+      "to": 6,
+      "kind": "Strong"
+    },
+    {
+      "from": 8,
+      "to": 3,
+      "kind": "Strong"
+    },
+    {
+      "from": 0,
+      "to": 54,
+      "kind": "Strong"
+    },
+    {
+      "from": 1,
+      "to": 55,
+      "kind": "Strong"
+    },
+    {
+      "from": 9,
+      "to": 56,
+      "kind": "Strong"
+    },
+    {
+      "from": 57,
+      "to": 7,
+      "kind": "Strong"
+    }
+  ],
+  "sources": {
+    "sources": {}
+  },
+  "location": null
+}

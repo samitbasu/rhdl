@@ -23,6 +23,8 @@ use rhdl_vlog::declaration;
 use syn::parse_quote;
 
 use crate::circuit::descriptor::{Descriptor, SyncKind};
+use crate::circuit::schematic::builder::{QueryPortSet, SchematicBuilder};
+use crate::circuit::schematic::{CanonicalPath, Schematic};
 use crate::circuit::scoped_name::ScopedName;
 use crate::flow_graph::{self, FlowGraph};
 use crate::types::path::{Path, PathExt};
@@ -96,6 +98,7 @@ where
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             kernel: None,
+            schematic: Some(self.schematic(&name, &a_descriptor, &b_descriptor)?),
             netlist: Some(self.netlist(&name, &a_descriptor, &b_descriptor)?),
             flow_graph: Some(self.flow_graph(&name, &a_descriptor, &b_descriptor)?),
             hdl: Some(self.hdl(&name, &a_descriptor, &b_descriptor)?),
@@ -216,40 +219,103 @@ where
     ) -> Result<FlowGraph, RHDLError> {
         let mut builder = flow_graph::builder::Builder::new(name);
         let cr_kind = ClockReset::static_kind();
-        builder.add_input_port(cr_kind, 0);
-        builder.add_input_port(a_descriptor.input_kind, 1);
-        builder.add_output_port(b_descriptor.output_kind);
-        let a_flow_graph = a_descriptor.flow_graph()?;
-        let a_map = builder.import(a_flow_graph);
-        builder.forward_input_to_child(cr_kind, &Path::default(), 0, a_flow_graph, 0, &a_map)?;
+        builder.add_input_port(cr_kind, 0)?;
+        builder.add_input_port(a_descriptor.input_kind, 1)?;
+        builder.add_output_port(b_descriptor.output_kind)?;
+        let a_flow_graph = a_descriptor.flow_graph()?.clone();
+        let a_flow_graph = builder.import(a_flow_graph);
+        builder.forward_input_to_child(cr_kind, &Path::default(), 0, &a_flow_graph, 0)?;
         builder.forward_input_to_child(
             a_descriptor.input_kind,
             &Path::default(),
             1,
-            a_flow_graph,
+            &a_flow_graph,
             1,
-            &a_map,
         )?;
-        let b_flow_graph = b_descriptor.flow_graph()?;
-        let b_map = builder.import(b_flow_graph);
-        builder.forward_input_to_child(cr_kind, &Path::default(), 0, b_flow_graph, 0, &b_map)?;
+        let b_flow_graph = b_descriptor.flow_graph()?.clone();
+        let b_flow_graph = builder.import(b_flow_graph);
+        builder.forward_input_to_child(cr_kind, &Path::default(), 0, &b_flow_graph, 0)?;
         builder.forward_output_from_child(
             b_descriptor.output_kind,
             &Path::default(),
-            b_flow_graph,
-            &b_map,
+            &b_flow_graph,
         )?;
         // Link the two children together by forwarding the output of A to the input of B
         let link_kind = a_descriptor.output_kind;
         for path in link_kind.all_leafs() {
-            let a_output_port = a_map[&a_flow_graph.output_port(&path)?];
-            let b_input_port = b_map[&b_flow_graph.input_port(1, &path)?];
+            let a_output_port = a_flow_graph.output_port(&path)?;
+            let b_input_port = b_flow_graph.input_port(1, &path)?;
             builder.add_edge(
                 a_output_port,
                 b_input_port,
                 crate::flow_graph::EdgeKind::ChildToChild,
-            );
+            )?;
         }
+        Ok(builder.build())
+    }
+    fn schematic(
+        &self,
+        name: &str,
+        a_descriptor: &Descriptor<SyncKind>,
+        b_descriptor: &Descriptor<SyncKind>,
+    ) -> Result<Schematic, RHDLError> {
+        let mut builder = SchematicBuilder::synchronous::<Self>(name)?;
+        let cr_kind = ClockReset::static_kind();
+        let input_kind = a_descriptor.input_kind;
+        let output_kind = b_descriptor.output_kind;
+        let child_a = builder.import(a_descriptor.schematic()?.clone());
+        let child_b = builder.import(b_descriptor.schematic()?.clone());
+        builder.select_and_link(
+            QueryPortSet::Input { index: 0 },
+            QueryPortSet::ChildInput {
+                child_index: child_a,
+                index: 0,
+            },
+            cr_kind,
+            &CanonicalPath::default(),
+            &CanonicalPath::default(),
+        )?;
+        builder.select_and_link(
+            QueryPortSet::Input { index: 0 },
+            QueryPortSet::ChildInput {
+                child_index: child_b,
+                index: 0,
+            },
+            cr_kind,
+            &CanonicalPath::default(),
+            &CanonicalPath::default(),
+        )?;
+        builder.select_and_link(
+            QueryPortSet::Input { index: 1 },
+            QueryPortSet::ChildInput {
+                child_index: child_a,
+                index: 1,
+            },
+            input_kind,
+            &CanonicalPath::default(),
+            &CanonicalPath::default(),
+        )?;
+        builder.select_and_link(
+            QueryPortSet::ChildOutput {
+                child_index: child_a,
+            },
+            QueryPortSet::ChildInput {
+                child_index: child_b,
+                index: 1,
+            },
+            a_descriptor.output_kind,
+            &CanonicalPath::default(),
+            &CanonicalPath::default(),
+        )?;
+        builder.select_and_link(
+            QueryPortSet::ChildOutput {
+                child_index: child_b,
+            },
+            QueryPortSet::Output,
+            output_kind,
+            &CanonicalPath::default(),
+            &CanonicalPath::default(),
+        )?;
         Ok(builder.build())
     }
 }

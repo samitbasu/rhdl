@@ -8,13 +8,19 @@
 //!
 //!! See the [book] for more details on HDL generation in RHDL.
 
+use std::sync::Arc;
+
 use crate::{
     CompilationMode, HDLDescriptor, Kind, RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
     circuit::{
         descriptor::{Descriptor, SyncKind},
+        schematic::synchronous::build_schematic,
         scoped_name::ScopedName,
     },
-    compiler::compile_design,
+    compiler::{
+        compile_design,
+        driver::{compile_design_stage1, compile_design_stage2},
+    },
     flow_graph::synchronous_builder::build_synchronous_flowgraph,
     ntl::{self, from_rtl::build_ntl_from_rtl},
     rtl,
@@ -198,7 +204,8 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     circuit: &C,
     scoped_name: ScopedName,
 ) -> Result<Descriptor<SyncKind>, RHDLError> {
-    let kernel = compile_design::<C::Kernel>(CompilationMode::Synchronous)?;
+    let rhif = compile_design_stage1::<C::Kernel>(CompilationMode::Synchronous)?;
+    let kernel = compile_design_stage2(Arc::clone(&rhif))?;
     let children = circuit
         .children(&scoped_name)
         .collect::<Result<Vec<Descriptor<SyncKind>>, RHDLError>>()?;
@@ -206,6 +213,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
     let flow_graph =
         build_synchronous_flowgraph::<C>(&scoped_name, &kernel, &children)?.loop_checked()?;
     let netlist = build_synchronous_netlist::<C>(&scoped_name, &kernel, &children)?;
+    let schematic = build_schematic::<C>(&scoped_name, rhif, &children)?;
     let circuit_output = <C as SynchronousIO>::O::static_kind();
     let circuit_input = <C as SynchronousIO>::I::static_kind();
     let d_kind = <C as SynchronousDQ>::D::static_kind();
@@ -221,6 +229,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         netlist: Some(netlist),
         hdl: Some(hdl),
         flow_graph: Some(flow_graph),
+        schematic: Some(schematic),
         _phantom: std::marker::PhantomData,
     })
 }

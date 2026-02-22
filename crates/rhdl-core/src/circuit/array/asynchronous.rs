@@ -32,6 +32,10 @@ use crate::{
     Circuit, CircuitDQ, CircuitIO, Digital, HDLDescriptor, Kind, RHDLError,
     circuit::{
         descriptor::{AsyncKind, Descriptor},
+        schematic::{
+            CanonicalPath, Schematic,
+            builder::{QueryPortSet, SchematicBuilder},
+        },
         scoped_name::ScopedName,
     },
     digital_fn::NoCircuitKernel,
@@ -92,6 +96,7 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
             hdl: Some(hdl::<T, N>(&name, &children)?),
             netlist: Some(netlist::<T, N>(&name, &children)?),
             flow_graph: Some(flow_graph::<T, N>(&name, &children)?),
+            schematic: Some(schematic::<T, N>(&name, &children)?),
             _phantom: std::marker::PhantomData,
         })
     }
@@ -180,24 +185,50 @@ fn flow_graph<T: Circuit, const N: usize>(
     let mut builder = flow_graph::builder::Builder::new(name);
     let input_kind: Kind = <[T; N] as CircuitIO>::I::static_kind();
     let output_kind: Kind = <[T; N] as CircuitIO>::O::static_kind();
-    builder.add_input_port(input_kind, 0);
-    builder.add_output_port(output_kind);
+    builder.add_input_port(input_kind, 0)?;
+    builder.add_output_port(output_kind)?;
     for (i, child_descriptor) in children.iter().enumerate() {
-        let child_flow_graph = child_descriptor.flow_graph()?;
-        let remap = builder.import(child_flow_graph);
+        let child_flow_graph = child_descriptor.flow_graph()?.clone();
+        let child_flow_graph = builder.import(child_flow_graph);
         builder.forward_input_to_child(
             child_descriptor.input_kind,
             &Path::default().index(i),
             0,
-            child_flow_graph,
+            &child_flow_graph,
             0,
-            &remap,
         )?;
         builder.forward_output_from_child(
             child_descriptor.output_kind,
             &Path::default().index(i),
-            child_flow_graph,
-            &remap,
+            &child_flow_graph,
+        )?;
+    }
+    Ok(builder.build())
+}
+
+fn schematic<T: Circuit, const N: usize>(
+    name: &str,
+    children: &[Descriptor<AsyncKind>],
+) -> Result<Schematic, RHDLError> {
+    let mut builder = SchematicBuilder::circuit::<[T; N]>(name)?;
+    for (index, child) in children.iter().enumerate() {
+        let child_index = builder.import(child.schematic()?.clone());
+        builder.select_and_link(
+            QueryPortSet::Input { index: 0 },
+            QueryPortSet::ChildInput {
+                child_index,
+                index: 0,
+            },
+            child.input_kind,
+            &CanonicalPath::default().index(index),
+            &CanonicalPath::default(),
+        )?;
+        builder.select_and_link(
+            QueryPortSet::ChildOutput { child_index },
+            QueryPortSet::Output,
+            child.output_kind,
+            &CanonicalPath::default(),
+            &CanonicalPath::default().index(index),
         )?;
     }
     Ok(builder.build())

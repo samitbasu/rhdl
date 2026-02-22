@@ -94,12 +94,12 @@ data_in          |\     | FF   |
 //! circuit at the last clock edge).
 //!
 //!```
-#![doc = include_str!("../../examples/carloni.rs")]
+//#![doc = include_str!("../../examples/carloni.rs")]
 //!```
 //!
 //! Here is the trace
 //!
-#![doc = include_str!("../../doc/carloni.md")]
+//#![doc = include_str!("../../doc/carloni.md")]
 
 use badascii_doc::{badascii, badascii_formal};
 use rhdl::prelude::*;

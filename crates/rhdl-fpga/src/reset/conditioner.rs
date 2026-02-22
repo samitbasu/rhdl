@@ -89,7 +89,12 @@ reset (out)  +-----+                  +---------+
 use quote::format_ident;
 use rhdl::{
     core::{
-        ScopedName, circuit::descriptor::AsyncKind, flow_graph::black_box::build_circuit_blackbox,
+        ScopedName,
+        circuit::{
+            descriptor::AsyncKind,
+            schematic::{builder::SchematicBuilder, circuit::build_schematic},
+        },
+        flow_graph::black_box::build_circuit_blackbox,
     },
     prelude::*,
 };
@@ -182,7 +187,9 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
 
     fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
         let name = scoped_name.to_string();
+        let schematic = SchematicBuilder::circuit::<Self>(&name)?.build();
         Descriptor::<AsyncKind> {
+            schematic: Some(schematic),
             flow_graph: Some(build_circuit_blackbox::<Self>(&scoped_name)?),
             type_name: std::any::type_name::<Self>(),
             name: scoped_name,

@@ -705,7 +705,8 @@ impl Context {
                         std::any::TypeId::of::<#name #ty_generics>(),
                         #text,
                         rhdl::serde_json::from_str(META_DATA).unwrap(),
-                        #flags
+                        #flags,
+                        std::any::type_name::<#name #ty_generics>(),
                     ))
                 }
             }

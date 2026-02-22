@@ -11,7 +11,7 @@ use crate::{
         Object,
         spec::{OpCode, Slot},
     },
-    types::path::{Path, bit_range, leaf_paths},
+    types::path::{Path, PathExt, bit_range},
 };
 
 use super::pass::Pass;
@@ -43,7 +43,7 @@ struct CoverageMap<'a> {
 impl CoverageMap<'_> {
     fn build_coverage_details(&self, slot: Slot) -> String {
         let kind = self.obj.kind(slot);
-        let paths = leaf_paths(&kind, Path::default());
+        let paths = kind.all_leafs();
         let mut details = String::new();
         let coverage = self.map.get(&slot).cloned().unwrap_or_default();
         for path in paths {

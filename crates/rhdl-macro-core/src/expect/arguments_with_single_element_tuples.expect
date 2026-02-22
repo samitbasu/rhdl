@@ -103,6 +103,7 @@ impl<const N: usize> rhdl::core::digital_fn::DigitalFn for counter<N> {
                 None,
                 rhdl::serde_json::from_str(META_DATA).unwrap(),
                 vec![],
+                std::any::type_name::<counter<N>>(),
             ),
         )
     }

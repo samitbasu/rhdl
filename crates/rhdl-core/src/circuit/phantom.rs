@@ -63,6 +63,7 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
                 modules: module.into(),
             }),
             _phantom: std::marker::PhantomData,
+            schematic: None,
         })
     }
 }
@@ -118,6 +119,7 @@ impl<T: Digital + 'static> Circuit for std::marker::PhantomData<T> {
                 modules: module.into(),
             }),
             _phantom: std::marker::PhantomData,
+            schematic: None,
         })
     }
 }

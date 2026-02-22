@@ -38,6 +38,7 @@ pub struct Mir {
     pub fn_id: FunctionId,
     pub name: String,
     pub flags: Vec<KernelFlags>,
+    pub type_name: &'static str,
 }
 
 impl Mir {

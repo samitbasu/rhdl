@@ -9,7 +9,8 @@ badascii-doc = "0.4.1"
 ena = "0.14.3"
 expect-test = "1.5.1"
 fnv = "1.0.7"
-internment = "0.8.6"
+internment = { version = "0.8.6", features = ["serde"] }
+kdl = "6.5.0"
 log = "0.4.27"
 miette = "7.6.0"
 nohash = "0.2.0"
@@ -25,9 +26,11 @@ rhdl-trace-type = { version = "0.1.0", path = "../rhdl-trace-type" }
 rhdl-vlog = { version = "0.1.0", path = "../rhdl-vlog" }
 ron = "0.10.1"
 seq-macro = "0.3.6"
+serde = { version = "1.0.228", features = ["derive"] }
 sha2 = "0.10.9"
 svg = "0.18.0"
 syn = "2.0.106"
+taffy = "0.9.2"
 tempfile = "3.21.0"
 thiserror = "2.0.16"
 vcd = "0.7.0"

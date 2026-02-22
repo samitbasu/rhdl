@@ -132,7 +132,7 @@ b   |   +--->|     +--+-> sum
 use super::circuit_impl::Circuit;
 use crate::{
     CircuitIO, Digital, Kind, RHDLError,
-    types::path::{Path, bit_range, leaf_paths},
+    types::path::{Path, PathExt, bit_range},
 };
 use miette::Diagnostic;
 use quote::{ToTokens, format_ident, quote};
@@ -460,7 +460,7 @@ pub struct Fixture<T> {
 }
 
 fn build_coverage_error(kind: Kind, coverage: &[bool]) -> String {
-    let paths = leaf_paths(&kind, Path::default());
+    let paths = kind.all_leafs();
     let mut details = String::new();
     for path in paths {
         let (bits, _) = bit_range(kind, &path).unwrap();

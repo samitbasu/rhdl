@@ -7,13 +7,16 @@
 //! the HDL description of the circuit.
 //!
 //! See the [book] for more details on HDL generation in RHDL.
+use std::sync::Arc;
+
 use crate::{
     Circuit, CircuitDQ, CircuitIO, CompilationMode, HDLDescriptor, Kind, RHDLError,
     circuit::{
         descriptor::{AsyncKind, Descriptor},
+        schematic::circuit::build_schematic,
         scoped_name::ScopedName,
     },
-    compiler::driver::compile_design,
+    compiler::driver::{compile_design, compile_design_stage1, compile_design_stage2},
     flow_graph::circuit_builder::build_circuit_flowgraph,
     ntl::{self, from_rtl::build_ntl_from_rtl},
     rtl,
@@ -173,12 +176,14 @@ pub fn build_asynchronous_descriptor<C: Circuit>(
     circuit: &C,
     scoped_name: ScopedName,
 ) -> Result<Descriptor<AsyncKind>, RHDLError> {
-    let kernel = compile_design::<C::Kernel>(CompilationMode::Asynchronous)?;
+    let rhif = compile_design_stage1::<C::Kernel>(CompilationMode::Asynchronous)?;
+    let kernel = compile_design_stage2(Arc::clone(&rhif))?;
     let children = circuit
         .children(&scoped_name)
         .collect::<Result<Vec<Descriptor<AsyncKind>>, RHDLError>>()?;
     let hdl = build_circuit_hdl::<C>(&scoped_name, &kernel, &children)?;
     let netlist = build_circuit_netlist::<C>(&scoped_name, &kernel, &children)?;
+    let schematic = build_schematic::<C>(&scoped_name, rhif, &children)?;
     let flow_graph =
         build_circuit_flowgraph::<C>(&scoped_name, &kernel, &children)?.loop_checked()?;
     let circuit_output = <C as CircuitIO>::O::static_kind();
@@ -196,6 +201,7 @@ pub fn build_asynchronous_descriptor<C: Circuit>(
         hdl: Some(hdl),
         netlist: Some(netlist),
         flow_graph: Some(flow_graph),
+        schematic: Some(schematic),
         _phantom: std::marker::PhantomData,
     })
 }

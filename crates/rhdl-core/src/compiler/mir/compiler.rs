@@ -1580,5 +1580,6 @@ pub fn compile_mir(func: &ast_impl::KernelFn, mode: CompilationMode) -> Result<M
         stash: compiler.stash,
         name: compiler.name.to_string(),
         flags: func.flags.clone(),
+        type_name: func.type_name,
     })
 }

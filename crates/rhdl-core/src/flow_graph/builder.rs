@@ -4,8 +4,8 @@ use petgraph::graph::NodeIndex;
 
 use crate::{
     Kind, RHDLError, TypedBits,
-    flow_graph::{BufferRef, ConstantRef, EdgeKind, FlowGraph, NodeKind, NodePort},
-    types::path::{Path, PathExt},
+    flow_graph::{BufferRef, ConstantRef, EdgeKind, FlowGraph, NodeKind, NodePort, PortSet},
+    types::path::{Path, PathExt, sub_kind},
 };
 
 pub struct Builder {
@@ -19,13 +19,13 @@ impl Builder {
             flow_graph: FlowGraph {
                 name: name.into(),
                 graph: Default::default(),
-                ports: HashMap::new(),
+                ports: Default::default(),
                 source: Default::default(),
             },
             atom_map: HashMap::new(),
         }
     }
-    pub fn import(&mut self, fg: &FlowGraph) -> HashMap<NodeIndex, NodeIndex> {
+    pub fn import(&mut self, fg: FlowGraph) -> PortSet {
         let mut mapping = HashMap::new();
         for node in fg.graph.node_indices() {
             let new_node = self.flow_graph.graph.add_node(fg.graph[node].clone());
@@ -40,14 +40,19 @@ impl Builder {
             );
         }
         self.flow_graph.source.extend(fg.source.sources.clone());
-        mapping
+        fg.ports
+            .into_iter()
+            .map(|(port, node)| (port.clone(), mapping[&node]))
+            .collect()
     }
-    pub fn add_input_port(&mut self, kind: Kind, index: usize) {
+    pub fn add_input_port(&mut self, kind: Kind, index: usize) -> Result<(), RHDLError> {
         for path in kind.all_leafs() {
+            let leaf_kind = sub_kind(kind, &path)?;
             let node_kind = NodeKind::Buffer(BufferRef {
                 name: format!("{} port{} input{:?}", self.flow_graph.name, index, path),
                 kind,
                 path: path.clone(),
+                leaf_kind,
             });
             let node_index = self.flow_graph.graph.add_node(node_kind.clone());
             self.flow_graph
@@ -55,13 +60,16 @@ impl Builder {
                 .insert(NodePort::Input(index, path), node_index);
             self.atom_map.insert(node_kind, node_index);
         }
+        Ok(())
     }
-    pub fn add_output_port(&mut self, kind: Kind) {
+    pub fn add_output_port(&mut self, kind: Kind) -> Result<(), RHDLError> {
         for path in kind.all_leafs() {
+            let leaf_kind = sub_kind(kind, &path)?;
             let node_kind = NodeKind::Buffer(BufferRef {
                 name: format!("{} output{:?}", self.flow_graph.name, path),
                 kind,
                 path: path.clone(),
+                leaf_kind,
             });
             let node_index = self.flow_graph.graph.add_node(node_kind.clone());
             self.flow_graph
@@ -69,26 +77,21 @@ impl Builder {
                 .insert(NodePort::Output(path), node_index);
             self.atom_map.insert(node_kind, node_index);
         }
+        Ok(())
     }
     pub fn forward_input_to_child(
         &mut self,
         input_kind: Kind,
         my_base_path: &Path,
         my_input_index: usize,
-        child_flow_graph: &FlowGraph,
+        child_ports: &PortSet,
         child_input_index: usize,
-        node_map: &HashMap<NodeIndex, NodeIndex>,
     ) -> Result<(), RHDLError> {
         for path in input_kind.all_leafs() {
             let my_port =
                 self.get_input_port(my_input_index, &(my_base_path.clone()).join(&path))?;
-            let child_port = child_flow_graph.input_port(child_input_index, &path)?;
-            let child_node_in_my_graph = node_map[&child_port];
-            self.add_edge(
-                my_port,
-                child_node_in_my_graph,
-                EdgeKind::InputForwardToChild,
-            );
+            let child_port = child_ports.input_port(child_input_index, &path)?;
+            self.add_edge(my_port, child_port, EdgeKind::InputForwardToChild)?;
         }
         Ok(())
     }
@@ -96,18 +99,12 @@ impl Builder {
         &mut self,
         output_kind: Kind,
         my_base_path: &Path,
-        child_flow_graph: &FlowGraph,
-        node_map: &HashMap<NodeIndex, NodeIndex>,
+        child_ports: &PortSet,
     ) -> Result<(), RHDLError> {
         for path in output_kind.all_leafs() {
             let my_port = self.get_output_port(&(my_base_path.clone()).join(&path))?;
-            let child_port = child_flow_graph.output_port(&path)?;
-            let child_node_in_my_graph = node_map[&child_port];
-            self.add_edge(
-                child_node_in_my_graph,
-                my_port,
-                EdgeKind::OutputForwardFromChild,
-            );
+            let child_port = child_ports.output_port(&path)?;
+            self.add_edge(child_port, my_port, EdgeKind::OutputForwardFromChild)?;
         }
         Ok(())
     }
@@ -117,22 +114,43 @@ impl Builder {
     pub fn get_output_port(&self, path: &Path) -> Result<NodeIndex, RHDLError> {
         self.flow_graph.output_port(path)
     }
-    pub fn add_edge(&mut self, source: NodeIndex, target: NodeIndex, kind: EdgeKind) {
+    pub fn add_edge(
+        &mut self,
+        source: NodeIndex,
+        target: NodeIndex,
+        kind: EdgeKind,
+    ) -> Result<(), RHDLError> {
+        let source_leaf = self.flow_graph.graph[source].leaf_kind();
+        let target_leaf = self.flow_graph.graph[target].leaf_kind();
+        if source_leaf != target_leaf {
+            panic!(
+                "Mismatched leaf kinds in edge from {:?} to {:?}: {:?} vs {:?}",
+                source, target, source_leaf, target_leaf
+            );
+        }
         self.flow_graph.graph.add_edge(source, target, kind);
+        Ok(())
     }
-    pub fn add_constant(&mut self, name: &str, value: TypedBits, path: Path) -> NodeIndex {
+    pub fn add_constant(
+        &mut self,
+        name: &str,
+        value: TypedBits,
+        path: Path,
+    ) -> Result<NodeIndex, RHDLError> {
+        let leaf_kind = sub_kind(value.kind(), &path)?;
         let node_kind = NodeKind::Constant(ConstantRef {
             name: name.to_string(),
             value,
             path,
+            leaf_kind,
         });
-        if let Some(node_index) = self.atom_map.get(&node_kind) {
+        Ok(if let Some(node_index) = self.atom_map.get(&node_kind) {
             *node_index
         } else {
             let node_index = self.flow_graph.graph.add_node(node_kind.clone());
             self.atom_map.insert(node_kind, node_index);
             node_index
-        }
+        })
     }
     pub fn build(self) -> FlowGraph {
         self.flow_graph

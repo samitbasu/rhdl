@@ -11,7 +11,7 @@ use crate::{
         spec::{OpCode, Wire, WireKind},
         visit::visit_wires,
     },
-    types::path::{Path, bit_range, leaf_paths},
+    types::path::{PathExt, bit_range},
 };
 
 use super::pass::Pass;
@@ -177,7 +177,7 @@ impl Pass for ReorderInstructions {
                 let details = &input.symtab[Wire::Register(reg)];
                 if let Some(source_details) = &details.source_details {
                     let kind = details.kind;
-                    let paths = leaf_paths(&kind, Path::default());
+                    let paths = kind.all_leafs();
                     if let Some(path) = paths.iter().find(|p| {
                         let Ok((bits1, _)) = bit_range(kind, p) else {
                             return false;

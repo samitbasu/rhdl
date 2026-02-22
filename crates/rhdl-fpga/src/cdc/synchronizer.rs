@@ -169,7 +169,12 @@ clk   +----+    +----+    +----+
 use quote::format_ident;
 use rhdl::{
     core::{
-        ScopedName, circuit::descriptor::AsyncKind, flow_graph::black_box::build_circuit_blackbox,
+        ScopedName,
+        circuit::{
+            descriptor::AsyncKind,
+            schematic::{builder::SchematicBuilder, circuit::build_schematic},
+        },
+        flow_graph::black_box::build_circuit_blackbox,
     },
     prelude::*,
 };
@@ -251,8 +256,10 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
 
     fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
         let name = scoped_name.to_string();
+        let schematic = SchematicBuilder::circuit::<Self>(&name)?.build();
         Descriptor::<AsyncKind> {
             flow_graph: Some(build_circuit_blackbox::<Self>(&scoped_name)?),
+            schematic: Some(schematic),
             name: scoped_name,
             input_kind: <<Self as CircuitIO>::I as Digital>::static_kind(),
             output_kind: <<Self as CircuitIO>::O as Digital>::static_kind(),

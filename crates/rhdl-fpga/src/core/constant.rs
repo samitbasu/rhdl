@@ -31,7 +31,10 @@ use quote::format_ident;
 use rhdl::{
     core::{
         ScopedName,
-        circuit::descriptor::SyncKind,
+        circuit::{
+            descriptor::SyncKind,
+            schematic::{self, builder::SchematicBuilder, synchronous::build_schematic},
+        },
         flow_graph::{self, FlowGraph},
         types::path::PathExt,
     },
@@ -77,8 +80,10 @@ impl<T: Digital> Synchronous for Constant<T> {
 
     fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError> {
         let name = scoped_name.to_string();
+        let schematic = SchematicBuilder::synchronous::<Self>(&name)?.build();
         Ok(Descriptor {
             type_name: std::any::type_name::<Self>(),
+            schematic: Some(schematic),
             name: scoped_name,
             input_kind: Kind::Empty,
             output_kind: Self::O::static_kind(),
@@ -114,17 +119,18 @@ impl<T: Digital> Constant<T> {
     fn flow_graph(&self, name: &str) -> Result<FlowGraph, RHDLError> {
         let mut builder = flow_graph::builder::Builder::new(name);
         let cr_kind = ClockReset::static_kind();
-        builder.add_input_port(cr_kind, 0);
-        builder.add_input_port(Kind::Empty, 1);
+        builder.add_input_port(cr_kind, 0)?;
+        builder.add_input_port(Kind::Empty, 1)?;
         let output_kind = T::static_kind();
-        builder.add_output_port(output_kind);
+        builder.add_output_port(output_kind)?;
         for path in output_kind.all_leafs() {
-            let constant_node = builder.add_constant(name, self.value.typed_bits(), path.clone());
+            let constant_node =
+                builder.add_constant(name, self.value.typed_bits(), path.clone())?;
             builder.add_edge(
                 constant_node,
                 builder.get_output_port(&path)?,
                 flow_graph::EdgeKind::OutputForwardFromChild,
-            );
+            )?;
         }
         Ok(builder.build())
     }
