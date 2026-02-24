@@ -1,1 +1,657 @@
-<svg xmlns="http://www.w3.org/2000/svg"/>
+<svg viewBox="0 0 1600 1760" xmlns="http://www.w3.org/2000/svg">
+<rect fill="lightcoral" height="20" rx="5" ry="5" stroke="black" width="200" x="0" y="0"/>
+<text fill="black" font-family="monospace" font-size="8" x="5" y="15">
+i0.clock
+<title>Port { path: .clock, bits: 1, ty: Clock, id: PortId(0) }</title>
+</text>
+<rect fill="lightcoral" height="20" rx="5" ry="5" stroke="black" width="200" x="0" y="20"/>
+<text fill="black" font-family="monospace" font-size="8" x="5" y="35">
+i0.reset
+<title>Port { path: .reset, bits: 1, ty: Reset, id: PortId(1) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="0" y="40"/>
+<text fill="black" font-family="monospace" font-size="8" x="5" y="55">
+i1.read_axi.araddr
+<title>Port { path: .read_axi.araddr, bits: 32, ty: Bits(32), id: PortId(2) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="0" y="60"/>
+<text fill="black" font-family="monospace" font-size="8" x="5" y="75">
+i1.read_axi.arvalid
+<title>Port { path: .read_axi.arvalid, bits: 1, ty: Bits(1), id: PortId(3) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="0" y="80"/>
+<text fill="black" font-family="monospace" font-size="8" x="5" y="95">
+i1.read_axi.rready
+<title>Port { path: .read_axi.rready, bits: 1, ty: Bits(1), id: PortId(4) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="0" y="100"/>
+<text fill="black" font-family="monospace" font-size="8" x="5" y="115">
+i1.write_axi.awaddr
+<title>Port { path: .write_axi.awaddr, bits: 32, ty: Bits(32), id: PortId(5) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="0" y="120"/>
+<text fill="black" font-family="monospace" font-size="8" x="5" y="135">
+i1.write_axi.awvalid
+<title>Port { path: .write_axi.awvalid, bits: 1, ty: Bits(1), id: PortId(6) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="0" y="140"/>
+<text fill="black" font-family="monospace" font-size="8" x="5" y="155">
+i1.write_axi.wdata
+<title>Port { path: .write_axi.wdata, bits: 32, ty: Bits(32), id: PortId(7) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="0" y="160"/>
+<text fill="black" font-family="monospace" font-size="8" x="5" y="175">
+i1.write_axi.wstrb
+<title>Port { path: .write_axi.wstrb, bits: 4, ty: Bits(4), id: PortId(8) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="0" y="180"/>
+<text fill="black" font-family="monospace" font-size="8" x="5" y="195">
+i1.write_axi.wvalid
+<title>Port { path: .write_axi.wvalid, bits: 1, ty: Bits(1), id: PortId(9) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="0" y="200"/>
+<text fill="black" font-family="monospace" font-size="8" x="5" y="215">
+i1.write_axi.bready
+<title>Port { path: .write_axi.bready, bits: 1, ty: Bits(1), id: PortId(10) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="0" y="220"/>
+<text fill="black" font-family="monospace" font-size="8" x="5" y="235">
+i1.data#Some.0
+<title>Port { path: .data#Some.0, bits: 32, ty: Bits(32), id: PortId(11) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="0" y="240"/>
+<text fill="black" font-family="monospace" font-size="8" x="5" y="255">
+i1.data#
+<title>Port { path: .data#, bits: 1, ty: Bits(1), id: PortId(12) }</title>
+</text>
+<rect fill="lightcoral" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="0"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="15">
+i0.clock
+<title>Port { path: .clock, bits: 1, ty: Clock, id: PortId(22) }</title>
+</text>
+<rect fill="lightcoral" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="20"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="35">
+i0.reset
+<title>Port { path: .reset, bits: 1, ty: Reset, id: PortId(23) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="40"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="55">
+i1.read_axi.araddr
+<title>Port { path: .read_axi.araddr, bits: 32, ty: Bits(32), id: PortId(24) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="60"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="75">
+i1.read_axi.arvalid
+<title>Port { path: .read_axi.arvalid, bits: 1, ty: Bits(1), id: PortId(25) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="80"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="95">
+i1.read_axi.rready
+<title>Port { path: .read_axi.rready, bits: 1, ty: Bits(1), id: PortId(26) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="100"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="115">
+i1.write_axi.awaddr
+<title>Port { path: .write_axi.awaddr, bits: 32, ty: Bits(32), id: PortId(27) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="120"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="135">
+i1.write_axi.awvalid
+<title>Port { path: .write_axi.awvalid, bits: 1, ty: Bits(1), id: PortId(28) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="140"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="155">
+i1.write_axi.wdata
+<title>Port { path: .write_axi.wdata, bits: 32, ty: Bits(32), id: PortId(29) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="160"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="175">
+i1.write_axi.wstrb
+<title>Port { path: .write_axi.wstrb, bits: 4, ty: Bits(4), id: PortId(30) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="180"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="195">
+i1.write_axi.wvalid
+<title>Port { path: .write_axi.wvalid, bits: 1, ty: Bits(1), id: PortId(31) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="200"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="215">
+i1.write_axi.bready
+<title>Port { path: .write_axi.bready, bits: 1, ty: Bits(1), id: PortId(32) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="220"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="235">
+i1.data#Some.0
+<title>Port { path: .data#Some.0, bits: 32, ty: Bits(32), id: PortId(33) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="240"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="255">
+i1.data#
+<title>Port { path: .data#, bits: 1, ty: Bits(1), id: PortId(34) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="260"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="275">
+i2.read.axi.arready
+<title>Port { path: .read.axi.arready, bits: 1, ty: Bits(1), id: PortId(35) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="280"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="295">
+i2.read.axi.rdata
+<title>Port { path: .read.axi.rdata, bits: 32, ty: Bits(32), id: PortId(36) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="300"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="315">
+i2.read.axi.rresp
+<title>Port { path: .read.axi.rresp, bits: 2, ty: Bits(2), id: PortId(37) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="320"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="335">
+i2.read.axi.rvalid
+<title>Port { path: .read.axi.rvalid, bits: 1, ty: Bits(1), id: PortId(38) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="340"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="355">
+i2.read.req_data#Some.0
+<title>Port { path: .read.req_data#Some.0, bits: 32, ty: Bits(32), id: PortId(39) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="360"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="375">
+i2.read.req_data#
+<title>Port { path: .read.req_data#, bits: 1, ty: Bits(1), id: PortId(40) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="380"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="395">
+i2.read.resp_ready.raw
+<title>Port { path: .read.resp_ready.raw, bits: 1, ty: Bits(1), id: PortId(41) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="400"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="415">
+i2.write.axi.awready
+<title>Port { path: .write.axi.awready, bits: 1, ty: Bits(1), id: PortId(42) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="420"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="435">
+i2.write.axi.wready
+<title>Port { path: .write.axi.wready, bits: 1, ty: Bits(1), id: PortId(43) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="440"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="455">
+i2.write.axi.bresp
+<title>Port { path: .write.axi.bresp, bits: 2, ty: Bits(2), id: PortId(44) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="460"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="475">
+i2.write.axi.bvalid
+<title>Port { path: .write.axi.bvalid, bits: 1, ty: Bits(1), id: PortId(45) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="480"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="495">
+i2.write.req_data#Some.0.addr
+<title>Port { path: .write.req_data#Some.0.addr, bits: 32, ty: Bits(32), id: PortId(46) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="500"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="515">
+i2.write.req_data#Some.0.strobed_data.data
+<title>Port { path: .write.req_data#Some.0.strobed_data.data, bits: 32, ty: Bits(32), id: PortId(47) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="520"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="535">
+i2.write.req_data#Some.0.strobed_data.strobe
+<title>Port { path: .write.req_data#Some.0.strobed_data.strobe, bits: 4, ty: Bits(4), id: PortId(48) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="540"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="555">
+i2.write.req_data#
+<title>Port { path: .write.req_data#, bits: 1, ty: Bits(1), id: PortId(49) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="560"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="575">
+i2.write.resp_ready.raw
+<title>Port { path: .write.resp_ready.raw, bits: 1, ty: Bits(1), id: PortId(50) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="580"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="595">
+i2.data
+<title>Port { path: .data, bits: 32, ty: Bits(32), id: PortId(51) }</title>
+</text>
+<rect fill="lightgreen" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="600"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="615">
+i2.address
+<title>Port { path: .address, bits: 32, ty: Bits(32), id: PortId(52) }</title>
+</text>
+<rect fill="lightcyan" height="620" rx="5" ry="5" stroke="black" width="300" x="650" y="0"/>
+<text fill="black" font-family="monospace" font-size="8" x="655" y="15">
+kernel
+<title>Kernel "kernel"</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="0"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="15">
+o.0.read_axi.arready
+<title>Port { path: .0.read_axi.arready, bits: 1, ty: Bits(1), id: PortId(53) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="20"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="35">
+o.0.read_axi.rdata
+<title>Port { path: .0.read_axi.rdata, bits: 32, ty: Bits(32), id: PortId(54) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="40"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="55">
+o.0.read_axi.rresp
+<title>Port { path: .0.read_axi.rresp, bits: 2, ty: Bits(2), id: PortId(55) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="60"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="75">
+o.0.read_axi.rvalid
+<title>Port { path: .0.read_axi.rvalid, bits: 1, ty: Bits(1), id: PortId(56) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="80"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="95">
+o.0.write_axi.awready
+<title>Port { path: .0.write_axi.awready, bits: 1, ty: Bits(1), id: PortId(57) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="100"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="115">
+o.0.write_axi.wready
+<title>Port { path: .0.write_axi.wready, bits: 1, ty: Bits(1), id: PortId(58) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="120"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="135">
+o.0.write_axi.bresp
+<title>Port { path: .0.write_axi.bresp, bits: 2, ty: Bits(2), id: PortId(59) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="140"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="155">
+o.0.write_axi.bvalid
+<title>Port { path: .0.write_axi.bvalid, bits: 1, ty: Bits(1), id: PortId(60) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="160"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="175">
+o.0.data
+<title>Port { path: .0.data, bits: 32, ty: Bits(32), id: PortId(61) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="180"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="195">
+o.1.read.axi.araddr
+<title>Port { path: .1.read.axi.araddr, bits: 32, ty: Bits(32), id: PortId(62) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="200"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="215">
+o.1.read.axi.arvalid
+<title>Port { path: .1.read.axi.arvalid, bits: 1, ty: Bits(1), id: PortId(63) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="220"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="235">
+o.1.read.axi.rready
+<title>Port { path: .1.read.axi.rready, bits: 1, ty: Bits(1), id: PortId(64) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="240"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="255">
+o.1.read.req_ready.raw
+<title>Port { path: .1.read.req_ready.raw, bits: 1, ty: Bits(1), id: PortId(65) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="260"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="275">
+o.1.read.resp_data#Some.0#Err.0#
+<title>Port { path: .1.read.resp_data#Some.0#Err.0#, bits: 1, ty: Bits(1), id: PortId(66) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="280"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="295">
+o.1.read.resp_data#Some.0#Ok.0
+<title>Port { path: .1.read.resp_data#Some.0#Ok.0, bits: 32, ty: Bits(32), id: PortId(67) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="300"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="315">
+o.1.read.resp_data#Some.0#
+<title>Port { path: .1.read.resp_data#Some.0#, bits: 1, ty: Bits(1), id: PortId(68) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="320"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="335">
+o.1.read.resp_data#
+<title>Port { path: .1.read.resp_data#, bits: 1, ty: Bits(1), id: PortId(69) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="340"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="355">
+o.1.write.axi.awaddr
+<title>Port { path: .1.write.axi.awaddr, bits: 32, ty: Bits(32), id: PortId(70) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="360"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="375">
+o.1.write.axi.awvalid
+<title>Port { path: .1.write.axi.awvalid, bits: 1, ty: Bits(1), id: PortId(71) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="380"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="395">
+o.1.write.axi.wdata
+<title>Port { path: .1.write.axi.wdata, bits: 32, ty: Bits(32), id: PortId(72) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="400"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="415">
+o.1.write.axi.wstrb
+<title>Port { path: .1.write.axi.wstrb, bits: 4, ty: Bits(4), id: PortId(73) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="420"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="435">
+o.1.write.axi.wvalid
+<title>Port { path: .1.write.axi.wvalid, bits: 1, ty: Bits(1), id: PortId(74) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="440"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="455">
+o.1.write.axi.bready
+<title>Port { path: .1.write.axi.bready, bits: 1, ty: Bits(1), id: PortId(75) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="460"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="475">
+o.1.write.req_ready.raw
+<title>Port { path: .1.write.req_ready.raw, bits: 1, ty: Bits(1), id: PortId(76) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="480"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="495">
+o.1.write.resp_data#Some.0#Err.0#
+<title>Port { path: .1.write.resp_data#Some.0#Err.0#, bits: 1, ty: Bits(1), id: PortId(77) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="500"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="515">
+o.1.write.resp_data#Some.0#
+<title>Port { path: .1.write.resp_data#Some.0#, bits: 1, ty: Bits(1), id: PortId(78) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="520"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="535">
+o.1.write.resp_data#
+<title>Port { path: .1.write.resp_data#, bits: 1, ty: Bits(1), id: PortId(79) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="540"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="555">
+o.1.data
+<title>Port { path: .1.data, bits: 32, ty: Bits(32), id: PortId(80) }</title>
+</text>
+<rect fill="lightcoral" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="770"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="785">
+i0.clock
+<title>Port { path: .clock, bits: 1, ty: Clock, id: PortId(1903) }</title>
+</text>
+<rect fill="lightcoral" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="790"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="805">
+i0.reset
+<title>Port { path: .reset, bits: 1, ty: Reset, id: PortId(1904) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="810"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="825">
+i1.axi.araddr
+<title>Port { path: .axi.araddr, bits: 32, ty: Bits(32), id: PortId(1905) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="830"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="845">
+i1.axi.arvalid
+<title>Port { path: .axi.arvalid, bits: 1, ty: Bits(1), id: PortId(1906) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="850"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="865">
+i1.axi.rready
+<title>Port { path: .axi.rready, bits: 1, ty: Bits(1), id: PortId(1907) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="870"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="885">
+i1.req_ready.raw
+<title>Port { path: .req_ready.raw, bits: 1, ty: Bits(1), id: PortId(1908) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="890"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="905">
+i1.resp_data#Some.0#Err.0#
+<title>Port { path: .resp_data#Some.0#Err.0#, bits: 1, ty: Bits(1), id: PortId(1909) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="910"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="925">
+i1.resp_data#Some.0#Ok.0
+<title>Port { path: .resp_data#Some.0#Ok.0, bits: 32, ty: Bits(32), id: PortId(1910) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="930"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="945">
+i1.resp_data#Some.0#
+<title>Port { path: .resp_data#Some.0#, bits: 1, ty: Bits(1), id: PortId(1911) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="950"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="965">
+i1.resp_data#
+<title>Port { path: .resp_data#, bits: 1, ty: Bits(1), id: PortId(1912) }</title>
+</text>
+<rect fill="lightcyan" height="200" rx="5" ry="5" stroke="black" width="300" x="650" y="770"/>
+<text fill="black" font-family="monospace" font-size="8" x="655" y="785">
+top_read
+<title>Synchronous "top_read"</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="770"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="785">
+o.axi.arready
+<title>Port { path: .axi.arready, bits: 1, ty: Bits(1), id: PortId(1913) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="790"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="805">
+o.axi.rdata
+<title>Port { path: .axi.rdata, bits: 32, ty: Bits(32), id: PortId(1914) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="810"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="825">
+o.axi.rresp
+<title>Port { path: .axi.rresp, bits: 2, ty: Bits(2), id: PortId(1915) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="830"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="845">
+o.axi.rvalid
+<title>Port { path: .axi.rvalid, bits: 1, ty: Bits(1), id: PortId(1916) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="850"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="865">
+o.req_data#Some.0
+<title>Port { path: .req_data#Some.0, bits: 32, ty: Bits(32), id: PortId(1917) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="870"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="885">
+o.req_data#
+<title>Port { path: .req_data#, bits: 1, ty: Bits(1), id: PortId(1918) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="890"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="905">
+o.resp_ready.raw
+<title>Port { path: .resp_ready.raw, bits: 1, ty: Bits(1), id: PortId(1919) }</title>
+</text>
+<rect fill="lightcoral" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1120"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1135">
+i0.clock
+<title>Port { path: .clock, bits: 1, ty: Clock, id: PortId(5549) }</title>
+</text>
+<rect fill="lightcoral" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1140"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1155">
+i0.reset
+<title>Port { path: .reset, bits: 1, ty: Reset, id: PortId(5550) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1160"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1175">
+i1.axi.awaddr
+<title>Port { path: .axi.awaddr, bits: 32, ty: Bits(32), id: PortId(5551) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1180"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1195">
+i1.axi.awvalid
+<title>Port { path: .axi.awvalid, bits: 1, ty: Bits(1), id: PortId(5552) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1200"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1215">
+i1.axi.wdata
+<title>Port { path: .axi.wdata, bits: 32, ty: Bits(32), id: PortId(5553) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1220"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1235">
+i1.axi.wstrb
+<title>Port { path: .axi.wstrb, bits: 4, ty: Bits(4), id: PortId(5554) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1240"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1255">
+i1.axi.wvalid
+<title>Port { path: .axi.wvalid, bits: 1, ty: Bits(1), id: PortId(5555) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1260"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1275">
+i1.axi.bready
+<title>Port { path: .axi.bready, bits: 1, ty: Bits(1), id: PortId(5556) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1280"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1295">
+i1.req_ready.raw
+<title>Port { path: .req_ready.raw, bits: 1, ty: Bits(1), id: PortId(5557) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1300"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1315">
+i1.resp_data#Some.0#Err.0#
+<title>Port { path: .resp_data#Some.0#Err.0#, bits: 1, ty: Bits(1), id: PortId(5558) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1320"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1335">
+i1.resp_data#Some.0#
+<title>Port { path: .resp_data#Some.0#, bits: 1, ty: Bits(1), id: PortId(5559) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1340"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1355">
+i1.resp_data#
+<title>Port { path: .resp_data#, bits: 1, ty: Bits(1), id: PortId(5560) }</title>
+</text>
+<rect fill="lightcyan" height="240" rx="5" ry="5" stroke="black" width="300" x="650" y="1120"/>
+<text fill="black" font-family="monospace" font-size="8" x="655" y="1135">
+top_write
+<title>Synchronous "top_write"</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="1120"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="1135">
+o.axi.awready
+<title>Port { path: .axi.awready, bits: 1, ty: Bits(1), id: PortId(5561) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="1140"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="1155">
+o.axi.wready
+<title>Port { path: .axi.wready, bits: 1, ty: Bits(1), id: PortId(5562) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="1160"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="1175">
+o.axi.bresp
+<title>Port { path: .axi.bresp, bits: 2, ty: Bits(2), id: PortId(5563) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="1180"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="1195">
+o.axi.bvalid
+<title>Port { path: .axi.bvalid, bits: 1, ty: Bits(1), id: PortId(5564) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="1200"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="1215">
+o.req_data#Some.0.addr
+<title>Port { path: .req_data#Some.0.addr, bits: 32, ty: Bits(32), id: PortId(5565) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="1220"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="1235">
+o.req_data#Some.0.strobed_data.data
+<title>Port { path: .req_data#Some.0.strobed_data.data, bits: 32, ty: Bits(32), id: PortId(5566) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="1240"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="1255">
+o.req_data#Some.0.strobed_data.strobe
+<title>Port { path: .req_data#Some.0.strobed_data.strobe, bits: 4, ty: Bits(4), id: PortId(5567) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="1260"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="1275">
+o.req_data#
+<title>Port { path: .req_data#, bits: 1, ty: Bits(1), id: PortId(5568) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="1280"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="1295">
+o.resp_ready.raw
+<title>Port { path: .resp_ready.raw, bits: 1, ty: Bits(1), id: PortId(5569) }</title>
+</text>
+<rect fill="lightcoral" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1510"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1525">
+i0.clock
+<title>Port { path: .clock, bits: 1, ty: Clock, id: PortId(13215) }</title>
+</text>
+<rect fill="lightcoral" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1530"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1545">
+i0.reset
+<title>Port { path: .reset, bits: 1, ty: Reset, id: PortId(13216) }</title>
+</text>
+<rect fill="lightblue" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1550"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1565">
+i1
+<title>Port { path: , bits: 32, ty: Bits(32), id: PortId(13217) }</title>
+</text>
+<rect fill="lightcyan" height="60" rx="5" ry="5" stroke="black" width="300" x="650" y="1510"/>
+<text fill="black" font-family="monospace" font-size="8" x="655" y="1525">
+top_data
+<title>Synchronous "top_data"</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="1510"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="1525">
+o
+<title>Port { path: , bits: 32, ty: Bits(32), id: PortId(13218) }</title>
+</text>
+<rect fill="lightcoral" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1720"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1735">
+i0.clock
+<title>Port { path: .clock, bits: 1, ty: Clock, id: PortId(13220) }</title>
+</text>
+<rect fill="lightcoral" height="20" rx="5" ry="5" stroke="black" width="200" x="450" y="1740"/>
+<text fill="black" font-family="monospace" font-size="8" x="455" y="1755">
+i0.reset
+<title>Port { path: .reset, bits: 1, ty: Reset, id: PortId(13221) }</title>
+</text>
+<rect fill="lightcyan" height="40" rx="5" ry="5" stroke="black" width="300" x="650" y="1720"/>
+<text fill="black" font-family="monospace" font-size="8" x="655" y="1735">
+top_address
+<title>Synchronous "top_address"</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="950" y="1720"/>
+<text fill="black" font-family="monospace" font-size="8" x="955" y="1735">
+o
+<title>Port { path: , bits: 32, ty: Bits(32), id: PortId(13222) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="1400" y="0"/>
+<text fill="black" font-family="monospace" font-size="8" x="1405" y="15">
+o.read_axi.arready
+<title>Port { path: .read_axi.arready, bits: 1, ty: Bits(1), id: PortId(13) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="1400" y="20"/>
+<text fill="black" font-family="monospace" font-size="8" x="1405" y="35">
+o.read_axi.rdata
+<title>Port { path: .read_axi.rdata, bits: 32, ty: Bits(32), id: PortId(14) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="1400" y="40"/>
+<text fill="black" font-family="monospace" font-size="8" x="1405" y="55">
+o.read_axi.rresp
+<title>Port { path: .read_axi.rresp, bits: 2, ty: Bits(2), id: PortId(15) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="1400" y="60"/>
+<text fill="black" font-family="monospace" font-size="8" x="1405" y="75">
+o.read_axi.rvalid
+<title>Port { path: .read_axi.rvalid, bits: 1, ty: Bits(1), id: PortId(16) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="1400" y="80"/>
+<text fill="black" font-family="monospace" font-size="8" x="1405" y="95">
+o.write_axi.awready
+<title>Port { path: .write_axi.awready, bits: 1, ty: Bits(1), id: PortId(17) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="1400" y="100"/>
+<text fill="black" font-family="monospace" font-size="8" x="1405" y="115">
+o.write_axi.wready
+<title>Port { path: .write_axi.wready, bits: 1, ty: Bits(1), id: PortId(18) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="1400" y="120"/>
+<text fill="black" font-family="monospace" font-size="8" x="1405" y="135">
+o.write_axi.bresp
+<title>Port { path: .write_axi.bresp, bits: 2, ty: Bits(2), id: PortId(19) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="1400" y="140"/>
+<text fill="black" font-family="monospace" font-size="8" x="1405" y="155">
+o.write_axi.bvalid
+<title>Port { path: .write_axi.bvalid, bits: 1, ty: Bits(1), id: PortId(20) }</title>
+</text>
+<rect fill="lightgray" height="20" rx="5" ry="5" stroke="black" width="200" x="1400" y="160"/>
+<text fill="black" font-family="monospace" font-size="8" x="1405" y="175">
+o.data
+<title>Port { path: .data, bits: 32, ty: Bits(32), id: PortId(21) }</title>
+</text>
+</svg>

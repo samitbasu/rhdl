@@ -13,6 +13,7 @@ use crate::{
     Synchronous, SynchronousDQ, SynchronousIO,
     circuit::{
         descriptor::{Descriptor, SyncKind},
+        schematic::builder::SchematicBuilder,
         scoped_name::ScopedName,
     },
     digital_fn::{NoCircuitKernel, NoSynchronousKernel},
@@ -48,7 +49,7 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
         // asynchronous context, and ideally it shouldn't matter.  So we use
         // the synchronous mode so that the inputs have at least place holders
         // for the clock reset and input vecs (both empty)
-        Ok(Descriptor::<SyncKind> {
+        Descriptor::<SyncKind> {
             name: scoped_name,
             type_name: std::any::type_name::<Self>(),
             input_kind: Kind::Empty,
@@ -63,8 +64,9 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
                 modules: module.into(),
             }),
             _phantom: std::marker::PhantomData,
-            schematic: None,
-        })
+            schematic: Some(SchematicBuilder::synchronous::<Self>(&name)?.build()),
+        }
+        .with_netlist_black_box()
     }
 }
 
@@ -104,7 +106,7 @@ impl<T: Digital + 'static> Circuit for std::marker::PhantomData<T> {
             module #module_ident;
             endmodule
         };
-        Ok(Descriptor::<AsyncKind> {
+        Descriptor::<AsyncKind> {
             name: scoped_name,
             type_name: std::any::type_name::<Self>(),
             input_kind: Kind::Empty,
@@ -119,7 +121,8 @@ impl<T: Digital + 'static> Circuit for std::marker::PhantomData<T> {
                 modules: module.into(),
             }),
             _phantom: std::marker::PhantomData,
-            schematic: None,
-        })
+            schematic: Some(SchematicBuilder::circuit::<Self>(&name)?.build()),
+        }
+        .with_netlist_black_box()
     }
 }

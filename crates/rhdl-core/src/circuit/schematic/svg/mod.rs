@@ -1,7 +1,7 @@
 use taffy::{TaffyResult, prelude::*};
 
 use crate::{
-    circuit::schematic::{Component, Port, PortKind},
+    circuit::schematic::{Port, Schematic},
     rhif,
 };
 
@@ -119,19 +119,15 @@ impl Rendering {
     ) -> TaffyResult<NodeId> {
         let children = ports
             .iter()
-            .filter_map(|port| {
-                if port.is_input(index) {
-                    Some(self.add_box(
-                        format!("i{}{:?}", index, port.path),
-                        format!("{:?}", port),
-                        colors,
-                        self.options.rounding,
-                        self.options.input_block_width,
-                        Some(20.0),
-                    ))
-                } else {
-                    None
-                }
+            .map(|port| {
+                self.add_box(
+                    format!("i{}{:?}", index, port.path),
+                    format!("{:?}", port),
+                    colors,
+                    self.options.rounding,
+                    self.options.input_block_width,
+                    Some(20.0),
+                )
             })
             .collect::<TaffyResult<Vec<_>>>()?;
         // Lay these out in a vertical column
@@ -144,17 +140,11 @@ impl Rendering {
             &children,
         )
     }
-    pub(crate) fn input_ports(&mut self, ports: &[Port]) -> TaffyResult<NodeId> {
-        let max_port_input_count = ports
+    pub(crate) fn input_ports(&mut self, ports: &[Vec<Port>]) -> TaffyResult<NodeId> {
+        let input_stacks = ports
             .iter()
-            .filter_map(|port| match port.kind {
-                PortKind::Input { index } => Some(index + 1),
-                _ => None,
-            })
-            .max()
-            .unwrap_or(0);
-        let input_stacks = (0..max_port_input_count)
-            .map(|index| self.input_port_stack(COLORS[index % COLORS.len()], ports, index))
+            .enumerate()
+            .map(|(index, group)| self.input_port_stack(COLORS[index % COLORS.len()], group, index))
             .collect::<TaffyResult<Vec<_>>>()?;
         self.taffy_tree.new_with_children(
             Style {
@@ -167,7 +157,6 @@ impl Rendering {
     pub(crate) fn output_ports(&mut self, ports: &[Port]) -> TaffyResult<NodeId> {
         let children = ports
             .iter()
-            .filter(|port| matches!(port.kind, PortKind::Output))
             .map(|port| {
                 self.add_box(
                     format!("o{:?}", port.path),
@@ -257,12 +246,13 @@ fn render_kernel_to_node(render: &mut Rendering, rhif: &rhif::Object) -> TaffyRe
 // and a label in the middle.
 fn render_ports_to_node(
     render: &mut Rendering,
-    ports: &[Port],
+    input_ports: &[Vec<Port>],
+    output_ports: &[Port],
     label: &str,
     help: &str,
     flex_direction: FlexDirection,
 ) -> TaffyResult<NodeId> {
-    let input_ports = render.input_ports(ports).unwrap();
+    let input_ports = render.input_ports(input_ports).unwrap();
     let body = render.add_box(
         label.to_string(),
         help.to_string(),
@@ -271,7 +261,7 @@ fn render_ports_to_node(
         300.0,
         None,
     )?;
-    let output_ports = render.output_ports(ports).unwrap();
+    let output_ports = render.output_ports(output_ports).unwrap();
     let top = render
         .taffy_tree
         .new_with_children(
@@ -286,30 +276,23 @@ fn render_ports_to_node(
     Ok(top)
 }
 
-pub(crate) fn schematic(schematic: &Component) -> TaffyResult<svg::Document> {
+fn schematic_inner(render: &mut Rendering, schematic: &Schematic) -> TaffyResult<NodeId> {
+    render_ports_to_node(
+        render,
+        &schematic.inputs,
+        &schematic.outputs,
+        &schematic.name,
+        &format!("{:?} {:?}", schematic.kind, schematic.name),
+        FlexDirection::Row,
+    )
+}
+
+pub(crate) fn schematic(schematic: &Schematic) -> TaffyResult<svg::Document> {
     let mut render = Rendering::default();
-    let kernel = schematic.kernel.as_ref().map(|kernel| {
-        render_ports_to_node(
-            &mut render,
-            &kernel.ports,
-            &format!("Kernel: {}", kernel.name),
-            &format!("{:?}", kernel),
-            FlexDirection::Row,
-        )
-        .unwrap()
-    });
-    let child_nodes = kernel
-        .into_iter()
-        .map(TaffyResult::Ok)
-        .chain(schematic.inner.values().map(|child| {
-            render_ports_to_node(
-                &mut render,
-                &child.ports,
-                &child.name,
-                &format!("{:?}", child),
-                FlexDirection::RowReverse,
-            )
-        }))
+    let child_nodes = schematic
+        .inner
+        .iter()
+        .map(|child| schematic_inner(&mut render, child))
         .collect::<TaffyResult<Vec<_>>>()?;
     let center_column = render.taffy_tree.new_with_children(
         Style {
@@ -323,8 +306,8 @@ pub(crate) fn schematic(schematic: &Component) -> TaffyResult<svg::Document> {
         },
         &child_nodes,
     )?;
-    let input_ports = render.input_ports(&schematic.ports).unwrap();
-    let output_ports = render.output_ports(&schematic.ports).unwrap();
+    let input_ports = render.input_ports(&schematic.inputs).unwrap();
+    let output_ports = render.output_ports(&schematic.outputs).unwrap();
     let top = render
         .taffy_tree
         .new_with_children(

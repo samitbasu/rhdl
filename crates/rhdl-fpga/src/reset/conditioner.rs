@@ -90,10 +90,7 @@ use quote::format_ident;
 use rhdl::{
     core::{
         ScopedName,
-        circuit::{
-            descriptor::AsyncKind,
-            schematic::{builder::SchematicBuilder, circuit::build_schematic},
-        },
+        circuit::{descriptor::AsyncKind, schematic::builder::SchematicBuilder},
         flow_graph::black_box::build_circuit_blackbox,
     },
     prelude::*,

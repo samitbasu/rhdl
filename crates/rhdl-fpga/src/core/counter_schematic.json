@@ -130,36 +130,48 @@
       ],
       "inner": [
         {
-          "name": " NOP",
+          "name": "Literal: 1_b6",
           "type_name": "",
-          "kind": "OpCode",
+          "kind": "Literal",
           "inputs": [],
-          "outputs": [],
+          "outputs": [
+            {
+              "path": [],
+              "bits": 6,
+              "ty": {
+                "Bits": 6
+              },
+              "id": 10
+            }
+          ],
           "inner": [],
           "links": [],
           "sources": {
             "sources": {}
           },
-          "location": {
-            "func": 795318925744745655,
-            "node": 0
-          }
+          "location": null
         },
         {
-          "name": " NOP",
+          "name": "Literal: 0_b6",
           "type_name": "",
-          "kind": "OpCode",
+          "kind": "Literal",
           "inputs": [],
-          "outputs": [],
+          "outputs": [
+            {
+              "path": [],
+              "bits": 6,
+              "ty": {
+                "Bits": 6
+              },
+              "id": 12
+            }
+          ],
           "inner": [],
           "links": [],
           "sources": {
             "sources": {}
           },
-          "location": {
-            "func": 795318925744745655,
-            "node": 0
-          }
+          "location": null
         },
         {
           "name": " r4 <- r2.count",
@@ -475,22 +487,6 @@
           }
         },
         {
-          "name": " NOP",
-          "type_name": "",
-          "kind": "OpCode",
-          "inputs": [],
-          "outputs": [],
-          "inner": [],
-          "links": [],
-          "sources": {
-            "sources": {}
-          },
-          "location": {
-            "func": 795318925744745655,
-            "node": 25
-          }
-        },
-        {
           "name": " r7 <- r8 ? l1 : r3",
           "type_name": "",
           "kind": "OpCode",
@@ -502,27 +498,27 @@
                 "ty": {
                   "Bits": 1
                 },
+                "id": 37
+              }
+            ],
+            [
+              {
+                "path": [],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
+                "id": 38
+              }
+            ],
+            [
+              {
+                "path": [],
+                "bits": 6,
+                "ty": {
+                  "Bits": 6
+                },
                 "id": 39
-              }
-            ],
-            [
-              {
-                "path": [],
-                "bits": 6,
-                "ty": {
-                  "Bits": 6
-                },
-                "id": 40
-              }
-            ],
-            [
-              {
-                "path": [],
-                "bits": 6,
-                "ty": {
-                  "Bits": 6
-                },
-                "id": 41
               }
             ]
           ],
@@ -533,24 +529,24 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 38
+              "id": 36
             }
           ],
           "inner": [],
           "links": [
             {
-              "from": 39,
-              "to": 38,
+              "from": 37,
+              "to": 36,
               "kind": "Weak"
             },
             {
-              "from": 40,
-              "to": 38,
+              "from": 38,
+              "to": 36,
               "kind": "Strong"
             },
             {
-              "from": 41,
-              "to": 38,
+              "from": 39,
+              "to": 36,
               "kind": "Strong"
             }
           ],
@@ -578,7 +574,7 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 44
+                "id": 42
               }
             ]
           ],
@@ -589,14 +585,14 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 43
+              "id": 41
             }
           ],
           "inner": [],
           "links": [
             {
-              "from": 44,
-              "to": 43,
+              "from": 42,
+              "to": 41,
               "kind": "Strong"
             }
           ],
@@ -620,7 +616,7 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 47
+                "id": 45
               }
             ]
           ],
@@ -635,14 +631,14 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 46
+              "id": 44
             }
           ],
           "inner": [],
           "links": [
             {
-              "from": 47,
-              "to": 46,
+              "from": 45,
+              "to": 44,
               "kind": "Strong"
             }
           ],
@@ -666,7 +662,7 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 51
+                "id": 49
               }
             ],
             [
@@ -680,7 +676,7 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 52
+                "id": 50
               }
             ]
           ],
@@ -695,7 +691,7 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 49
+              "id": 47
             },
             {
               "path": [
@@ -710,19 +706,19 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 50
+              "id": 48
             }
           ],
           "inner": [],
           "links": [
             {
-              "from": 51,
-              "to": 49,
+              "from": 49,
+              "to": 47,
               "kind": "Strong"
             },
             {
-              "from": 52,
-              "to": 50,
+              "from": 50,
+              "to": 48,
               "kind": "Strong"
             }
           ],
@@ -744,6 +740,11 @@
         {
           "from": 14,
           "to": 18,
+          "kind": "Strong"
+        },
+        {
+          "from": 10,
+          "to": 19,
           "kind": "Strong"
         },
         {
@@ -783,41 +784,46 @@
         },
         {
           "from": 33,
-          "to": 39,
+          "to": 37,
+          "kind": "Strong"
+        },
+        {
+          "from": 12,
+          "to": 38,
           "kind": "Strong"
         },
         {
           "from": 24,
-          "to": 41,
+          "to": 39,
           "kind": "Strong"
         },
         {
           "from": 7,
-          "to": 44,
+          "to": 42,
           "kind": "Strong"
         },
         {
-          "from": 38,
-          "to": 47,
+          "from": 36,
+          "to": 45,
           "kind": "Strong"
         },
         {
-          "from": 43,
-          "to": 51,
+          "from": 41,
+          "to": 49,
           "kind": "Strong"
         },
         {
-          "from": 46,
-          "to": 52,
+          "from": 44,
+          "to": 50,
           "kind": "Strong"
         },
         {
-          "from": 49,
+          "from": 47,
           "to": 8,
           "kind": "Strong"
         },
         {
-          "from": 50,
+          "from": 48,
           "to": 9,
           "kind": "Strong"
         }
@@ -841,7 +847,7 @@
             ],
             "bits": 1,
             "ty": "Clock",
-            "id": 54
+            "id": 52
           },
           {
             "path": [
@@ -851,7 +857,7 @@
             ],
             "bits": 1,
             "ty": "Reset",
-            "id": 55
+            "id": 53
           }
         ],
         [
@@ -861,7 +867,7 @@
             "ty": {
               "Bits": 6
             },
-            "id": 56
+            "id": 54
           }
         ]
       ],
@@ -872,7 +878,7 @@
           "ty": {
             "Bits": 6
           },
-          "id": 57
+          "id": 55
         }
       ],
       "inner": [],
@@ -906,21 +912,21 @@
     },
     {
       "from": 0,
-      "to": 54,
+      "to": 52,
       "kind": "Strong"
     },
     {
       "from": 1,
-      "to": 55,
+      "to": 53,
       "kind": "Strong"
     },
     {
       "from": 9,
-      "to": 56,
+      "to": 54,
       "kind": "Strong"
     },
     {
-      "from": 57,
+      "from": 55,
       "to": 7,
       "kind": "Strong"
     }

@@ -31,10 +31,7 @@ use quote::format_ident;
 use rhdl::{
     core::{
         ScopedName,
-        circuit::{
-            descriptor::SyncKind,
-            schematic::{self, builder::SchematicBuilder, synchronous::build_schematic},
-        },
+        circuit::{descriptor::SyncKind, schematic::builder::SchematicBuilder},
         flow_graph::{self, FlowGraph},
         types::path::PathExt,
     },

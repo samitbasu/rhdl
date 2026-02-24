@@ -71,8 +71,7 @@ bool  |                     |
 use quote::{format_ident, quote};
 use rhdl::{
     core::{
-        ScopedName, SyncKind,
-        circuit::schematic::{builder::SchematicBuilder, synchronous::build_schematic},
+        ScopedName, SyncKind, circuit::schematic::builder::SchematicBuilder,
         flow_graph::black_box::build_synchronous_blackbox,
     },
     prelude::*,

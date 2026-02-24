@@ -63,10 +63,7 @@ use quote::format_ident;
 use rhdl::{
     core::{
         ScopedName,
-        circuit::{
-            descriptor::SyncKind,
-            schematic::{Schematic, builder::SchematicBuilder, synchronous::build_schematic},
-        },
+        circuit::{descriptor::SyncKind, schematic::builder::SchematicBuilder},
         flow_graph::black_box::build_synchronous_blackbox,
     },
     prelude::*,

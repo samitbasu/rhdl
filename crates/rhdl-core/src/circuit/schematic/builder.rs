@@ -1,9 +1,9 @@
 use crate::{
-    CircuitIO, ClockReset, Digital, Kind, RHDLError, SynchronousIO,
+    CircuitIO, ClockReset, Digital, Kind, RHDLError, SynchronousIO, TypedBits,
     ast::{SourceLocation, spanned_source::SpannedSourceSet},
     circuit::schematic::{
         CanonicalPath, Link, LinkKind, Port, PortId, Schematic, SchematicKind, canonicalize_path,
-        error::SchematicICE,
+        error::SchematicICE, port,
     },
     error::rhdl_error,
     types::path::{PathExt, sub_kind},
@@ -43,6 +43,11 @@ impl SchematicBuilder {
     pub fn opcode(loc: SourceLocation) -> Self {
         let mut me = Self::new(SchematicKind::OpCode);
         me.top.location = Some(loc);
+        me
+    }
+    pub fn literal(val: &TypedBits) -> Self {
+        let mut me = Self::new(SchematicKind::Literal);
+        me.top.name = format!("Literal: {:?}", val);
         me
     }
     fn new(kind: SchematicKind) -> Self {
@@ -103,11 +108,13 @@ impl SchematicBuilder {
                 continue;
             }
             let id = self.next_id();
-            eprintln!(
+            log::debug!(
                 "Adding input port {:?} of kind {:?} with id {:?}",
-                path, port_kind, id
+                path,
+                port_kind,
+                id
             );
-            self.top.inputs[index].push(Port::port(kind, &path, port_kind, id)?);
+            self.top.inputs[index].push(port(kind, &path, port_kind, id)?);
         }
         Ok(self)
     }
@@ -118,9 +125,7 @@ impl SchematicBuilder {
                 continue;
             }
             let id = self.next_id();
-            self.top
-                .outputs
-                .push(Port::port(kind, &path, port_kind, id)?);
+            self.top.outputs.push(port(kind, &path, port_kind, id)?);
         }
         Ok(self)
     }
@@ -186,9 +191,13 @@ impl SchematicBuilder {
         from_path: &CanonicalPath,
         to_path: &CanonicalPath,
     ) -> Result<(), RHDLError> {
-        eprintln!(
+        log::debug!(
             "Linking from {:?} to {:?} of kind {:?} with paths {:?} -> {:?}",
-            from, to, kind, from_path, to_path
+            from,
+            to,
+            kind,
+            from_path,
+            to_path
         );
         if kind.is_empty() {
             return Ok(());
@@ -199,7 +208,7 @@ impl SchematicBuilder {
             let to_port_path = to_path.join(&path);
             let from_port = self.query_port(&from, &from_port_path);
             let to_port = self.query_port(&to, &to_port_path);
-            eprintln!(
+            log::debug!(
                 "Linking from port {:?} to port {:?} of kind {:?}",
                 from_port,
                 to_port,
@@ -319,5 +328,9 @@ impl SchematicBuilder {
             kind: LinkKind::Strong,
         });
         Ok(self)
+    }
+
+    pub(crate) fn next_child_index(&self) -> usize {
+        self.top.inner.len()
     }
 }

@@ -232,6 +232,16 @@ pub mod step_4 {
     }
     // ANCHOR_END: adder-step-12
 
+    #[test]
+    fn test_schematic() -> miette::Result<()> {
+        let uut = HalfAdder::default();
+        let desc = uut.descriptor(ScopedName::top())?;
+        let schematic = desc.schematic()?;
+        let kernel = &schematic.inner[0];
+        std::fs::write("half_adder_schematic.dot", kernel.to_dot()).unwrap();
+        Ok(())
+    }
+
     // ANCHOR: adder-step-13
     #[test]
     fn test_testbench() -> miette::Result<()> {

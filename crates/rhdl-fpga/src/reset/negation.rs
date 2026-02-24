@@ -41,8 +41,7 @@ resetN++--->| +○+--+>reset
 use quote::format_ident;
 use rhdl::{
     core::{
-        AsyncKind, ScopedName,
-        circuit::schematic::{builder::SchematicBuilder, circuit::build_schematic},
+        AsyncKind, ScopedName, circuit::schematic::builder::SchematicBuilder,
         flow_graph::black_box::build_circuit_blackbox,
     },
     prelude::*,

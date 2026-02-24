@@ -98,10 +98,7 @@ use quote::{format_ident, quote};
 use rhdl::{
     core::{
         ScopedName,
-        circuit::{
-            descriptor::AsyncKind,
-            schematic::{Schematic, builder::SchematicBuilder, circuit::build_schematic},
-        },
+        circuit::{descriptor::AsyncKind, schematic::builder::SchematicBuilder},
         flow_graph::black_box::build_circuit_blackbox,
     },
     prelude::*,

@@ -54,7 +54,8 @@ pub fn build_synchronous_flowgraph<C: Synchronous>(
     for child_descriptor in children {
         let child_name = child_descriptor.name.last().unwrap();
         let Some(child_flow_graph) = child_descriptor.flow_graph.clone() else {
-            return Err(FlowGraphICE::MissingChildFlowGraph(child_descriptor.name.clone()).into());
+            //            return Err(FlowGraphICE::MissingChildFlowGraph(child_descriptor.name.clone()).into());
+            continue;
         };
         let child_remap = builder.import(child_flow_graph);
         // Connect the clock/reset input of the circuit to the clock/reset input of the child

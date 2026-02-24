@@ -72,7 +72,6 @@ where
 mod tests {
     use expect_test::expect;
     use rand::random;
-    use rhdl::core::circuit::descriptor;
 
     use super::*;
     use std::{iter::once, path::PathBuf};

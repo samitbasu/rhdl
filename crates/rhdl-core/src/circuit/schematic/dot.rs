@@ -91,7 +91,7 @@ fn generate_schematic_label(
     node_name: &str,
     port_map: &mut HashMap<PortId, String>,
 ) -> String {
-    // Left side: inputs
+    // Left side: inputs (vertical stack)
     let mut input_parts = Vec::new();
     for group in &schematic.inputs {
         for port in group {
@@ -106,16 +106,11 @@ fn generate_schematic_label(
             ));
         }
     }
-    let inputs_str = if input_parts.is_empty() {
-        String::new()
-    } else {
-        format!("{{ {} }}", input_parts.join(" | "))
-    };
 
     // Center: name
     let name_str = escape_label(&schematic.name);
 
-    // Right side: outputs
+    // Right side: outputs (vertical stack)
     let mut output_parts = Vec::new();
     for port in &schematic.outputs {
         let port_label = format!("p{}", port.id.0);
@@ -128,23 +123,22 @@ fn generate_schematic_label(
             port.bits
         ));
     }
-    let outputs_str = if output_parts.is_empty() {
-        String::new()
-    } else {
-        format!("{{ {} }}", output_parts.join(" | "))
-    };
 
-    // Combine: inputs | name | outputs
-    let mut label_parts = Vec::new();
-    if !inputs_str.is_empty() {
-        label_parts.push(inputs_str);
-    }
-    label_parts.push(name_str);
-    if !outputs_str.is_empty() {
-        label_parts.push(outputs_str);
+    // Create horizontal record: {inputs} | name | {outputs}
+    // where inputs and outputs are vertical stacks
+    let mut label_components = Vec::new();
+
+    if !input_parts.is_empty() {
+        label_components.push(format!("{{ {} }}", input_parts.join(" | ")));
     }
 
-    label_parts.join(" | ")
+    label_components.push(name_str);
+
+    if !output_parts.is_empty() {
+        label_components.push(format!("{{ {} }}", output_parts.join(" | ")));
+    }
+
+    format!("{{{}}}", label_components.join(" | "))
 }
 
 fn escape_label(s: &str) -> String {

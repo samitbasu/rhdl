@@ -214,6 +214,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         build_synchronous_flowgraph::<C>(&scoped_name, &kernel, &children)?.loop_checked()?;
     let netlist = build_synchronous_netlist::<C>(&scoped_name, &kernel, &children)?;
     let schematic = build_schematic::<C>(&scoped_name, rhif, &children)?;
+    schematic.checked()?;
     let circuit_output = <C as SynchronousIO>::O::static_kind();
     let circuit_input = <C as SynchronousIO>::I::static_kind();
     let d_kind = <C as SynchronousDQ>::D::static_kind();

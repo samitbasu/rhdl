@@ -176,6 +176,10 @@ mod tests {
         let schematic = descriptor.schematic()?;
         expect_test::expect_file!("schematic.json")
             .assert_eq(&serde_json::to_string_pretty(schematic).unwrap());
+        let dot = schematic.to_dot();
+        expect_test::expect_file!("schematic.dot").assert_eq(&dot);
+        let kernel = schematic.inner[0].to_dot();
+        expect_test::expect_file!("kernel.dot").assert_eq(&kernel);
         Ok(())
     }
 

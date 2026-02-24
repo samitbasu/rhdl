@@ -7,16 +7,18 @@ use rhdl_trace_type::TraceType;
 use crate::{
     Kind, RHDLError,
     ast::{SourceLocation, spanned_source::SpannedSourceSet},
-    circuit::schematic::error::SchematicICE,
+    circuit::schematic::{error::SchematicICE, loop_check::loop_check},
     error::rhdl_error,
     types::path::{Path, PathElement, sub_kind},
 };
 pub mod builder;
 pub mod circuit;
+pub mod connected_checks;
+pub mod dot;
 pub mod error;
 pub mod kernel;
-//pub mod svg;
-pub mod dot;
+pub mod loop_check;
+pub mod svg;
 pub mod synchronous;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,6 +27,7 @@ pub enum SchematicKind {
     Synchronous,
     Kernel,
     OpCode,
+    Literal,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,8 +71,14 @@ impl Schematic {
         }
     }
     pub fn to_svg(&self) -> ::svg::Document {
-        //svg::schematic(&self).unwrap()
-        svg::Document::new()
+        svg::schematic(self).unwrap()
+    }
+    pub fn to_dot(&self) -> String {
+        dot::to_dot(self)
+    }
+    pub fn checked(&self) -> Result<(), RHDLError> {
+        connected_checks::check_connected(self)?;
+        loop_check::loop_check(self)
     }
 }
 
@@ -92,21 +101,14 @@ pub struct Port {
     pub id: PortId,
 }
 
-impl Port {
-    pub fn port(
-        base_kind: Kind,
-        path: &Path,
-        port_kind: Kind,
-        id: PortId,
-    ) -> Result<Self, RHDLError> {
-        let path = canonicalize_path(base_kind, path)?;
-        Ok(Self {
-            path,
-            bits: port_kind.bits(),
-            ty: port_kind.into(),
-            id,
-        })
-    }
+pub fn port(base_kind: Kind, path: &Path, port_kind: Kind, id: PortId) -> Result<Port, RHDLError> {
+    let path = canonicalize_path(base_kind, path)?;
+    Ok(Port {
+        path,
+        bits: port_kind.bits(),
+        ty: port_kind.into(),
+        id,
+    })
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -180,7 +182,7 @@ impl std::fmt::Debug for CanonicalPath {
             match element {
                 CanonicalPathElement::Index(ndx) => write!(f, "[{ndx}]")?,
                 CanonicalPathElement::TupleIndex(ndx) => write!(f, ".{ndx}")?,
-                CanonicalPathElement::Field(name) => write!(f, ".'{name}'")?,
+                CanonicalPathElement::Field(name) => write!(f, ".{name}")?,
                 CanonicalPathElement::EnumDiscriminant => write!(f, "#")?,
                 CanonicalPathElement::EnumPayload(name) => write!(f, "#{name}")?,
                 CanonicalPathElement::SignalValue => write!(f, "@")?,

@@ -21,7 +21,6 @@ use crate::{
 
 struct OpCodeBuilder<'a> {
     sources: &'a mut HashMap<Slot, usize>,
-    sinks: &'a mut HashMap<Slot, ChildPort>,
     object: &'a rhif::Object,
     child_index: usize,
     lop: &'a LocatedOpCode,
@@ -37,7 +36,7 @@ impl<'a> OpCodeBuilder<'a> {
         to_slot: Slot,
         to_base_path: &Path,
     ) -> Result<(), RHDLError> {
-        eprintln!(
+        log::debug!(
             "Assigning from slot {:?}[{:?}] path {:?} to slot {:?}[{:?}] path {:?}",
             from_slot,
             self.object.kind(from_slot),
@@ -61,7 +60,7 @@ impl<'a> OpCodeBuilder<'a> {
         if to_dest_kind.is_empty() {
             return Ok(());
         }
-        eprintln!(
+        log::debug!(
             "dest_kind is {:?}, with leafs {:#?}",
             to_dest_kind,
             to_dest_kind.all_leafs()
@@ -71,33 +70,30 @@ impl<'a> OpCodeBuilder<'a> {
             let dest_path = to_base_path.join(&path);
             let source_path = canonicalize_path(from_kind, &source_path)?;
             let dest_path = canonicalize_path(to_kind, &dest_path)?;
-            eprintln!(
+            log::debug!(
                 "Assign from input {} path {:?} to output path {:?}",
-                self.my_inputs[&from_slot], source_path, dest_path
+                self.my_inputs[&from_slot],
+                source_path,
+                dest_path
             );
             self.builder
                 .assign_from_to_path(self.my_inputs[&from_slot], source_path, dest_path)?;
         }
         Ok(())
     }
-    fn build(mut self) -> Result<(HashMap<Slot, usize>, Schematic), RHDLError> {
+    fn build(mut self) -> Result<(Vec<Slot>, Schematic), RHDLError> {
         let my_inputs = &mut self.my_inputs;
+        let mut op_inputs = vec![];
         visit_slots(&self.lop.op, |sense, &slot| match sense {
             Sense::Read => {
-                eprintln!("Read slot {:?} of kind {:?}", slot, self.object.kind(slot));
+                log::debug!("Read slot {:?} of kind {:?}", slot, self.object.kind(slot));
                 let port_index = self.builder.allocate_input_port(self.object.kind(slot));
-                eprintln!("Allocated input port {} for slot {:?}", port_index, slot);
-                self.sinks.insert(
-                    slot,
-                    ChildPort {
-                        child_index: self.child_index,
-                        port_index,
-                    },
-                );
+                log::debug!("Allocated input port {} for slot {:?}", port_index, slot);
                 my_inputs.insert(slot, port_index);
+                op_inputs.push(slot);
             }
             Sense::Write => {
-                eprintln!("Write slot {:?} of kind {:?}", slot, self.object.kind(slot));
+                log::debug!("Write slot {:?} of kind {:?}", slot, self.object.kind(slot));
                 self.builder
                     .add_output_port(self.object.kind(slot))
                     .expect("Output ports should never fail to be added");
@@ -128,7 +124,7 @@ impl<'a> OpCodeBuilder<'a> {
                 }
                 let source_kind = self.object.kind(index.arg);
                 for path in path_star(source_kind, &index.path)? {
-                    eprintln!(
+                    log::debug!(
                         "Assigning from {:?}[{:?}] to {:?}[{:?}] for path {:?}",
                         index.arg,
                         self.object.kind(index.arg),
@@ -301,7 +297,7 @@ impl<'a> OpCodeBuilder<'a> {
                 WrapOp::None => {}
             },
         }
-        Ok((self.my_inputs, self.builder.build()))
+        Ok((op_inputs, self.builder.build()))
     }
 }
 
@@ -318,61 +314,54 @@ pub fn build_schematic(object: Arc<rhif::Object>) -> Result<Schematic, RHDLError
     let return_kind = object.kind(object.return_slot);
     builder.add_output_port(return_kind)?;
     let mut sources = HashMap::default();
-    let mut sinks = HashMap::default();
-    for (child_index, lop) in object.ops.iter().enumerate() {
-        eprintln!("Processing OpCode {:?} at location {:?}", lop.op, lop.loc);
+    for (lit, (tb, _)) in object.symtab.iter_lit() {
+        let mut lit_builder = SchematicBuilder::literal(tb);
+        lit_builder.add_output_port(tb.kind())?;
+        let child_index = builder.import(lit_builder.build());
+        sources.insert(Slot::Literal(lit), child_index);
+    }
+    for lop in object.ops.iter() {
+        log::debug!("Processing OpCode {:?} at location {:?}", lop.op, lop.loc);
+        if matches!(lop.op, OpCode::Noop) {
+            continue;
+        }
         let (my_inputs, op_code_schematic) = OpCodeBuilder {
             sources: &mut sources,
-            sinks: &mut sinks,
             object: &object,
-            child_index,
+            child_index: builder.next_child_index(),
             lop,
             builder: SchematicBuilder::opcode(lop.loc),
             my_inputs: HashMap::default(),
         }
         .build()?;
-        builder.import(op_code_schematic);
-        // Wire up all of the inputs to this schematic.  These are
-        // it's sinks, and all (register) sinks must be satisfied.
-        visit_slots(&lop.op, |sense, &slot| {
-            if sense.is_read()
-                && let Slot::Register(slot_reg) = slot
-            {
-                // Is this slot written by a previous child?
-                if let Some(source_child) = sources.get(&slot) {
-                    builder.copy_child_output_to_child_input(
-                        *source_child,
-                        child_index,
-                        my_inputs[&slot],
-                    );
-                } else {
-                    // This must be an input argument
-                    let arg_index = object
-                        .arguments
-                        .iter()
-                        .position(|&a| a == slot_reg)
-                        .unwrap();
-                    builder.forward_input_to_child(arg_index, child_index, my_inputs[&slot]);
-                }
+        let child_index = builder.import(op_code_schematic);
+        // Wire up the inputs to this opcode.
+        for (index, input) in my_inputs.iter().enumerate() {
+            if let Some(source_child) = sources.get(&input) {
+                builder.copy_child_output_to_child_input(*source_child, child_index, index);
+            } else {
+                // This must be an input argument
+                let arg_index = object
+                    .arguments
+                    .iter()
+                    .position(|&a| Slot::Register(a) == *input)
+                    .unwrap();
+                builder.forward_input_to_child(arg_index, child_index, index);
             }
-        });
-    }
-    // If the output is a register, find it's source
-    if let Slot::Register(reg) = object.return_slot {
-        if let Some(source_child) = sources.get(&object.return_slot) {
-            builder.forward_output_from_child(*source_child);
-        } else {
-            // This must be an input argument
-            let arg_index = object.arguments.iter().position(|&a| a == reg).unwrap();
-            builder.assign_input_to_output(arg_index);
         }
     }
+    if let Some(source_child) = sources.get(&object.return_slot) {
+        builder.forward_output_from_child(*source_child);
+    } else {
+        // This must be an input argument
+        let arg_index = object
+            .arguments
+            .iter()
+            .position(|&a| Slot::Register(a) == object.return_slot)
+            .unwrap();
+        builder.assign_input_to_output(arg_index);
+    }
     Ok(builder.build())
-}
-
-struct ChildPort {
-    child_index: usize,
-    port_index: usize,
 }
 
 // Enumerate all possible concrete paths that a dynamic path could take.

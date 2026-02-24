@@ -17,4 +17,6 @@ pub enum SchematicICE {
     },
     #[error("Unable to canonicalize path {path:?} against kind {kind:?}")]
     UnableToCanonicalizePath { path: Path, kind: crate::Kind },
+    #[error("Schematic block {block_name} has an unconnected input port {port:?}")]
+    UnconnectedInputPort { block_name: String, port: Port },
 }

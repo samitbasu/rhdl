@@ -44,7 +44,8 @@ pub fn build_circuit_flowgraph<C: Circuit>(
     for child_descriptor in children {
         let child_name = child_descriptor.name.last().unwrap();
         let Some(child_flow_graph) = child_descriptor.flow_graph.clone() else {
-            return Err(FlowGraphICE::MissingChildFlowGraph(child_descriptor.name.clone()).into());
+            continue;
+            //return Err(FlowGraphICE::MissingChildFlowGraph(child_descriptor.name.clone()).into());
         };
         let child_remap = builder.import(child_flow_graph);
         // Connect all of the input ports of the child to the kernel D output

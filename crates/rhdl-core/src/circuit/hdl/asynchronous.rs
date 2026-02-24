@@ -184,6 +184,7 @@ pub fn build_asynchronous_descriptor<C: Circuit>(
     let hdl = build_circuit_hdl::<C>(&scoped_name, &kernel, &children)?;
     let netlist = build_circuit_netlist::<C>(&scoped_name, &kernel, &children)?;
     let schematic = build_schematic::<C>(&scoped_name, rhif, &children)?;
+    schematic.checked()?;
     let flow_graph =
         build_circuit_flowgraph::<C>(&scoped_name, &kernel, &children)?.loop_checked()?;
     let circuit_output = <C as CircuitIO>::O::static_kind();
