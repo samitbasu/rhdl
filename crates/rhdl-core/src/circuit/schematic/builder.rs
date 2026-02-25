@@ -2,8 +2,8 @@ use crate::{
     CircuitIO, ClockReset, Digital, Kind, RHDLError, SynchronousIO, TypedBits,
     ast::{SourceLocation, spanned_source::SpannedSourceSet},
     circuit::schematic::{
-        CanonicalPath, Link, LinkKind, Port, PortId, Schematic, SchematicKind, canonicalize_path,
-        error::SchematicICE, port,
+        CanonicalPath, Link, LinkKind, Port, PortId, Schematic, SchematicId, SchematicKind,
+        canonicalize_path, error::SchematicICE, port,
     },
     error::rhdl_error,
     types::path::{PathExt, sub_kind},
@@ -20,6 +20,7 @@ pub enum QueryPortSet {
 pub struct SchematicBuilder {
     top: Schematic,
     id: u32,
+    schematic_id: u32,
 }
 
 impl SchematicBuilder {
@@ -53,6 +54,7 @@ impl SchematicBuilder {
     fn new(kind: SchematicKind) -> Self {
         Self {
             top: Schematic {
+                id: SchematicId(0),
                 name: String::default(),
                 type_name: "",
                 kind,
@@ -64,6 +66,7 @@ impl SchematicBuilder {
                 location: None,
             },
             id: 0,
+            schematic_id: 0,
         }
     }
     pub fn with_circuit_io<C: CircuitIO>(&mut self) -> Result<&mut Self, RHDLError> {
@@ -139,8 +142,11 @@ impl SchematicBuilder {
         // Get the next port number
         let offset = self.next_id();
         let max_port_id = schematic.max_port_id();
+        let max_schematic_id = schematic.max_schematic_id();
         schematic.shift_ports(offset);
+        schematic.shift_id((self.schematic_id + 1).into());
         self.id += max_port_id.0 + 1;
+        self.schematic_id += max_schematic_id.0 + 1;
         self.top.inner.push(schematic);
         self.top.inner.len() - 1
     }

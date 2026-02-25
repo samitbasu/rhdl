@@ -4,7 +4,8 @@ use petgraph::graph::{DiGraph, NodeIndex};
 
 use crate::{
     RHDLError,
-    circuit::schematic::{PortId, Schematic},
+    circuit::schematic::{PortId, Schematic, error::SchematicICE},
+    error::rhdl_error,
 };
 
 fn map_schematic_to_graph(
@@ -46,10 +47,20 @@ pub fn loop_check(schematic: &Schematic) -> Result<(), RHDLError> {
     map_schematic_to_graph(schematic, &mut graph, &mut map);
     link_up_graph(schematic, &mut graph, &map);
     if let Err(cycle) = petgraph::algo::toposort(&graph, None) {
-        panic!(
-            "Schematic contains a cycle involving port {:?}",
-            graph[cycle.node_id()]
-        );
+        let cycle_node = cycle.node_id();
+        let components = petgraph::algo::kosaraju_scc(&graph);
+        for component in components {
+            if component.contains(&cycle_node) {
+                let logic_loop = component
+                    .iter()
+                    .map(|node_index| graph[*node_index])
+                    .collect();
+                return Err(rhdl_error(SchematicICE::LogicLoop {
+                    schematic: std::sync::Arc::new(schematic.clone()),
+                    logic_loop,
+                }));
+            }
+        }
     }
     Ok(())
 }

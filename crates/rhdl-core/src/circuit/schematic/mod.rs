@@ -16,6 +16,7 @@ pub mod circuit;
 pub mod connected_checks;
 pub mod dot;
 pub mod error;
+pub mod id_checks;
 pub mod kernel;
 pub mod loop_check;
 pub mod svg;
@@ -32,6 +33,7 @@ pub enum SchematicKind {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Schematic {
+    pub id: SchematicId,
     pub name: String,
     pub type_name: &'static str,
     pub kind: SchematicKind,
@@ -70,6 +72,20 @@ impl Schematic {
             link.to.shift(offset);
         }
     }
+    pub fn max_schematic_id(&self) -> SchematicId {
+        self.inner
+            .iter()
+            .map(|c| c.max_schematic_id())
+            .chain(std::iter::once(self.id))
+            .max()
+            .unwrap_or(self.id)
+    }
+    pub fn shift_id(&mut self, offset: SchematicId) {
+        self.id.shift(offset);
+        self.inner
+            .iter_mut()
+            .for_each(|child| child.shift_id(offset));
+    }
     pub fn to_svg(&self) -> ::svg::Document {
         svg::schematic(self).unwrap()
     }
@@ -77,6 +93,7 @@ impl Schematic {
         dot::to_dot(self)
     }
     pub fn checked(&self) -> Result<(), RHDLError> {
+        id_checks::check_ids(self)?;
         connected_checks::check_connected(self)?;
         loop_check::loop_check(self)
     }
@@ -90,6 +107,26 @@ pub struct PortId(u32);
 impl PortId {
     pub fn shift(&mut self, offset: PortId) {
         self.0 += offset.0;
+    }
+}
+
+#[derive(
+    Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize,
+)]
+pub struct SchematicId(u32);
+
+impl SchematicId {
+    pub fn shift(&mut self, offset: SchematicId) {
+        self.0 += offset.0;
+    }
+    pub fn next(&self) -> SchematicId {
+        SchematicId(self.0 + 1)
+    }
+}
+
+impl From<u32> for SchematicId {
+    fn from(value: u32) -> Self {
+        SchematicId(value)
     }
 }
 

@@ -130,6 +130,8 @@ pub fn kernel<const N: usize>(_cr: ClockReset, i: In, q: Q<N>) -> (Out<N>, D<N>)
 
 #[cfg(test)]
 mod tests {
+    use rhdl::core::circuit::schematic::error::SchematicICE;
+
     use super::*;
 
     #[test]
@@ -143,6 +145,18 @@ mod tests {
                 bits(0x1234ABCD),
             ],
         );
+        if let Err(RHDLError::SchematicConstructionError(err)) = uut.descriptor(ScopedName::top())
+            && let SchematicICE::LogicLoop {
+                schematic,
+                logic_loop,
+            } = err.as_ref()
+        {
+            std::fs::write(
+                "rom_loop.json",
+                rhdl::serde_json::to_string_pretty(&(schematic.as_ref(), logic_loop)).unwrap(),
+            )
+            .unwrap();
+        }
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }

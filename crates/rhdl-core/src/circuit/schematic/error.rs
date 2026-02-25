@@ -1,8 +1,10 @@
+use std::sync::Arc;
+
 use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::{
-    circuit::schematic::{CanonicalPath, Port},
+    circuit::schematic::{CanonicalPath, Port, PortId, Schematic, SchematicId},
     types::path::Path,
 };
 
@@ -19,4 +21,13 @@ pub enum SchematicICE {
     UnableToCanonicalizePath { path: Path, kind: crate::Kind },
     #[error("Schematic block {block_name} has an unconnected input port {port:?}")]
     UnconnectedInputPort { block_name: String, port: Port },
+    #[error("Schematic has a logic loop")]
+    LogicLoop {
+        schematic: Arc<Schematic>,
+        logic_loop: Vec<PortId>,
+    },
+    #[error("Duplicate port id: {id:?} in schematic {sid:?}")]
+    DuplicatePortId { id: PortId, sid: SchematicId },
+    #[error("Duplicate schematic id: {id:?}")]
+    DuplicateSchematicId { id: SchematicId },
 }

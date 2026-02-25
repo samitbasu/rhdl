@@ -129,7 +129,7 @@ impl std::fmt::Debug for Object {
         }
         for (lit, (tb, _)) in self.symtab.iter_lit() {
             let kind = tb.kind();
-            writeln!(f, "Literal {lit:?} : {kind:?} = {tb:?}")?;
+            writeln!(f, "Literal {lit} : {kind:?} = {tb:?}")?;
         }
         for (ndx, func) in self.externals.iter() {
             writeln!(f, "Function {ndx:?} object: {func:?}")?;

@@ -1,0 +1,12 @@
+[package]
+name = "rhdl-schematic-view"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.5.60", features = ["derive"] }
+eframe = "0.33.3"
+egui = "0.33.3"
+rhdl-core = { version = "0.1.0", path = "../rhdl-core" }
+serde_json = "1.0.149"
+taffy = "0.9.2"

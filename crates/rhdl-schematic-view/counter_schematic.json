@@ -1,0 +1,362 @@
+{
+  "name": "top",
+  "type_name": "rhdl_fpga::core::counter::Counter<6>",
+  "ports": [
+    {
+      "kind": {
+        "Input": {
+          "index": 0
+        }
+      },
+      "path": {
+        "elements": [
+          {
+            "Field": "clock"
+          }
+        ]
+      },
+      "bits": 1,
+      "ty": "Clock",
+      "id": 0
+    },
+    {
+      "kind": {
+        "Input": {
+          "index": 0
+        }
+      },
+      "path": {
+        "elements": [
+          {
+            "Field": "reset"
+          }
+        ]
+      },
+      "bits": 1,
+      "ty": "Reset",
+      "id": 1
+    },
+    {
+      "kind": {
+        "Input": {
+          "index": 1
+        }
+      },
+      "path": {
+        "elements": []
+      },
+      "bits": 1,
+      "ty": {
+        "Bits": 1
+      },
+      "id": 2
+    },
+    {
+      "kind": "Output",
+      "path": {
+        "elements": []
+      },
+      "bits": 6,
+      "ty": {
+        "Bits": 6
+      },
+      "id": 3
+    }
+  ],
+  "kernel": {
+    "name": "",
+    "ports": [
+      {
+        "kind": {
+          "Input": {
+            "index": 0
+          }
+        },
+        "path": {
+          "elements": [
+            {
+              "Field": "clock"
+            }
+          ]
+        },
+        "bits": 1,
+        "ty": "Clock",
+        "id": 4
+      },
+      {
+        "kind": {
+          "Input": {
+            "index": 0
+          }
+        },
+        "path": {
+          "elements": [
+            {
+              "Field": "reset"
+            }
+          ]
+        },
+        "bits": 1,
+        "ty": "Reset",
+        "id": 5
+      },
+      {
+        "kind": {
+          "Input": {
+            "index": 1
+          }
+        },
+        "path": {
+          "elements": []
+        },
+        "bits": 1,
+        "ty": {
+          "Bits": 1
+        },
+        "id": 6
+      },
+      {
+        "kind": {
+          "Input": {
+            "index": 2
+          }
+        },
+        "path": {
+          "elements": [
+            {
+              "Field": "count"
+            }
+          ]
+        },
+        "bits": 6,
+        "ty": {
+          "Bits": 6
+        },
+        "id": 7
+      },
+      {
+        "kind": "Output",
+        "path": {
+          "elements": [
+            {
+              "TupleIndex": 0
+            }
+          ]
+        },
+        "bits": 6,
+        "ty": {
+          "Bits": 6
+        },
+        "id": 8
+      },
+      {
+        "kind": "Output",
+        "path": {
+          "elements": [
+            {
+              "TupleIndex": 1
+            },
+            {
+              "Field": "count"
+            }
+          ]
+        },
+        "bits": 6,
+        "ty": {
+          "Bits": 6
+        },
+        "id": 9
+      }
+    ]
+  },
+  "children": {
+    "count": {
+      "name": "top_count",
+      "type_name": "rhdl_fpga::core::dff::DFF<rhdl_bits::bits_impl::Bits<6>>",
+      "ports": [
+        {
+          "kind": {
+            "Input": {
+              "index": 0
+            }
+          },
+          "path": {
+            "elements": [
+              {
+                "Field": "clock"
+              }
+            ]
+          },
+          "bits": 1,
+          "ty": "Clock",
+          "id": 10
+        },
+        {
+          "kind": {
+            "Input": {
+              "index": 0
+            }
+          },
+          "path": {
+            "elements": [
+              {
+                "Field": "reset"
+              }
+            ]
+          },
+          "bits": 1,
+          "ty": "Reset",
+          "id": 11
+        },
+        {
+          "kind": {
+            "Input": {
+              "index": 1
+            }
+          },
+          "path": {
+            "elements": []
+          },
+          "bits": 6,
+          "ty": {
+            "Bits": 6
+          },
+          "id": 12
+        },
+        {
+          "kind": "Output",
+          "path": {
+            "elements": []
+          },
+          "bits": 6,
+          "ty": {
+            "Bits": 6
+          },
+          "id": 13
+        }
+      ],
+      "kernel": {
+        "name": "",
+        "ports": [
+          {
+            "kind": {
+              "Input": {
+                "index": 0
+              }
+            },
+            "path": {
+              "elements": [
+                {
+                  "Field": "clock"
+                }
+              ]
+            },
+            "bits": 1,
+            "ty": "Clock",
+            "id": 14
+          },
+          {
+            "kind": {
+              "Input": {
+                "index": 0
+              }
+            },
+            "path": {
+              "elements": [
+                {
+                  "Field": "reset"
+                }
+              ]
+            },
+            "bits": 1,
+            "ty": "Reset",
+            "id": 15
+          },
+          {
+            "kind": {
+              "Input": {
+                "index": 1
+              }
+            },
+            "path": {
+              "elements": []
+            },
+            "bits": 6,
+            "ty": {
+              "Bits": 6
+            },
+            "id": 16
+          },
+          {
+            "kind": "Output",
+            "path": {
+              "elements": [
+                {
+                  "TupleIndex": 0
+                }
+              ]
+            },
+            "bits": 6,
+            "ty": {
+              "Bits": 6
+            },
+            "id": 17
+          }
+        ]
+      },
+      "children": {},
+      "links": [
+        {
+          "from": 10,
+          "to": 14
+        },
+        {
+          "from": 11,
+          "to": 15
+        },
+        {
+          "from": 12,
+          "to": 16
+        },
+        {
+          "from": 17,
+          "to": 13
+        }
+      ]
+    }
+  },
+  "links": [
+    {
+      "from": 0,
+      "to": 4
+    },
+    {
+      "from": 1,
+      "to": 5
+    },
+    {
+      "from": 2,
+      "to": 6
+    },
+    {
+      "from": 8,
+      "to": 3
+    },
+    {
+      "from": 0,
+      "to": 10
+    },
+    {
+      "from": 1,
+      "to": 11
+    },
+    {
+      "from": 9,
+      "to": 12
+    },
+    {
+      "from": 13,
+      "to": 7
+    }
+  ]
+}
