@@ -4,7 +4,7 @@ use petgraph::graph::{DiGraph, NodeIndex};
 
 use crate::{
     RHDLError,
-    circuit::schematic::{PortId, Schematic, error::SchematicICE},
+    circuit::schematic::{PortId, Schematic, SchematicKind, error::SchematicICE},
     error::rhdl_error,
 };
 
@@ -41,6 +41,20 @@ fn link_up_graph(
     }
 }
 
+fn dump_schematic(schematic: &Schematic) {
+    if matches!(schematic.kind, SchematicKind::Kernel) {
+        eprintln!("------------------------------------------");
+        eprintln!(
+            "Schematic: {:?} {} (id: {:?})",
+            schematic.kind, schematic.name, schematic.id
+        );
+        eprintln!("{}", schematic.debug_text);
+    }
+    for child in &schematic.inner {
+        dump_schematic(child);
+    }
+}
+
 pub fn loop_check(schematic: &Schematic) -> Result<(), RHDLError> {
     let mut graph = DiGraph::<PortId, ()>::default();
     let mut map = HashMap::<PortId, NodeIndex>::default();
@@ -51,6 +65,7 @@ pub fn loop_check(schematic: &Schematic) -> Result<(), RHDLError> {
         let components = petgraph::algo::kosaraju_scc(&graph);
         for component in components {
             if component.contains(&cycle_node) {
+                dump_schematic(schematic);
                 let logic_loop = component
                     .iter()
                     .map(|node_index| graph[*node_index])

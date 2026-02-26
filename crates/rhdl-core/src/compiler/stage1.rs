@@ -11,6 +11,7 @@ use crate::{
             check_rhif_flow::DataFlowCheckPass, check_rhif_type::TypeCheckPass,
             constant_propagation::ConstantPropagation,
             dead_code_elimination::DeadCodeEliminationPass, flow_graph_check::FlowGraphCheckPass,
+            lower_binary_case_to_select::LowerBinaryCaseToSelectPass,
             lower_dynamic_indices_with_constant_arguments::LowerDynamicIndicesWithConstantArguments,
             lower_inferred_casts::LowerInferredCastsPass,
             lower_inferred_retimes::LowerInferredRetimesPass,
@@ -92,6 +93,7 @@ pub(crate) fn compile(kernel: &KernelFn, mode: CompilationMode) -> Result<Arc<Ob
         obj = wrap_pass::<LowerInferredRetimesPass>(obj)?;
         obj = wrap_pass::<LowerDynamicIndicesWithConstantArguments>(obj)?;
         obj = wrap_pass::<ConstantPropagation>(obj)?;
+        obj = wrap_pass::<LowerBinaryCaseToSelectPass>(obj)?;
         let new_hash = obj.hash_value();
         if new_hash == hash {
             break;

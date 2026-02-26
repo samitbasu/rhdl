@@ -304,6 +304,7 @@ impl<'a> OpCodeBuilder<'a> {
 pub fn build_schematic(object: Arc<rhif::Object>) -> Result<Schematic, RHDLError> {
     let mut builder = SchematicBuilder::kernel();
     builder.with_name(&object.name);
+    builder.with_debug_text(&format!("{object:?}"));
     builder.top_mut().type_name = object.type_name;
     // Import the arguments of the kernel as input ports
     for (index, arg) in object.arguments.iter().enumerate() {

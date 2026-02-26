@@ -130,6 +130,7 @@ pub fn kernel<const N: usize>(_cr: ClockReset, i: In, q: Q<N>) -> (Out<N>, D<N>)
 
 #[cfg(test)]
 mod tests {
+
     use rhdl::core::circuit::schematic::error::SchematicICE;
 
     use super::*;

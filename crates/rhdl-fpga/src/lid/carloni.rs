@@ -243,9 +243,9 @@ mod tests {
     use super::*;
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
-        let me = compile_design_stage1::<carloni_kernel<b4>>(CompilationMode::Synchronous)?;
-        eprintln!("{:?}", me);
         let uut = Carloni::<b4>::default();
+        let obj = compile_design_stage1::<carloni_kernel<b4>>(CompilationMode::Synchronous)?;
+        eprintln!("{obj:?}");
         drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }

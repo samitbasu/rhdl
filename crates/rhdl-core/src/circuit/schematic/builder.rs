@@ -64,6 +64,7 @@ impl SchematicBuilder {
                 links: vec![],
                 sources: SpannedSourceSet::default().into(),
                 location: None,
+                debug_text: String::default(),
             },
             id: 0,
             schematic_id: 0,
@@ -93,6 +94,10 @@ impl SchematicBuilder {
     }
     pub fn with_type_name<C>(&mut self) -> &mut Self {
         self.top.type_name = std::any::type_name::<C>();
+        self
+    }
+    pub fn with_debug_text(&mut self, text: &str) -> &mut Self {
+        self.top.debug_text = text.to_string();
         self
     }
     pub fn top_mut(&mut self) -> &mut Schematic {

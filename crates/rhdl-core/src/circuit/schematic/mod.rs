@@ -22,7 +22,7 @@ pub mod loop_check;
 pub mod svg;
 pub mod synchronous;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SchematicKind {
     Circuit,
     Synchronous,
@@ -36,6 +36,7 @@ pub struct Schematic {
     pub id: SchematicId,
     pub name: String,
     pub type_name: &'static str,
+    pub debug_text: String,
     pub kind: SchematicKind,
     pub inputs: Vec<Vec<Port>>,
     pub outputs: Vec<Port>,
@@ -96,6 +97,13 @@ impl Schematic {
         id_checks::check_ids(self)?;
         connected_checks::check_connected(self)?;
         loop_check::loop_check(self)
+    }
+    pub fn find_by_id(&self, id: SchematicId) -> Option<&Schematic> {
+        if self.id == id {
+            Some(self)
+        } else {
+            self.inner.iter().find_map(|child| child.find_by_id(id))
+        }
     }
 }
 
