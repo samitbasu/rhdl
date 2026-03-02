@@ -6,10 +6,12 @@
 //! It also provides utility functions for working with vectors and strings of `BitX` values.
 //!
 
+use serde::{Deserialize, Serialize};
+
 pub mod dyn_bit_manip;
 
 /// Represents a tri-state bit value: 0, 1, or X (unknown).
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BitX {
     /// Represents a logical 0.
     Zero,

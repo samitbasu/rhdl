@@ -209,6 +209,13 @@ impl<T: Digital> DFF<T> {
 mod tests {
     use super::*;
     #[test]
+    fn no_combinatorial_paths() -> miette::Result<()> {
+        let uut: DFF<b4> = DFF::new(bits(0b1010));
+        drc::no_combinatorial_paths(&uut)?;
+        Ok(())
+    }
+
+    #[test]
     fn test_hdl_output() -> miette::Result<()> {
         let expect = expect_test::expect![[r#"
             module top(input wire [1:0] clock_reset, input wire [3:0] i, output reg [3:0] o);

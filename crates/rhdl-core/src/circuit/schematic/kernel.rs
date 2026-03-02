@@ -87,7 +87,9 @@ impl<'a> OpCodeBuilder<'a> {
         visit_slots(&self.lop.op, |sense, &slot| match sense {
             Sense::Read => {
                 log::debug!("Read slot {:?} of kind {:?}", slot, self.object.kind(slot));
-                let port_index = self.builder.allocate_input_port(self.object.kind(slot));
+                let port_index = self
+                    .builder
+                    .allocate_input_port(self.object.kind(slot), Some(slot));
                 log::debug!("Allocated input port {} for slot {:?}", port_index, slot);
                 my_inputs.insert(slot, port_index);
                 op_inputs.push(slot);
@@ -95,7 +97,7 @@ impl<'a> OpCodeBuilder<'a> {
             Sense::Write => {
                 log::debug!("Write slot {:?} of kind {:?}", slot, self.object.kind(slot));
                 self.builder
-                    .add_output_port(self.object.kind(slot))
+                    .add_output_port(self.object.kind(slot), Some(slot))
                     .expect("Output ports should never fail to be added");
                 self.sources.insert(slot, self.child_index);
             }
@@ -304,20 +306,20 @@ impl<'a> OpCodeBuilder<'a> {
 pub fn build_schematic(object: Arc<rhif::Object>) -> Result<Schematic, RHDLError> {
     let mut builder = SchematicBuilder::kernel();
     builder.with_name(&object.name);
-    builder.with_debug_text(&format!("{object:?}"));
-    builder.top_mut().type_name = object.type_name;
+    builder.with_filename(&object.filename());
+    builder.top_mut().type_name = object.type_name.to_string();
     // Import the arguments of the kernel as input ports
     for (index, arg) in object.arguments.iter().enumerate() {
         let arg_kind = object.kind(arg.into());
-        builder.add_input_ports(index, arg_kind)?;
+        builder.add_input_ports(index, arg_kind, Some(Slot::Register(*arg)))?;
     }
     // Import the return value of the kernel as output port
     let return_kind = object.kind(object.return_slot);
-    builder.add_output_port(return_kind)?;
+    builder.add_output_port(return_kind, Some(object.return_slot))?;
     let mut sources = HashMap::default();
     for (lit, (tb, _)) in object.symtab.iter_lit() {
-        let mut lit_builder = SchematicBuilder::literal(tb);
-        lit_builder.add_output_port(tb.kind())?;
+        let mut lit_builder = SchematicBuilder::literal(lit.into(), tb);
+        lit_builder.add_output_port(tb.kind(), Some(Slot::Literal(lit)))?;
         let child_index = builder.import(lit_builder.build());
         sources.insert(Slot::Literal(lit), child_index);
     }

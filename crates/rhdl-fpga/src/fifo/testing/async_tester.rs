@@ -83,6 +83,7 @@ where
 mod tests {
     use expect_test::{expect, expect_file};
     use miette::IntoDiagnostic;
+    use rhdl::core::circuit::schematic::{SchematicSet, error::SchematicICE};
 
     use super::*;
 

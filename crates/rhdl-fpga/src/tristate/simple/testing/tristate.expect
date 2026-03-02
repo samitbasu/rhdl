@@ -87,25 +87,23 @@ module inner_inner(input wire [1:0] clock_reset, input wire [25:0] i, output wir
          reg [37:0] r45;
          reg [1:0] r46;
          localparam l0 = 11'bXXXXXXXXXXX;
-         localparam l1 = 1'b0;
-         localparam l2 = 1'b1;
-         localparam l3 = 3'b001;
-         localparam l4 = 3'b010;
-         localparam l5 = 1'b1;
-         localparam l6 = 27'b000000000000000000000000000;
-         localparam l7 = 8'b11111111;
-         localparam l8 = 2'b10;
-         localparam l9 = 1'b1;
-         localparam l10 = 3'b000;
-         localparam l11 = 3'b001;
-         localparam l12 = 3'b010;
-         localparam l13 = 3'b011;
-         localparam l14 = 3'b100;
-         localparam l15 = 27'b000000000110000000000000000;
-         localparam l16 = 3'b000;
-         localparam l17 = 3'b011;
-         localparam l18 = 3'b100;
-         localparam l19 = 3'b000;
+         localparam l1 = 3'b010;
+         localparam l2 = 3'b001;
+         localparam l3 = 1'b1;
+         localparam l4 = 27'b000000000000000000000000000;
+         localparam l5 = 8'b11111111;
+         localparam l6 = 2'b10;
+         localparam l7 = 1'b1;
+         localparam l8 = 3'b000;
+         localparam l9 = 3'b001;
+         localparam l10 = 3'b010;
+         localparam l11 = 3'b011;
+         localparam l12 = 3'b100;
+         localparam l13 = 27'b000000000110000000000000000;
+         localparam l14 = 3'b000;
+         localparam l15 = 3'b011;
+         localparam l16 = 3'b100;
+         localparam l17 = 3'b000;
          begin
             r46 = arg_0;
             r5 = arg_1;
@@ -121,14 +119,8 @@ module inner_inner(input wire [1:0] clock_reset, input wire [25:0] i, output wir
             r9 = r7[7:0];
             r10 = r2;
             r10[10:3] = r9;
-            case (r8)
-               1'b0 : r11 = r10;
-               1'b1 : r11 = r2;
-            endcase
-            case (r8)
-               1'b0 : r12 = l3;
-               1'b1 : r12 = l4;
-            endcase
+            r11 = r8 ? r2 : r10;
+            r12 = r8 ? l1 : l2;
             case (r6)
                1'b1 : r13 = r11;
                default : r13 = r2;
@@ -138,20 +130,20 @@ module inner_inner(input wire [1:0] clock_reset, input wire [25:0] i, output wir
                default : r14 = r3;
             endcase
             r15 = r1[10:3];
-            r16 = l6;
+            r16 = l4;
             r16[7:0] = r15;
             r17 = r16;
-            r17[15:8] = l7;
+            r17[15:8] = l5;
             r18 = r17;
-            r18[17:16] = l8;
+            r18[17:16] = l6;
             r19 = r5[15:0];
             r20 = r19[7:0];
             r21 = r2;
             r21[10:3] = r20;
             r22 = r1[10:3];
             r24 = r22[7:0];
-            r23 = {l9, r24};
-            r25 = l6;
+            r23 = {l7, r24};
+            r25 = l4;
             r25[26:18] = r23;
             case (r3)
                3'b000 : r26 = r13;
@@ -161,18 +153,18 @@ module inner_inner(input wire [1:0] clock_reset, input wire [25:0] i, output wir
                3'b100 : r26 = r2;
             endcase
             case (r3)
-               3'b000 : r27 = l6;
+               3'b000 : r27 = l4;
                3'b001 : r27 = r18;
-               3'b010 : r27 = l15;
-               3'b011 : r27 = l6;
+               3'b010 : r27 = l13;
+               3'b011 : r27 = l4;
                3'b100 : r27 = r25;
             endcase
             case (r3)
                3'b000 : r28 = r14;
-               3'b001 : r28 = l16;
-               3'b010 : r28 = l17;
-               3'b011 : r28 = l18;
-               3'b100 : r28 = l19;
+               3'b001 : r28 = l14;
+               3'b010 : r28 = l15;
+               3'b011 : r28 = l16;
+               3'b100 : r28 = l17;
             endcase
             r29 = r27[15:0];
             r30 = r29[15:8];

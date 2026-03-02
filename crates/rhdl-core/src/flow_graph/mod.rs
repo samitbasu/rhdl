@@ -200,39 +200,5 @@ impl FlowGraph {
     }
     pub fn loop_checked(self) -> Result<Self, RHDLError> {
         return Ok(self);
-        let fg = &self.graph;
-        if let Err(cycle) = petgraph::algo::toposort(&fg, None) {
-            let cycle_node = cycle.node_id();
-            let components = petgraph::algo::kosaraju_scc(&fg);
-            for component in components {
-                if component.contains(&cycle_node) {
-                    let mut elements = vec![];
-                    for nodes in component.windows(2) {
-                        let from = nodes[0];
-                        let to = nodes[1];
-                        if let Some(edge) = fg.find_edge(from, to) {
-                            let edge = &fg[edge];
-                            elements.push(LoopStepError {
-                                from: fg[from].clone(),
-                                edge: edge.clone(),
-                                to: fg[to].clone(),
-                                pool: Some(self.source.source()),
-                            });
-                        }
-                    }
-                    if let Some(edge) = fg.find_edge(*component.last().unwrap(), component[0]) {
-                        let edge = &fg[edge];
-                        elements.push(LoopStepError {
-                            from: fg[*component.last().unwrap()].clone(),
-                            edge: edge.clone(),
-                            to: fg[component[0]].clone(),
-                            pool: Some(self.source.source()),
-                        });
-                    }
-                    return Err(rhdl_error(LogicLoopError { errors: elements }));
-                }
-            }
-        }
-        Ok(self)
     }
 }

@@ -1,14 +1,18 @@
 #![allow(missing_docs)]
+use std::collections::BTreeMap;
+
 use internment::Intern;
 use serde::{Deserialize, Serialize};
 
 use rhdl_trace_type::TraceType;
 
 use crate::{
-    Kind, RHDLError,
-    ast::{SourceLocation, spanned_source::SpannedSourceSet},
+    BitX, Kind, RHDLError,
+    ast::{SourceLocation, SourcePool, spanned_source::SpannedSourceSet},
     circuit::schematic::{error::SchematicICE, loop_check::loop_check},
+    common::{sense::Sense, slot_vec::SlotKey},
     error::rhdl_error,
+    rhif::{object::LocatedOpCode, visit::visit_slots},
     types::path::{Path, PathElement, sub_kind},
 };
 pub mod builder;
@@ -22,7 +26,62 @@ pub mod loop_check;
 pub mod svg;
 pub mod synchronous;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TypedBits {
+    bits: Vec<BitX>,
+    kind: TraceType,
+}
+
+impl From<&crate::types::typed_bits::TypedBits> for TypedBits {
+    fn from(value: &crate::types::typed_bits::TypedBits) -> Self {
+        Self {
+            bits: value.bits().iter().copied().collect(),
+            kind: value.kind().into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpCode {
+    pub name: String,
+    pub inputs: Vec<Slot>,
+    pub outputs: Vec<Slot>,
+    pub location: SourceLocation,
+}
+
+impl From<&LocatedOpCode> for OpCode {
+    fn from(value: &LocatedOpCode) -> Self {
+        let mut inputs = Vec::new();
+        let mut outputs = Vec::new();
+        visit_slots(&value.op, |sense, &slot| match sense {
+            Sense::Read => inputs.push(slot.into()),
+            Sense::Write => outputs.push(slot.into()),
+        });
+        Self {
+            name: format!("{:?}", value.op),
+            inputs,
+            outputs,
+            location: value.loc,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Object {
+    pub name: String,
+    pub literals: BTreeMap<usize, TypedBits>,
+    pub registers: BTreeMap<usize, TraceType>,
+    pub opcodes: Vec<OpCode>,
+    pub source_pool: SourcePool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+pub struct SchematicSet {
+    pub schematics: Schematic,
+    pub loop_ports: Vec<PortId>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum SchematicKind {
     Circuit,
     Synchronous,
@@ -31,11 +90,12 @@ pub enum SchematicKind {
     Literal,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
 pub struct Schematic {
     pub id: SchematicId,
     pub name: String,
-    pub type_name: &'static str,
+    pub type_name: String,
+    pub filename: String,
     pub debug_text: String,
     pub kind: SchematicKind,
     pub inputs: Vec<Vec<Port>>,
@@ -96,7 +156,8 @@ impl Schematic {
     pub fn checked(&self) -> Result<(), RHDLError> {
         id_checks::check_ids(self)?;
         connected_checks::check_connected(self)?;
-        loop_check::loop_check(self)
+        loop_check::loop_check(self)?;
+        Ok(())
     }
     pub fn find_by_id(&self, id: SchematicId) -> Option<&Schematic> {
         if self.id == id {
@@ -104,6 +165,9 @@ impl Schematic {
         } else {
             self.inner.iter().find_map(|child| child.find_by_id(id))
         }
+    }
+    pub fn has_combinatorial_pathways(&self) -> Result<(), RHDLError> {
+        loop_check::check_combinatorial_pathways(self)
     }
 }
 
@@ -115,6 +179,9 @@ pub struct PortId(u32);
 impl PortId {
     pub fn shift(&mut self, offset: PortId) {
         self.0 += offset.0;
+    }
+    pub fn index(&self) -> u32 {
+        self.0
     }
 }
 
@@ -138,31 +205,58 @@ impl From<u32> for SchematicId {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Serialize, Deserialize, Hash)]
+pub enum Slot {
+    Register(usize),
+    Literal(usize),
+}
+
+impl From<crate::rhif::spec::Slot> for Slot {
+    fn from(value: crate::rhif::spec::Slot) -> Self {
+        if let Some(lit) = value.lit() {
+            return Self::Literal(lit.index());
+        }
+        if let Some(reg) = value.reg() {
+            return Self::Register(reg.index());
+        }
+        panic!("Invalid slot: {:?}", value);
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
 pub struct Port {
     pub path: CanonicalPath,
     pub bits: usize,
     pub ty: TraceType,
     pub id: PortId,
+    pub slot: Option<Slot>,
 }
 
-pub fn port(base_kind: Kind, path: &Path, port_kind: Kind, id: PortId) -> Result<Port, RHDLError> {
+pub fn port(
+    base_kind: Kind,
+    path: &Path,
+    port_kind: Kind,
+    id: PortId,
+    slot: Option<crate::rhif::spec::Slot>,
+) -> Result<Port, RHDLError> {
     let path = canonicalize_path(base_kind, path)?;
+    let slot = slot.map(|x| x.into());
     Ok(Port {
         path,
         bits: port_kind.bits(),
         ty: port_kind.into(),
         id,
+        slot,
     })
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize, Hash)]
 pub enum LinkKind {
     Strong,
     Weak,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize, Hash)]
 
 pub struct Link {
     pub from: PortId,

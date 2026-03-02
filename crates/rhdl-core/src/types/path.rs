@@ -70,7 +70,7 @@ pub enum PathError {
 type Result<T> = std::result::Result<T, RHDLError>;
 
 /// An element of a [Path](crate::types::path::Path).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PathElement {
     /// An index into an array, e.g. `x[3]`
     Index(usize),
@@ -91,7 +91,7 @@ pub enum PathElement {
 }
 
 /// A path for indexing into [Digital](crate::types::digital::Digital) types.
-#[derive(Clone, PartialEq, Eq, Hash, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, PartialEq, Eq, Hash, Default)]
 pub struct Path {
     elements: Vec<PathElement>,
 }

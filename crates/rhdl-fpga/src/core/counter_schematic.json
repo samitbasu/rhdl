@@ -1,6 +1,9 @@
 {
+  "id": 0,
   "name": "top",
   "type_name": "rhdl_fpga::core::counter::Counter<6>",
+  "filename": "",
+  "debug_text": "",
   "kind": "Synchronous",
   "inputs": [
     [
@@ -12,7 +15,8 @@
         ],
         "bits": 1,
         "ty": "Clock",
-        "id": 0
+        "id": 0,
+        "slot": null
       },
       {
         "path": [
@@ -22,7 +26,8 @@
         ],
         "bits": 1,
         "ty": "Reset",
-        "id": 1
+        "id": 1,
+        "slot": null
       }
     ],
     [
@@ -32,7 +37,8 @@
         "ty": {
           "Bits": 1
         },
-        "id": 2
+        "id": 2,
+        "slot": null
       }
     ]
   ],
@@ -43,13 +49,17 @@
       "ty": {
         "Bits": 6
       },
-      "id": 3
+      "id": 3,
+      "slot": null
     }
   ],
   "inner": [
     {
+      "id": 1,
       "name": "counter",
       "type_name": "rhdl_fpga::core::counter::counter<6>",
+      "filename": "/Users/samitbasu/Devel/rhdl/crates/rhdl-fpga/src/core/counter.rs",
+      "debug_text": "",
       "kind": "Kernel",
       "inputs": [
         [
@@ -61,7 +71,10 @@
             ],
             "bits": 1,
             "ty": "Clock",
-            "id": 4
+            "id": 4,
+            "slot": {
+              "Register": 0
+            }
           },
           {
             "path": [
@@ -71,7 +84,10 @@
             ],
             "bits": 1,
             "ty": "Reset",
-            "id": 5
+            "id": 5,
+            "slot": {
+              "Register": 0
+            }
           }
         ],
         [
@@ -81,7 +97,10 @@
             "ty": {
               "Bits": 1
             },
-            "id": 6
+            "id": 6,
+            "slot": {
+              "Register": 1
+            }
           }
         ],
         [
@@ -95,7 +114,10 @@
             "ty": {
               "Bits": 6
             },
-            "id": 7
+            "id": 7,
+            "slot": {
+              "Register": 2
+            }
           }
         ]
       ],
@@ -110,7 +132,10 @@
           "ty": {
             "Bits": 6
           },
-          "id": 8
+          "id": 8,
+          "slot": {
+            "Register": 12
+          }
         },
         {
           "path": [
@@ -125,13 +150,19 @@
           "ty": {
             "Bits": 6
           },
-          "id": 9
+          "id": 9,
+          "slot": {
+            "Register": 12
+          }
         }
       ],
       "inner": [
         {
-          "name": "Literal: 1_b6",
+          "id": 2,
+          "name": "l0: 1_b6",
           "type_name": "",
+          "filename": "",
+          "debug_text": "",
           "kind": "Literal",
           "inputs": [],
           "outputs": [
@@ -141,7 +172,10 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 10
+              "id": 10,
+              "slot": {
+                "Literal": 0
+              }
             }
           ],
           "inner": [],
@@ -152,8 +186,11 @@
           "location": null
         },
         {
-          "name": "Literal: 0_b6",
+          "id": 3,
+          "name": "l1: 0_b6",
           "type_name": "",
+          "filename": "",
+          "debug_text": "",
           "kind": "Literal",
           "inputs": [],
           "outputs": [
@@ -163,7 +200,10 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 12
+              "id": 12,
+              "slot": {
+                "Literal": 1
+              }
             }
           ],
           "inner": [],
@@ -174,8 +214,11 @@
           "location": null
         },
         {
+          "id": 4,
           "name": " r4 <- r2.count",
           "type_name": "",
+          "filename": "",
+          "debug_text": "",
           "kind": "OpCode",
           "inputs": [
             [
@@ -189,7 +232,10 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 15
+                "id": 15,
+                "slot": {
+                  "Register": 2
+                }
               }
             ]
           ],
@@ -200,7 +246,10 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 14
+              "id": 14,
+              "slot": {
+                "Register": 4
+              }
             }
           ],
           "inner": [],
@@ -215,13 +264,16 @@
             "sources": {}
           },
           "location": {
-            "func": 795318925744745655,
+            "func": 18015530067104049269,
             "node": 8
           }
         },
         {
+          "id": 5,
           "name": " r5 <- r4 + l0",
           "type_name": "",
+          "filename": "",
+          "debug_text": "",
           "kind": "OpCode",
           "inputs": [
             [
@@ -231,7 +283,10 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 18
+                "id": 18,
+                "slot": {
+                  "Register": 4
+                }
               }
             ],
             [
@@ -241,7 +296,10 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 19
+                "id": 19,
+                "slot": {
+                  "Literal": 0
+                }
               }
             ]
           ],
@@ -252,7 +310,10 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 17
+              "id": 17,
+              "slot": {
+                "Register": 5
+              }
             }
           ],
           "inner": [],
@@ -272,13 +333,16 @@
             "sources": {}
           },
           "location": {
-            "func": 795318925744745655,
+            "func": 18015530067104049269,
             "node": 7
           }
         },
         {
+          "id": 6,
           "name": " r6 <- r2.count",
           "type_name": "",
+          "filename": "",
+          "debug_text": "",
           "kind": "OpCode",
           "inputs": [
             [
@@ -292,7 +356,10 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 22
+                "id": 22,
+                "slot": {
+                  "Register": 2
+                }
               }
             ]
           ],
@@ -303,7 +370,10 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 21
+              "id": 21,
+              "slot": {
+                "Register": 6
+              }
             }
           ],
           "inner": [],
@@ -318,13 +388,16 @@
             "sources": {}
           },
           "location": {
-            "func": 795318925744745655,
+            "func": 18015530067104049269,
             "node": 14
           }
         },
         {
+          "id": 7,
           "name": " r3 <- r1 ? r5 : r6",
           "type_name": "",
+          "filename": "",
+          "debug_text": "",
           "kind": "OpCode",
           "inputs": [
             [
@@ -334,7 +407,10 @@
                 "ty": {
                   "Bits": 1
                 },
-                "id": 25
+                "id": 25,
+                "slot": {
+                  "Register": 1
+                }
               }
             ],
             [
@@ -344,7 +420,10 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 26
+                "id": 26,
+                "slot": {
+                  "Register": 5
+                }
               }
             ],
             [
@@ -354,7 +433,10 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 27
+                "id": 27,
+                "slot": {
+                  "Register": 6
+                }
               }
             ]
           ],
@@ -365,7 +447,10 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 24
+              "id": 24,
+              "slot": {
+                "Register": 3
+              }
             }
           ],
           "inner": [],
@@ -390,13 +475,16 @@
             "sources": {}
           },
           "location": {
-            "func": 795318925744745655,
+            "func": 18015530067104049269,
             "node": 3
           }
         },
         {
+          "id": 8,
           "name": " r9 <- r0.reset",
           "type_name": "",
+          "filename": "",
+          "debug_text": "",
           "kind": "OpCode",
           "inputs": [
             [
@@ -408,7 +496,10 @@
                 ],
                 "bits": 1,
                 "ty": "Clock",
-                "id": 30
+                "id": 30,
+                "slot": {
+                  "Register": 0
+                }
               },
               {
                 "path": [
@@ -418,7 +509,10 @@
                 ],
                 "bits": 1,
                 "ty": "Reset",
-                "id": 31
+                "id": 31,
+                "slot": {
+                  "Register": 0
+                }
               }
             ]
           ],
@@ -427,7 +521,10 @@
               "path": [],
               "bits": 1,
               "ty": "Reset",
-              "id": 29
+              "id": 29,
+              "slot": {
+                "Register": 9
+              }
             }
           ],
           "inner": [],
@@ -442,13 +539,16 @@
             "sources": {}
           },
           "location": {
-            "func": 795318925744745655,
+            "func": 18015530067104049269,
             "node": 20
           }
         },
         {
+          "id": 9,
           "name": " r8 <- |r9",
           "type_name": "",
+          "filename": "",
+          "debug_text": "",
           "kind": "OpCode",
           "inputs": [
             [
@@ -456,7 +556,10 @@
                 "path": [],
                 "bits": 1,
                 "ty": "Reset",
-                "id": 34
+                "id": 34,
+                "slot": {
+                  "Register": 9
+                }
               }
             ]
           ],
@@ -467,7 +570,10 @@
               "ty": {
                 "Bits": 1
               },
-              "id": 33
+              "id": 33,
+              "slot": {
+                "Register": 8
+              }
             }
           ],
           "inner": [],
@@ -482,13 +588,16 @@
             "sources": {}
           },
           "location": {
-            "func": 795318925744745655,
+            "func": 18015530067104049269,
             "node": 19
           }
         },
         {
+          "id": 10,
           "name": " r7 <- r8 ? l1 : r3",
           "type_name": "",
+          "filename": "",
+          "debug_text": "",
           "kind": "OpCode",
           "inputs": [
             [
@@ -498,7 +607,10 @@
                 "ty": {
                   "Bits": 1
                 },
-                "id": 37
+                "id": 37,
+                "slot": {
+                  "Register": 8
+                }
               }
             ],
             [
@@ -508,7 +620,10 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 38
+                "id": 38,
+                "slot": {
+                  "Literal": 1
+                }
               }
             ],
             [
@@ -518,7 +633,10 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 39
+                "id": 39,
+                "slot": {
+                  "Register": 3
+                }
               }
             ]
           ],
@@ -529,7 +647,10 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 36
+              "id": 36,
+              "slot": {
+                "Register": 7
+              }
             }
           ],
           "inner": [],
@@ -554,13 +675,16 @@
             "sources": {}
           },
           "location": {
-            "func": 795318925744745655,
+            "func": 18015530067104049269,
             "node": 18
           }
         },
         {
+          "id": 11,
           "name": " r10 <- r2.count",
           "type_name": "",
+          "filename": "",
+          "debug_text": "",
           "kind": "OpCode",
           "inputs": [
             [
@@ -574,7 +698,10 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 42
+                "id": 42,
+                "slot": {
+                  "Register": 2
+                }
               }
             ]
           ],
@@ -585,7 +712,10 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 41
+              "id": 41,
+              "slot": {
+                "Register": 10
+              }
             }
           ],
           "inner": [],
@@ -600,13 +730,16 @@
             "sources": {}
           },
           "location": {
-            "func": 795318925744745655,
+            "func": 18015530067104049269,
             "node": 34
           }
         },
         {
+          "id": 12,
           "name": " sr11 <- rhdl_fpga::core::counter::D { count: r7  }",
           "type_name": "",
+          "filename": "",
+          "debug_text": "",
           "kind": "OpCode",
           "inputs": [
             [
@@ -616,7 +749,10 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 45
+                "id": 45,
+                "slot": {
+                  "Register": 7
+                }
               }
             ]
           ],
@@ -631,7 +767,10 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 44
+              "id": 44,
+              "slot": {
+                "Register": 11
+              }
             }
           ],
           "inner": [],
@@ -646,13 +785,16 @@
             "sources": {}
           },
           "location": {
-            "func": 795318925744745655,
+            "func": 18015530067104049269,
             "node": 36
           }
         },
         {
+          "id": 13,
           "name": " r12 <- (r10, r11)",
           "type_name": "",
+          "filename": "",
+          "debug_text": "",
           "kind": "OpCode",
           "inputs": [
             [
@@ -662,7 +804,10 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 49
+                "id": 49,
+                "slot": {
+                  "Register": 10
+                }
               }
             ],
             [
@@ -676,7 +821,10 @@
                 "ty": {
                   "Bits": 6
                 },
-                "id": 50
+                "id": 50,
+                "slot": {
+                  "Register": 11
+                }
               }
             ]
           ],
@@ -691,7 +839,10 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 47
+              "id": 47,
+              "slot": {
+                "Register": 12
+              }
             },
             {
               "path": [
@@ -706,7 +857,10 @@
               "ty": {
                 "Bits": 6
               },
-              "id": 48
+              "id": 48,
+              "slot": {
+                "Register": 12
+              }
             }
           ],
           "inner": [],
@@ -726,7 +880,7 @@
             "sources": {}
           },
           "location": {
-            "func": 795318925744745655,
+            "func": 18015530067104049269,
             "node": 33
           }
         }
@@ -834,8 +988,11 @@
       "location": null
     },
     {
+      "id": 14,
       "name": "top_count",
       "type_name": "rhdl_fpga::core::dff::DFF<rhdl_bits::bits_impl::Bits<6>>",
+      "filename": "",
+      "debug_text": "",
       "kind": "Synchronous",
       "inputs": [
         [
@@ -847,7 +1004,8 @@
             ],
             "bits": 1,
             "ty": "Clock",
-            "id": 52
+            "id": 52,
+            "slot": null
           },
           {
             "path": [
@@ -857,7 +1015,8 @@
             ],
             "bits": 1,
             "ty": "Reset",
-            "id": 53
+            "id": 53,
+            "slot": null
           }
         ],
         [
@@ -867,7 +1026,8 @@
             "ty": {
               "Bits": 6
             },
-            "id": 54
+            "id": 54,
+            "slot": null
           }
         ]
       ],
@@ -878,7 +1038,8 @@
           "ty": {
             "Bits": 6
           },
-          "id": 55
+          "id": 55,
+          "slot": null
         }
       ],
       "inner": [],

@@ -21,13 +21,18 @@ pub enum SchematicICE {
     UnableToCanonicalizePath { path: Path, kind: crate::Kind },
     #[error("Schematic block {block_name} has an unconnected input port {port:?}")]
     UnconnectedInputPort { block_name: String, port: Port },
-    #[error("Schematic has a logic loop")]
-    LogicLoop {
-        schematic: Arc<Schematic>,
-        logic_loop: Vec<PortId>,
-    },
+    #[error("Schematic has a logic loop - schematic has been written to {filename:?}")]
+    LogicLoop { filename: String },
     #[error("Duplicate port id: {id:?} in schematic {sid:?}")]
     DuplicatePortId { id: PortId, sid: SchematicId },
     #[error("Duplicate schematic id: {id:?}")]
     DuplicateSchematicId { id: SchematicId },
+    #[error(
+        "Schematic has a combinatorial pathway from output {from:?} to input {to:?} - schematic has been written to {filename:?}"
+    )]
+    CombinatorialPathway {
+        filename: String,
+        from: PortId,
+        to: PortId,
+    },
 }

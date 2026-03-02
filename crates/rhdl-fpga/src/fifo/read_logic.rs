@@ -115,7 +115,7 @@ where
     o.empty = empty;
     o.almost_empty = almost_empty;
     o.ram_read_address = read_address;
-    o.underflow = underflow;
+    o.underflow = q.underflow;
     o.will_advance = will_advance;
     // Handle the reset logic
     if cr.reset.any() {

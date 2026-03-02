@@ -19,6 +19,7 @@ use crate::{
 };
 use miette::{Diagnostic, SourceSpan};
 use petgraph::algo::DfsSpace;
+use ron::de;
 use std::collections::hash_map::RandomState;
 use thiserror::Error;
 
@@ -60,6 +61,9 @@ impl Diagnostic for CombinatorialPath {
 ///
 pub fn no_combinatorial_paths<T: Synchronous>(uut: &T) -> miette::Result<()> {
     let descriptor = uut.descriptor(ScopedName::top())?;
+    let schematic = descriptor.schematic()?;
+    schematic.has_combinatorial_pathways()?;
+    return Ok(());
     let ntl = descriptor.netlist()?;
     let dep = make_net_graph(ntl, GraphMode::Synchronous);
     // Get the graph node that represents the inputs for the device

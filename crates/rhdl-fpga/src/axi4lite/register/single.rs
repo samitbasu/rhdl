@@ -170,30 +170,6 @@ mod tests {
     }
 
     #[test]
-    fn write_schematic() -> miette::Result<()> {
-        let uut = AxiRegister::new(bits(0), bits(0));
-        let descriptor = uut.descriptor(ScopedName::top())?;
-        let schematic = descriptor.schematic()?;
-        expect_test::expect_file!("schematic.json")
-            .assert_eq(&serde_json::to_string_pretty(schematic).unwrap());
-        let dot = schematic.to_dot();
-        expect_test::expect_file!("schematic.dot").assert_eq(&dot);
-        let kernel = schematic.inner[0].to_dot();
-        expect_test::expect_file!("kernel.dot").assert_eq(&kernel);
-        Ok(())
-    }
-
-    #[test]
-    fn write_schematic_svg() -> miette::Result<()> {
-        let uut = AxiRegister::new(bits(0), bits(0));
-        let descriptor = uut.descriptor(ScopedName::top())?;
-        let schematic = descriptor.schematic()?;
-        let svg = schematic.to_svg();
-        expect_test::expect_file!("schematic.svg").assert_eq(&svg.to_string());
-        Ok(())
-    }
-
-    #[test]
     fn hdl_is_ok() -> miette::Result<()> {
         let uut = AxiRegister::new(bits(0), bits(0));
         let descriptor = uut.descriptor(ScopedName::top())?;

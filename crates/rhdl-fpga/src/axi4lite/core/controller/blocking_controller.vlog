@@ -160,19 +160,15 @@ module top(input wire [1:0] clock_reset, input wire [111:0] i, output wire [140:
          localparam l15 = 2'b01;
          localparam l16 = 2'b00;
          localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
-         localparam l19 = 1'b0;
-         localparam l20 = 1'b0;
-         localparam l21 = 69'b000000000000000000000000000000000000000000000000000000000000000000000;
-         localparam l22 = 33'b000000000000000000000000000000000;
-         localparam l23 = 2'b10;
+         localparam l18 = 1'b0;
+         localparam l19 = 69'b000000000000000000000000000000000000000000000000000000000000000000000;
+         localparam l20 = 33'b000000000000000000000000000000000;
+         localparam l21 = 2'b10;
+         localparam l22 = 1'b1;
+         localparam l23 = 2'b01;
          localparam l24 = 1'b1;
-         localparam l25 = 2'b01;
-         localparam l26 = 1'b1;
-         localparam l27 = 1'b1;
-         localparam l28 = 1'b0;
-         localparam l29 = 1'b1;
-         localparam l30 = 141'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l25 = 1'b1;
+         localparam l26 = 141'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          begin
             r94 = arg_0;
             r4 = arg_1;
@@ -258,21 +254,18 @@ module top(input wire [1:0] clock_reset, input wire [111:0] i, output wire [140:
             r49 = r1[70:0];
             r50 = r49[69:0];
             r51 = r50[69:69];
-            case (r51)
-               1'b1 : r52 = l18;
-               1'b0 : r52 = l20;
-            endcase
+            r52 = r51 ? l17 : l18;
             r53 = r48 & r52;
             r54 = r4[75:71];
             r55 = r38;
             r55[75:71] = r54;
             r56 = r55;
-            r56[144:76] = l21;
+            r56[144:76] = l19;
             r57 = r4[111:76];
             r58 = r56;
             r58[181:146] = r57;
             r59 = r58;
-            r59[214:182] = l22;
+            r59[214:182] = l20;
             r60 = r59;
             r60[70:70] = r53;
             r61 = r1[70:0];
@@ -282,22 +275,19 @@ module top(input wire [1:0] clock_reset, input wire [111:0] i, output wire [140:
             r65 = r64[68:68];
             r66 = r64[31:0];
             r67 = r60;
-            r67[253:252] = l23;
+            r67[253:252] = l21;
             r69 = r66[31:0];
-            r68 = {l24, r69};
+            r68 = {l22, r69};
             r70 = r67;
             r70[214:182] = r68;
             r71 = r64[67:0];
             r72 = r60;
-            r72[253:252] = l25;
+            r72[253:252] = l23;
             r74 = r71[67:0];
-            r73 = {l26, r74};
+            r73 = {l24, r74};
             r75 = r72;
             r75[144:76] = r73;
-            case (r65)
-               1'b1 : r76 = r70;
-               1'b0 : r76 = r75;
-            endcase
+            r76 = r65 ? r70 : r75;
             case (r63)
                1'b1 : r77 = r76;
                default : r77 = r60;
@@ -308,7 +298,7 @@ module top(input wire [1:0] clock_reset, input wire [111:0] i, output wire [140:
             r80[251:251] = r79;
             r81 = r1[214:146];
             r82 = r81[33:0];
-            r83 = l30;
+            r83 = l26;
             r83[140:107] = r82;
             r84 = r1[70:0];
             r85 = r84[70:70];
@@ -371,14 +361,12 @@ module top_inbuf(input wire [1:0] clock_reset, input wire [70:0] i, output wire 
          reg [141:0] r27;
          reg [1:0] r28;
          localparam l0 = 1'b1;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b0;
-         localparam l3 = 70'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX0;
+         localparam l1 = 70'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX0;
+         localparam l2 = 71'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l3 = 1'b0;
          localparam l4 = 71'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l5 = 1'b0;
-         localparam l6 = 71'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l7 = 1'b1;
-         localparam l8 = 70'b0000000000000000000000000000000000000000000000000000000000000000000000;
+         localparam l5 = 1'b1;
+         localparam l6 = 70'b0000000000000000000000000000000000000000000000000000000000000000000000;
          begin
             r28 = arg_0;
             r1 = arg_1;
@@ -387,13 +375,10 @@ module top_inbuf(input wire [1:0] clock_reset, input wire [70:0] i, output wire 
             r2 = r0[69:69];
             r3 = r0[68:0];
             r4 = {r3, l0};
-            case (r2)
-               1'b1 : r5 = r4;
-               1'b0 : r5 = l3;
-            endcase
+            r5 = r2 ? r4 : l1;
             r6 = r5[0:0];
             r7 = r5[69:1];
-            r8 = l4;
+            r8 = l2;
             r8[68:0] = r7;
             r9 = ~r6;
             r10 = r8;
@@ -404,17 +389,17 @@ module top_inbuf(input wire [1:0] clock_reset, input wire [70:0] i, output wire 
             r13[70:70] = r12;
             r15 = r14[70:70];
             r16 = ~r15;
-            r17 = l5;
+            r17 = l3;
             r18 = r17;
             r18[0:0] = r16;
-            r19 = l6;
+            r19 = l4;
             r19[70:70] = r18;
             r20 = r14[69:69];
             r21 = ~r20;
             r22 = r14[68:0];
             r24 = r22[68:0];
-            r23 = {l7, r24};
-            r25 = r21 ? r23 : l8;
+            r23 = {l5, r24};
+            r25 = r21 ? r23 : l6;
             r26 = r19;
             r26[69:0] = r25;
             r27 = {r13, r26};
@@ -474,54 +459,52 @@ module top_inbuf_inner(input wire [1:0] clock_reset, input wire [70:0] i, output
          reg [0:0] r27;
          // sel
          reg [0:0] r28;
-         // stop_out
-         reg [0:0] r29;
          // aux_en
-         reg [0:0] r30;
+         reg [0:0] r29;
          // d
-         reg [139:0] r31;
+         reg [139:0] r30;
          // main_en
-         reg [0:0] r32;
+         reg [0:0] r31;
          // sel
-         reg [0:0] r33;
+         reg [0:0] r32;
          // stop_out
-         reg [0:0] r34;
+         reg [0:0] r33;
+         reg [68:0] r34;
          reg [68:0] r35;
          reg [68:0] r36;
-         reg [68:0] r37;
          // d
-         reg [139:0] r38;
+         reg [139:0] r37;
+         reg [68:0] r38;
          reg [68:0] r39;
          reg [68:0] r40;
          reg [68:0] r41;
          reg [68:0] r42;
-         reg [68:0] r43;
          // d
-         reg [139:0] r44;
+         reg [139:0] r43;
+         reg [0:0] r44;
          reg [0:0] r45;
          reg [0:0] r46;
          reg [0:0] r47;
-         reg [0:0] r48;
          // d
-         reg [139:0] r49;
-         reg [68:0] r50;
+         reg [139:0] r48;
+         reg [68:0] r49;
          // o
-         reg [70:0] r51;
-         reg [0:0] r52;
+         reg [70:0] r50;
+         reg [0:0] r51;
+         // o
+         reg [70:0] r52;
          // o
          reg [70:0] r53;
+         reg [0:0] r54;
+         reg [1:0] r55;
+         reg [0:0] r56;
          // o
-         reg [70:0] r54;
-         reg [0:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
+         reg [70:0] r57;
          // o
          reg [70:0] r58;
          // o
          reg [70:0] r59;
-         // o
-         reg [70:0] r60;
-         reg [210:0] r61;
+         reg [210:0] r60;
          localparam l0 = 140'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          localparam l1 = 1'b1;
          localparam l2 = 1'b1;
@@ -533,16 +516,13 @@ module top_inbuf_inner(input wire [1:0] clock_reset, input wire [70:0] i, output
          localparam l8 = 1'b0;
          localparam l9 = 1'b1;
          localparam l10 = 1'b1;
-         localparam l11 = 1'b1;
+         localparam l11 = 1'b0;
          localparam l12 = 1'b0;
-         localparam l13 = 1'b1;
-         localparam l14 = 1'b0;
-         localparam l15 = 1'b0;
-         localparam l16 = 71'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
+         localparam l13 = 71'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l14 = 1'b1;
+         localparam l15 = 1'b1;
          begin
-            r56 = arg_0;
+            r55 = arg_0;
             r3 = arg_1;
             r1 = arg_2;
             r0 = r1[138:138];
@@ -575,62 +555,46 @@ module top_inbuf_inner(input wire [1:0] clock_reset, input wire [70:0] i, output
             r26 = r24 ? r10 : r25;
             r27 = r24 ? l5 : l7;
             r28 = r24 ? l8 : l9;
-            r29 = r24 ? l10 : l11;
-            case (r11)
-               1'b0 : r30 = r21;
-               1'b1 : r30 = l3;
-            endcase
-            case (r11)
-               1'b0 : r31 = r22;
-               1'b1 : r31 = r26;
-            endcase
-            case (r11)
-               1'b0 : r32 = r23;
-               1'b1 : r32 = r27;
-            endcase
-            case (r11)
-               1'b0 : r33 = l8;
-               1'b1 : r33 = r28;
-            endcase
-            case (r11)
-               1'b0 : r34 = l14;
-               1'b1 : r34 = r29;
-            endcase
-            r35 = r3[68:0];
-            r36 = r1[137:69];
-            r37 = r30 ? r35 : r36;
-            r38 = r31;
-            r38[137:69] = r37;
-            r39 = r1[137:69];
-            r40 = r3[68:0];
-            r41 = r33 ? r39 : r40;
-            r42 = r1[68:0];
-            r43 = r32 ? r41 : r42;
-            r44 = r38;
-            r44[68:0] = r43;
-            r45 = r3[69:69];
-            r46 = r33 ? l15 : r45;
-            r47 = r1[138:138];
-            r48 = r32 ? r46 : r47;
-            r49 = r44;
-            r49[138:138] = r48;
-            r50 = r1[68:0];
-            r51 = l16;
-            r51[68:0] = r50;
-            r52 = r1[138:138];
-            r53 = r51;
-            r53[69:69] = r52;
-            r54 = r53;
-            r54[70:70] = r34;
-            r55 = r56[1:1];
-            r57 = |r55;
-            r58 = r54;
-            r58[69:69] = l17;
-            r59 = r58;
-            r59[70:70] = l18;
-            r60 = r57 ? r59 : r54;
-            r61 = {r49, r60};
-            kernel_carloni_kernel = r61;
+            r29 = r11 ? l3 : r21;
+            r30 = r11 ? r26 : r22;
+            r31 = r11 ? r27 : r23;
+            r32 = r11 ? r28 : l8;
+            r33 = r11 ? l10 : l11;
+            r34 = r3[68:0];
+            r35 = r1[137:69];
+            r36 = r29 ? r34 : r35;
+            r37 = r30;
+            r37[137:69] = r36;
+            r38 = r1[137:69];
+            r39 = r3[68:0];
+            r40 = r32 ? r38 : r39;
+            r41 = r1[68:0];
+            r42 = r31 ? r40 : r41;
+            r43 = r37;
+            r43[68:0] = r42;
+            r44 = r3[69:69];
+            r45 = r32 ? l12 : r44;
+            r46 = r1[138:138];
+            r47 = r31 ? r45 : r46;
+            r48 = r43;
+            r48[138:138] = r47;
+            r49 = r1[68:0];
+            r50 = l13;
+            r50[68:0] = r49;
+            r51 = r1[138:138];
+            r52 = r50;
+            r52[69:69] = r51;
+            r53 = r52;
+            r53[70:70] = r33;
+            r54 = r55[1:1];
+            r56 = |r54;
+            r57 = r53;
+            r57[69:69] = l14;
+            r58 = r57;
+            r58[70:70] = l15;
+            r59 = r56 ? r58 : r53;
+            r60 = {r48, r59};
+            kernel_carloni_kernel = r60;
          end
    endfunction
 endmodule
@@ -1148,38 +1112,36 @@ module top_write_controller_tee_in_buffer(input wire [1:0] clock_reset, input wi
          reg [210:0] r59;
          reg [1:0] r60;
          localparam l0 = 1'b1;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b0;
-         localparam l3 = 1'b0;
-         localparam l4 = 2'b11;
+         localparam l1 = 1'b0;
+         localparam l2 = 2'b11;
+         localparam l3 = 2'b00;
+         localparam l4 = 2'b01;
          localparam l5 = 2'b00;
          localparam l6 = 2'b01;
-         localparam l7 = 2'b00;
-         localparam l8 = 2'b01;
-         localparam l9 = 2'b01;
-         localparam l10 = 2'b10;
-         localparam l11 = 2'b10;
-         localparam l12 = 2'b00;
-         localparam l13 = 2'b11;
-         localparam l14 = 2'b01;
-         localparam l15 = 2'b01;
-         localparam l16 = 2'b10;
-         localparam l17 = 2'b00;
-         localparam l18 = 2'b01;
-         localparam l19 = 2'b10;
-         localparam l20 = 2'b11;
-         localparam l21 = 2'b11;
-         localparam l22 = 140'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l23 = 2'b10;
-         localparam l24 = 2'b11;
+         localparam l7 = 2'b01;
+         localparam l8 = 2'b10;
+         localparam l9 = 2'b10;
+         localparam l10 = 2'b00;
+         localparam l11 = 2'b11;
+         localparam l12 = 2'b01;
+         localparam l13 = 2'b01;
+         localparam l14 = 2'b10;
+         localparam l15 = 2'b00;
+         localparam l16 = 2'b01;
+         localparam l17 = 2'b10;
+         localparam l18 = 2'b11;
+         localparam l19 = 2'b11;
+         localparam l20 = 140'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l21 = 2'b10;
+         localparam l22 = 2'b11;
+         localparam l23 = 1'b1;
+         localparam l24 = 2'b00;
          localparam l25 = 1'b1;
-         localparam l26 = 2'b00;
+         localparam l26 = 71'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          localparam l27 = 1'b1;
-         localparam l28 = 71'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l29 = 1'b1;
-         localparam l30 = 71'bXX000000000000000000000000000000000000000000000000000000000000000000000;
-         localparam l31 = 1'b0;
-         localparam l32 = 2'b11;
+         localparam l28 = 71'bXX000000000000000000000000000000000000000000000000000000000000000000000;
+         localparam l29 = 1'b0;
+         localparam l30 = 2'b11;
          begin
             r60 = arg_0;
             r1 = arg_1;
@@ -1187,33 +1149,30 @@ module top_write_controller_tee_in_buffer(input wire [1:0] clock_reset, input wi
             r0 = r1[69:69];
             r2 = r1[68:0];
             r3 = r2[68:68];
-            case (r3)
-               1'b1 : r4 = l1;
-               1'b0 : r4 = l3;
-            endcase
+            r4 = r3 ? l0 : l1;
             r5 = r6[1:0];
-            r7 = r0 ? l4 : l5;
-            r8 = r4 ? l6 : r7;
+            r7 = r0 ? l2 : l3;
+            r8 = r4 ? l4 : r7;
             r9 = {r0, r4};
             case (r9)
-               2'b00 : r10 = l8;
-               2'b01 : r10 = l10;
-               2'b10 : r10 = l12;
-               2'b11 : r10 = l14;
+               2'b00 : r10 = l6;
+               2'b01 : r10 = l8;
+               2'b10 : r10 = l10;
+               2'b11 : r10 = l12;
             endcase
-            r11 = r0 ? l15 : l16;
+            r11 = r0 ? l13 : l14;
             case (r5)
                2'b00 : r12 = r8;
                2'b01 : r12 = r10;
                2'b10 : r12 = r11;
-               2'b11 : r12 = l21;
+               2'b11 : r12 = l19;
             endcase
-            r13 = l22;
+            r13 = l20;
             r13[1:0] = r12;
             r14 = r6[1:0];
-            r15 = r14 != l23;
+            r15 = r14 != l21;
             r16 = r6[1:0];
-            r17 = r16 != l24;
+            r17 = r16 != l22;
             r18 = r15 & r17;
             r19 = r4 & r18;
             r20 = r6[69:2];
@@ -1245,28 +1204,28 @@ module top_write_controller_tee_in_buffer(input wire [1:0] clock_reset, input wi
             r38 = r35;
             r38[139:139] = r37;
             r39 = r6[1:0];
-            r40 = r39 == l26;
+            r40 = r39 == l24;
             r41 = r6[139:139];
             r42 = ~r41;
             r43 = r6[69:2];
             r45 = r43[67:0];
-            r44 = {l27, r45};
-            r46 = l28;
+            r44 = {l25, r45};
+            r46 = l26;
             r46[68:0] = r44;
             r47 = r6[137:70];
             r49 = r47[67:0];
-            r48 = {l29, r49};
-            r50 = l28;
+            r48 = {l27, r49};
+            r50 = l26;
             r50[68:0] = r48;
             r51 = r42 ? r46 : r50;
-            r52 = r40 ? l30 : r51;
-            r53 = l31;
+            r52 = r40 ? l28 : r51;
+            r53 = l29;
             r54 = r53;
             r54[0:0] = r18;
             r55 = r52;
             r55[69:69] = r54;
             r56 = r6[1:0];
-            r57 = r56 == l32;
+            r57 = r56 == l30;
             r58 = r55;
             r58[70:70] = r57;
             r59 = {r38, r58};
@@ -1444,66 +1403,61 @@ module top_write_controller_tee_s_buffer(input wire [1:0] clock_reset, input wir
          reg [102:0] r59;
          reg [1:0] r60;
          localparam l0 = 1'b1;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b0;
-         localparam l3 = 1'b0;
-         localparam l4 = 2'b01;
-         localparam l5 = 2'b00;
-         localparam l6 = 2'b00;
-         localparam l7 = 2'b01;
-         localparam l8 = 2'b01;
-         localparam l9 = 2'b10;
-         localparam l10 = 2'b10;
-         localparam l11 = 2'b00;
-         localparam l12 = 2'b11;
-         localparam l13 = 2'b01;
-         localparam l14 = 2'b01;
-         localparam l15 = 2'b10;
-         localparam l16 = 2'b11;
-         localparam l17 = 2'b00;
-         localparam l18 = 2'b01;
-         localparam l19 = 2'b10;
-         localparam l20 = 2'b11;
-         localparam l21 = 2'b11;
-         localparam l22 = 68'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l23 = 1'b1;
-         localparam l24 = 2'b11;
-         localparam l25 = 2'b00;
+         localparam l1 = 1'b0;
+         localparam l2 = 2'b01;
+         localparam l3 = 2'b00;
+         localparam l4 = 2'b00;
+         localparam l5 = 2'b01;
+         localparam l6 = 2'b01;
+         localparam l7 = 2'b10;
+         localparam l8 = 2'b10;
+         localparam l9 = 2'b00;
+         localparam l10 = 2'b11;
+         localparam l11 = 2'b01;
+         localparam l12 = 2'b01;
+         localparam l13 = 2'b10;
+         localparam l14 = 2'b11;
+         localparam l15 = 2'b00;
+         localparam l16 = 2'b01;
+         localparam l17 = 2'b10;
+         localparam l18 = 2'b11;
+         localparam l19 = 2'b11;
+         localparam l20 = 68'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l21 = 1'b1;
+         localparam l22 = 2'b11;
+         localparam l23 = 2'b00;
+         localparam l24 = 1'b1;
+         localparam l25 = 35'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          localparam l26 = 1'b1;
-         localparam l27 = 35'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l28 = 1'b1;
-         localparam l29 = 35'bXX000000000000000000000000000000000;
-         localparam l30 = 2'b10;
-         localparam l31 = 2'b11;
+         localparam l27 = 35'bXX000000000000000000000000000000000;
+         localparam l28 = 2'b10;
+         localparam l29 = 2'b11;
          begin
             r60 = arg_0;
             r1 = arg_1;
             r6 = arg_2;
             r0 = r1[32:0];
             r2 = r0[32:32];
-            case (r2)
-               1'b1 : r3 = l1;
-               1'b0 : r3 = l3;
-            endcase
+            r3 = r2 ? l0 : l1;
             r4 = r1[33:33];
             r5 = r6[1:0];
-            r7 = r3 ? l4 : l5;
+            r7 = r3 ? l2 : l3;
             r8 = {r4, r3};
             case (r8)
-               2'b00 : r9 = l7;
-               2'b01 : r9 = l9;
-               2'b10 : r9 = l11;
-               2'b11 : r9 = l13;
+               2'b00 : r9 = l5;
+               2'b01 : r9 = l7;
+               2'b10 : r9 = l9;
+               2'b11 : r9 = l11;
             endcase
-            r10 = r4 ? l14 : l15;
-            r11 = r3 ? l16 : r10;
+            r10 = r4 ? l12 : l13;
+            r11 = r3 ? l14 : r10;
             case (r5)
                2'b00 : r12 = r7;
                2'b01 : r12 = r9;
                2'b10 : r12 = r11;
-               2'b11 : r12 = l21;
+               2'b11 : r12 = l19;
             endcase
-            r13 = l22;
+            r13 = l20;
             r13[1:0] = r12;
             r14 = r6[33:2];
             r15 = r13;
@@ -1529,7 +1483,7 @@ module top_write_controller_tee_s_buffer(input wire [1:0] clock_reset, input wir
             r28 = |r27;
             r29 = r4 & r28;
             r30 = r6[1:0];
-            r31 = r30 != l24;
+            r31 = r30 != l22;
             r32 = r29 & r31;
             r33 = r6[66:66];
             r34 = r3 ^ r33;
@@ -1540,27 +1494,27 @@ module top_write_controller_tee_s_buffer(input wire [1:0] clock_reset, input wir
             r38 = r35;
             r38[67:67] = r37;
             r39 = r6[1:0];
-            r40 = r39 == l25;
+            r40 = r39 == l23;
             r41 = r6[67:67];
             r42 = ~r41;
             r43 = r6[33:2];
             r45 = r43[31:0];
-            r44 = {l26, r45};
-            r46 = l27;
+            r44 = {l24, r45};
+            r46 = l25;
             r46[32:0] = r44;
             r47 = r6[65:34];
             r49 = r47[31:0];
-            r48 = {l28, r49};
-            r50 = l27;
+            r48 = {l26, r49};
+            r50 = l25;
             r50[32:0] = r48;
             r51 = r42 ? r46 : r50;
-            r52 = r40 ? l29 : r51;
+            r52 = r40 ? l27 : r51;
             r53 = r6[1:0];
-            r54 = r53 == l30;
+            r54 = r53 == l28;
             r55 = r52;
             r55[33:33] = r54;
             r56 = r6[1:0];
-            r57 = r56 == l31;
+            r57 = r56 == l29;
             r58 = r55;
             r58[34:34] = r57;
             r59 = {r38, r58};
@@ -1738,66 +1692,61 @@ module top_write_controller_tee_t_buffer(input wire [1:0] clock_reset, input wir
          reg [114:0] r59;
          reg [1:0] r60;
          localparam l0 = 1'b1;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b0;
-         localparam l3 = 1'b0;
-         localparam l4 = 2'b01;
-         localparam l5 = 2'b00;
-         localparam l6 = 2'b00;
-         localparam l7 = 2'b01;
-         localparam l8 = 2'b01;
-         localparam l9 = 2'b10;
-         localparam l10 = 2'b10;
-         localparam l11 = 2'b00;
-         localparam l12 = 2'b11;
-         localparam l13 = 2'b01;
-         localparam l14 = 2'b01;
-         localparam l15 = 2'b10;
-         localparam l16 = 2'b11;
-         localparam l17 = 2'b00;
-         localparam l18 = 2'b01;
-         localparam l19 = 2'b10;
-         localparam l20 = 2'b11;
-         localparam l21 = 2'b11;
-         localparam l22 = 76'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l23 = 1'b1;
-         localparam l24 = 2'b11;
-         localparam l25 = 2'b00;
+         localparam l1 = 1'b0;
+         localparam l2 = 2'b01;
+         localparam l3 = 2'b00;
+         localparam l4 = 2'b00;
+         localparam l5 = 2'b01;
+         localparam l6 = 2'b01;
+         localparam l7 = 2'b10;
+         localparam l8 = 2'b10;
+         localparam l9 = 2'b00;
+         localparam l10 = 2'b11;
+         localparam l11 = 2'b01;
+         localparam l12 = 2'b01;
+         localparam l13 = 2'b10;
+         localparam l14 = 2'b11;
+         localparam l15 = 2'b00;
+         localparam l16 = 2'b01;
+         localparam l17 = 2'b10;
+         localparam l18 = 2'b11;
+         localparam l19 = 2'b11;
+         localparam l20 = 76'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l21 = 1'b1;
+         localparam l22 = 2'b11;
+         localparam l23 = 2'b00;
+         localparam l24 = 1'b1;
+         localparam l25 = 39'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          localparam l26 = 1'b1;
-         localparam l27 = 39'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l28 = 1'b1;
-         localparam l29 = 39'bXX0000000000000000000000000000000000000;
-         localparam l30 = 2'b10;
-         localparam l31 = 2'b11;
+         localparam l27 = 39'bXX0000000000000000000000000000000000000;
+         localparam l28 = 2'b10;
+         localparam l29 = 2'b11;
          begin
             r60 = arg_0;
             r1 = arg_1;
             r6 = arg_2;
             r0 = r1[36:0];
             r2 = r0[36:36];
-            case (r2)
-               1'b1 : r3 = l1;
-               1'b0 : r3 = l3;
-            endcase
+            r3 = r2 ? l0 : l1;
             r4 = r1[37:37];
             r5 = r6[1:0];
-            r7 = r3 ? l4 : l5;
+            r7 = r3 ? l2 : l3;
             r8 = {r4, r3};
             case (r8)
-               2'b00 : r9 = l7;
-               2'b01 : r9 = l9;
-               2'b10 : r9 = l11;
-               2'b11 : r9 = l13;
+               2'b00 : r9 = l5;
+               2'b01 : r9 = l7;
+               2'b10 : r9 = l9;
+               2'b11 : r9 = l11;
             endcase
-            r10 = r4 ? l14 : l15;
-            r11 = r3 ? l16 : r10;
+            r10 = r4 ? l12 : l13;
+            r11 = r3 ? l14 : r10;
             case (r5)
                2'b00 : r12 = r7;
                2'b01 : r12 = r9;
                2'b10 : r12 = r11;
-               2'b11 : r12 = l21;
+               2'b11 : r12 = l19;
             endcase
-            r13 = l22;
+            r13 = l20;
             r13[1:0] = r12;
             r14 = r6[37:2];
             r15 = r13;
@@ -1823,7 +1772,7 @@ module top_write_controller_tee_t_buffer(input wire [1:0] clock_reset, input wir
             r28 = |r27;
             r29 = r4 & r28;
             r30 = r6[1:0];
-            r31 = r30 != l24;
+            r31 = r30 != l22;
             r32 = r29 & r31;
             r33 = r6[74:74];
             r34 = r3 ^ r33;
@@ -1834,27 +1783,27 @@ module top_write_controller_tee_t_buffer(input wire [1:0] clock_reset, input wir
             r38 = r35;
             r38[75:75] = r37;
             r39 = r6[1:0];
-            r40 = r39 == l25;
+            r40 = r39 == l23;
             r41 = r6[75:75];
             r42 = ~r41;
             r43 = r6[37:2];
             r45 = r43[35:0];
-            r44 = {l26, r45};
-            r46 = l27;
+            r44 = {l24, r45};
+            r46 = l25;
             r46[36:0] = r44;
             r47 = r6[73:38];
             r49 = r47[35:0];
-            r48 = {l28, r49};
-            r50 = l27;
+            r48 = {l26, r49};
+            r50 = l25;
             r50[36:0] = r48;
             r51 = r42 ? r46 : r50;
-            r52 = r40 ? l29 : r51;
+            r52 = r40 ? l27 : r51;
             r53 = r6[1:0];
-            r54 = r53 == l30;
+            r54 = r53 == l28;
             r55 = r52;
             r55[37:37] = r54;
             r56 = r6[1:0];
-            r57 = r56 == l31;
+            r57 = r56 == l29;
             r58 = r55;
             r58[38:38] = r57;
             r59 = {r38, r58};
@@ -2086,54 +2035,52 @@ module top_write_controller_addr_buf_outbuf(input wire [1:0] clock_reset, input 
          reg [0:0] r27;
          // sel
          reg [0:0] r28;
-         // stop_out
-         reg [0:0] r29;
          // aux_en
-         reg [0:0] r30;
+         reg [0:0] r29;
          // d
-         reg [65:0] r31;
+         reg [65:0] r30;
          // main_en
-         reg [0:0] r32;
+         reg [0:0] r31;
          // sel
-         reg [0:0] r33;
+         reg [0:0] r32;
          // stop_out
-         reg [0:0] r34;
+         reg [0:0] r33;
+         reg [31:0] r34;
          reg [31:0] r35;
          reg [31:0] r36;
-         reg [31:0] r37;
          // d
-         reg [65:0] r38;
+         reg [65:0] r37;
+         reg [31:0] r38;
          reg [31:0] r39;
          reg [31:0] r40;
          reg [31:0] r41;
          reg [31:0] r42;
-         reg [31:0] r43;
          // d
-         reg [65:0] r44;
+         reg [65:0] r43;
+         reg [0:0] r44;
          reg [0:0] r45;
          reg [0:0] r46;
          reg [0:0] r47;
-         reg [0:0] r48;
          // d
-         reg [65:0] r49;
-         reg [31:0] r50;
+         reg [65:0] r48;
+         reg [31:0] r49;
          // o
-         reg [33:0] r51;
-         reg [0:0] r52;
+         reg [33:0] r50;
+         reg [0:0] r51;
+         // o
+         reg [33:0] r52;
          // o
          reg [33:0] r53;
+         reg [0:0] r54;
+         reg [1:0] r55;
+         reg [0:0] r56;
          // o
-         reg [33:0] r54;
-         reg [0:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
+         reg [33:0] r57;
          // o
          reg [33:0] r58;
          // o
          reg [33:0] r59;
-         // o
-         reg [33:0] r60;
-         reg [99:0] r61;
+         reg [99:0] r60;
          localparam l0 = 66'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          localparam l1 = 1'b1;
          localparam l2 = 1'b1;
@@ -2145,16 +2092,13 @@ module top_write_controller_addr_buf_outbuf(input wire [1:0] clock_reset, input 
          localparam l8 = 1'b0;
          localparam l9 = 1'b1;
          localparam l10 = 1'b1;
-         localparam l11 = 1'b1;
+         localparam l11 = 1'b0;
          localparam l12 = 1'b0;
-         localparam l13 = 1'b1;
-         localparam l14 = 1'b0;
-         localparam l15 = 1'b0;
-         localparam l16 = 34'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
+         localparam l13 = 34'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l14 = 1'b1;
+         localparam l15 = 1'b1;
          begin
-            r56 = arg_0;
+            r55 = arg_0;
             r3 = arg_1;
             r1 = arg_2;
             r0 = r1[64:64];
@@ -2187,62 +2131,46 @@ module top_write_controller_addr_buf_outbuf(input wire [1:0] clock_reset, input 
             r26 = r24 ? r10 : r25;
             r27 = r24 ? l5 : l7;
             r28 = r24 ? l8 : l9;
-            r29 = r24 ? l10 : l11;
-            case (r11)
-               1'b0 : r30 = r21;
-               1'b1 : r30 = l3;
-            endcase
-            case (r11)
-               1'b0 : r31 = r22;
-               1'b1 : r31 = r26;
-            endcase
-            case (r11)
-               1'b0 : r32 = r23;
-               1'b1 : r32 = r27;
-            endcase
-            case (r11)
-               1'b0 : r33 = l8;
-               1'b1 : r33 = r28;
-            endcase
-            case (r11)
-               1'b0 : r34 = l14;
-               1'b1 : r34 = r29;
-            endcase
-            r35 = r3[31:0];
-            r36 = r1[63:32];
-            r37 = r30 ? r35 : r36;
-            r38 = r31;
-            r38[63:32] = r37;
-            r39 = r1[63:32];
-            r40 = r3[31:0];
-            r41 = r33 ? r39 : r40;
-            r42 = r1[31:0];
-            r43 = r32 ? r41 : r42;
-            r44 = r38;
-            r44[31:0] = r43;
-            r45 = r3[32:32];
-            r46 = r33 ? l15 : r45;
-            r47 = r1[64:64];
-            r48 = r32 ? r46 : r47;
-            r49 = r44;
-            r49[64:64] = r48;
-            r50 = r1[31:0];
-            r51 = l16;
-            r51[31:0] = r50;
-            r52 = r1[64:64];
-            r53 = r51;
-            r53[32:32] = r52;
-            r54 = r53;
-            r54[33:33] = r34;
-            r55 = r56[1:1];
-            r57 = |r55;
-            r58 = r54;
-            r58[32:32] = l17;
-            r59 = r58;
-            r59[33:33] = l18;
-            r60 = r57 ? r59 : r54;
-            r61 = {r49, r60};
-            kernel_carloni_kernel = r61;
+            r29 = r11 ? l3 : r21;
+            r30 = r11 ? r26 : r22;
+            r31 = r11 ? r27 : r23;
+            r32 = r11 ? r28 : l8;
+            r33 = r11 ? l10 : l11;
+            r34 = r3[31:0];
+            r35 = r1[63:32];
+            r36 = r29 ? r34 : r35;
+            r37 = r30;
+            r37[63:32] = r36;
+            r38 = r1[63:32];
+            r39 = r3[31:0];
+            r40 = r32 ? r38 : r39;
+            r41 = r1[31:0];
+            r42 = r31 ? r40 : r41;
+            r43 = r37;
+            r43[31:0] = r42;
+            r44 = r3[32:32];
+            r45 = r32 ? l12 : r44;
+            r46 = r1[64:64];
+            r47 = r31 ? r45 : r46;
+            r48 = r43;
+            r48[64:64] = r47;
+            r49 = r1[31:0];
+            r50 = l13;
+            r50[31:0] = r49;
+            r51 = r1[64:64];
+            r52 = r50;
+            r52[32:32] = r51;
+            r53 = r52;
+            r53[33:33] = r33;
+            r54 = r55[1:1];
+            r56 = |r54;
+            r57 = r53;
+            r57[32:32] = l14;
+            r58 = r57;
+            r58[33:33] = l15;
+            r59 = r56 ? r58 : r53;
+            r60 = {r48, r59};
+            kernel_carloni_kernel = r60;
          end
    endfunction
 endmodule
@@ -2454,54 +2382,52 @@ module top_write_controller_data_buf_outbuf(input wire [1:0] clock_reset, input 
          reg [0:0] r27;
          // sel
          reg [0:0] r28;
-         // stop_out
-         reg [0:0] r29;
          // aux_en
-         reg [0:0] r30;
+         reg [0:0] r29;
          // d
-         reg [73:0] r31;
+         reg [73:0] r30;
          // main_en
-         reg [0:0] r32;
+         reg [0:0] r31;
          // sel
-         reg [0:0] r33;
+         reg [0:0] r32;
          // stop_out
-         reg [0:0] r34;
+         reg [0:0] r33;
+         reg [35:0] r34;
          reg [35:0] r35;
          reg [35:0] r36;
-         reg [35:0] r37;
          // d
-         reg [73:0] r38;
+         reg [73:0] r37;
+         reg [35:0] r38;
          reg [35:0] r39;
          reg [35:0] r40;
          reg [35:0] r41;
          reg [35:0] r42;
-         reg [35:0] r43;
          // d
-         reg [73:0] r44;
+         reg [73:0] r43;
+         reg [0:0] r44;
          reg [0:0] r45;
          reg [0:0] r46;
          reg [0:0] r47;
-         reg [0:0] r48;
          // d
-         reg [73:0] r49;
-         reg [35:0] r50;
+         reg [73:0] r48;
+         reg [35:0] r49;
          // o
-         reg [37:0] r51;
-         reg [0:0] r52;
+         reg [37:0] r50;
+         reg [0:0] r51;
+         // o
+         reg [37:0] r52;
          // o
          reg [37:0] r53;
+         reg [0:0] r54;
+         reg [1:0] r55;
+         reg [0:0] r56;
          // o
-         reg [37:0] r54;
-         reg [0:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
+         reg [37:0] r57;
          // o
          reg [37:0] r58;
          // o
          reg [37:0] r59;
-         // o
-         reg [37:0] r60;
-         reg [111:0] r61;
+         reg [111:0] r60;
          localparam l0 = 74'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          localparam l1 = 1'b1;
          localparam l2 = 1'b1;
@@ -2513,16 +2439,13 @@ module top_write_controller_data_buf_outbuf(input wire [1:0] clock_reset, input 
          localparam l8 = 1'b0;
          localparam l9 = 1'b1;
          localparam l10 = 1'b1;
-         localparam l11 = 1'b1;
+         localparam l11 = 1'b0;
          localparam l12 = 1'b0;
-         localparam l13 = 1'b1;
-         localparam l14 = 1'b0;
-         localparam l15 = 1'b0;
-         localparam l16 = 38'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
+         localparam l13 = 38'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l14 = 1'b1;
+         localparam l15 = 1'b1;
          begin
-            r56 = arg_0;
+            r55 = arg_0;
             r3 = arg_1;
             r1 = arg_2;
             r0 = r1[72:72];
@@ -2555,62 +2478,46 @@ module top_write_controller_data_buf_outbuf(input wire [1:0] clock_reset, input 
             r26 = r24 ? r10 : r25;
             r27 = r24 ? l5 : l7;
             r28 = r24 ? l8 : l9;
-            r29 = r24 ? l10 : l11;
-            case (r11)
-               1'b0 : r30 = r21;
-               1'b1 : r30 = l3;
-            endcase
-            case (r11)
-               1'b0 : r31 = r22;
-               1'b1 : r31 = r26;
-            endcase
-            case (r11)
-               1'b0 : r32 = r23;
-               1'b1 : r32 = r27;
-            endcase
-            case (r11)
-               1'b0 : r33 = l8;
-               1'b1 : r33 = r28;
-            endcase
-            case (r11)
-               1'b0 : r34 = l14;
-               1'b1 : r34 = r29;
-            endcase
-            r35 = r3[35:0];
-            r36 = r1[71:36];
-            r37 = r30 ? r35 : r36;
-            r38 = r31;
-            r38[71:36] = r37;
-            r39 = r1[71:36];
-            r40 = r3[35:0];
-            r41 = r33 ? r39 : r40;
-            r42 = r1[35:0];
-            r43 = r32 ? r41 : r42;
-            r44 = r38;
-            r44[35:0] = r43;
-            r45 = r3[36:36];
-            r46 = r33 ? l15 : r45;
-            r47 = r1[72:72];
-            r48 = r32 ? r46 : r47;
-            r49 = r44;
-            r49[72:72] = r48;
-            r50 = r1[35:0];
-            r51 = l16;
-            r51[35:0] = r50;
-            r52 = r1[72:72];
-            r53 = r51;
-            r53[36:36] = r52;
-            r54 = r53;
-            r54[37:37] = r34;
-            r55 = r56[1:1];
-            r57 = |r55;
-            r58 = r54;
-            r58[36:36] = l17;
-            r59 = r58;
-            r59[37:37] = l18;
-            r60 = r57 ? r59 : r54;
-            r61 = {r49, r60};
-            kernel_carloni_kernel = r61;
+            r29 = r11 ? l3 : r21;
+            r30 = r11 ? r26 : r22;
+            r31 = r11 ? r27 : r23;
+            r32 = r11 ? r28 : l8;
+            r33 = r11 ? l10 : l11;
+            r34 = r3[35:0];
+            r35 = r1[71:36];
+            r36 = r29 ? r34 : r35;
+            r37 = r30;
+            r37[71:36] = r36;
+            r38 = r1[71:36];
+            r39 = r3[35:0];
+            r40 = r32 ? r38 : r39;
+            r41 = r1[35:0];
+            r42 = r31 ? r40 : r41;
+            r43 = r37;
+            r43[35:0] = r42;
+            r44 = r3[36:36];
+            r45 = r32 ? l12 : r44;
+            r46 = r1[72:72];
+            r47 = r31 ? r45 : r46;
+            r48 = r43;
+            r48[72:72] = r47;
+            r49 = r1[35:0];
+            r50 = l13;
+            r50[35:0] = r49;
+            r51 = r1[72:72];
+            r52 = r50;
+            r52[36:36] = r51;
+            r53 = r52;
+            r53[37:37] = r33;
+            r54 = r55[1:1];
+            r56 = |r54;
+            r57 = r53;
+            r57[36:36] = l14;
+            r58 = r57;
+            r58[37:37] = l15;
+            r59 = r56 ? r58 : r53;
+            r60 = {r48, r59};
+            kernel_carloni_kernel = r60;
          end
    endfunction
 endmodule
@@ -2812,14 +2719,12 @@ module top_write_controller_map_input_buffer(input wire [1:0] clock_reset, input
          reg [7:0] r27;
          reg [1:0] r28;
          localparam l0 = 1'b1;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b0;
-         localparam l3 = 3'bXX0;
+         localparam l1 = 3'bXX0;
+         localparam l2 = 4'bXXXX;
+         localparam l3 = 1'b0;
          localparam l4 = 4'bXXXX;
-         localparam l5 = 1'b0;
-         localparam l6 = 4'bXXXX;
-         localparam l7 = 1'b1;
-         localparam l8 = 3'b000;
+         localparam l5 = 1'b1;
+         localparam l6 = 3'b000;
          begin
             r28 = arg_0;
             r1 = arg_1;
@@ -2828,13 +2733,10 @@ module top_write_controller_map_input_buffer(input wire [1:0] clock_reset, input
             r2 = r0[2:2];
             r3 = r0[1:0];
             r4 = {r3, l0};
-            case (r2)
-               1'b1 : r5 = r4;
-               1'b0 : r5 = l3;
-            endcase
+            r5 = r2 ? r4 : l1;
             r6 = r5[0:0];
             r7 = r5[2:1];
-            r8 = l4;
+            r8 = l2;
             r8[1:0] = r7;
             r9 = ~r6;
             r10 = r8;
@@ -2845,17 +2747,17 @@ module top_write_controller_map_input_buffer(input wire [1:0] clock_reset, input
             r13[3:3] = r12;
             r15 = r14[3:3];
             r16 = ~r15;
-            r17 = l5;
+            r17 = l3;
             r18 = r17;
             r18[0:0] = r16;
-            r19 = l6;
+            r19 = l4;
             r19[3:3] = r18;
             r20 = r14[2:2];
             r21 = ~r20;
             r22 = r14[1:0];
             r24 = r22[1:0];
-            r23 = {l7, r24};
-            r25 = r21 ? r23 : l8;
+            r23 = {l5, r24};
+            r25 = r21 ? r23 : l6;
             r26 = r19;
             r26[2:0] = r25;
             r27 = {r13, r26};
@@ -2915,54 +2817,52 @@ module top_write_controller_map_input_buffer_inner(input wire [1:0] clock_reset,
          reg [0:0] r27;
          // sel
          reg [0:0] r28;
-         // stop_out
-         reg [0:0] r29;
          // aux_en
-         reg [0:0] r30;
+         reg [0:0] r29;
          // d
-         reg [5:0] r31;
+         reg [5:0] r30;
          // main_en
-         reg [0:0] r32;
+         reg [0:0] r31;
          // sel
-         reg [0:0] r33;
+         reg [0:0] r32;
          // stop_out
-         reg [0:0] r34;
+         reg [0:0] r33;
+         reg [1:0] r34;
          reg [1:0] r35;
          reg [1:0] r36;
-         reg [1:0] r37;
          // d
-         reg [5:0] r38;
+         reg [5:0] r37;
+         reg [1:0] r38;
          reg [1:0] r39;
          reg [1:0] r40;
          reg [1:0] r41;
          reg [1:0] r42;
-         reg [1:0] r43;
          // d
-         reg [5:0] r44;
+         reg [5:0] r43;
+         reg [0:0] r44;
          reg [0:0] r45;
          reg [0:0] r46;
          reg [0:0] r47;
-         reg [0:0] r48;
          // d
-         reg [5:0] r49;
-         reg [1:0] r50;
+         reg [5:0] r48;
+         reg [1:0] r49;
          // o
-         reg [3:0] r51;
-         reg [0:0] r52;
+         reg [3:0] r50;
+         reg [0:0] r51;
+         // o
+         reg [3:0] r52;
          // o
          reg [3:0] r53;
+         reg [0:0] r54;
+         reg [1:0] r55;
+         reg [0:0] r56;
          // o
-         reg [3:0] r54;
-         reg [0:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
+         reg [3:0] r57;
          // o
          reg [3:0] r58;
          // o
          reg [3:0] r59;
-         // o
-         reg [3:0] r60;
-         reg [9:0] r61;
+         reg [9:0] r60;
          localparam l0 = 6'bXXXXXX;
          localparam l1 = 1'b1;
          localparam l2 = 1'b1;
@@ -2974,16 +2874,13 @@ module top_write_controller_map_input_buffer_inner(input wire [1:0] clock_reset,
          localparam l8 = 1'b0;
          localparam l9 = 1'b1;
          localparam l10 = 1'b1;
-         localparam l11 = 1'b1;
+         localparam l11 = 1'b0;
          localparam l12 = 1'b0;
-         localparam l13 = 1'b1;
-         localparam l14 = 1'b0;
-         localparam l15 = 1'b0;
-         localparam l16 = 4'bXXXX;
-         localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
+         localparam l13 = 4'bXXXX;
+         localparam l14 = 1'b1;
+         localparam l15 = 1'b1;
          begin
-            r56 = arg_0;
+            r55 = arg_0;
             r3 = arg_1;
             r1 = arg_2;
             r0 = r1[4:4];
@@ -3016,62 +2913,46 @@ module top_write_controller_map_input_buffer_inner(input wire [1:0] clock_reset,
             r26 = r24 ? r10 : r25;
             r27 = r24 ? l5 : l7;
             r28 = r24 ? l8 : l9;
-            r29 = r24 ? l10 : l11;
-            case (r11)
-               1'b0 : r30 = r21;
-               1'b1 : r30 = l3;
-            endcase
-            case (r11)
-               1'b0 : r31 = r22;
-               1'b1 : r31 = r26;
-            endcase
-            case (r11)
-               1'b0 : r32 = r23;
-               1'b1 : r32 = r27;
-            endcase
-            case (r11)
-               1'b0 : r33 = l8;
-               1'b1 : r33 = r28;
-            endcase
-            case (r11)
-               1'b0 : r34 = l14;
-               1'b1 : r34 = r29;
-            endcase
-            r35 = r3[1:0];
-            r36 = r1[3:2];
-            r37 = r30 ? r35 : r36;
-            r38 = r31;
-            r38[3:2] = r37;
-            r39 = r1[3:2];
-            r40 = r3[1:0];
-            r41 = r33 ? r39 : r40;
-            r42 = r1[1:0];
-            r43 = r32 ? r41 : r42;
-            r44 = r38;
-            r44[1:0] = r43;
-            r45 = r3[2:2];
-            r46 = r33 ? l15 : r45;
-            r47 = r1[4:4];
-            r48 = r32 ? r46 : r47;
-            r49 = r44;
-            r49[4:4] = r48;
-            r50 = r1[1:0];
-            r51 = l16;
-            r51[1:0] = r50;
-            r52 = r1[4:4];
-            r53 = r51;
-            r53[2:2] = r52;
-            r54 = r53;
-            r54[3:3] = r34;
-            r55 = r56[1:1];
-            r57 = |r55;
-            r58 = r54;
-            r58[2:2] = l17;
-            r59 = r58;
-            r59[3:3] = l18;
-            r60 = r57 ? r59 : r54;
-            r61 = {r49, r60};
-            kernel_carloni_kernel = r61;
+            r29 = r11 ? l3 : r21;
+            r30 = r11 ? r26 : r22;
+            r31 = r11 ? r27 : r23;
+            r32 = r11 ? r28 : l8;
+            r33 = r11 ? l10 : l11;
+            r34 = r3[1:0];
+            r35 = r1[3:2];
+            r36 = r29 ? r34 : r35;
+            r37 = r30;
+            r37[3:2] = r36;
+            r38 = r1[3:2];
+            r39 = r3[1:0];
+            r40 = r32 ? r38 : r39;
+            r41 = r1[1:0];
+            r42 = r31 ? r40 : r41;
+            r43 = r37;
+            r43[1:0] = r42;
+            r44 = r3[2:2];
+            r45 = r32 ? l12 : r44;
+            r46 = r1[4:4];
+            r47 = r31 ? r45 : r46;
+            r48 = r43;
+            r48[4:4] = r47;
+            r49 = r1[1:0];
+            r50 = l13;
+            r50[1:0] = r49;
+            r51 = r1[4:4];
+            r52 = r50;
+            r52[2:2] = r51;
+            r53 = r52;
+            r53[3:3] = r33;
+            r54 = r55[1:1];
+            r56 = |r54;
+            r57 = r53;
+            r57[2:2] = l14;
+            r58 = r57;
+            r58[3:3] = l15;
+            r59 = r56 ? r58 : r53;
+            r60 = {r48, r59};
+            kernel_carloni_kernel = r60;
          end
    endfunction
 endmodule
@@ -3289,54 +3170,52 @@ module top_write_controller_outbuf_inbuf(input wire [1:0] clock_reset, input wir
          reg [0:0] r27;
          // sel
          reg [0:0] r28;
-         // stop_out
-         reg [0:0] r29;
          // aux_en
-         reg [0:0] r30;
+         reg [0:0] r29;
          // d
-         reg [5:0] r31;
+         reg [5:0] r30;
          // main_en
-         reg [0:0] r32;
+         reg [0:0] r31;
          // sel
-         reg [0:0] r33;
+         reg [0:0] r32;
          // stop_out
-         reg [0:0] r34;
+         reg [0:0] r33;
+         reg [1:0] r34;
          reg [1:0] r35;
          reg [1:0] r36;
-         reg [1:0] r37;
          // d
-         reg [5:0] r38;
+         reg [5:0] r37;
+         reg [1:0] r38;
          reg [1:0] r39;
          reg [1:0] r40;
          reg [1:0] r41;
          reg [1:0] r42;
-         reg [1:0] r43;
          // d
-         reg [5:0] r44;
+         reg [5:0] r43;
+         reg [0:0] r44;
          reg [0:0] r45;
          reg [0:0] r46;
          reg [0:0] r47;
-         reg [0:0] r48;
          // d
-         reg [5:0] r49;
-         reg [1:0] r50;
+         reg [5:0] r48;
+         reg [1:0] r49;
          // o
-         reg [3:0] r51;
-         reg [0:0] r52;
+         reg [3:0] r50;
+         reg [0:0] r51;
+         // o
+         reg [3:0] r52;
          // o
          reg [3:0] r53;
+         reg [0:0] r54;
+         reg [1:0] r55;
+         reg [0:0] r56;
          // o
-         reg [3:0] r54;
-         reg [0:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
+         reg [3:0] r57;
          // o
          reg [3:0] r58;
          // o
          reg [3:0] r59;
-         // o
-         reg [3:0] r60;
-         reg [9:0] r61;
+         reg [9:0] r60;
          localparam l0 = 6'bXXXXXX;
          localparam l1 = 1'b1;
          localparam l2 = 1'b1;
@@ -3348,16 +3227,13 @@ module top_write_controller_outbuf_inbuf(input wire [1:0] clock_reset, input wir
          localparam l8 = 1'b0;
          localparam l9 = 1'b1;
          localparam l10 = 1'b1;
-         localparam l11 = 1'b1;
+         localparam l11 = 1'b0;
          localparam l12 = 1'b0;
-         localparam l13 = 1'b1;
-         localparam l14 = 1'b0;
-         localparam l15 = 1'b0;
-         localparam l16 = 4'bXXXX;
-         localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
+         localparam l13 = 4'bXXXX;
+         localparam l14 = 1'b1;
+         localparam l15 = 1'b1;
          begin
-            r56 = arg_0;
+            r55 = arg_0;
             r3 = arg_1;
             r1 = arg_2;
             r0 = r1[4:4];
@@ -3390,62 +3266,46 @@ module top_write_controller_outbuf_inbuf(input wire [1:0] clock_reset, input wir
             r26 = r24 ? r10 : r25;
             r27 = r24 ? l5 : l7;
             r28 = r24 ? l8 : l9;
-            r29 = r24 ? l10 : l11;
-            case (r11)
-               1'b0 : r30 = r21;
-               1'b1 : r30 = l3;
-            endcase
-            case (r11)
-               1'b0 : r31 = r22;
-               1'b1 : r31 = r26;
-            endcase
-            case (r11)
-               1'b0 : r32 = r23;
-               1'b1 : r32 = r27;
-            endcase
-            case (r11)
-               1'b0 : r33 = l8;
-               1'b1 : r33 = r28;
-            endcase
-            case (r11)
-               1'b0 : r34 = l14;
-               1'b1 : r34 = r29;
-            endcase
-            r35 = r3[1:0];
-            r36 = r1[3:2];
-            r37 = r30 ? r35 : r36;
-            r38 = r31;
-            r38[3:2] = r37;
-            r39 = r1[3:2];
-            r40 = r3[1:0];
-            r41 = r33 ? r39 : r40;
-            r42 = r1[1:0];
-            r43 = r32 ? r41 : r42;
-            r44 = r38;
-            r44[1:0] = r43;
-            r45 = r3[2:2];
-            r46 = r33 ? l15 : r45;
-            r47 = r1[4:4];
-            r48 = r32 ? r46 : r47;
-            r49 = r44;
-            r49[4:4] = r48;
-            r50 = r1[1:0];
-            r51 = l16;
-            r51[1:0] = r50;
-            r52 = r1[4:4];
-            r53 = r51;
-            r53[2:2] = r52;
-            r54 = r53;
-            r54[3:3] = r34;
-            r55 = r56[1:1];
-            r57 = |r55;
-            r58 = r54;
-            r58[2:2] = l17;
-            r59 = r58;
-            r59[3:3] = l18;
-            r60 = r57 ? r59 : r54;
-            r61 = {r49, r60};
-            kernel_carloni_kernel = r61;
+            r29 = r11 ? l3 : r21;
+            r30 = r11 ? r26 : r22;
+            r31 = r11 ? r27 : r23;
+            r32 = r11 ? r28 : l8;
+            r33 = r11 ? l10 : l11;
+            r34 = r3[1:0];
+            r35 = r1[3:2];
+            r36 = r29 ? r34 : r35;
+            r37 = r30;
+            r37[3:2] = r36;
+            r38 = r1[3:2];
+            r39 = r3[1:0];
+            r40 = r32 ? r38 : r39;
+            r41 = r1[1:0];
+            r42 = r31 ? r40 : r41;
+            r43 = r37;
+            r43[1:0] = r42;
+            r44 = r3[2:2];
+            r45 = r32 ? l12 : r44;
+            r46 = r1[4:4];
+            r47 = r31 ? r45 : r46;
+            r48 = r43;
+            r48[4:4] = r47;
+            r49 = r1[1:0];
+            r50 = l13;
+            r50[1:0] = r49;
+            r51 = r1[4:4];
+            r52 = r50;
+            r52[2:2] = r51;
+            r53 = r52;
+            r53[3:3] = r33;
+            r54 = r55[1:1];
+            r56 = |r54;
+            r57 = r53;
+            r57[2:2] = l14;
+            r58 = r57;
+            r58[3:3] = l15;
+            r59 = r56 ? r58 : r53;
+            r60 = {r48, r59};
+            kernel_carloni_kernel = r60;
          end
    endfunction
 endmodule
@@ -3786,54 +3646,52 @@ module top_read_controller_inbuf_outbuf(input wire [1:0] clock_reset, input wire
          reg [0:0] r27;
          // sel
          reg [0:0] r28;
-         // stop_out
-         reg [0:0] r29;
          // aux_en
-         reg [0:0] r30;
+         reg [0:0] r29;
          // d
-         reg [65:0] r31;
+         reg [65:0] r30;
          // main_en
-         reg [0:0] r32;
+         reg [0:0] r31;
          // sel
-         reg [0:0] r33;
+         reg [0:0] r32;
          // stop_out
-         reg [0:0] r34;
+         reg [0:0] r33;
+         reg [31:0] r34;
          reg [31:0] r35;
          reg [31:0] r36;
-         reg [31:0] r37;
          // d
-         reg [65:0] r38;
+         reg [65:0] r37;
+         reg [31:0] r38;
          reg [31:0] r39;
          reg [31:0] r40;
          reg [31:0] r41;
          reg [31:0] r42;
-         reg [31:0] r43;
          // d
-         reg [65:0] r44;
+         reg [65:0] r43;
+         reg [0:0] r44;
          reg [0:0] r45;
          reg [0:0] r46;
          reg [0:0] r47;
-         reg [0:0] r48;
          // d
-         reg [65:0] r49;
-         reg [31:0] r50;
+         reg [65:0] r48;
+         reg [31:0] r49;
          // o
-         reg [33:0] r51;
-         reg [0:0] r52;
+         reg [33:0] r50;
+         reg [0:0] r51;
+         // o
+         reg [33:0] r52;
          // o
          reg [33:0] r53;
+         reg [0:0] r54;
+         reg [1:0] r55;
+         reg [0:0] r56;
          // o
-         reg [33:0] r54;
-         reg [0:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
+         reg [33:0] r57;
          // o
          reg [33:0] r58;
          // o
          reg [33:0] r59;
-         // o
-         reg [33:0] r60;
-         reg [99:0] r61;
+         reg [99:0] r60;
          localparam l0 = 66'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          localparam l1 = 1'b1;
          localparam l2 = 1'b1;
@@ -3845,16 +3703,13 @@ module top_read_controller_inbuf_outbuf(input wire [1:0] clock_reset, input wire
          localparam l8 = 1'b0;
          localparam l9 = 1'b1;
          localparam l10 = 1'b1;
-         localparam l11 = 1'b1;
+         localparam l11 = 1'b0;
          localparam l12 = 1'b0;
-         localparam l13 = 1'b1;
-         localparam l14 = 1'b0;
-         localparam l15 = 1'b0;
-         localparam l16 = 34'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
+         localparam l13 = 34'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l14 = 1'b1;
+         localparam l15 = 1'b1;
          begin
-            r56 = arg_0;
+            r55 = arg_0;
             r3 = arg_1;
             r1 = arg_2;
             r0 = r1[64:64];
@@ -3887,62 +3742,46 @@ module top_read_controller_inbuf_outbuf(input wire [1:0] clock_reset, input wire
             r26 = r24 ? r10 : r25;
             r27 = r24 ? l5 : l7;
             r28 = r24 ? l8 : l9;
-            r29 = r24 ? l10 : l11;
-            case (r11)
-               1'b0 : r30 = r21;
-               1'b1 : r30 = l3;
-            endcase
-            case (r11)
-               1'b0 : r31 = r22;
-               1'b1 : r31 = r26;
-            endcase
-            case (r11)
-               1'b0 : r32 = r23;
-               1'b1 : r32 = r27;
-            endcase
-            case (r11)
-               1'b0 : r33 = l8;
-               1'b1 : r33 = r28;
-            endcase
-            case (r11)
-               1'b0 : r34 = l14;
-               1'b1 : r34 = r29;
-            endcase
-            r35 = r3[31:0];
-            r36 = r1[63:32];
-            r37 = r30 ? r35 : r36;
-            r38 = r31;
-            r38[63:32] = r37;
-            r39 = r1[63:32];
-            r40 = r3[31:0];
-            r41 = r33 ? r39 : r40;
-            r42 = r1[31:0];
-            r43 = r32 ? r41 : r42;
-            r44 = r38;
-            r44[31:0] = r43;
-            r45 = r3[32:32];
-            r46 = r33 ? l15 : r45;
-            r47 = r1[64:64];
-            r48 = r32 ? r46 : r47;
-            r49 = r44;
-            r49[64:64] = r48;
-            r50 = r1[31:0];
-            r51 = l16;
-            r51[31:0] = r50;
-            r52 = r1[64:64];
-            r53 = r51;
-            r53[32:32] = r52;
-            r54 = r53;
-            r54[33:33] = r34;
-            r55 = r56[1:1];
-            r57 = |r55;
-            r58 = r54;
-            r58[32:32] = l17;
-            r59 = r58;
-            r59[33:33] = l18;
-            r60 = r57 ? r59 : r54;
-            r61 = {r49, r60};
-            kernel_carloni_kernel = r61;
+            r29 = r11 ? l3 : r21;
+            r30 = r11 ? r26 : r22;
+            r31 = r11 ? r27 : r23;
+            r32 = r11 ? r28 : l8;
+            r33 = r11 ? l10 : l11;
+            r34 = r3[31:0];
+            r35 = r1[63:32];
+            r36 = r29 ? r34 : r35;
+            r37 = r30;
+            r37[63:32] = r36;
+            r38 = r1[63:32];
+            r39 = r3[31:0];
+            r40 = r32 ? r38 : r39;
+            r41 = r1[31:0];
+            r42 = r31 ? r40 : r41;
+            r43 = r37;
+            r43[31:0] = r42;
+            r44 = r3[32:32];
+            r45 = r32 ? l12 : r44;
+            r46 = r1[64:64];
+            r47 = r31 ? r45 : r46;
+            r48 = r43;
+            r48[64:64] = r47;
+            r49 = r1[31:0];
+            r50 = l13;
+            r50[31:0] = r49;
+            r51 = r1[64:64];
+            r52 = r50;
+            r52[32:32] = r51;
+            r53 = r52;
+            r53[33:33] = r33;
+            r54 = r55[1:1];
+            r56 = |r54;
+            r57 = r53;
+            r57[32:32] = l14;
+            r58 = r57;
+            r58[33:33] = l15;
+            r59 = r56 ? r58 : r53;
+            r60 = {r48, r59};
+            kernel_carloni_kernel = r60;
          end
    endfunction
 endmodule
@@ -4144,14 +3983,12 @@ module top_read_controller_map_input_buffer(input wire [1:0] clock_reset, input 
          reg [71:0] r27;
          reg [1:0] r28;
          localparam l0 = 1'b1;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b0;
-         localparam l3 = 35'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX0;
+         localparam l1 = 35'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX0;
+         localparam l2 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l3 = 1'b0;
          localparam l4 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l5 = 1'b0;
-         localparam l6 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l7 = 1'b1;
-         localparam l8 = 35'b00000000000000000000000000000000000;
+         localparam l5 = 1'b1;
+         localparam l6 = 35'b00000000000000000000000000000000000;
          begin
             r28 = arg_0;
             r1 = arg_1;
@@ -4160,13 +3997,10 @@ module top_read_controller_map_input_buffer(input wire [1:0] clock_reset, input 
             r2 = r0[34:34];
             r3 = r0[33:0];
             r4 = {r3, l0};
-            case (r2)
-               1'b1 : r5 = r4;
-               1'b0 : r5 = l3;
-            endcase
+            r5 = r2 ? r4 : l1;
             r6 = r5[0:0];
             r7 = r5[34:1];
-            r8 = l4;
+            r8 = l2;
             r8[33:0] = r7;
             r9 = ~r6;
             r10 = r8;
@@ -4177,17 +4011,17 @@ module top_read_controller_map_input_buffer(input wire [1:0] clock_reset, input 
             r13[35:35] = r12;
             r15 = r14[35:35];
             r16 = ~r15;
-            r17 = l5;
+            r17 = l3;
             r18 = r17;
             r18[0:0] = r16;
-            r19 = l6;
+            r19 = l4;
             r19[35:35] = r18;
             r20 = r14[34:34];
             r21 = ~r20;
             r22 = r14[33:0];
             r24 = r22[33:0];
-            r23 = {l7, r24};
-            r25 = r21 ? r23 : l8;
+            r23 = {l5, r24};
+            r25 = r21 ? r23 : l6;
             r26 = r19;
             r26[34:0] = r25;
             r27 = {r13, r26};
@@ -4247,54 +4081,52 @@ module top_read_controller_map_input_buffer_inner(input wire [1:0] clock_reset, 
          reg [0:0] r27;
          // sel
          reg [0:0] r28;
-         // stop_out
-         reg [0:0] r29;
          // aux_en
-         reg [0:0] r30;
+         reg [0:0] r29;
          // d
-         reg [69:0] r31;
+         reg [69:0] r30;
          // main_en
-         reg [0:0] r32;
+         reg [0:0] r31;
          // sel
-         reg [0:0] r33;
+         reg [0:0] r32;
          // stop_out
-         reg [0:0] r34;
+         reg [0:0] r33;
+         reg [33:0] r34;
          reg [33:0] r35;
          reg [33:0] r36;
-         reg [33:0] r37;
          // d
-         reg [69:0] r38;
+         reg [69:0] r37;
+         reg [33:0] r38;
          reg [33:0] r39;
          reg [33:0] r40;
          reg [33:0] r41;
          reg [33:0] r42;
-         reg [33:0] r43;
          // d
-         reg [69:0] r44;
+         reg [69:0] r43;
+         reg [0:0] r44;
          reg [0:0] r45;
          reg [0:0] r46;
          reg [0:0] r47;
-         reg [0:0] r48;
          // d
-         reg [69:0] r49;
-         reg [33:0] r50;
+         reg [69:0] r48;
+         reg [33:0] r49;
          // o
-         reg [35:0] r51;
-         reg [0:0] r52;
+         reg [35:0] r50;
+         reg [0:0] r51;
+         // o
+         reg [35:0] r52;
          // o
          reg [35:0] r53;
+         reg [0:0] r54;
+         reg [1:0] r55;
+         reg [0:0] r56;
          // o
-         reg [35:0] r54;
-         reg [0:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
+         reg [35:0] r57;
          // o
          reg [35:0] r58;
          // o
          reg [35:0] r59;
-         // o
-         reg [35:0] r60;
-         reg [105:0] r61;
+         reg [105:0] r60;
          localparam l0 = 70'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          localparam l1 = 1'b1;
          localparam l2 = 1'b1;
@@ -4306,16 +4138,13 @@ module top_read_controller_map_input_buffer_inner(input wire [1:0] clock_reset, 
          localparam l8 = 1'b0;
          localparam l9 = 1'b1;
          localparam l10 = 1'b1;
-         localparam l11 = 1'b1;
+         localparam l11 = 1'b0;
          localparam l12 = 1'b0;
-         localparam l13 = 1'b1;
-         localparam l14 = 1'b0;
-         localparam l15 = 1'b0;
-         localparam l16 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
+         localparam l13 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l14 = 1'b1;
+         localparam l15 = 1'b1;
          begin
-            r56 = arg_0;
+            r55 = arg_0;
             r3 = arg_1;
             r1 = arg_2;
             r0 = r1[68:68];
@@ -4348,62 +4177,46 @@ module top_read_controller_map_input_buffer_inner(input wire [1:0] clock_reset, 
             r26 = r24 ? r10 : r25;
             r27 = r24 ? l5 : l7;
             r28 = r24 ? l8 : l9;
-            r29 = r24 ? l10 : l11;
-            case (r11)
-               1'b0 : r30 = r21;
-               1'b1 : r30 = l3;
-            endcase
-            case (r11)
-               1'b0 : r31 = r22;
-               1'b1 : r31 = r26;
-            endcase
-            case (r11)
-               1'b0 : r32 = r23;
-               1'b1 : r32 = r27;
-            endcase
-            case (r11)
-               1'b0 : r33 = l8;
-               1'b1 : r33 = r28;
-            endcase
-            case (r11)
-               1'b0 : r34 = l14;
-               1'b1 : r34 = r29;
-            endcase
-            r35 = r3[33:0];
-            r36 = r1[67:34];
-            r37 = r30 ? r35 : r36;
-            r38 = r31;
-            r38[67:34] = r37;
-            r39 = r1[67:34];
-            r40 = r3[33:0];
-            r41 = r33 ? r39 : r40;
-            r42 = r1[33:0];
-            r43 = r32 ? r41 : r42;
-            r44 = r38;
-            r44[33:0] = r43;
-            r45 = r3[34:34];
-            r46 = r33 ? l15 : r45;
-            r47 = r1[68:68];
-            r48 = r32 ? r46 : r47;
-            r49 = r44;
-            r49[68:68] = r48;
-            r50 = r1[33:0];
-            r51 = l16;
-            r51[33:0] = r50;
-            r52 = r1[68:68];
-            r53 = r51;
-            r53[34:34] = r52;
-            r54 = r53;
-            r54[35:35] = r34;
-            r55 = r56[1:1];
-            r57 = |r55;
-            r58 = r54;
-            r58[34:34] = l17;
-            r59 = r58;
-            r59[35:35] = l18;
-            r60 = r57 ? r59 : r54;
-            r61 = {r49, r60};
-            kernel_carloni_kernel = r61;
+            r29 = r11 ? l3 : r21;
+            r30 = r11 ? r26 : r22;
+            r31 = r11 ? r27 : r23;
+            r32 = r11 ? r28 : l8;
+            r33 = r11 ? l10 : l11;
+            r34 = r3[33:0];
+            r35 = r1[67:34];
+            r36 = r29 ? r34 : r35;
+            r37 = r30;
+            r37[67:34] = r36;
+            r38 = r1[67:34];
+            r39 = r3[33:0];
+            r40 = r32 ? r38 : r39;
+            r41 = r1[33:0];
+            r42 = r31 ? r40 : r41;
+            r43 = r37;
+            r43[33:0] = r42;
+            r44 = r3[34:34];
+            r45 = r32 ? l12 : r44;
+            r46 = r1[68:68];
+            r47 = r31 ? r45 : r46;
+            r48 = r43;
+            r48[68:68] = r47;
+            r49 = r1[33:0];
+            r50 = l13;
+            r50[33:0] = r49;
+            r51 = r1[68:68];
+            r52 = r50;
+            r52[34:34] = r51;
+            r53 = r52;
+            r53[35:35] = r33;
+            r54 = r55[1:1];
+            r56 = |r54;
+            r57 = r53;
+            r57[34:34] = l14;
+            r58 = r57;
+            r58[35:35] = l15;
+            r59 = r56 ? r58 : r53;
+            r60 = {r48, r59};
+            kernel_carloni_kernel = r60;
          end
    endfunction
 endmodule
@@ -4636,54 +4449,52 @@ module top_read_controller_outbuf_inbuf(input wire [1:0] clock_reset, input wire
          reg [0:0] r27;
          // sel
          reg [0:0] r28;
-         // stop_out
-         reg [0:0] r29;
          // aux_en
-         reg [0:0] r30;
+         reg [0:0] r29;
          // d
-         reg [69:0] r31;
+         reg [69:0] r30;
          // main_en
-         reg [0:0] r32;
+         reg [0:0] r31;
          // sel
-         reg [0:0] r33;
+         reg [0:0] r32;
          // stop_out
-         reg [0:0] r34;
+         reg [0:0] r33;
+         reg [33:0] r34;
          reg [33:0] r35;
          reg [33:0] r36;
-         reg [33:0] r37;
          // d
-         reg [69:0] r38;
+         reg [69:0] r37;
+         reg [33:0] r38;
          reg [33:0] r39;
          reg [33:0] r40;
          reg [33:0] r41;
          reg [33:0] r42;
-         reg [33:0] r43;
          // d
-         reg [69:0] r44;
+         reg [69:0] r43;
+         reg [0:0] r44;
          reg [0:0] r45;
          reg [0:0] r46;
          reg [0:0] r47;
-         reg [0:0] r48;
          // d
-         reg [69:0] r49;
-         reg [33:0] r50;
+         reg [69:0] r48;
+         reg [33:0] r49;
          // o
-         reg [35:0] r51;
-         reg [0:0] r52;
+         reg [35:0] r50;
+         reg [0:0] r51;
+         // o
+         reg [35:0] r52;
          // o
          reg [35:0] r53;
+         reg [0:0] r54;
+         reg [1:0] r55;
+         reg [0:0] r56;
          // o
-         reg [35:0] r54;
-         reg [0:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
+         reg [35:0] r57;
          // o
          reg [35:0] r58;
          // o
          reg [35:0] r59;
-         // o
-         reg [35:0] r60;
-         reg [105:0] r61;
+         reg [105:0] r60;
          localparam l0 = 70'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          localparam l1 = 1'b1;
          localparam l2 = 1'b1;
@@ -4695,16 +4506,13 @@ module top_read_controller_outbuf_inbuf(input wire [1:0] clock_reset, input wire
          localparam l8 = 1'b0;
          localparam l9 = 1'b1;
          localparam l10 = 1'b1;
-         localparam l11 = 1'b1;
+         localparam l11 = 1'b0;
          localparam l12 = 1'b0;
-         localparam l13 = 1'b1;
-         localparam l14 = 1'b0;
-         localparam l15 = 1'b0;
-         localparam l16 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
+         localparam l13 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l14 = 1'b1;
+         localparam l15 = 1'b1;
          begin
-            r56 = arg_0;
+            r55 = arg_0;
             r3 = arg_1;
             r1 = arg_2;
             r0 = r1[68:68];
@@ -4737,62 +4545,46 @@ module top_read_controller_outbuf_inbuf(input wire [1:0] clock_reset, input wire
             r26 = r24 ? r10 : r25;
             r27 = r24 ? l5 : l7;
             r28 = r24 ? l8 : l9;
-            r29 = r24 ? l10 : l11;
-            case (r11)
-               1'b0 : r30 = r21;
-               1'b1 : r30 = l3;
-            endcase
-            case (r11)
-               1'b0 : r31 = r22;
-               1'b1 : r31 = r26;
-            endcase
-            case (r11)
-               1'b0 : r32 = r23;
-               1'b1 : r32 = r27;
-            endcase
-            case (r11)
-               1'b0 : r33 = l8;
-               1'b1 : r33 = r28;
-            endcase
-            case (r11)
-               1'b0 : r34 = l14;
-               1'b1 : r34 = r29;
-            endcase
-            r35 = r3[33:0];
-            r36 = r1[67:34];
-            r37 = r30 ? r35 : r36;
-            r38 = r31;
-            r38[67:34] = r37;
-            r39 = r1[67:34];
-            r40 = r3[33:0];
-            r41 = r33 ? r39 : r40;
-            r42 = r1[33:0];
-            r43 = r32 ? r41 : r42;
-            r44 = r38;
-            r44[33:0] = r43;
-            r45 = r3[34:34];
-            r46 = r33 ? l15 : r45;
-            r47 = r1[68:68];
-            r48 = r32 ? r46 : r47;
-            r49 = r44;
-            r49[68:68] = r48;
-            r50 = r1[33:0];
-            r51 = l16;
-            r51[33:0] = r50;
-            r52 = r1[68:68];
-            r53 = r51;
-            r53[34:34] = r52;
-            r54 = r53;
-            r54[35:35] = r34;
-            r55 = r56[1:1];
-            r57 = |r55;
-            r58 = r54;
-            r58[34:34] = l17;
-            r59 = r58;
-            r59[35:35] = l18;
-            r60 = r57 ? r59 : r54;
-            r61 = {r49, r60};
-            kernel_carloni_kernel = r61;
+            r29 = r11 ? l3 : r21;
+            r30 = r11 ? r26 : r22;
+            r31 = r11 ? r27 : r23;
+            r32 = r11 ? r28 : l8;
+            r33 = r11 ? l10 : l11;
+            r34 = r3[33:0];
+            r35 = r1[67:34];
+            r36 = r29 ? r34 : r35;
+            r37 = r30;
+            r37[67:34] = r36;
+            r38 = r1[67:34];
+            r39 = r3[33:0];
+            r40 = r32 ? r38 : r39;
+            r41 = r1[33:0];
+            r42 = r31 ? r40 : r41;
+            r43 = r37;
+            r43[33:0] = r42;
+            r44 = r3[34:34];
+            r45 = r32 ? l12 : r44;
+            r46 = r1[68:68];
+            r47 = r31 ? r45 : r46;
+            r48 = r43;
+            r48[68:68] = r47;
+            r49 = r1[33:0];
+            r50 = l13;
+            r50[33:0] = r49;
+            r51 = r1[68:68];
+            r52 = r50;
+            r52[34:34] = r51;
+            r53 = r52;
+            r53[35:35] = r33;
+            r54 = r55[1:1];
+            r56 = |r54;
+            r57 = r53;
+            r57[34:34] = l14;
+            r58 = r57;
+            r58[35:35] = l15;
+            r59 = r56 ? r58 : r53;
+            r60 = {r48, r59};
+            kernel_carloni_kernel = r60;
          end
    endfunction
 endmodule
@@ -4904,14 +4696,12 @@ module top_outbuf(input wire [1:0] clock_reset, input wire [35:0] i, output wire
          reg [71:0] r27;
          reg [1:0] r28;
          localparam l0 = 1'b1;
-         localparam l1 = 1'b1;
-         localparam l2 = 1'b0;
-         localparam l3 = 35'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX0;
+         localparam l1 = 35'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX0;
+         localparam l2 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l3 = 1'b0;
          localparam l4 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l5 = 1'b0;
-         localparam l6 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l7 = 1'b1;
-         localparam l8 = 35'b00000000000000000000000000000000000;
+         localparam l5 = 1'b1;
+         localparam l6 = 35'b00000000000000000000000000000000000;
          begin
             r28 = arg_0;
             r1 = arg_1;
@@ -4920,13 +4710,10 @@ module top_outbuf(input wire [1:0] clock_reset, input wire [35:0] i, output wire
             r2 = r0[34:34];
             r3 = r0[33:0];
             r4 = {r3, l0};
-            case (r2)
-               1'b1 : r5 = r4;
-               1'b0 : r5 = l3;
-            endcase
+            r5 = r2 ? r4 : l1;
             r6 = r5[0:0];
             r7 = r5[34:1];
-            r8 = l4;
+            r8 = l2;
             r8[33:0] = r7;
             r9 = ~r6;
             r10 = r8;
@@ -4937,17 +4724,17 @@ module top_outbuf(input wire [1:0] clock_reset, input wire [35:0] i, output wire
             r13[35:35] = r12;
             r15 = r14[35:35];
             r16 = ~r15;
-            r17 = l5;
+            r17 = l3;
             r18 = r17;
             r18[0:0] = r16;
-            r19 = l6;
+            r19 = l4;
             r19[35:35] = r18;
             r20 = r14[34:34];
             r21 = ~r20;
             r22 = r14[33:0];
             r24 = r22[33:0];
-            r23 = {l7, r24};
-            r25 = r21 ? r23 : l8;
+            r23 = {l5, r24};
+            r25 = r21 ? r23 : l6;
             r26 = r19;
             r26[34:0] = r25;
             r27 = {r13, r26};
@@ -5007,54 +4794,52 @@ module top_outbuf_inner(input wire [1:0] clock_reset, input wire [35:0] i, outpu
          reg [0:0] r27;
          // sel
          reg [0:0] r28;
-         // stop_out
-         reg [0:0] r29;
          // aux_en
-         reg [0:0] r30;
+         reg [0:0] r29;
          // d
-         reg [69:0] r31;
+         reg [69:0] r30;
          // main_en
-         reg [0:0] r32;
+         reg [0:0] r31;
          // sel
-         reg [0:0] r33;
+         reg [0:0] r32;
          // stop_out
-         reg [0:0] r34;
+         reg [0:0] r33;
+         reg [33:0] r34;
          reg [33:0] r35;
          reg [33:0] r36;
-         reg [33:0] r37;
          // d
-         reg [69:0] r38;
+         reg [69:0] r37;
+         reg [33:0] r38;
          reg [33:0] r39;
          reg [33:0] r40;
          reg [33:0] r41;
          reg [33:0] r42;
-         reg [33:0] r43;
          // d
-         reg [69:0] r44;
+         reg [69:0] r43;
+         reg [0:0] r44;
          reg [0:0] r45;
          reg [0:0] r46;
          reg [0:0] r47;
-         reg [0:0] r48;
          // d
-         reg [69:0] r49;
-         reg [33:0] r50;
+         reg [69:0] r48;
+         reg [33:0] r49;
          // o
-         reg [35:0] r51;
-         reg [0:0] r52;
+         reg [35:0] r50;
+         reg [0:0] r51;
+         // o
+         reg [35:0] r52;
          // o
          reg [35:0] r53;
+         reg [0:0] r54;
+         reg [1:0] r55;
+         reg [0:0] r56;
          // o
-         reg [35:0] r54;
-         reg [0:0] r55;
-         reg [1:0] r56;
-         reg [0:0] r57;
+         reg [35:0] r57;
          // o
          reg [35:0] r58;
          // o
          reg [35:0] r59;
-         // o
-         reg [35:0] r60;
-         reg [105:0] r61;
+         reg [105:0] r60;
          localparam l0 = 70'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
          localparam l1 = 1'b1;
          localparam l2 = 1'b1;
@@ -5066,16 +4851,13 @@ module top_outbuf_inner(input wire [1:0] clock_reset, input wire [35:0] i, outpu
          localparam l8 = 1'b0;
          localparam l9 = 1'b1;
          localparam l10 = 1'b1;
-         localparam l11 = 1'b1;
+         localparam l11 = 1'b0;
          localparam l12 = 1'b0;
-         localparam l13 = 1'b1;
-         localparam l14 = 1'b0;
-         localparam l15 = 1'b0;
-         localparam l16 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
-         localparam l17 = 1'b1;
-         localparam l18 = 1'b1;
+         localparam l13 = 36'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l14 = 1'b1;
+         localparam l15 = 1'b1;
          begin
-            r56 = arg_0;
+            r55 = arg_0;
             r3 = arg_1;
             r1 = arg_2;
             r0 = r1[68:68];
@@ -5108,62 +4890,46 @@ module top_outbuf_inner(input wire [1:0] clock_reset, input wire [35:0] i, outpu
             r26 = r24 ? r10 : r25;
             r27 = r24 ? l5 : l7;
             r28 = r24 ? l8 : l9;
-            r29 = r24 ? l10 : l11;
-            case (r11)
-               1'b0 : r30 = r21;
-               1'b1 : r30 = l3;
-            endcase
-            case (r11)
-               1'b0 : r31 = r22;
-               1'b1 : r31 = r26;
-            endcase
-            case (r11)
-               1'b0 : r32 = r23;
-               1'b1 : r32 = r27;
-            endcase
-            case (r11)
-               1'b0 : r33 = l8;
-               1'b1 : r33 = r28;
-            endcase
-            case (r11)
-               1'b0 : r34 = l14;
-               1'b1 : r34 = r29;
-            endcase
-            r35 = r3[33:0];
-            r36 = r1[67:34];
-            r37 = r30 ? r35 : r36;
-            r38 = r31;
-            r38[67:34] = r37;
-            r39 = r1[67:34];
-            r40 = r3[33:0];
-            r41 = r33 ? r39 : r40;
-            r42 = r1[33:0];
-            r43 = r32 ? r41 : r42;
-            r44 = r38;
-            r44[33:0] = r43;
-            r45 = r3[34:34];
-            r46 = r33 ? l15 : r45;
-            r47 = r1[68:68];
-            r48 = r32 ? r46 : r47;
-            r49 = r44;
-            r49[68:68] = r48;
-            r50 = r1[33:0];
-            r51 = l16;
-            r51[33:0] = r50;
-            r52 = r1[68:68];
-            r53 = r51;
-            r53[34:34] = r52;
-            r54 = r53;
-            r54[35:35] = r34;
-            r55 = r56[1:1];
-            r57 = |r55;
-            r58 = r54;
-            r58[34:34] = l17;
-            r59 = r58;
-            r59[35:35] = l18;
-            r60 = r57 ? r59 : r54;
-            r61 = {r49, r60};
-            kernel_carloni_kernel = r61;
+            r29 = r11 ? l3 : r21;
+            r30 = r11 ? r26 : r22;
+            r31 = r11 ? r27 : r23;
+            r32 = r11 ? r28 : l8;
+            r33 = r11 ? l10 : l11;
+            r34 = r3[33:0];
+            r35 = r1[67:34];
+            r36 = r29 ? r34 : r35;
+            r37 = r30;
+            r37[67:34] = r36;
+            r38 = r1[67:34];
+            r39 = r3[33:0];
+            r40 = r32 ? r38 : r39;
+            r41 = r1[33:0];
+            r42 = r31 ? r40 : r41;
+            r43 = r37;
+            r43[33:0] = r42;
+            r44 = r3[34:34];
+            r45 = r32 ? l12 : r44;
+            r46 = r1[68:68];
+            r47 = r31 ? r45 : r46;
+            r48 = r43;
+            r48[68:68] = r47;
+            r49 = r1[33:0];
+            r50 = l13;
+            r50[33:0] = r49;
+            r51 = r1[68:68];
+            r52 = r50;
+            r52[34:34] = r51;
+            r53 = r52;
+            r53[35:35] = r33;
+            r54 = r55[1:1];
+            r56 = |r54;
+            r57 = r53;
+            r57[34:34] = l14;
+            r58 = r57;
+            r58[35:35] = l15;
+            r59 = r56 ? r58 : r53;
+            r60 = {r48, r59};
+            kernel_carloni_kernel = r60;
          end
    endfunction
 endmodule

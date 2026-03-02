@@ -2,10 +2,12 @@ use crate::{
     CircuitIO, ClockReset, Digital, Kind, RHDLError, SynchronousIO, TypedBits,
     ast::{SourceLocation, spanned_source::SpannedSourceSet},
     circuit::schematic::{
-        CanonicalPath, Link, LinkKind, Port, PortId, Schematic, SchematicId, SchematicKind,
+        self, CanonicalPath, Link, LinkKind, Port, PortId, Schematic, SchematicId, SchematicKind,
         canonicalize_path, error::SchematicICE, port,
     },
+    common::{slot_vec::SlotKey, symtab::LiteralId},
     error::rhdl_error,
+    rhif::{self, spec::Slot},
     types::path::{PathExt, sub_kind},
 };
 
@@ -46,9 +48,9 @@ impl SchematicBuilder {
         me.top.location = Some(loc);
         me
     }
-    pub fn literal(val: &TypedBits) -> Self {
+    pub fn literal(slot: Slot, val: &TypedBits) -> Self {
         let mut me = Self::new(SchematicKind::Literal);
-        me.top.name = format!("Literal: {:?}", val);
+        me.top.name = format!("{}: {:?}", slot, val);
         me
     }
     fn new(kind: SchematicKind) -> Self {
@@ -56,7 +58,8 @@ impl SchematicBuilder {
             top: Schematic {
                 id: SchematicId(0),
                 name: String::default(),
-                type_name: "",
+                type_name: String::default(),
+                filename: String::default(),
                 kind,
                 inputs: vec![],
                 outputs: vec![],
@@ -74,8 +77,8 @@ impl SchematicBuilder {
         let circuit_input = <C as CircuitIO>::I::static_kind();
         let circuit_output = <C as CircuitIO>::O::static_kind();
         Ok(self
-            .add_input_ports(0, circuit_input)?
-            .add_output_port(circuit_output)?
+            .add_input_ports(0, circuit_input, None)?
+            .add_output_port(circuit_output, None)?
             .with_type_name::<C>())
     }
     pub fn with_synchronous_io<S: SynchronousIO>(&mut self) -> Result<&mut Self, RHDLError> {
@@ -83,9 +86,9 @@ impl SchematicBuilder {
         let sync_input = <S as SynchronousIO>::I::static_kind();
         let sync_output = <S as SynchronousIO>::O::static_kind();
         Ok(self
-            .add_input_ports(0, clock_reset)?
-            .add_input_ports(1, sync_input)?
-            .add_output_port(sync_output)?
+            .add_input_ports(0, clock_reset, None)?
+            .add_input_ports(1, sync_input, None)?
+            .add_output_port(sync_output, None)?
             .with_type_name::<S>())
     }
     pub fn with_name(&mut self, name: &str) -> &mut Self {
@@ -93,11 +96,15 @@ impl SchematicBuilder {
         self
     }
     pub fn with_type_name<C>(&mut self) -> &mut Self {
-        self.top.type_name = std::any::type_name::<C>();
+        self.top.type_name = std::any::type_name::<C>().to_string();
         self
     }
     pub fn with_debug_text(&mut self, text: &str) -> &mut Self {
         self.top.debug_text = text.to_string();
+        self
+    }
+    pub fn with_filename(&mut self, filename: &str) -> &mut Self {
+        self.top.filename = filename.to_string();
         self
     }
     pub fn top_mut(&mut self) -> &mut Schematic {
@@ -108,7 +115,12 @@ impl SchematicBuilder {
         self.id += 1;
         PortId(id)
     }
-    pub fn add_input_ports(&mut self, index: usize, kind: Kind) -> Result<&mut Self, RHDLError> {
+    pub fn add_input_ports(
+        &mut self,
+        index: usize,
+        kind: Kind,
+        slot: Option<Slot>,
+    ) -> Result<&mut Self, RHDLError> {
         self.top.inputs.resize(index + 1, vec![]);
         for path in kind.all_leafs() {
             let port_kind = sub_kind(kind, &path)?;
@@ -117,29 +129,32 @@ impl SchematicBuilder {
             }
             let id = self.next_id();
             log::debug!(
-                "Adding input port {:?} of kind {:?} with id {:?}",
-                path,
-                port_kind,
-                id
+                "Adding input port {path:?} of kind {port_kind:?} with id {id:?} and slot {slot:?}",
             );
-            self.top.inputs[index].push(port(kind, &path, port_kind, id)?);
+            self.top.inputs[index].push(port(kind, &path, port_kind, id, slot)?);
         }
         Ok(self)
     }
-    pub fn add_output_port(&mut self, kind: Kind) -> Result<&mut Self, RHDLError> {
+    pub fn add_output_port(
+        &mut self,
+        kind: Kind,
+        slot: Option<Slot>,
+    ) -> Result<&mut Self, RHDLError> {
         for path in kind.all_leafs() {
             let port_kind = sub_kind(kind, &path)?;
             if port_kind.is_empty() {
                 continue;
             }
             let id = self.next_id();
-            self.top.outputs.push(port(kind, &path, port_kind, id)?);
+            self.top
+                .outputs
+                .push(port(kind, &path, port_kind, id, slot)?);
         }
         Ok(self)
     }
-    pub fn allocate_input_port(&mut self, kind: Kind) -> usize {
+    pub fn allocate_input_port(&mut self, kind: Kind, slot: Option<Slot>) -> usize {
         let index = self.top.inputs.len();
-        self.add_input_ports(index, kind)
+        self.add_input_ports(index, kind, slot)
             .expect("Adding input ports should never fail");
         index
     }

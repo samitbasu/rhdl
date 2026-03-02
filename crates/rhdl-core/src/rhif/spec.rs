@@ -236,9 +236,7 @@ pub enum AluUnary {
     XSgn,
 }
 
-#[derive(
-    Hash, Eq, Ord, PartialOrd, PartialEq, Copy, Clone, Default, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Copy, Clone, Default)]
 pub struct SlotKind {}
 
 impl SymbolKind for SlotKind {
