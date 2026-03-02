@@ -181,13 +181,4 @@ impl<I: Digital, O: Digital> TestBench<I, O> {
         let hdl = desc.hdl()?;
         self.build_test_module(&hdl.modules, options)
     }
-    /// Generate a NTL testbench module for the given asynchronous UUT
-    pub fn ntl<T>(&self, uut: &T, options: &TestBenchOptions) -> Result<TestModule, RHDLError>
-    where
-        T: Circuit,
-        T: CircuitIO<I = I, O = O>,
-    {
-        let module = uut.descriptor("uut".into())?.netlist()?.as_vlog("dut")?;
-        self.build_test_module(&module.modules, options)
-    }
 }

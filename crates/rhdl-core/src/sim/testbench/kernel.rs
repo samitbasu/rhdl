@@ -6,11 +6,7 @@ use rhdl_vlog::Pretty;
 
 use crate::{
     Digital, DigitalFn, RHDLError, TypedBits,
-    compiler::{
-        driver::{compile_design_stage1, compile_design_stage2},
-        optimize_ntl,
-    },
-    ntl::from_rtl::build_ntl_from_rtl,
+    compiler::driver::{compile_design_stage1, compile_design_stage2},
     sim::test_module::TestModule,
     types::bit_string::BitString,
 };
@@ -388,18 +384,6 @@ where
     let vlog = rtl.as_vlog()?;
     debug!("{}", vlog.pretty());
     let tm = test_module(&uut, vlog, vals.clone());
-    tm.run_iverilog()?;
-    debug!("Generating schematic from RHIF");
-    let _schematic = crate::circuit::schematic::kernel::build_schematic(Arc::clone(&design))?;
-    debug!("Generating netlist from rtl");
-    let ntl = build_ntl_from_rtl(&rtl);
-    let ntl = optimize_ntl(ntl)?;
-    debug!("{rtl:?}");
-    debug!("{ntl:?}");
-    let desc = ntl.as_vlog("dut")?;
-    let tm = test_module_for_netlist(uut, desc.modules, vals);
-    debug!("Running netlist test");
-    debug!("{}", tm);
     tm.run_iverilog()?;
     Ok(())
 }

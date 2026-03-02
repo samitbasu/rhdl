@@ -8,19 +8,8 @@
 //! lead to timing issues.  This module provides a function to check for such paths and report them.
 //!
 //! See the [book] for an example of how to use it.
-use crate::{
-    Synchronous,
-    ast::SourcePool,
-    circuit::scoped_name::ScopedName,
-    ntl::{
-        graph::{GraphMode, WriteSource, make_net_graph},
-        spec::Wire,
-    },
-};
+use crate::{Synchronous, ast::SourcePool, circuit::scoped_name::ScopedName};
 use miette::{Diagnostic, SourceSpan};
-use petgraph::algo::DfsSpace;
-use ron::de;
-use std::collections::hash_map::RandomState;
 use thiserror::Error;
 
 /// Diagnostic for combinatorial paths in synchronous circuits.
@@ -64,54 +53,4 @@ pub fn no_combinatorial_paths<T: Synchronous>(uut: &T) -> miette::Result<()> {
     let schematic = descriptor.schematic()?;
     schematic.has_combinatorial_pathways()?;
     return Ok(());
-    let ntl = descriptor.netlist()?;
-    let dep = make_net_graph(ntl, GraphMode::Synchronous);
-    // Get the graph node that represents the inputs for the device
-    let input_node = dep.input_node;
-    let mut space = DfsSpace::new(&dep.graph);
-    let code = &ntl.code;
-    for output in ntl.outputs.iter().copied().flat_map(Wire::reg) {
-        let source = dep.reg_map[&output];
-        match source {
-            WriteSource::ClockReset => {}
-            WriteSource::Input => {
-                return Err(miette::Report::new(CombinatorialPath {
-                    src: code.source(),
-                    elements: Vec::new(),
-                }));
-            }
-            WriteSource::OpCode(ndx) => {
-                // The output is written by the opcode ndx.
-                // Get the node from the graph
-                let op_node = dep.op_nodes[ndx];
-                if petgraph::algo::has_path_connecting(
-                    &dep.graph,
-                    input_node,
-                    op_node,
-                    Some(&mut space),
-                ) {
-                    let path = petgraph::algo::all_simple_paths::<Vec<_>, _, RandomState>(
-                        &dep.graph, input_node, op_node, 1, None,
-                    )
-                    .next()
-                    .unwrap();
-                    let elements = path
-                        .iter()
-                        .map(|ix| dep.graph[*ix])
-                        .filter_map(|ws| match ws {
-                            WriteSource::OpCode(ndx) => Some(ndx),
-                            _ => None,
-                        })
-                        .flat_map(|x| ntl.ops[x].loc)
-                        .map(|loc| SourceSpan::from(code.span(loc)))
-                        .collect();
-                    return Err(miette::Report::new(CombinatorialPath {
-                        src: code.source(),
-                        elements,
-                    }));
-                }
-            }
-        }
-    }
-    Ok(())
 }

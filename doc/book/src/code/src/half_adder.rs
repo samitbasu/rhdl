@@ -255,19 +255,6 @@ pub mod step_4 {
     }
     // ANCHOR_END: adder-step-13
 
-    // ANCHOR: adder-step-14
-    #[test]
-    fn test_testbench_ntl() -> miette::Result<()> {
-        let inputs = [(false, false), (false, true), (true, false), (true, true)];
-        let it = inputs.into_iter().map(signal).uniform(100);
-        let uut = HalfAdder::default();
-        let tb: TestBench<_, _> = uut.run(it).collect();
-        let tb = tb.ntl(&uut, &TestBenchOptions::default())?;
-        std::fs::write("half_ntl_tb.v", tb.to_string()).unwrap();
-        Ok(())
-    }
-    // ANCHOR_END: adder-step-14
-
     // ANCHOR: adder-step-15
     #[test]
     fn test_make_svg() -> miette::Result<()> {

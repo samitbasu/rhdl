@@ -6,8 +6,6 @@ use rhdl::prelude::*;
 mod common;
 
 use common::*;
-use rhdl_core::compiler::optimize_ntl;
-use rhdl_core::ntl::from_rtl::build_ntl_from_rtl;
 
 #[test]
 fn test_dynamic_vs_static_indexing_on_assign() -> miette::Result<()> {
@@ -566,8 +564,5 @@ fn test_and_with_constant_folds() -> miette::Result<()> {
     }
     let rtl = compile_design::<foo>(CompilationMode::Asynchronous)?;
     eprintln!("{}", rtl.as_vlog()?.pretty());
-    let ntl = build_ntl_from_rtl(&rtl);
-    let ntl = optimize_ntl(ntl)?.as_vlog("slice")?;
-    eprintln!("{}", ntl.modules.pretty());
     Ok(())
 }

@@ -32,7 +32,6 @@ use rhdl::{
     core::{
         ScopedName,
         circuit::{descriptor::SyncKind, schematic::builder::SchematicBuilder},
-        flow_graph::{self, FlowGraph},
         types::path::PathExt,
     },
     prelude::*,
@@ -87,8 +86,6 @@ impl<T: Digital> Synchronous for Constant<T> {
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             kernel: None,
-            netlist: Some(constant(&self.value, &name)?),
-            flow_graph: Some(self.flow_graph(&name)?),
             hdl: Some(self.hdl(&name)?),
             _phantom: std::marker::PhantomData,
         })
@@ -112,23 +109,5 @@ impl<T: Digital> Constant<T> {
             name: module_name,
             modules: module.into(),
         })
-    }
-    fn flow_graph(&self, name: &str) -> Result<FlowGraph, RHDLError> {
-        let mut builder = flow_graph::builder::Builder::new(name);
-        let cr_kind = ClockReset::static_kind();
-        builder.add_input_port(cr_kind, 0)?;
-        builder.add_input_port(Kind::Empty, 1)?;
-        let output_kind = T::static_kind();
-        builder.add_output_port(output_kind)?;
-        for path in output_kind.all_leafs() {
-            let constant_node =
-                builder.add_constant(name, self.value.typed_bits(), path.clone())?;
-            builder.add_edge(
-                constant_node,
-                builder.get_output_port(&path)?,
-                flow_graph::EdgeKind::OutputForwardFromChild,
-            )?;
-        }
-        Ok(builder.build())
     }
 }

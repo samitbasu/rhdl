@@ -2,10 +2,7 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::{
-    TypedBits,
-    compiler::mir::{error, ty::UnifyError},
-    kernel::KernelFnKind,
-    types::path::{Path, PathError},
+    TypedBits, compiler::mir::ty::UnifyError, kernel::KernelFnKind, types::path::PathError,
 };
 
 #[derive(Error, Debug, Diagnostic)]
@@ -23,12 +20,6 @@ pub enum RHDLError {
     #[error("RHDL ICE")]
     #[diagnostic(transparent)]
     RHDLInternalCompilerError(#[from] Box<crate::compiler::mir::error::RHDLCompileError>),
-    #[error("RHDL Flow Graph Error")]
-    #[diagnostic(transparent)]
-    RHDLFlowGraphError(#[from] Box<crate::flow_graph::errors::FlowGraphError>),
-    #[error("RHDL Flow Graph ICE")]
-    #[diagnostic(transparent)]
-    RHDLFlowGraphICE(#[from] crate::flow_graph::errors::FlowGraphICE),
     #[error("RHDL Type Error")]
     #[diagnostic(transparent)]
     RHDLTypeError(#[from] Box<crate::compiler::mir::error::RHDLTypeError>),
@@ -72,15 +63,6 @@ pub enum RHDLError {
     ExportError(#[from] crate::circuit::fixture::ExportError),
     #[error("This module is not synthesizable")]
     NotSynthesizable,
-    #[error("Netlist Error")]
-    #[diagnostic(transparent)]
-    NetListError(#[from] Box<crate::ntl::error::NetListError>),
-    #[error("Logic Loop")]
-    #[diagnostic(transparent)]
-    NetLoopError(#[from] Box<crate::ntl::error::NetLoopError>),
-    #[error("Loop Error")]
-    #[diagnostic(transparent)]
-    LoopError(#[from] Box<crate::flow_graph::errors::LogicLoopError>),
     #[error("Type Inference Error")]
     #[diagnostic(transparent)]
     TypeInferenceError(#[from] Box<UnifyError>),

@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use miette::Diagnostic;
 use thiserror::Error;
 
 use crate::{
-    circuit::schematic::{CanonicalPath, Port, PortId, Schematic, SchematicId},
+    circuit::schematic::{CanonicalPath, Port, PortId, SchematicId},
     types::path::Path,
 };
 

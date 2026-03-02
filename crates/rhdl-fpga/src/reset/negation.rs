@@ -40,10 +40,7 @@ resetN++--->| +○+--+>reset
 
 use quote::format_ident;
 use rhdl::{
-    core::{
-        AsyncKind, ScopedName, circuit::schematic::builder::SchematicBuilder,
-        flow_graph::black_box::build_circuit_blackbox,
-    },
+    core::{AsyncKind, ScopedName, circuit::schematic::builder::SchematicBuilder},
     prelude::*,
 };
 use syn::parse_quote;
@@ -88,9 +85,8 @@ impl<C: Domain> Circuit for ResetNegation<C> {
     fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
         let name = scoped_name.to_string();
         let schematic = SchematicBuilder::circuit::<Self>(&name)?.build();
-        Descriptor::<AsyncKind> {
+        Ok(Descriptor::<AsyncKind> {
             schematic: Some(schematic),
-            flow_graph: Some(build_circuit_blackbox::<Self>(&scoped_name)?),
             type_name: std::any::type_name::<Self>(),
             name: scoped_name,
             input_kind: <Self::I as Digital>::static_kind(),
@@ -98,11 +94,9 @@ impl<C: Domain> Circuit for ResetNegation<C> {
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             kernel: None,
-            netlist: None,
             hdl: Some(self.hdl(&name)?),
             _phantom: std::marker::PhantomData,
-        }
-        .with_netlist_black_box()
+        })
     }
 }
 

@@ -27,16 +27,11 @@ use crate::{
     SynchronousDQ, SynchronousIO,
     circuit::{
         descriptor::{Descriptor, SyncKind},
-        schematic::{
-            Schematic,
-            builder::{QueryPortSet, SchematicBuilder},
-        },
+        schematic::{Schematic, builder::SchematicBuilder},
         scoped_name::ScopedName,
     },
     compiler::{compile_design, driver::compile_design_stage1},
     digital_fn::{DigitalFn2, NoSynchronousKernel},
-    flow_graph::rhif_builder::build_flow_graph,
-    ntl::from_rtl::build_ntl_from_rtl,
     rhif,
     rtl::Object,
     trace, trace_pop_path, trace_push_path,
@@ -128,8 +123,6 @@ impl<I: Digital, O: Digital> Synchronous for Func<I, O> {
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             kernel: Some(self.kernel.clone()),
-            netlist: Some(build_ntl_from_rtl(&self.kernel)),
-            flow_graph: Some(build_flow_graph(Arc::clone(&self.kernel.rhif))?),
             schematic: Some(self.schematic(&module_name)?),
             hdl: Some(HDLDescriptor {
                 name: module_name,

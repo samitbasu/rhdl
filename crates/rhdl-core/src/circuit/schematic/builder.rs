@@ -2,12 +2,11 @@ use crate::{
     CircuitIO, ClockReset, Digital, Kind, RHDLError, SynchronousIO, TypedBits,
     ast::{SourceLocation, spanned_source::SpannedSourceSet},
     circuit::schematic::{
-        self, CanonicalPath, Link, LinkKind, Port, PortId, Schematic, SchematicId, SchematicKind,
+        CanonicalPath, Link, LinkKind, Port, PortId, Schematic, SchematicId, SchematicKind,
         canonicalize_path, error::SchematicICE, port,
     },
-    common::{slot_vec::SlotKey, symtab::LiteralId},
     error::rhdl_error,
-    rhif::{self, spec::Slot},
+    rhif::spec::Slot,
     types::path::{PathExt, sub_kind},
 };
 

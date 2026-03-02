@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::circuit::schematic::CanonicalPath;
 use crate::circuit::schematic::builder::QueryPortSet;
 use crate::types::digital::Digital;
-use crate::types::path::Path;
 use crate::{
     AsyncKind, Circuit, CircuitIO, Descriptor, ScopedName,
     circuit::schematic::{Schematic, builder::SchematicBuilder},
@@ -68,5 +67,7 @@ pub fn build_schematic<C: Circuit>(
             &CanonicalPath::default().field(local_name),
         )?;
     }
-    Ok(builder.build())
+    let schematic = builder.build();
+    schematic.checked()?;
+    Ok(schematic)
 }

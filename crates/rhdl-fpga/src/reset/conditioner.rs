@@ -91,7 +91,6 @@ use rhdl::{
     core::{
         ScopedName,
         circuit::{descriptor::AsyncKind, schematic::builder::SchematicBuilder},
-        flow_graph::black_box::build_circuit_blackbox,
     },
     prelude::*,
 };
@@ -185,9 +184,8 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
     fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
         let name = scoped_name.to_string();
         let schematic = SchematicBuilder::circuit::<Self>(&name)?.build();
-        Descriptor::<AsyncKind> {
+        Ok(Descriptor::<AsyncKind> {
             schematic: Some(schematic),
-            flow_graph: Some(build_circuit_blackbox::<Self>(&scoped_name)?),
             type_name: std::any::type_name::<Self>(),
             name: scoped_name,
             input_kind: <Self::I as Digital>::static_kind(),
@@ -197,9 +195,7 @@ impl<W: Domain, R: Domain> Circuit for ResetConditioner<W, R> {
             kernel: None,
             hdl: Some(self.hdl(&name)?),
             _phantom: std::marker::PhantomData,
-            netlist: None,
-        }
-        .with_netlist_black_box()
+        })
     }
 }
 
@@ -296,8 +292,6 @@ mod tests {
         let tb = uut.run(input).collect::<TestBench<_, _>>();
         let hdl = tb.rtl(&uut, &TestBenchOptions::default().skip(10))?;
         hdl.run_iverilog()?;
-        let fg = tb.ntl(&uut, &TestBenchOptions::default().skip(10))?;
-        fg.run_iverilog()?;
         Ok(())
     }
 

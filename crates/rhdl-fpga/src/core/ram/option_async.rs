@@ -157,7 +157,7 @@ where
 mod tests {
     use std::path::PathBuf;
 
-    use expect_test::{expect, expect_file};
+    use expect_test::expect;
 
     use super::*;
 
@@ -192,21 +192,6 @@ mod tests {
                 clock: cr.clock,
             })
         })
-    }
-
-    #[test]
-    fn test_ram_netlist() -> miette::Result<()> {
-        let uut = OptionAsyncBram::<Bits<8>, Red, Green, 4>::new(
-            (0..)
-                .enumerate()
-                .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
-        );
-        let desc = uut.descriptor("uut".into())?;
-        let netlist = desc.netlist()?;
-        let hdl = netlist.as_vlog("uut")?;
-        let expect = expect_file!["ram_fg.expect"];
-        expect.assert_eq(&hdl.modules.to_string());
-        Ok(())
     }
 
     #[test]

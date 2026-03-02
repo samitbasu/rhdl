@@ -30,8 +30,6 @@ use crate::{
     },
     compiler::{compile_design, driver::compile_design_stage1},
     digital_fn::{DigitalFn1, NoCircuitKernel},
-    flow_graph::rhif_builder::build_flow_graph,
-    ntl::from_rtl::build_ntl_from_rtl,
     rhif,
     rtl::Object,
 };
@@ -111,8 +109,6 @@ impl<I: Timed, O: Timed> Circuit for AsyncFunc<I, O> {
             output_kind: <Self::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
-            netlist: Some(build_ntl_from_rtl(&self.kernel)),
-            flow_graph: Some(build_flow_graph(Arc::clone(&self.kernel.rhif))?),
             kernel: Some(self.kernel.clone()),
             schematic: Some(self.schematic(&module_name)?),
             hdl: Some(HDLDescriptor {

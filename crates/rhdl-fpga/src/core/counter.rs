@@ -124,16 +124,6 @@ mod tests {
         let tb = out_stream.collect::<SynchronousTestBench<_, _>>();
         let tm = tb.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
-        let tm = tb.ntl(&uut, &Default::default())?;
-        tm.run_iverilog()?;
-        Ok(())
-    }
-
-    #[test]
-    fn test_counter_has_netlist() -> miette::Result<()> {
-        let uut = Counter::<6>::default();
-        let netlist = uut.descriptor(ScopedName::top())?.netlist;
-        assert!(netlist.is_some());
         Ok(())
     }
 

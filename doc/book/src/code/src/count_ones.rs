@@ -133,18 +133,6 @@ pub mod step_4 {
     }
     // ANCHOR_END: ones-step-6
 
-    // ANCHOR: ones-step-7
-    #[test]
-    fn test_ntl_testbench() -> miette::Result<()> {
-        let inputs = (0..256).map(b8).map(signal).uniform(100);
-        let uut = OneCounter {};
-        let tb: TestBench<_, _> = uut.run(inputs).collect();
-        let tb = tb.ntl(&uut, &TestBenchOptions::default())?;
-        std::fs::write("ones_ntl_tb.v", tb.to_string()).unwrap();
-        Ok(())
-    }
-    // ANCHOR_END: ones-step-7
-
     // ANCHOR: ones-step-8
     #[test]
     fn test_svg() -> miette::Result<()> {

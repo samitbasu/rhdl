@@ -39,8 +39,7 @@ use crate::{
         scoped_name::ScopedName,
     },
     digital_fn::NoCircuitKernel,
-    flow_graph::{self, FlowGraph},
-    ntl, trace_pop_path, trace_push_path,
+    trace_pop_path, trace_push_path,
     types::path::{Path, bit_range},
 };
 
@@ -94,8 +93,6 @@ impl<T: Circuit, const N: usize> Circuit for [T; N] {
             q_kind: Kind::Empty,
             kernel: None,
             hdl: Some(hdl::<T, N>(&name, &children)?),
-            netlist: Some(netlist::<T, N>(&name, &children)?),
-            flow_graph: Some(flow_graph::<T, N>(&name, &children)?),
             schematic: Some(schematic::<T, N>(&name, &children)?),
             _phantom: std::marker::PhantomData,
         })
@@ -150,60 +147,6 @@ fn hdl<T: Circuit, const N: usize>(
         name: name.into(),
         modules,
     })
-}
-
-fn netlist<T: Circuit, const N: usize>(
-    name: &str,
-    children: &[Descriptor<AsyncKind>],
-) -> Result<ntl::Object, RHDLError> {
-    let mut builder = ntl::Builder::new(name);
-    let input_kind: Kind = <[T; N] as CircuitIO>::I::static_kind();
-    let output_kind: Kind = <[T; N] as CircuitIO>::O::static_kind();
-    let ti = builder.add_input(input_kind);
-    let to = builder.allocate_outputs(output_kind);
-    for (i, child_descriptor) in children.iter().enumerate() {
-        let child_path = Path::default().index(i);
-        let (output_bit_range, _) = bit_range(output_kind, &child_path)?;
-        let (input_bit_range, _) = bit_range(input_kind, &child_path)?;
-        let child_netlist = child_descriptor.netlist()?;
-        let offset = builder.import(child_netlist);
-        // Wire up the child circuit inputs and outputs
-        for (&t, c) in ti[input_bit_range].iter().zip(&child_netlist.inputs[0]) {
-            builder.copy_from_to(t, offset(c.into()));
-        }
-        for (&t, c) in to[output_bit_range].iter().zip(&child_netlist.outputs) {
-            builder.copy_from_to(offset(*c), t);
-        }
-    }
-    builder.build(ntl::builder::BuilderMode::Asynchronous)
-}
-
-fn flow_graph<T: Circuit, const N: usize>(
-    name: &str,
-    children: &[Descriptor<AsyncKind>],
-) -> Result<FlowGraph, RHDLError> {
-    let mut builder = flow_graph::builder::Builder::new(name);
-    let input_kind: Kind = <[T; N] as CircuitIO>::I::static_kind();
-    let output_kind: Kind = <[T; N] as CircuitIO>::O::static_kind();
-    builder.add_input_port(input_kind, 0)?;
-    builder.add_output_port(output_kind)?;
-    for (i, child_descriptor) in children.iter().enumerate() {
-        let child_flow_graph = child_descriptor.flow_graph()?.clone();
-        let child_flow_graph = builder.import(child_flow_graph);
-        builder.forward_input_to_child(
-            child_descriptor.input_kind,
-            &Path::default().index(i),
-            0,
-            &child_flow_graph,
-            0,
-        )?;
-        builder.forward_output_from_child(
-            child_descriptor.output_kind,
-            &Path::default().index(i),
-            &child_flow_graph,
-        )?;
-    }
-    Ok(builder.build())
 }
 
 fn schematic<T: Circuit, const N: usize>(

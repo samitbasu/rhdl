@@ -83,7 +83,6 @@ where
 mod tests {
     use expect_test::{expect, expect_file};
     use miette::IntoDiagnostic;
-    use rhdl::core::circuit::schematic::{SchematicSet, error::SchematicICE};
 
     use super::*;
 
@@ -172,8 +171,6 @@ mod tests {
         });
         let test_bench = uut.run(input.take(1_000)).collect::<TestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
-        tm.run_iverilog()?;
-        let tm = test_bench.ntl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
         Ok(())
     }

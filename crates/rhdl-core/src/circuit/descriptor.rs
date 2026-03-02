@@ -26,8 +26,7 @@ use std::marker::PhantomData;
 use crate::{
     HDLDescriptor, Kind, RHDLError,
     circuit::{schematic::Schematic, scoped_name::ScopedName},
-    flow_graph::FlowGraph,
-    ntl, rtl,
+    rtl,
 };
 
 /// Marker type for asynchronous circuits.
@@ -52,10 +51,6 @@ pub struct Descriptor<T> {
     pub q_kind: Kind,
     /// The compiled kernel object.
     pub kernel: Option<rtl::Object>,
-    /// The netlist representation of the circuit, if available.
-    pub netlist: Option<ntl::Object>,
-    /// The flow graph representation of the circuit, if available.
-    pub flow_graph: Option<FlowGraph>,
     /// The HDL (Verilog) description of the circuit, if available.
     pub hdl: Option<HDLDescriptor>,
     /// The schematic description of the circuit
@@ -73,20 +68,6 @@ impl<T> Descriptor<T> {
         hdl.modules.checked()?;
         Ok(hdl)
     }
-    /// Get a reference to the netlist representation of the circuit, if available.
-    pub fn netlist(&self) -> Result<&ntl::Object, RHDLError> {
-        self.netlist.as_ref().ok_or(RHDLError::NetlistNotAvailable {
-            name: self.name.to_string(),
-        })
-    }
-    /// Get a reference to the flow graph representation of the circuit, if available.
-    pub fn flow_graph(&self) -> Result<&FlowGraph, RHDLError> {
-        self.flow_graph
-            .as_ref()
-            .ok_or(RHDLError::FlowGraphNotAvailable {
-                name: self.name.to_string(),
-            })
-    }
     /// Get a reference to the schematic representation of the circuit, if available.
     pub fn schematic(&self) -> Result<&Schematic, RHDLError> {
         self.schematic
@@ -94,21 +75,5 @@ impl<T> Descriptor<T> {
             .ok_or(RHDLError::SchematicNotAvailable {
                 name: self.name.to_string(),
             })
-    }
-}
-
-impl Descriptor<AsyncKind> {
-    /// Create a black box (asynchronous) netlist for this descriptor.
-    pub fn with_netlist_black_box(mut self) -> Result<Descriptor<AsyncKind>, RHDLError> {
-        self.netlist = Some(ntl::builder::circuit_black_box(&self)?);
-        Ok(self)
-    }
-}
-
-impl Descriptor<SyncKind> {
-    /// Create a black box (synchronous) netlist for this descriptor.
-    pub fn with_netlist_black_box(mut self) -> Result<Descriptor<SyncKind>, RHDLError> {
-        self.netlist = Some(ntl::builder::synchronous_black_box(&self)?);
-        Ok(self)
     }
 }

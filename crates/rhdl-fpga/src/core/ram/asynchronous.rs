@@ -99,7 +99,6 @@ use rhdl::{
     core::{
         ScopedName,
         circuit::{descriptor::AsyncKind, schematic::builder::SchematicBuilder},
-        flow_graph::black_box::build_circuit_blackbox,
     },
     prelude::*,
 };
@@ -268,10 +267,9 @@ where
     fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
         let name = scoped_name.to_string();
         let schematic = SchematicBuilder::circuit::<Self>(&name)?.build();
-        Descriptor::<AsyncKind> {
+        Ok(Descriptor::<AsyncKind> {
             type_name: std::any::type_name::<Self>(),
             schematic: Some(schematic),
-            flow_graph: Some(build_circuit_blackbox::<Self>(&scoped_name)?),
             name: scoped_name,
             input_kind: <Self::I as Digital>::static_kind(),
             output_kind: <Self::O as Digital>::static_kind(),
@@ -279,10 +277,8 @@ where
             q_kind: Kind::Empty,
             kernel: None,
             hdl: Some(self.hdl(&name)?),
-            netlist: None,
             _phantom: std::marker::PhantomData,
-        }
-        .with_netlist_black_box()
+        })
     }
 }
 
@@ -404,7 +400,7 @@ where
 mod tests {
     use std::path::PathBuf;
 
-    use expect_test::{expect, expect_file};
+    use expect_test::expect;
     use rhdl::prelude::vlog::Pretty;
 
     use super::*;
@@ -442,21 +438,6 @@ mod tests {
                 clock: cr.clock,
             })
         })
-    }
-
-    #[test]
-    fn test_ram_netlist() -> miette::Result<()> {
-        let uut = AsyncBRAM::<Bits<8>, Red, Green, 4>::new(
-            (0..)
-                .enumerate()
-                .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
-        );
-        let desc = uut.descriptor("top".into())?;
-        let net_list = desc.netlist()?;
-        let hdl = net_list.as_vlog("dut")?;
-        let expect = expect_file!["ram_fg.v.expect"];
-        expect.assert_eq(&hdl.modules.to_string());
-        Ok(())
     }
 
     #[test]

@@ -246,19 +246,6 @@ pub mod step_8 {
     }
     // ANCHOR_END: xor-step-16
 
-    // ANCHOR: xor-step-17
-    #[test]
-    fn test_testbench_ntl() -> miette::Result<()> {
-        let inputs = [(false, false), (false, true), (true, false), (true, true)];
-        let it = inputs.into_iter().cycle().take(5).map(signal).uniform(100);
-        let uut = XorGate;
-        let tb: TestBench<_, _> = uut.run(it).collect();
-        let tb = tb.ntl(&uut, &TestBenchOptions::default())?;
-        std::fs::write("xor_tb_ntl.v", tb.to_string()).unwrap();
-        Ok(())
-    }
-    // ANCHOR_END: xor-step-17
-
     // ANCHOR: xor-step-18
     #[test]
     fn test_make_fixture() -> miette::Result<()> {

@@ -63,7 +63,7 @@ signal<ClockReset,D> +------------------------------------------+
 //!  
 use crate::{
     Circuit, CircuitDQ, CircuitIO, ClockReset, Digital, DigitalFn, Domain, HDLDescriptor, Kind,
-    RHDLError, Signal, Synchronous, SynchronousIO, Timed,
+    RHDLError, Signal, Synchronous, Timed,
     bitx::BitX,
     circuit::{
         descriptor::{AsyncKind, Descriptor, SyncKind},
@@ -74,13 +74,7 @@ use crate::{
         scoped_name::ScopedName,
     },
     digital_fn::NoCircuitKernel,
-    flow_graph::{self, FlowGraph},
-    ntl,
-    types::{
-        kind::Field,
-        path::{Path, PathExt},
-        signal::signal,
-    },
+    types::{kind::Field, signal::signal},
 };
 
 use quote::{format_ident, quote};
@@ -198,8 +192,6 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
             q_kind: <<Self as CircuitDQ>::Q as Digital>::static_kind(),
             kernel: None,
             hdl: Some(self.hdl(&name, &child_descriptor)?),
-            netlist: Some(self.netlist(&name, &child_descriptor)?),
-            flow_graph: Some(self.flow_graph(&name, &child_descriptor)?),
             schematic: Some(self.schematic(&name, &child_descriptor)?),
             _phantom: std::marker::PhantomData,
         })
@@ -221,9 +213,7 @@ impl<C: Synchronous, D: Domain> Circuit for Adapter<C, D> {
                 q_kind: inner.q_kind,
                 kernel: inner.kernel,
                 hdl: inner.hdl,
-                netlist: inner.netlist,
                 schematic: inner.schematic,
-                flow_graph: inner.flow_graph,
                 _phantom: std::marker::PhantomData,
             });
         std::iter::once(inner)
@@ -298,64 +288,6 @@ impl<C: Synchronous, D: Domain> Adapter<C, D> {
             child_descriptor.output_kind,
             &CanonicalPath::default(),
             &CanonicalPath::default().signal_value(),
-        )?;
-        Ok(builder.build())
-    }
-    fn netlist(
-        &self,
-        name: &str,
-        child_descriptor: &Descriptor<SyncKind>,
-    ) -> Result<ntl::Object, RHDLError> {
-        let mut builder = ntl::Builder::new(name);
-        let input_reg: Kind = <<Self as CircuitIO>::I as Digital>::static_kind();
-        let output_reg: Kind = <<Self as CircuitIO>::O as Digital>::static_kind();
-        let ti = builder.add_input(input_reg);
-        let to = builder.allocate_outputs(output_reg);
-        let child_netlist = child_descriptor.netlist()?;
-        let child_offset = builder.import(child_netlist);
-        let child_inputs = child_netlist.inputs.iter().flatten();
-        for (&t, c) in ti.iter().zip(child_inputs) {
-            builder.copy_from_to(t, child_offset(c.into()));
-        }
-        for (&t, c) in to.iter().zip(&child_netlist.outputs) {
-            builder.copy_from_to(child_offset(*c), t);
-        }
-        builder.build(ntl::builder::BuilderMode::Asynchronous)
-    }
-    fn flow_graph(
-        &self,
-        name: &str,
-        child_descriptor: &Descriptor<SyncKind>,
-    ) -> Result<FlowGraph, RHDLError> {
-        let mut builder = flow_graph::builder::Builder::new(name);
-        let input_reg: Kind = <<Self as CircuitIO>::I as Digital>::static_kind();
-        let output_reg: Kind = <<Self as CircuitIO>::O as Digital>::static_kind();
-        builder.add_input_port(input_reg, 0)?;
-        builder.add_output_port(output_reg)?;
-        let child_flowgraph = child_descriptor.flow_graph()?.clone();
-        let child_flowgraph = builder.import(child_flowgraph);
-        let cr_kind = ClockReset::static_kind();
-        // Adaptor input has a .clock_reset field which we need to link to the child's clock and reset ports.
-        builder.forward_input_to_child(
-            cr_kind,
-            &Path::default().field("clock_reset").signal_value(),
-            0,
-            &child_flowgraph,
-            0,
-        )?;
-        // The rest of the adaptor input is fed into the child as normal inputs
-        builder.forward_input_to_child(
-            child_descriptor.input_kind,
-            &Path::default().field("input").signal_value(),
-            0,
-            &child_flowgraph,
-            1,
-        )?;
-        // The child's output is fed to the adaptor output as normal outputs (after wrapping in a signal)
-        builder.forward_output_from_child(
-            child_descriptor.output_kind,
-            &Path::default().signal_value(),
-            &child_flowgraph,
         )?;
         Ok(builder.build())
     }

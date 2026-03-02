@@ -1,20 +1,14 @@
-use std::{
-    collections::{HashMap, HashSet},
-    hash::{Hash, Hasher},
-};
+use std::collections::{HashMap, HashSet};
 
 use petgraph::{
     graph::{DiGraph, Graph, NodeIndex},
-    unionfind::UnionFind,
-    visit::{DfsPostOrder, EdgeRef, NodeIndexable},
+    visit::DfsPostOrder,
 };
 use rhdl_trace_type::TraceType;
 
 use crate::{
     RHDLError,
-    circuit::schematic::{
-        Port, PortId, Schematic, SchematicKind, SchematicSet, error::SchematicICE,
-    },
+    circuit::schematic::{Port, PortId, Schematic, SchematicSet, error::SchematicICE},
     error::rhdl_error,
 };
 

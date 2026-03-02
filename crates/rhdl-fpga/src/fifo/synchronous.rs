@@ -218,8 +218,6 @@ mod tests {
         let test_bench = uut.run(stream).collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
-        let tm = test_bench.ntl(&uut, &TestBenchOptions::default())?;
-        tm.run_iverilog()?;
         Ok(())
     }
 

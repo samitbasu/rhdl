@@ -22,17 +22,15 @@ use quote::{format_ident, quote};
 use rhdl_vlog::declaration;
 use syn::parse_quote;
 
+use crate::RHDLError;
 use crate::circuit::descriptor::{Descriptor, SyncKind};
 use crate::circuit::schematic::builder::{QueryPortSet, SchematicBuilder};
 use crate::circuit::schematic::{CanonicalPath, Schematic};
 use crate::circuit::scoped_name::ScopedName;
-use crate::flow_graph::{self, FlowGraph};
-use crate::types::path::{Path, PathExt};
 use crate::{
     ClockReset, Digital, HDLDescriptor, Kind, Synchronous, SynchronousDQ, SynchronousIO,
     digital_fn::NoSynchronousKernel, trace_pop_path, trace_push_path,
 };
-use crate::{RHDLError, ntl};
 use rhdl_vlog as vlog;
 use rhdl_vlog::{maybe_port_wire, unsigned_width};
 
@@ -99,8 +97,6 @@ where
             q_kind: Kind::Empty,
             kernel: None,
             schematic: Some(self.schematic(&name, &a_descriptor, &b_descriptor)?),
-            netlist: Some(self.netlist(&name, &a_descriptor, &b_descriptor)?),
-            flow_graph: Some(self.flow_graph(&name, &a_descriptor, &b_descriptor)?),
             hdl: Some(self.hdl(&name, &a_descriptor, &b_descriptor)?),
             _phantom: std::marker::PhantomData,
         })
@@ -168,91 +164,6 @@ where
         })
     }
 
-    fn netlist(
-        &self,
-        name: &str,
-        a_descriptor: &Descriptor<SyncKind>,
-        b_descriptor: &Descriptor<SyncKind>,
-    ) -> Result<ntl::Object, RHDLError> {
-        let mut builder = ntl::Builder::new(name);
-        let input_kind: Kind = <A as SynchronousIO>::I::static_kind();
-        let output_kind: Kind = <B as SynchronousIO>::O::static_kind();
-        // The inputs to the circuit are [cr, I], the output is [O]
-        // Allocate these as inputs to the netlist
-        let top_cr = builder.add_input(ClockReset::static_kind());
-        let top_i = builder.add_input(input_kind);
-        let top_o = builder.allocate_outputs(output_kind);
-        // Link in the A and B children
-        let a_netlist = a_descriptor.netlist()?;
-        let b_netlist = b_descriptor.netlist()?;
-        let a_offset = builder.import(a_netlist);
-        let b_offset = builder.import(b_netlist);
-        // Connect the clock and reset to the A and B netlists.
-        for ((tcr, acr), bcr) in top_cr
-            .iter()
-            .zip(&a_netlist.inputs[0])
-            .zip(&b_netlist.inputs[0])
-        {
-            builder.copy_from_to(*tcr, a_offset(acr.into()));
-            builder.copy_from_to(*tcr, b_offset(bcr.into()));
-        }
-        // Connect the input of the NTL to the input of the first circuit
-        for (ti, ai) in top_i.iter().zip(&a_netlist.inputs[1]) {
-            builder.copy_from_to(*ti, a_offset(ai.into()));
-        }
-        // Connect the circuit A to the input of circuit B
-        for (ao, bi) in a_netlist.outputs.iter().zip(&b_netlist.inputs[1]) {
-            builder.copy_from_to(a_offset(*ao), b_offset(bi.into()));
-        }
-        // Connec the output of circuit B to the NTL output
-        for (to, bo) in top_o.iter().zip(&b_netlist.outputs) {
-            builder.copy_from_to(b_offset(*bo), *to)
-        }
-        builder.build(ntl::builder::BuilderMode::Synchronous)
-    }
-
-    fn flow_graph(
-        &self,
-        name: &str,
-        a_descriptor: &Descriptor<SyncKind>,
-        b_descriptor: &Descriptor<SyncKind>,
-    ) -> Result<FlowGraph, RHDLError> {
-        let mut builder = flow_graph::builder::Builder::new(name);
-        let cr_kind = ClockReset::static_kind();
-        builder.add_input_port(cr_kind, 0)?;
-        builder.add_input_port(a_descriptor.input_kind, 1)?;
-        builder.add_output_port(b_descriptor.output_kind)?;
-        let a_flow_graph = a_descriptor.flow_graph()?.clone();
-        let a_flow_graph = builder.import(a_flow_graph);
-        builder.forward_input_to_child(cr_kind, &Path::default(), 0, &a_flow_graph, 0)?;
-        builder.forward_input_to_child(
-            a_descriptor.input_kind,
-            &Path::default(),
-            1,
-            &a_flow_graph,
-            1,
-        )?;
-        let b_flow_graph = b_descriptor.flow_graph()?.clone();
-        let b_flow_graph = builder.import(b_flow_graph);
-        builder.forward_input_to_child(cr_kind, &Path::default(), 0, &b_flow_graph, 0)?;
-        builder.forward_output_from_child(
-            b_descriptor.output_kind,
-            &Path::default(),
-            &b_flow_graph,
-        )?;
-        // Link the two children together by forwarding the output of A to the input of B
-        let link_kind = a_descriptor.output_kind;
-        for path in link_kind.all_leafs() {
-            let a_output_port = a_flow_graph.output_port(&path)?;
-            let b_input_port = b_flow_graph.input_port(1, &path)?;
-            builder.add_edge(
-                a_output_port,
-                b_input_port,
-                crate::flow_graph::EdgeKind::ChildToChild,
-            )?;
-        }
-        Ok(builder.build())
-    }
     fn schematic(
         &self,
         name: &str,

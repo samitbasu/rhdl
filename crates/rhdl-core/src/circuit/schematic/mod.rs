@@ -9,7 +9,7 @@ use rhdl_trace_type::TraceType;
 use crate::{
     BitX, Kind, RHDLError,
     ast::{SourceLocation, SourcePool, spanned_source::SpannedSourceSet},
-    circuit::schematic::{error::SchematicICE, loop_check::loop_check},
+    circuit::schematic::error::SchematicICE,
     common::{sense::Sense, slot_vec::SlotKey},
     error::rhdl_error,
     rhif::{object::LocatedOpCode, visit::visit_slots},

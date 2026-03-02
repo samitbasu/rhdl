@@ -10,7 +10,7 @@ use crate::{
             check_clock_domain::CheckClockDomain, check_for_rolled_types::CheckForRolledTypesPass,
             check_rhif_flow::DataFlowCheckPass, check_rhif_type::TypeCheckPass,
             constant_propagation::ConstantPropagation,
-            dead_code_elimination::DeadCodeEliminationPass, flow_graph_check::FlowGraphCheckPass,
+            dead_code_elimination::DeadCodeEliminationPass,
             lower_binary_case_to_select::LowerBinaryCaseToSelectPass,
             lower_dynamic_indices_with_constant_arguments::LowerDynamicIndicesWithConstantArguments,
             lower_inferred_casts::LowerInferredCastsPass,
@@ -115,10 +115,5 @@ pub(crate) fn compile(kernel: &KernelFn, mode: CompilationMode) -> Result<Arc<Ob
         PartialInitializationCheck::description()
     );
     obj = PartialInitializationCheck::run(obj)?;
-    debug!(
-        "Running Stage 1 Compiler Pass {}",
-        FlowGraphCheckPass::description()
-    );
-    obj = FlowGraphCheckPass::run(obj)?;
     Ok(Arc::new(obj))
 }

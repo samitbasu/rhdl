@@ -211,15 +211,4 @@ impl<I: Digital, O: Digital> SynchronousTestBench<I, O> {
         let module = &desc.hdl()?.modules;
         self.build_test_module(module, options)
     }
-    /// Generate a NTL testbench module for the given synchronous UUT   
-    pub fn ntl<T>(&self, uut: &T, options: &TestBenchOptions) -> Result<TestModule, RHDLError>
-    where
-        T: Synchronous,
-        T: SynchronousIO<I = I, O = O>,
-    {
-        let desc = uut.descriptor("uut".into())?;
-        let ntl = desc.netlist()?;
-        let hdl = crate::ntl::hdl::build_hdl("dut", ntl)?;
-        self.build_test_module(&hdl.modules, options)
-    }
 }

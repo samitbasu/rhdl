@@ -1,6 +1,5 @@
 use common::exhaustive;
-use rhdl::{core::ntl::spec::OpCode, prelude::*};
-use rhdl_core::flow_graph::rhif_builder::build_flow_graph;
+use rhdl::prelude::*;
 use test_log::test;
 
 pub mod common;
@@ -136,8 +135,6 @@ where
     let test_bench = uut.run(inputs).collect::<SynchronousTestBench<_, _>>();
     let tm_rtl = test_bench.rtl(uut, &TestBenchOptions::default())?;
     tm_rtl.run_iverilog()?;
-    let tm_fg = test_bench.ntl(uut, &TestBenchOptions::default())?;
-    tm_fg.run_iverilog()?;
     Ok(())
 }
 
@@ -149,8 +146,6 @@ where
     let test_bench = uut.run(inputs).collect::<TestBench<_, _>>();
     let tm_rtl = test_bench.rtl(uut, &TestBenchOptions::default())?;
     tm_rtl.run_iverilog()?;
-    let tm_fg = test_bench.ntl(uut, &TestBenchOptions::default())?;
-    tm_fg.run_iverilog()?;
     Ok(())
 }
 
@@ -186,14 +181,7 @@ fn test_constant_propogation_through_selector_inline() -> miette::Result<()> {
         .flat_map(|x| exhaustive::<4>().into_iter().map(move |y| (x, y)));
     let inputs = inputs.with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let desc = uut.descriptor("uut".into())?;
-    let netlist = desc.netlist()?;
-    assert!(
-        !netlist
-            .ops
-            .iter()
-            .any(|w| matches!(w.op, OpCode::Select(_)))
-    );
+    let _desc = uut.descriptor("uut".into())?;
     Ok(())
 }
 
@@ -261,9 +249,7 @@ fn test_constant_propagates_through_unary() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = std::iter::once(()).with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let desc = uut.descriptor("uut".into())?;
-    let netlist = desc.netlist()?;
-    assert!(!netlist.ops.iter().any(|w| matches!(w.op, OpCode::Unary(_))));
+    let _desc = uut.descriptor("uut".into())?;
     Ok(())
 }
 
@@ -333,14 +319,7 @@ fn test_constant_propagates_through_adder() -> miette::Result<()> {
     let uut = parent::Parent::default();
     let inputs = std::iter::once(()).with_reset(4).clock_pos_edge(100);
     test_synchronous_hdl(&uut, inputs)?;
-    let desc = uut.descriptor("uut".into())?;
-    let netlist = desc.netlist()?;
-    assert!(
-        !netlist
-            .ops
-            .iter()
-            .any(|w| matches!(w.op, OpCode::Vector(_)))
-    );
+    let _desc = uut.descriptor("uut".into())?;
     Ok(())
 }
 
@@ -441,8 +420,7 @@ fn test_flow_graph_missing_output_port() -> miette::Result<()> {
         (signal(count), ())
     }
 
-    let obj = compile_design_stage1::<one_counter>(CompilationMode::Asynchronous)?;
-    let flow_graph = build_flow_graph(obj)?;
+    let _obj = compile_design_stage1::<one_counter>(CompilationMode::Asynchronous)?;
     let uut = OneCounter {};
     let _flow_graph = uut.descriptor(ScopedName::top())?;
     Ok(())

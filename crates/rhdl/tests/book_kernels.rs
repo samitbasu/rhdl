@@ -24,10 +24,6 @@ mod arrays_1 {
     fn test_kernel_block() -> miette::Result<()> {
         let kernel = compile_design::<kernel>(CompilationMode::Synchronous)?;
         expect_test::expect_file!["expect/book_kernel_arrays_1.expect"].assert_debug_eq(&kernel);
-        let netlist: rhdl_core::ntl::Object = rhdl_core::ntl::from_rtl::build_ntl_from_rtl(&kernel);
-        let netlist = rhdl_core::compiler::optimize_ntl(netlist)?;
-        expect_test::expect_file!["expect/book_kernel_arrays_1_ntl.expect"]
-            .assert_debug_eq(&netlist);
         let vlog = kernel.as_vlog()?;
         let vlog_str = vlog.pretty();
         expect_test::expect_file!["expect/book_kernel_arrays_1_vlog.expect"].assert_eq(&vlog_str);

@@ -212,8 +212,6 @@ pub enum ICE {
     InvalidCutKind { a: Kind },
     #[error("Dynamic index in path {path:?} is a literal value")]
     DynamicIndexHasLiteral { path: Path },
-    #[error("Multiple writes to a single register {op:?}")]
-    MultipleWritesToRegister { op: crate::ntl::spec::Wire },
     #[error("Symbol table is incomplete")]
     IncompleteSymbolTable,
     #[error("Loop Isolation Algorithm Failed")]

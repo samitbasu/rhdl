@@ -87,7 +87,7 @@ use rhdl::prelude::*;
 
 use crate::{
     core::dff,
-    gray::{decode::gray_decode, encode::gray_code, Gray},
+    gray::{Gray, decode::gray_decode, encode::gray_code},
 };
 
 use super::synchronizer;
@@ -262,13 +262,6 @@ mod tests {
             &uut,
             &TestBenchOptions::default()
                 .vcd(&root.join("split_counter.vcd").to_string_lossy())
-                .skip(10),
-        )?;
-        test_mod.run_iverilog()?;
-        let test_mod = test_bench.ntl(
-            &uut,
-            &TestBenchOptions::default()
-                .vcd(&root.join("split_counter_fg.vcd").to_string_lossy())
                 .skip(10),
         )?;
         test_mod.run_iverilog()?;

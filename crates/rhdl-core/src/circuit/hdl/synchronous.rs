@@ -11,18 +11,13 @@
 use std::sync::Arc;
 
 use crate::{
-    CompilationMode, HDLDescriptor, Kind, RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
+    CompilationMode, HDLDescriptor, RHDLError, Synchronous, SynchronousDQ, SynchronousIO,
     circuit::{
         descriptor::{Descriptor, SyncKind},
         schematic::synchronous::build_schematic,
         scoped_name::ScopedName,
     },
-    compiler::{
-        compile_design,
-        driver::{compile_design_stage1, compile_design_stage2},
-    },
-    flow_graph::synchronous_builder::build_synchronous_flowgraph,
-    ntl::{self, from_rtl::build_ntl_from_rtl},
+    compiler::driver::{compile_design_stage1, compile_design_stage2},
     rtl,
     types::{
         digital::Digital,
@@ -112,92 +107,6 @@ fn build_synchronous_hdl<C: Synchronous>(
     })
 }
 
-fn build_synchronous_netlist<C: Synchronous>(
-    scoped_name: &ScopedName,
-    kernel: &rtl::Object,
-    children: &[Descriptor<SyncKind>],
-) -> Result<ntl::Object, RHDLError> {
-    let name = scoped_name.to_string();
-    // Construct the netlist for the update function
-    let update_netlist = build_ntl_from_rtl(kernel);
-    // Create a manual builder for the top level netlist
-    let mut builder = ntl::builder::Builder::new(&name);
-    // This is the kind of output of the update kernel - it must be equal to
-    // (Update::O, Update::D)
-    // The update_fg will have 3 arguments (rst,i,q) and 2 outputs (o,d)
-    let output_kind: Kind = C::O::static_kind();
-    if output_kind.is_empty() {
-        return Err(RHDLError::NoOutputsError);
-    }
-    let input_kind: Kind = C::I::static_kind();
-    // The inputs to the circuit are [cr, I], the output is [O]
-    // Allocate these as inputs to the netlist
-    let top_cr = builder.add_input(crate::ClockReset::static_kind());
-    let top_i = builder.add_input(input_kind);
-    let top_o = builder.allocate_outputs(output_kind);
-    // Link in the update code.
-    let update_register_offset = builder.import(&update_netlist);
-    // Link the ClockReset signal from the top down into the update code.
-    for (&top_cr_bit, &update_cr_bit) in top_cr.iter().zip(&update_netlist.inputs[0]) {
-        builder.copy_from_to(top_cr_bit, update_register_offset(update_cr_bit.into()));
-    }
-    // Link the module input to the input of the update function
-    for (&top_i_bit, update_i_bit) in top_i.iter().zip(&update_netlist.inputs[1]) {
-        builder.copy_from_to(top_i_bit, update_register_offset(update_i_bit.into()));
-    }
-    // Link up the output bits from the update_netlist
-    for (&top_o_bit, &update_o_bit) in top_o.iter().zip(&update_netlist.outputs) {
-        builder.copy_from_to(update_register_offset(update_o_bit), top_o_bit);
-    }
-    // Get the "D" vector by skipping the first |O| bits, and pre-map them into their new addresses
-    let d_vec = update_netlist
-        .outputs
-        .iter()
-        .skip(output_kind.bits())
-        .map(|op| update_register_offset(*op))
-        .collect::<Vec<_>>();
-    // Get the "Q" vector by remapping the 3rd input to the update function.
-    // Note that the update function signature for a synchronous function is (ClockReset, I, Q) -> (O, D)
-    let q_vec = update_netlist.inputs[2]
-        .iter()
-        .map(|op| update_register_offset(op.into()))
-        .collect::<Vec<_>>();
-    // Create the inputs for the children by splitting bits off of the d_index
-    for child in children {
-        let child_name = child.name.last().unwrap();
-        // Compute the bit range for this child's input based on its name
-        // The tuple index of .1 is to get the D element of the output from the kernel
-        let child_path = Path::default().field(child_name);
-        let (output_bit_range, _) = bit_range(C::D::static_kind(), &child_path)?;
-        let (input_bit_range, _) = bit_range(C::Q::static_kind(), &child_path)?;
-        let netlist = child
-            .netlist
-            .as_ref()
-            .ok_or(RHDLError::FunctionNotSynthesizable {
-                name: child.name.to_string(),
-            })?;
-        // Merge the child's netlist into ours
-        let child_offset = builder.import(netlist);
-        log::debug!("Link child {child_name} into descriptor for {name}");
-        // Connect the child's clock and reset to the top level clock and reset
-        for (&top_cr, &child_cr) in top_cr.iter().zip(&netlist.inputs[0]) {
-            builder.copy_from_to(top_cr, child_offset(child_cr.into()));
-        }
-        // Connect the child's input registers to the given bits of the D register
-        for (&d_bit, &child_i) in d_vec[output_bit_range.clone()]
-            .iter()
-            .zip(&netlist.inputs[1])
-        {
-            builder.copy_from_to(d_bit, child_offset(child_i.into()));
-        }
-        // Connect the childs output registers to the given bits of the Q register
-        for (&q_bit, &child_o) in q_vec[input_bit_range.clone()].iter().zip(&netlist.outputs) {
-            builder.copy_from_to(child_offset(child_o), q_bit);
-        }
-    }
-    builder.build(ntl::builder::BuilderMode::Synchronous)
-}
-
 /// Build run time description of a circuit, where the circuit is
 /// named by `scoped_name`.
 pub fn build_synchronous_descriptor<C: Synchronous>(
@@ -210,11 +119,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         .children(&scoped_name)
         .collect::<Result<Vec<Descriptor<SyncKind>>, RHDLError>>()?;
     let hdl = build_synchronous_hdl::<C>(&scoped_name, &kernel, &children)?;
-    let flow_graph =
-        build_synchronous_flowgraph::<C>(&scoped_name, &kernel, &children)?.loop_checked()?;
-    let netlist = build_synchronous_netlist::<C>(&scoped_name, &kernel, &children)?;
     let schematic = build_schematic::<C>(&scoped_name, rhif, &children)?;
-    schematic.checked()?;
     let circuit_output = <C as SynchronousIO>::O::static_kind();
     let circuit_input = <C as SynchronousIO>::I::static_kind();
     let d_kind = <C as SynchronousDQ>::D::static_kind();
@@ -227,9 +132,7 @@ pub fn build_synchronous_descriptor<C: Synchronous>(
         d_kind,
         q_kind,
         kernel: Some(kernel),
-        netlist: Some(netlist),
         hdl: Some(hdl),
-        flow_graph: Some(flow_graph),
         schematic: Some(schematic),
         _phantom: std::marker::PhantomData,
     })

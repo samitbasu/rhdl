@@ -2,7 +2,6 @@
 use rhdl::prelude::*;
 
 mod simplest {
-    use badascii_doc::badascii;
     use rhdl::prelude::*;
 
     #[derive(Clone, Debug, Synchronous, Default)]
@@ -93,17 +92,18 @@ mod common;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::*;
     use miette::IntoDiagnostic;
+    use rhdl_core::circuit::schematic::error::SchematicICE;
 
     #[test]
     fn test_logic_loop() -> miette::Result<()> {
         let uut = U::default();
-        let Err(err) = uut.descriptor("uut".into()) else {
+        let Err(RHDLError::SchematicConstructionError(ice)) = uut.descriptor("uut".into()) else {
             panic!("Expected this to fail with a logic loop error");
         };
-        let report = miette_report(err);
-        expect_test::expect_file!["expect/logic_loop.expect"].assert_eq(&report);
+        let SchematicICE::LogicLoop { filename: _ } = ice.as_ref() else {
+            panic!("Expected this to be a logic loop error");
+        };
         Ok(())
     }
 
@@ -112,8 +112,6 @@ mod tests {
         let pass_through =
             compile_design_stage1::<simplest::simplest>(CompilationMode::Synchronous)?;
         std::fs::write("simplest.rhif", format!("{:#?}", pass_through)).into_diagnostic()?;
-        let fg = rhdl_core::flow_graph::rhif_builder::build_flow_graph(pass_through)?;
-        std::fs::write("simplest.dot", fg.dot()).into_diagnostic()?;
         let uut = simplest::U;
         let _descriptor = uut.descriptor("uut".into())?;
         Ok(())

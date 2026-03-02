@@ -70,10 +70,7 @@ bool  |                     |
 
 use quote::{format_ident, quote};
 use rhdl::{
-    core::{
-        ScopedName, SyncKind, circuit::schematic::builder::SchematicBuilder,
-        flow_graph::black_box::build_synchronous_blackbox,
-    },
+    core::{ScopedName, SyncKind, circuit::schematic::builder::SchematicBuilder},
     prelude::*,
 };
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
@@ -219,21 +216,18 @@ where
     fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError> {
         let name = scoped_name.to_string();
         let schematic = SchematicBuilder::synchronous::<Self>(&name)?.build();
-        Descriptor::<SyncKind> {
+        Ok(Descriptor::<SyncKind> {
             type_name: std::any::type_name::<Self>(),
             schematic: Some(schematic),
-            flow_graph: Some(build_synchronous_blackbox::<Self>(&scoped_name)?),
             name: scoped_name,
             input_kind: <<Self as SynchronousIO>::I as Digital>::static_kind(),
             output_kind: <<Self as SynchronousIO>::O as Digital>::static_kind(),
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             kernel: None,
-            netlist: None,
             hdl: Some(self.hdl(&name)?),
             _phantom: std::marker::PhantomData,
-        }
-        .with_netlist_black_box()
+        })
     }
 }
 
@@ -441,8 +435,6 @@ mod tests {
         expect.assert_eq(&hdl);
         let stream = random_command_stream(1000);
         let test_bench = uut.run(stream).collect::<SynchronousTestBench<_, _>>();
-        let test_mod = test_bench.ntl(&uut, &TestBenchOptions::default().skip(2))?;
-        test_mod.run_iverilog()?;
         let test_mod = test_bench.rtl(&uut, &TestBenchOptions::default().skip(2))?;
         test_mod.run_iverilog()?;
         Ok(())

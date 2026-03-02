@@ -61,8 +61,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use rhdl::core::{compiler::optimize_ntl, ntl::from_rtl::build_ntl_from_rtl};
-
     use super::*;
 
     #[test]
@@ -86,29 +84,35 @@ mod tests {
     #[test]
     fn test_slice_generated_code() -> miette::Result<()> {
         let hdl = compile_design::<slice<2, 6, 2>>(CompilationMode::Asynchronous)?;
-        eprintln!("{}", hdl.as_vlog()?.pretty());
-        let ntl = build_ntl_from_rtl(&hdl);
-        let ntl = optimize_ntl(ntl)?;
-        let ntl = ntl.as_vlog("slice")?.modules.pretty();
         expect_test::expect![[r#"
-            module slice(input wire [5:0] arg_0, output reg [1:0] out);
-               reg  r0;
-               reg  r1;
-               reg  r2;
-               reg  r3;
-               reg  r4;
-               reg  r5;
-               always @(*) begin
-                  r0 = arg_0[0];
-                  r1 = arg_0[1];
-                  r2 = arg_0[2];
-                  r3 = arg_0[3];
-                  r4 = arg_0[4];
-                  r5 = arg_0[5];
-                  out = {r3, r2};
-               end
-            endmodule
-        "#]].assert_eq(&ntl);
+            function [1:0] kernel_slice(input reg [5:0] arg_0);
+                  reg [5:0] r0;
+                  reg [5:0] r1;
+                  reg [0:0] r2;
+                  // o
+                  reg [1:0] r3;
+                  reg [5:0] r4;
+                  reg [0:0] r5;
+                  reg [1:0] r6;
+                  // o
+                  reg [1:0] r7;
+                  localparam l0 = 6'b000100;
+                  localparam l1 = 2'b01;
+                  localparam l2 = 2'b00;
+                  localparam l3 = 6'b001000;
+                  localparam l4 = 2'b10;
+                  begin
+                     r1 = arg_0;
+                     r0 = r1 & l0;
+                     r2 = |r0;
+                     r3 = r2 ? l1 : l2;
+                     r4 = r1 & l3;
+                     r5 = |r4;
+                     r6 = r3 | l4;
+                     r7 = r5 ? r6 : r3;
+                     kernel_slice = r7;
+                  end
+            endfunction"#]].assert_eq(&hdl.as_vlog()?.pretty());
         Ok(())
     }
 }

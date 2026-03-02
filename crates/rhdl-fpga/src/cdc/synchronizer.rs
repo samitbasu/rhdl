@@ -171,7 +171,6 @@ use rhdl::{
     core::{
         ScopedName,
         circuit::{descriptor::AsyncKind, schematic::builder::SchematicBuilder},
-        flow_graph::black_box::build_circuit_blackbox,
     },
     prelude::*,
 };
@@ -254,8 +253,7 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
     fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<AsyncKind>, RHDLError> {
         let name = scoped_name.to_string();
         let schematic = SchematicBuilder::circuit::<Self>(&name)?.build();
-        Descriptor::<AsyncKind> {
-            flow_graph: Some(build_circuit_blackbox::<Self>(&scoped_name)?),
+        Ok(Descriptor::<AsyncKind> {
             schematic: Some(schematic),
             name: scoped_name,
             input_kind: <<Self as CircuitIO>::I as Digital>::static_kind(),
@@ -263,12 +261,10 @@ impl<W: Domain, R: Domain> Circuit for Sync1Bit<W, R> {
             d_kind: <<Self as CircuitDQ>::D as Digital>::static_kind(),
             q_kind: <<Self as CircuitDQ>::Q as Digital>::static_kind(),
             kernel: None,
-            netlist: None,
             hdl: Some(self.hdl(&name)?),
             _phantom: std::marker::PhantomData,
             type_name: std::any::type_name::<Self>(),
-        }
-        .with_netlist_black_box()
+        })
     }
 }
 

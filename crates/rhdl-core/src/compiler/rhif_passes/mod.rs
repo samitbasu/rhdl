@@ -4,7 +4,6 @@ pub(crate) mod check_rhif_flow;
 pub(crate) mod check_rhif_type;
 pub(crate) mod constant_propagation;
 pub(crate) mod dead_code_elimination;
-pub(crate) mod flow_graph_check;
 pub(crate) mod lower_binary_case_to_select;
 pub(crate) mod lower_dynamic_indices_with_constant_arguments;
 pub(crate) mod lower_inferred_casts;

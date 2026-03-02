@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    ClockReset, Descriptor, RHDLError, ScopedName, SyncKind, Synchronous, SynchronousDQ,
-    SynchronousIO,
+    ClockReset, Descriptor, RHDLError, ScopedName, SyncKind, Synchronous, SynchronousIO,
     circuit::schematic::{
         CanonicalPath, Schematic,
         builder::{QueryPortSet, SchematicBuilder},
@@ -89,5 +88,7 @@ pub fn build_schematic<C: Synchronous>(
             &CanonicalPath::default().field(local_name),
         )?;
     }
-    Ok(builder.build())
+    let schematic = builder.build();
+    schematic.checked()?;
+    Ok(schematic)
 }

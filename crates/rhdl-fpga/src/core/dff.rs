@@ -64,7 +64,6 @@ use rhdl::{
     core::{
         ScopedName,
         circuit::{descriptor::SyncKind, schematic::builder::SchematicBuilder},
-        flow_graph::black_box::build_synchronous_blackbox,
     },
     prelude::*,
 };
@@ -148,9 +147,8 @@ impl<T: Digital> Synchronous for DFF<T> {
     fn descriptor(&self, scoped_name: ScopedName) -> Result<Descriptor<SyncKind>, RHDLError> {
         let name = scoped_name.to_string();
         let schematic = SchematicBuilder::synchronous::<Self>(&name)?.build();
-        Descriptor::<SyncKind> {
+        Ok(Descriptor::<SyncKind> {
             schematic: Some(schematic),
-            flow_graph: Some(build_synchronous_blackbox::<Self>(&scoped_name)?),
             name: scoped_name,
             type_name: std::any::type_name::<Self>(),
             input_kind: Self::I::static_kind(),
@@ -159,10 +157,8 @@ impl<T: Digital> Synchronous for DFF<T> {
             q_kind: Kind::Empty,
             kernel: None,
             hdl: Some(self.hdl(&name)?),
-            netlist: None,
             _phantom: std::marker::PhantomData,
-        }
-        .with_netlist_black_box()
+        })
     }
 }
 

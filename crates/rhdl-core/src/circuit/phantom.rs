@@ -49,7 +49,7 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
         // asynchronous context, and ideally it shouldn't matter.  So we use
         // the synchronous mode so that the inputs have at least place holders
         // for the clock reset and input vecs (both empty)
-        Descriptor::<SyncKind> {
+        Ok(Descriptor::<SyncKind> {
             name: scoped_name,
             type_name: std::any::type_name::<Self>(),
             input_kind: Kind::Empty,
@@ -57,16 +57,13 @@ impl<T: Digital + 'static> Synchronous for std::marker::PhantomData<T> {
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             kernel: None,
-            netlist: None,
-            flow_graph: None,
             hdl: Some(HDLDescriptor {
                 name: name.to_string(),
                 modules: module.into(),
             }),
             _phantom: std::marker::PhantomData,
             schematic: Some(SchematicBuilder::synchronous::<Self>(&name)?.build()),
-        }
-        .with_netlist_black_box()
+        })
     }
 }
 
@@ -106,7 +103,7 @@ impl<T: Digital + 'static> Circuit for std::marker::PhantomData<T> {
             module #module_ident;
             endmodule
         };
-        Descriptor::<AsyncKind> {
+        Ok(Descriptor::<AsyncKind> {
             name: scoped_name,
             type_name: std::any::type_name::<Self>(),
             input_kind: Kind::Empty,
@@ -114,15 +111,12 @@ impl<T: Digital + 'static> Circuit for std::marker::PhantomData<T> {
             d_kind: Kind::Empty,
             q_kind: Kind::Empty,
             kernel: None,
-            netlist: None,
-            flow_graph: None,
             hdl: Some(HDLDescriptor {
                 name: name.to_string(),
                 modules: module.into(),
             }),
             _phantom: std::marker::PhantomData,
             schematic: Some(SchematicBuilder::circuit::<Self>(&name)?.build()),
-        }
-        .with_netlist_black_box()
+        })
     }
 }
