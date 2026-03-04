@@ -124,7 +124,7 @@ mod tests {
                     Some(rhdl::core::sim::ResetOrData::Data(input))
                 },
                 100,
-            )
+            )?
             .collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
@@ -173,7 +173,7 @@ mod tests {
                 Some(rhdl::core::sim::ResetOrData::Data(input))
             },
             100,
-        )
+        )?
         .for_each(drop);
         Ok(())
     }

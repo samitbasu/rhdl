@@ -158,7 +158,7 @@ mod tests {
         let uut = XorShift::default();
         let input = std::iter::repeat(true).with_reset(1).clock_pos_edge(100);
         let values = uut
-            .run(input)
+            .run(input)?
             .synchronous_sample()
             .skip(1) // Skip the first value with is zero
             .map(|x| x.output);

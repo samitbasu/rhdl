@@ -64,7 +64,7 @@ use rhdl::{
     prelude::*,
 };
 
-use super::{ready_cast, stream_buffer::StreamBuffer, StreamIO};
+use super::{StreamIO, ready_cast, stream_buffer::StreamBuffer};
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
 #[rhdl(dq_no_prefix)]
@@ -182,7 +182,7 @@ mod tests {
         let uut = single_stage(map, a_rng, consume);
         // Run a few samples through
         let input = repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
-        uut.run(input).for_each(drop);
+        uut.run_unchecked(input).for_each(drop);
         Ok(())
     }
 }

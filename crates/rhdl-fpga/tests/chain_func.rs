@@ -50,7 +50,7 @@ fn test_auto_counter_counts() -> miette::Result<()> {
         .with_reset(1)
         .clock_pos_edge(100);
     let uut = auto_counter::U::<4>::default();
-    let vcd = uut.run(input).collect::<VcdFile>();
+    let vcd = uut.run(input)?.collect::<VcdFile>();
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("vcd")
         .join("chain_func");
@@ -68,7 +68,7 @@ fn test_auto_counter_is_correct() -> miette::Result<()> {
         .clock_pos_edge(100);
     let uut = auto_counter::U::<4>::default();
     let output = uut
-        .run(input)
+        .run(input)?
         .synchronous_sample()
         .map(|x| x.output)
         .skip(1)
@@ -87,7 +87,7 @@ fn test_chain_auto_counter() -> miette::Result<()> {
     let c2 = Func::try_new::<doubler::doubler<4>>()?;
     let uut = Chain::new(c1, c2);
     let output = uut
-        .run(input)
+        .run(input)?
         .synchronous_sample()
         .map(|x| x.output)
         .skip(1)

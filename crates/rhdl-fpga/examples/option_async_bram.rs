@@ -37,7 +37,7 @@ fn main() -> Result<(), RHDLError> {
     });
     let uut: OptionAsyncBram<b8, Red, Blue, 3> =
         OptionAsyncBram::new((0..).map(|x| (b3(x), b8(x))));
-    let vcd = uut.run(input).collect::<SvgFile>();
+    let vcd = uut.run(input)?.collect::<SvgFile>();
     write_svg_as_markdown(vcd, "option_async_bram.md", SvgOptions::default())?;
     Ok(())
 }

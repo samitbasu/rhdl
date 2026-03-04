@@ -73,7 +73,7 @@ mod tests {
         let input = std::iter::repeat_n((), 5000)
             .with_reset(1)
             .clock_pos_edge(100);
-        let vcd = uut.run(input).collect::<VcdFile>();
+        let vcd = uut.run(input)?.collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("lid");
@@ -90,7 +90,7 @@ mod tests {
         let input = std::iter::repeat_n((), 100_000)
             .with_reset(1)
             .clock_pos_edge(100);
-        let last = uut.run(input).last().unwrap();
+        let last = uut.run(input)?.last().unwrap();
         assert!(last.output);
         Ok(())
     }
@@ -101,7 +101,7 @@ mod tests {
         let input = std::iter::repeat_n((), 500)
             .with_reset(1)
             .clock_pos_edge(100);
-        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
         Ok(())

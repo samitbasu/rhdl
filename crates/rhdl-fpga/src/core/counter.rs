@@ -83,7 +83,7 @@ mod tests {
         let inputs = inputs.clock_pos_edge(100);
         let inputs = inputs.collect::<Vec<_>>();
         let uut: Counter<6> = Counter::default();
-        let output = uut.run(inputs).count();
+        let output = uut.run(inputs)?.count();
         assert_eq!(output, 314);
         Ok(())
     }
@@ -95,7 +95,7 @@ mod tests {
         let input = inputs_1.chain(inputs_2);
         let input = input.clock_pos_edge(100);
         let uut: Counter<6> = Counter::default();
-        let vcd: VcdFile = uut.run(input).collect();
+        let vcd: VcdFile = uut.run(input)?.collect();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("counter");
@@ -118,7 +118,7 @@ mod tests {
             .fold(0, |acc, x| acc + if *x { 1 } else { 0 });
         let stream = rand_set.with_reset(4).clock_pos_edge(100);
         let uut: Counter<6> = Counter::default();
-        let out_stream = uut.run(stream);
+        let out_stream = uut.run(stream)?;
         let output = out_stream.clone().last().map(|x| x.output);
         assert_eq!(output, Some(bits(ground_truth)));
         let tb = out_stream.collect::<SynchronousTestBench<_, _>>();

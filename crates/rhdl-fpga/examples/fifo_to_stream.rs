@@ -30,7 +30,7 @@ fn main() -> Result<(), RHDLError> {
                 Some(rhdl::core::sim::ResetOrData::Data(input))
             },
             100,
-        )
+        )?
         .take_while(|t| t.time < 1500)
         .collect::<SvgFile>();
     rhdl_fpga::doc::write_svg_as_markdown(

@@ -139,7 +139,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_drainer_validation_works() {
+    fn test_drainer_validation_works() -> miette::Result<()> {
         let uut = FIFODrainer::<16>::default();
         let mut need_reset = true;
         let mut xorshift = crate::rng::xorshift::XorShift128::default();
@@ -165,17 +165,18 @@ mod tests {
                     Some(ResetOrData::Data(next_input))
                 },
                 100,
-            )
+            )?
             .take(100)
             .synchronous_sample()
             .map(|x| x.output.valid)
             .last()
             .unwrap();
         assert!(!valid);
+        Ok(())
     }
 
     #[test]
-    fn test_drainer() {
+    fn test_drainer() -> miette::Result<()> {
         let uut = FIFODrainer::<16>::default();
         let mut need_reset = true;
         let mut xorshift = crate::rng::xorshift::XorShift128::default();
@@ -194,13 +195,14 @@ mod tests {
                     Some(ResetOrData::Data(In { data: next_input }))
                 },
                 100,
-            )
+            )?
             .take(100)
             .synchronous_sample()
             .map(|x| x.output.valid)
             .last()
             .unwrap();
         assert!(valid);
+        Ok(())
     }
 
     #[test]
@@ -223,7 +225,7 @@ mod tests {
                     Some(ResetOrData::Data(In { data: next_input }))
                 },
                 100,
-            )
+            )?
             .take(100)
             .collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;

@@ -99,7 +99,7 @@ mod tests {
     fn test_stream_function() -> miette::Result<()> {
         let uut = NegatingConditioner::<Red, Blue>::default();
         let stream = istream();
-        let vcd = uut.run(stream).collect::<VcdFile>();
+        let vcd = uut.run(stream)?.collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("reset")
@@ -120,7 +120,7 @@ mod tests {
         let hdl = uut.descriptor("top".into())?.hdl()?.modules.pretty();
         expect.assert_eq(&hdl);
         let stream = istream();
-        let tb = uut.run(stream).collect::<TestBench<_, _>>();
+        let tb = uut.run(stream)?.collect::<TestBench<_, _>>();
         let hdl = tb.rtl(&uut, &TestBenchOptions::default().skip(10))?;
         hdl.run_iverilog()?;
         Ok(())

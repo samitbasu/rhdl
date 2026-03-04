@@ -182,7 +182,7 @@ pub mod sample_at_neg_edge_test {
         let input_values = [5, 4, 7, 9, 2].into_iter().map(b8);
         let inputs = input_values.with_reset(1).clock_pos_edge(100);
         let dff = rhdl_fpga::core::dff::DFF::<b8>::default();
-        let svg = dff.run(inputs).collect::<SvgFile>();
+        let svg = dff.run(inputs).unwrap().collect::<SvgFile>();
         std::fs::write(
             "dff_sample_at_neg_edge.svg",
             svg.to_string(&SvgOptions::default()).unwrap(),
@@ -194,6 +194,7 @@ pub mod sample_at_neg_edge_test {
         let dff = rhdl_fpga::core::dff::DFF::<b8>::default();
         let outputs = dff
             .run(inputs)
+            .unwrap()
             .sample_at_neg_edge(|x| x.input.0.clock)
             .collect::<Vec<_>>();
         // ANCHOR_END: sample-at-neg-edge-demo
@@ -245,7 +246,7 @@ pub mod synchronous_sample_demo {
         let input_values = [5, 4, 7, 9, 2].into_iter().map(b8);
         let inputs = input_values.with_reset(1).clock_pos_edge(100);
         let dff = rhdl_fpga::core::dff::DFF::<b8>::default();
-        let svg = dff.run(inputs).collect::<SvgFile>();
+        let svg = dff.run(inputs).unwrap().collect::<SvgFile>();
         std::fs::write(
             "dff_synchronous_sample.svg",
             svg.to_string(&SvgOptions::default()).unwrap(),
@@ -255,7 +256,11 @@ pub mod synchronous_sample_demo {
         let input_values = [5, 4, 7, 9, 2].into_iter().map(b8);
         let inputs = input_values.with_reset(1).clock_pos_edge(100);
         let dff = rhdl_fpga::core::dff::DFF::<b8>::default();
-        let outputs = dff.run(inputs).synchronous_sample().collect::<Vec<_>>();
+        let outputs = dff
+            .run(inputs)
+            .unwrap()
+            .synchronous_sample()
+            .collect::<Vec<_>>();
         // ANCHOR_END: synchronous-sample-demo
         let mut file = std::fs::File::create("dff_synchronous_sample.txt").unwrap();
         writeln!(file, "| Time | ClockReset | Input | Output |").unwrap();
@@ -318,6 +323,7 @@ mod tap_tests {
         let expected = [0, 0, 3, 4, 7, 1];
         let outputs = dff
             .run(timed)
+            .unwrap()
             .synchronous_sample()
             .map(|t| t.output.raw())
             .collect::<Vec<_>>();
@@ -335,6 +341,7 @@ mod tap_tests {
         let expected = [0, 0, 3, 4, 7, 1];
         let outputs = dff
             .run(timed)
+            .unwrap()
             // 👇 New!  Put it _before_ the .synchronous_sample() call
             .svg_file("svg_tap_demo.svg", SvgOptions::default())
             .synchronous_sample()
@@ -354,6 +361,7 @@ mod tap_tests {
         let expected = [0, 0, 3, 4, 7, 1];
         let outputs = dff
             .run(timed)
+            .unwrap()
             // 👇 Changed!
             .vcd_file("vcd_tap_demo.vcd")
             .synchronous_sample()

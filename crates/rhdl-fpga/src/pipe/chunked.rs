@@ -88,7 +88,10 @@ where
 {
     fn default() -> Self {
         assert!(N > 1, "Can only chunk streams with N > 1");
-        assert!((1 << M) >= N, "Expect that the bitwidth of the counter is sufficiently large to express values up to N");
+        assert!(
+            (1 << M) >= N,
+            "Expect that the bitwidth of the counter is sufficiently large to express values up to N"
+        );
         Self {
             input: DFF::new(None),
             delay_line: core::array::from_fn(|_| DFF::new(T::dont_care())),
@@ -205,7 +208,10 @@ mod tests {
         let expected = source_rng.clone();
         let expected = mk_array(expected);
         let input = stalling(source_rng, 0.23).with_reset(1).clock_pos_edge(100);
-        let output = uut.run(input).synchronous_sample().filter_map(|t| t.output);
+        let output = uut
+            .run(input)?
+            .synchronous_sample()
+            .filter_map(|t| t.output);
         assert!(output.take(1_000).eq(expected.take(1_000)));
         Ok(())
     }
@@ -218,7 +224,7 @@ mod tests {
             .with_reset(1)
             .clock_pos_edge(100)
             .take(100);
-        let output = uut.run(input).collect::<VcdFile>();
+        let output = uut.run(input)?.collect::<VcdFile>();
         output.dump_to_file("chunked_pipe.vcd")?;
         Ok(())
     }

@@ -187,7 +187,7 @@ mod tests {
     fn check_that_output_is_valid() -> miette::Result<()> {
         let uut = SyncFIFO::<b8, 3>::default();
         let stream = test_seq();
-        let output = uut.run(stream).synchronous_sample().map(|x| x.output.data);
+        let output = uut.run(stream)?.synchronous_sample().map(|x| x.output.data);
         let output = output.flatten().collect::<Vec<_>>();
         assert!(output.iter().all(|x| *x != 0));
         let ramp = output.iter().copied().skip_while(|x| *x == 1);
@@ -199,7 +199,7 @@ mod tests {
     fn basic_write_then_read_test() -> miette::Result<()> {
         let uut = SyncFIFO::<Bits<8>, 3>::default();
         let stream = test_seq();
-        let vcd = uut.run(stream).collect::<VcdFile>();
+        let vcd = uut.run(stream)?.collect::<VcdFile>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo")
@@ -215,9 +215,16 @@ mod tests {
     fn test_hdl_generation_fifo() -> miette::Result<()> {
         let uut = SyncFIFO::<Bits<8>, 3>::default();
         let stream = test_seq();
-        let test_bench = uut.run(stream).collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(stream)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_no_combinatorial_paths() -> miette::Result<()> {
+        let uut = SyncFIFO::<Bits<8>, 3>::default();
+        drc::no_combinatorial_paths(&uut)?;
         Ok(())
     }
 
@@ -260,7 +267,7 @@ mod tests {
                     Some(ResetOrData::Data(next_input))
                 },
                 100,
-            )
+            )?
             .synchronous_sample()
             .filter_map(|x| if x.input.1.next { x.output.data } else { None })
             .collect::<Vec<_>>();

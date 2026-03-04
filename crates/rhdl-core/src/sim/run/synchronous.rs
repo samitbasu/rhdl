@@ -1,8 +1,9 @@
 //! Extension trait and types to provide for iterator-based open loop testing of
 //! synchronous circuits.
 use crate::{
-    ClockReset, Synchronous, SynchronousIO, TimedSample, trace,
+    ClockReset, RHDLError, ScopedName, Synchronous, SynchronousIO, TimedSample,
     trace::{
+        self,
         page::{set_trace_page, take_trace_page},
         session::Session,
         trace_sample::TracedSample,
@@ -65,8 +66,8 @@ where
             self.time = sample.time;
             let trace_page = sample.is_traced().then(|| self.session.page());
             set_trace_page(trace_page);
-            trace("clock", &sample.value.0.clock);
-            trace("reset", &sample.value.0.reset);
+            crate::trace("clock", &sample.value.0.clock);
+            crate::trace("reset", &sample.value.0.reset);
             let output = self.uut.sim(sample.value.0, sample.value.1, state);
             let page = take_trace_page();
             Some(TracedSample {
@@ -87,6 +88,15 @@ pub trait RunSynchronousExt<I>: Synchronous + Sized {
     fn run(
         &self,
         iter: I,
+    ) -> Result<
+        RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>,
+        RHDLError,
+    >
+    where
+        I: IntoIterator;
+    fn run_unchecked(
+        &self,
+        iter: I,
     ) -> RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>
     where
         I: IntoIterator;
@@ -100,7 +110,20 @@ where
     fn run(
         &self,
         iter: I,
-    ) -> RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S> {
+    ) -> Result<
+        RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>,
+        RHDLError,
+    > {
+        let _ = self.descriptor(ScopedName::top())?;
+        Ok(run_synchronous(self, iter.into_iter()))
+    }
+    fn run_unchecked(
+        &self,
+        iter: I,
+    ) -> RunSynchronous<'_, Self, <I as IntoIterator>::IntoIter, <Self as Synchronous>::S>
+    where
+        I: IntoIterator,
+    {
         run_synchronous(self, iter.into_iter())
     }
 }

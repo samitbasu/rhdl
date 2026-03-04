@@ -156,7 +156,7 @@ mod tests {
             sink: SinkFromFn::new_from_iter(b_rng, 0.3),
         };
         let input = repeat_n((), 1000).with_reset(1).clock_pos_edge(100);
-        let last_output = uut.run(input).last().unwrap();
+        let last_output = uut.run_unchecked(input).last().unwrap();
         let last_count = last_output.output.raw();
         assert_eq!(last_count, 10);
         Ok(())

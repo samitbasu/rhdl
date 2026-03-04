@@ -62,7 +62,7 @@ use badascii_doc::{badascii, badascii_formal};
 
 use crate::{
     fifo::testing::filler::FIFOFiller,
-    stream::{fifo_to_stream::FIFOToStream, Ready},
+    stream::{Ready, fifo_to_stream::FIFOToStream},
 };
 use rhdl::prelude::*;
 
@@ -136,7 +136,7 @@ mod tests {
             .clock_pos_edge(100)
             .take(1000);
         let uut = LazyRng::default();
-        let vcd = uut.run(input).collect::<VcdFile>();
+        let vcd = uut.run(input)?.collect::<VcdFile>();
         vcd.dump_to_file("lazy_rng.vcd")?;
         Ok(())
     }

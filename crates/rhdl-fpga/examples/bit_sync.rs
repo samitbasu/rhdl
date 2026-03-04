@@ -22,7 +22,7 @@ fn main() -> Result<(), RHDLError> {
     let uut = Sync1Bit::<Red, Blue>::default();
     // Simulate the crosser, and collect into a VCD
     let vcd = uut
-        .run(inputs)
+        .run(inputs)?
         .take_while(|x| x.time < 2000)
         .collect::<SvgFile>();
     write_svg_as_markdown(vcd, "sync_cross.md", SvgOptions::default())?;

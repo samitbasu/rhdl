@@ -1,0 +1,1689 @@
+module testbench();
+   reg [1:0] clock_reset;
+   reg [0:0] i;
+   wire [6:0] o;
+   reg [6:0] rust_out;
+   uut t(.clock_reset(clock_reset), .i(i), .o(o));
+   initial begin
+      #0;
+      clock_reset = 2'b10;
+      i = 1'b0;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 1 at time 0", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b11;
+      i = 1'b0;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1100010;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 3 at time 51", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1100010;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 4 at time 100", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 6 at time 151", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 7 at time 200", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 9 at time 251", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 10 at time 300", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 12 at time 351", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 13 at time 400", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 15 at time 451", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 16 at time 500", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1100101;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1100101;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 18 at time 551", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1100101;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 19 at time 600", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 21 at time 651", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 22 at time 700", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 24 at time 751", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 25 at time 800", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 27 at time 851", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 28 at time 900", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 30 at time 951", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 31 at time 1000", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1100110;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1100110;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 33 at time 1051", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1100110;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 34 at time 1100", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1010010;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1010010;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 36 at time 1151", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1010010;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 37 at time 1200", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1001010;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1001010;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 39 at time 1251", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1001010;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 40 at time 1300", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1010001;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1010001;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 42 at time 1351", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1010001;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 43 at time 1400", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1111100;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1111100;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 45 at time 1451", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1111100;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 46 at time 1500", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 48 at time 1551", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 49 at time 1600", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 51 at time 1651", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 52 at time 1700", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 54 at time 1751", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 55 at time 1800", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 57 at time 1851", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 58 at time 1900", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1111100;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1111100;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 60 at time 1951", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1111100;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 61 at time 2000", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1000101;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1000101;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 63 at time 2051", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1000101;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 64 at time 2100", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 66 at time 2151", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 67 at time 2200", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 69 at time 2251", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 70 at time 2300", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 72 at time 2351", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 73 at time 2400", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 75 at time 2451", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 76 at time 2500", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1001101;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1001101;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 78 at time 2551", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1001101;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 79 at time 2600", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 81 at time 2651", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 82 at time 2700", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 84 at time 2751", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 85 at time 2800", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 87 at time 2851", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 88 at time 2900", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 90 at time 2951", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 91 at time 3000", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1110001;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1110001;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 93 at time 3051", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1110001;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 94 at time 3100", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1001011;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1001011;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 96 at time 3151", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1001011;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 97 at time 3200", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 99 at time 3251", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 100 at time 3300", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 102 at time 3351", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 103 at time 3400", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 105 at time 3451", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 106 at time 3500", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 108 at time 3551", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 109 at time 3600", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1000110;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1000110;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 111 at time 3651", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1000110;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 112 at time 3700", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 114 at time 3751", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 115 at time 3800", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 117 at time 3851", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 118 at time 3900", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 120 at time 3951", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 121 at time 4000", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 123 at time 4051", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 124 at time 4100", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1000001;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1000001;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 126 at time 4151", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1000001;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 127 at time 4200", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1111101;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1111101;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 129 at time 4251", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1111101;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 130 at time 4300", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 132 at time 4351", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 133 at time 4400", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1010001;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1010001;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 135 at time 4451", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1010001;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 136 at time 4500", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 138 at time 4551", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 139 at time 4600", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 141 at time 4651", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 142 at time 4700", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 144 at time 4751", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 145 at time 4800", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 147 at time 4851", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 148 at time 4900", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1111101;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b1111101;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 150 at time 4951", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b1111101;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 151 at time 5000", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      clock_reset = 2'b01;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 153 at time 5051", rust_out, o);
+         $finish;
+      end
+      #48;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      #1;
+      if (o !== rust_out) begin
+         $display("TESTBENCH FAILED: Expected %b, got %b Test 154 at time 5100", rust_out, o);
+         $finish;
+      end
+      #49;
+      clock_reset = 2'b00;
+      i = 1'b1;
+      rust_out = 7'b0000000;
+      $display("TESTBENCH OK");
+      $finish;
+   end
+endmodule
+module uut(input wire [1:0] clock_reset, input wire [0:0] i, output wire [6:0] o);
+   wire [11:0] od;
+   wire [4:0] d;
+   wire [61:0] q;
+   assign o = od[6:0];
+   uut__marker c0(.clock_reset(clock_reset), .o(q[5:0]));
+   uut_rng c1(.clock_reset(clock_reset), .i(d[0:0]), .o(q[37:6]));
+   uut_sleep_counter c2(.clock_reset(clock_reset), .i(d[4:1]), .o(q[41:38]));
+   uut_sleep_len c3(.clock_reset(clock_reset), .o(q[45:42]));
+   uut_write_probability c4(.clock_reset(clock_reset), .o(q[61:46]));
+   assign d = od[11:7];
+   assign od = kernel_filler_kernel(clock_reset, i, q);
+   function [11:0] kernel_filler_kernel(input reg [1:0] arg_0, input reg [0:0] arg_1, input reg [61:0] arg_2);
+         reg [0:0] r0;
+         reg [0:0] r1;
+         reg [3:0] r2;
+         reg [61:0] r3;
+         // d
+         reg [4:0] r4;
+         reg [0:0] r5;
+         reg [3:0] r6;
+         reg [0:0] r7;
+         reg [0:0] r8;
+         reg [31:0] r9;
+         reg [31:0] r10;
+         reg [0:0] r11;
+         // o
+         reg [5:0] r12;
+         reg [31:0] r13;
+         reg [0:0] r14;
+         reg [5:0] r15;
+         // o
+         reg [5:0] r16;
+         reg [31:0] r17;
+         reg [0:0] r18;
+         reg [5:0] r19;
+         // o
+         reg [5:0] r20;
+         reg [31:0] r21;
+         reg [0:0] r22;
+         reg [5:0] r23;
+         // o
+         reg [5:0] r24;
+         reg [31:0] r25;
+         reg [0:0] r26;
+         reg [5:0] r27;
+         // o
+         reg [5:0] r28;
+         reg [31:0] r29;
+         reg [0:0] r30;
+         reg [5:0] r31;
+         // o
+         reg [5:0] r32;
+         reg [6:0] r33;
+         reg [5:0] r34;
+         // o
+         reg [6:0] r35;
+         // d
+         reg [4:0] r36;
+         reg [31:0] r37;
+         reg [31:0] r38;
+         reg [0:0] r39;
+         // o
+         reg [15:0] r40;
+         reg [31:0] r41;
+         reg [0:0] r42;
+         reg [15:0] r43;
+         // o
+         reg [15:0] r44;
+         reg [31:0] r45;
+         reg [0:0] r46;
+         reg [15:0] r47;
+         // o
+         reg [15:0] r48;
+         reg [31:0] r49;
+         reg [0:0] r50;
+         reg [15:0] r51;
+         // o
+         reg [15:0] r52;
+         reg [31:0] r53;
+         reg [0:0] r54;
+         reg [15:0] r55;
+         // o
+         reg [15:0] r56;
+         reg [31:0] r57;
+         reg [0:0] r58;
+         reg [15:0] r59;
+         // o
+         reg [15:0] r60;
+         reg [31:0] r61;
+         reg [0:0] r62;
+         reg [15:0] r63;
+         // o
+         reg [15:0] r64;
+         reg [31:0] r65;
+         reg [0:0] r66;
+         reg [15:0] r67;
+         // o
+         reg [15:0] r68;
+         reg [31:0] r69;
+         reg [0:0] r70;
+         reg [15:0] r71;
+         // o
+         reg [15:0] r72;
+         reg [31:0] r73;
+         reg [0:0] r74;
+         reg [15:0] r75;
+         // o
+         reg [15:0] r76;
+         reg [31:0] r77;
+         reg [0:0] r78;
+         reg [15:0] r79;
+         // o
+         reg [15:0] r80;
+         reg [31:0] r81;
+         reg [0:0] r82;
+         reg [15:0] r83;
+         // o
+         reg [15:0] r84;
+         reg [31:0] r85;
+         reg [0:0] r86;
+         reg [15:0] r87;
+         // o
+         reg [15:0] r88;
+         reg [31:0] r89;
+         reg [0:0] r90;
+         reg [15:0] r91;
+         // o
+         reg [15:0] r92;
+         reg [31:0] r93;
+         reg [0:0] r94;
+         reg [15:0] r95;
+         // o
+         reg [15:0] r96;
+         reg [31:0] r97;
+         reg [0:0] r98;
+         reg [15:0] r99;
+         // o
+         reg [15:0] r100;
+         reg [15:0] r101;
+         reg [0:0] r102;
+         reg [3:0] r103;
+         reg [3:0] r104;
+         // d
+         reg [4:0] r105;
+         // d
+         reg [4:0] r106;
+         // o
+         reg [6:0] r107;
+         reg [3:0] r108;
+         reg [0:0] r109;
+         reg [3:0] r110;
+         reg [3:0] r111;
+         // d
+         reg [4:0] r112;
+         // d
+         reg [4:0] r113;
+         reg [0:0] r114;
+         reg [1:0] r115;
+         reg [0:0] r116;
+         // o
+         reg [6:0] r117;
+         // o
+         reg [6:0] r118;
+         reg [11:0] r119;
+         localparam l0 = 5'bXXXX0;
+         localparam l1 = 4'b0000;
+         localparam l2 = 32'b00000000000000000000000000000001;
+         localparam l3 = 6'b000001;
+         localparam l4 = 6'b000000;
+         localparam l5 = 32'b00000000000000000000000000000010;
+         localparam l6 = 6'b000010;
+         localparam l7 = 32'b00000000000000000000000000000100;
+         localparam l8 = 6'b000100;
+         localparam l9 = 32'b00000000000000000000000000001000;
+         localparam l10 = 6'b001000;
+         localparam l11 = 32'b00000000000000000000000000010000;
+         localparam l12 = 6'b010000;
+         localparam l13 = 32'b00000000000000000000000000100000;
+         localparam l14 = 6'b100000;
+         localparam l15 = 1'b1;
+         localparam l16 = 7'b0000000;
+         localparam l17 = 1'b1;
+         localparam l18 = 32'b00000000000000010000000000000000;
+         localparam l19 = 16'b0000000000000001;
+         localparam l20 = 16'b0000000000000000;
+         localparam l21 = 32'b00000000000000100000000000000000;
+         localparam l22 = 16'b0000000000000010;
+         localparam l23 = 32'b00000000000001000000000000000000;
+         localparam l24 = 16'b0000000000000100;
+         localparam l25 = 32'b00000000000010000000000000000000;
+         localparam l26 = 16'b0000000000001000;
+         localparam l27 = 32'b00000000000100000000000000000000;
+         localparam l28 = 16'b0000000000010000;
+         localparam l29 = 32'b00000000001000000000000000000000;
+         localparam l30 = 16'b0000000000100000;
+         localparam l31 = 32'b00000000010000000000000000000000;
+         localparam l32 = 16'b0000000001000000;
+         localparam l33 = 32'b00000000100000000000000000000000;
+         localparam l34 = 16'b0000000010000000;
+         localparam l35 = 32'b00000001000000000000000000000000;
+         localparam l36 = 16'b0000000100000000;
+         localparam l37 = 32'b00000010000000000000000000000000;
+         localparam l38 = 16'b0000001000000000;
+         localparam l39 = 32'b00000100000000000000000000000000;
+         localparam l40 = 16'b0000010000000000;
+         localparam l41 = 32'b00001000000000000000000000000000;
+         localparam l42 = 16'b0000100000000000;
+         localparam l43 = 32'b00010000000000000000000000000000;
+         localparam l44 = 16'b0001000000000000;
+         localparam l45 = 32'b00100000000000000000000000000000;
+         localparam l46 = 16'b0010000000000000;
+         localparam l47 = 32'b01000000000000000000000000000000;
+         localparam l48 = 16'b0100000000000000;
+         localparam l49 = 32'b10000000000000000000000000000000;
+         localparam l50 = 16'b1000000000000000;
+         localparam l51 = 4'b0000;
+         localparam l52 = 4'b0001;
+         localparam l53 = 7'b0000000;
+         begin
+            r115 = arg_0;
+            r0 = arg_1;
+            r3 = arg_2;
+            r1 = ~r0;
+            r2 = r3[41:38];
+            r4 = l0;
+            r4[4:1] = r2;
+            r5 = ~r1;
+            r6 = r3[41:38];
+            r7 = r6 == l1;
+            r8 = r5 & r7;
+            r9 = r3[37:6];
+            r10 = r9 & l2;
+            r11 = |r10;
+            r12 = r11 ? l3 : l4;
+            r13 = r9 & l5;
+            r14 = |r13;
+            r15 = r12 | l6;
+            r16 = r14 ? r15 : r12;
+            r17 = r9 & l7;
+            r18 = |r17;
+            r19 = r16 | l8;
+            r20 = r18 ? r19 : r16;
+            r21 = r9 & l9;
+            r22 = |r21;
+            r23 = r20 | l10;
+            r24 = r22 ? r23 : r20;
+            r25 = r9 & l11;
+            r26 = |r25;
+            r27 = r24 | l12;
+            r28 = r26 ? r27 : r24;
+            r29 = r9 & l13;
+            r30 = |r29;
+            r31 = r28 | l14;
+            r32 = r30 ? r31 : r28;
+            r34 = r32[5:0];
+            r33 = {l15, r34};
+            r35 = l16;
+            r35[6:0] = r33;
+            r36 = r4;
+            r36[0:0] = l17;
+            r37 = r3[37:6];
+            r38 = r37 & l18;
+            r39 = |r38;
+            r40 = r39 ? l19 : l20;
+            r41 = r37 & l21;
+            r42 = |r41;
+            r43 = r40 | l22;
+            r44 = r42 ? r43 : r40;
+            r45 = r37 & l23;
+            r46 = |r45;
+            r47 = r44 | l24;
+            r48 = r46 ? r47 : r44;
+            r49 = r37 & l25;
+            r50 = |r49;
+            r51 = r48 | l26;
+            r52 = r50 ? r51 : r48;
+            r53 = r37 & l27;
+            r54 = |r53;
+            r55 = r52 | l28;
+            r56 = r54 ? r55 : r52;
+            r57 = r37 & l29;
+            r58 = |r57;
+            r59 = r56 | l30;
+            r60 = r58 ? r59 : r56;
+            r61 = r37 & l31;
+            r62 = |r61;
+            r63 = r60 | l32;
+            r64 = r62 ? r63 : r60;
+            r65 = r37 & l33;
+            r66 = |r65;
+            r67 = r64 | l34;
+            r68 = r66 ? r67 : r64;
+            r69 = r37 & l35;
+            r70 = |r69;
+            r71 = r68 | l36;
+            r72 = r70 ? r71 : r68;
+            r73 = r37 & l37;
+            r74 = |r73;
+            r75 = r72 | l38;
+            r76 = r74 ? r75 : r72;
+            r77 = r37 & l39;
+            r78 = |r77;
+            r79 = r76 | l40;
+            r80 = r78 ? r79 : r76;
+            r81 = r37 & l41;
+            r82 = |r81;
+            r83 = r80 | l42;
+            r84 = r82 ? r83 : r80;
+            r85 = r37 & l43;
+            r86 = |r85;
+            r87 = r84 | l44;
+            r88 = r86 ? r87 : r84;
+            r89 = r37 & l45;
+            r90 = |r89;
+            r91 = r88 | l46;
+            r92 = r90 ? r91 : r88;
+            r93 = r37 & l47;
+            r94 = |r93;
+            r95 = r92 | l48;
+            r96 = r94 ? r95 : r92;
+            r97 = r37 & l49;
+            r98 = |r97;
+            r99 = r96 | l50;
+            r100 = r98 ? r99 : r96;
+            r101 = r3[61:46];
+            r102 = r100 > r101;
+            r103 = r3[45:42];
+            r104 = r102 ? r103 : l51;
+            r105 = r36;
+            r105[4:1] = r104;
+            r106 = r8 ? r105 : r4;
+            r107 = r8 ? r35 : l16;
+            r108 = r3[41:38];
+            r109 = |r108;
+            r110 = r3[41:38];
+            r111 = r110 - l52;
+            r112 = r106;
+            r112[4:1] = r111;
+            r113 = r109 ? r112 : r106;
+            r114 = r115[1:1];
+            r116 = |r114;
+            r117 = r107;
+            r117[6:0] = l53;
+            r118 = r116 ? r117 : r107;
+            r119 = {r113, r118};
+            kernel_filler_kernel = r119;
+         end
+   endfunction
+endmodule
+module uut__marker(input wire [1:0] clock_reset, output wire [5:0] o);
+   assign o = 6'b000000;
+endmodule
+module uut_rng(input wire [1:0] clock_reset, input wire [0:0] i, output wire [31:0] o);
+   wire [159:0] od;
+   wire [127:0] d;
+   wire [127:0] q;
+   assign o = od[31:0];
+   uut_rng_x c0(.clock_reset(clock_reset), .i(d[31:0]), .o(q[31:0]));
+   uut_rng_y c1(.clock_reset(clock_reset), .i(d[63:32]), .o(q[63:32]));
+   uut_rng_z c2(.clock_reset(clock_reset), .i(d[95:64]), .o(q[95:64]));
+   uut_rng_w c3(.clock_reset(clock_reset), .i(d[127:96]), .o(q[127:96]));
+   assign d = od[159:32];
+   assign od = kernel_lfsr_kernel(clock_reset, i, q);
+   function [159:0] kernel_lfsr_kernel(input reg [1:0] arg_0, input reg [0:0] arg_1, input reg [127:0] arg_2);
+         reg [31:0] r0;
+         reg [127:0] r1;
+         // d
+         reg [127:0] r2;
+         reg [31:0] r3;
+         // d
+         reg [127:0] r4;
+         reg [31:0] r5;
+         // d
+         reg [127:0] r6;
+         reg [31:0] r7;
+         // d
+         reg [127:0] r8;
+         reg [31:0] r9;
+         reg [31:0] r10;
+         reg [31:0] r11;
+         reg [31:0] r12;
+         reg [31:0] r13;
+         // d
+         reg [127:0] r14;
+         reg [31:0] r15;
+         // d
+         reg [127:0] r16;
+         reg [31:0] r17;
+         // d
+         reg [127:0] r18;
+         reg [31:0] r19;
+         reg [31:0] r20;
+         reg [31:0] r21;
+         reg [31:0] r22;
+         reg [31:0] r23;
+         reg [31:0] r24;
+         reg [31:0] r25;
+         // d
+         reg [127:0] r26;
+         // d
+         reg [127:0] r27;
+         reg [0:0] r28;
+         reg [159:0] r29;
+         reg [1:0] r30;
+         reg [20:0] r31;
+         reg [50:0] r32;
+         reg [39:0] r33;
+         localparam l0 = 128'bXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+         localparam l1 = 11'b00000000000;
+         begin
+            r30 = arg_0;
+            r28 = arg_1;
+            r1 = arg_2;
+            r0 = r1[31:0];
+            r2 = l0;
+            r2[31:0] = r0;
+            r3 = r1[63:32];
+            r4 = r2;
+            r4[63:32] = r3;
+            r5 = r1[95:64];
+            r6 = r4;
+            r6[95:64] = r5;
+            r7 = r1[127:96];
+            r8 = r6;
+            r8[127:96] = r7;
+            r9 = r1[31:0];
+            r10 = r1[31:0];
+            r31 = r10[20:0];
+            r11 = {r31, l1};
+            r12 = r9 ^ r11;
+            r13 = r1[63:32];
+            r14 = r8;
+            r14[31:0] = r13;
+            r15 = r1[95:64];
+            r16 = r14;
+            r16[63:32] = r15;
+            r17 = r1[127:96];
+            r18 = r16;
+            r18[95:64] = r17;
+            r19 = r1[127:96];
+            r20 = r1[127:96];
+            r32 = {{19{1'b0}}, r20};
+            r21 = r32[50:19];
+            r22 = r19 ^ r21;
+            r23 = r22 ^ r12;
+            r33 = {{8{1'b0}}, r12};
+            r24 = r33[39:8];
+            r25 = r23 ^ r24;
+            r26 = r18;
+            r26[127:96] = r25;
+            r27 = r28 ? r26 : r8;
+            r29 = {r27, r12};
+            kernel_lfsr_kernel = r29;
+         end
+   endfunction
+endmodule
+module uut_rng_x(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 32'b01100010010110010010110001100010;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 32'b01100010010110010010110001100010;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module uut_rng_y(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 32'b01000010001110110110001000100101;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 32'b01000010001110110110001000100101;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module uut_rng_z(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 32'b00111010011000010011100101100110;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 32'b00111010011000010011100101100110;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module uut_rng_w(input wire [1:0] clock_reset, input wire [31:0] i, output reg [31:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 32'b10000100001100100011001101010010;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 32'b10000100001100100011001101010010;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module uut_sleep_counter(input wire [1:0] clock_reset, input wire [3:0] i, output reg [3:0] o);
+   wire  clock;
+   wire  reset;
+   assign clock = clock_reset[0];
+   assign reset = clock_reset[1];
+   initial begin
+      o = 4'b0000;
+   end
+   always @(posedge clock) begin
+      if (reset) begin
+         o <= 4'b0000;
+      end else begin
+         o <= i;
+      end
+   end
+endmodule
+module uut_sleep_len(input wire [1:0] clock_reset, output wire [3:0] o);
+   assign o = 4'b0100;
+endmodule
+module uut_write_probability(input wire [1:0] clock_reset, output wire [15:0] o);
+   assign o = 16'b1000000000000000;
+endmodule

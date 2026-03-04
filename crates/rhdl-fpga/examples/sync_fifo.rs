@@ -29,7 +29,9 @@ fn main() -> Result<(), RHDLError> {
                 // By default, we do not advance the FIFO
                 input.next = false;
                 // The FIFO has valid data.  So we can receive data. Toss a coin.
-                if let Some(data) = output.data && rand::random::<bool>() {
+                if let Some(data) = output.data
+                    && rand::random::<bool>()
+                {
                     input.next = true;
                     assert_eq!(output_seq.next().unwrap(), data);
                 }
@@ -37,7 +39,7 @@ fn main() -> Result<(), RHDLError> {
                 Some(ResetOrData::Data(input))
             },
             100,
-        )
+        )?
         .take_while(|t| t.time < 1500)
         .collect::<SvgFile>();
     let options = SvgOptions::default().with_filter("(^top.input(.*))|(^top.outputs(.*))");

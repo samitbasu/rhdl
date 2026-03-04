@@ -84,7 +84,7 @@ pub mod xor_gate {
         let inputs = [(false, false), (false, true), (true, false), (true, true)];
         let it = inputs.into_iter().map(signal).uniform(100);
         let output = uut
-            .run(it)
+            .run(it)?
             .map(|y| format!("{:?} -> {}\n", y.input.val(), y.output.val()))
             .collect::<String>();
         std::fs::write("xor_trace.txt", output).unwrap();
@@ -311,7 +311,7 @@ pub mod xor_gate_uniform {
         let it = inputs.into_iter().cycle().take(5).map(signal).uniform(100);
         let uut = XorGate;
         //                   👇 TracedSample<Signal<(bool,bool), Red>, Signal<bool, Red>>
-        uut.run(it).for_each(|s| {
+        uut.run(it)?.for_each(|s| {
             let input = s.input.val();
             let output = s.output.val();
             let expected = input.0 ^ input.1;
@@ -383,7 +383,7 @@ pub mod circuit_sim {
         let inputs = [(false, false), (false, true), (true, false), (true, true)];
         // The `.uniform` turns the values into timed samples
         let inputs = inputs.into_iter().map(signal).uniform(100);
-        for output in uut.run(inputs) {
+        for output in uut.run(inputs).unwrap() {
             let input = output.input.val();
             let expected = input.0 ^ input.1;
             assert_eq!(
@@ -423,7 +423,7 @@ pub mod synchronous_sim {
         let inputs = std::iter::repeat_n(true, 4)
             .with_reset(1)
             .clock_pos_edge(100);
-        for sample in uut.run(inputs) {
+        for sample in uut.run(inputs).unwrap() {
             post_process(sample);
         }
         // ANCHOR_END: counter-iter-ext
@@ -434,7 +434,7 @@ pub mod synchronous_sim {
             .clock_pos_edge(100);
         // ANCHOR: counter-iter-svg
 
-        let svg = uut.run(inputs).collect::<SvgFile>();
+        let svg = uut.run(inputs).unwrap().collect::<SvgFile>();
 
         // ANCHOR_END: counter-iter-svg
         std::fs::write(

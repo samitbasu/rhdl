@@ -55,6 +55,7 @@ where
 #[cfg(test)]
 mod tests {
     use expect_test::{expect, expect_file};
+    use miette::IntoDiagnostic;
 
     use super::*;
 
@@ -64,13 +65,15 @@ mod tests {
         let input = std::iter::repeat_n((), 1000)
             .with_reset(1)
             .clock_pos_edge(100);
-        let vcd = uut.run(input).collect::<VcdFile>();
+        let vcd = uut.run(input)?.collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo");
         std::fs::create_dir_all(&root).unwrap();
         let expect = expect!["29109cb4da62a75d5b0451645e8a72a24650442f993449194814acf10a4f90b1"];
-        let digest = vcd.dump_to_file(root.join("sync_fifo.vcd")).unwrap();
+        let digest = vcd
+            .dump_to_file(root.join("sync_fifo.vcd"))
+            .into_diagnostic()?;
         expect.assert_eq(&digest);
         Ok(())
     }
@@ -83,10 +86,10 @@ mod tests {
             .clock_pos_edge(100)
             .skip_while(|x| x.time < 2000)
             .take_while(|x| x.time <= 3000);
-        let svg = uut.run(input).collect::<SvgFile>();
+        let svg = uut.run(input)?.collect::<SvgFile>();
         let options = SvgOptions::default();
         let expect = expect_file!["sync_fifo.svg.expect"];
-        expect.assert_eq(&svg.to_string(&options).unwrap());
+        expect.assert_eq(&svg.to_string(&options).into_diagnostic()?);
         Ok(())
     }
 
@@ -96,7 +99,7 @@ mod tests {
         let input = std::iter::repeat_n((), 100_000)
             .with_reset(1)
             .clock_pos_edge(100);
-        let last = uut.run(input).last().unwrap();
+        let last = uut.run(input)?.last().unwrap();
         assert!(last.output);
         Ok(())
     }

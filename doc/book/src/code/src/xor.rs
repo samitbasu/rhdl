@@ -184,7 +184,7 @@ pub mod step_8 {
         //                       Separate samples by 100 units - 👇
         let it = inputs.into_iter().cycle().take(5).map(signal).uniform(100);
         let uut = XorGate;
-        for y in uut.run(it) {
+        for y in uut.run(it)? {
             eprintln!("{}", y);
         }
         Ok(())
@@ -198,7 +198,7 @@ pub mod step_8 {
         let it = inputs.into_iter().cycle().take(5).map(signal).uniform(100);
         let uut = XorGate;
         //                   👇 TracedSample<Signal<(bool,bool), Red>, Signal<bool, Red>>
-        uut.run(it).for_each(|s| {
+        uut.run(it)?.for_each(|s| {
             let input = s.input.val();
             let output = s.output.val();
             let expected = input.0 ^ input.1;
@@ -214,7 +214,7 @@ pub mod step_8 {
         let inputs = [(false, false), (false, true), (true, false), (true, true)];
         let it = inputs.into_iter().cycle().take(5).map(signal).uniform(100);
         let uut = XorGate;
-        let svg = uut.run(it).collect::<SvgFile>();
+        let svg = uut.run(it)?.collect::<SvgFile>();
         svg.write_to_file("xor.svg", &SvgOptions::default().with_io_filter())
             .into_diagnostic()?;
         Ok(())
@@ -227,7 +227,7 @@ pub mod step_8 {
         let inputs = [(false, false), (false, true), (true, false), (true, true)];
         let it = inputs.into_iter().cycle().take(5).map(signal).uniform(100);
         let uut = XorGate;
-        let vcd = uut.run(it).collect::<VcdFile>();
+        let vcd = uut.run(it)?.collect::<VcdFile>();
         vcd.dump_to_file("xor.vcd").into_diagnostic()?;
         Ok(())
     }
@@ -239,7 +239,7 @@ pub mod step_8 {
         let inputs = [(false, false), (false, true), (true, false), (true, true)];
         let it = inputs.into_iter().cycle().take(5).map(signal).uniform(100);
         let uut = XorGate;
-        let tb: TestBench<_, _> = uut.run(it).collect();
+        let tb: TestBench<_, _> = uut.run(it)?.collect();
         let tb = tb.rtl(&uut, &TestBenchOptions::default())?;
         std::fs::write("xor_tb.v", tb.to_string()).unwrap();
         Ok(())

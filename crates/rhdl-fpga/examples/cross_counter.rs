@@ -23,7 +23,7 @@ fn main() -> Result<(), RHDLError> {
     let uut = CrossCounter::<Red, Blue, 4>::default();
     // Simulate the crosser, and collect into a VCD
     let vcd = uut
-        .run(inputs)
+        .run(inputs)?
         .take_while(|x| x.time < 1000)
         .collect::<SvgFile>();
     write_svg_as_markdown(vcd, "cross_counter.md", SvgOptions::default())?;

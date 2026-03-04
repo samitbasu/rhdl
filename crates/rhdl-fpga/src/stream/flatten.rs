@@ -129,7 +129,10 @@ where
     rhdl::bits::W<N>: BitWidth,
 {
     fn default() -> Self {
-        assert!((1 << M) >= N, "Expect that the bitwidth of the counter is sufficient to count the elements in the array.  I.e., (1 << M) >= N");
+        assert!(
+            (1 << M) >= N,
+            "Expect that the bitwidth of the counter is sufficient to count the elements in the array.  I.e., (1 << M) >= N"
+        );
         Self {
             delay: core::array::from_fn(|_| dff::DFF::new(T::dont_care())),
             input_buffer: StreamToFIFO::default(),
@@ -298,7 +301,7 @@ mod tests {
                 Some(rhdl::core::sim::ResetOrData::Data(input))
             },
             100,
-        )
+        )?
         .take_while(|t| t.time < 100_000)
         .for_each(drop);
         Ok(())

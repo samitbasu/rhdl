@@ -8,7 +8,7 @@ fn main() -> Result<(), RHDLError> {
         .clock_pos_edge(100);
     let uut = Counter::<4>::default();
     let vcd = uut
-        .run(input)
+        .run(input)?
         .take_while(|t| t.time < 1000)
         .collect::<SvgFile>();
     let options: SvgOptions = SvgOptions::default();

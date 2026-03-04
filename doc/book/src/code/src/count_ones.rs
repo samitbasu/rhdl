@@ -109,7 +109,7 @@ pub mod step_4 {
     fn test_ones_counter() -> miette::Result<()> {
         let inputs = (0..256).map(b8).map(signal).uniform(100);
         let uut = OneCounter {};
-        uut.run(inputs).for_each(|s| {
+        uut.run(inputs)?.for_each(|s| {
             let input = s.input.val();
             //      Gets the `u128` under a Bits<N> 👇
             let output_count = s.output.val().raw();
@@ -126,7 +126,7 @@ pub mod step_4 {
     fn test_rtl_testbench() -> miette::Result<()> {
         let inputs = (0..256).map(b8).map(signal).uniform(100);
         let uut = OneCounter {};
-        let tb: TestBench<_, _> = uut.run(inputs).collect();
+        let tb: TestBench<_, _> = uut.run(inputs)?.collect();
         let tb = tb.rtl(&uut, &TestBenchOptions::default())?;
         std::fs::write("ones_rtl_tb.v", tb.to_string()).unwrap();
         Ok(())
@@ -138,7 +138,7 @@ pub mod step_4 {
     fn test_svg() -> miette::Result<()> {
         let inputs = (0..256).map(b8).cycle().take(257).map(signal).uniform(100);
         let uut = OneCounter {};
-        let svg: SvgFile = uut.run(inputs).skip_while(|t| t.time < 25000).collect();
+        let svg: SvgFile = uut.run(inputs)?.skip_while(|t| t.time < 25000).collect();
         svg.write_to_file("ones.svg", &SvgOptions::default())
             .into_diagnostic()?;
         Ok(())
@@ -150,7 +150,7 @@ pub mod step_4 {
     fn test_vcd() -> miette::Result<()> {
         let inputs = (0..256).map(b8).cycle().take(257).map(signal).uniform(100);
         let uut = OneCounter {};
-        let vcd: VcdFile = uut.run(inputs).skip_while(|t| t.time < 25000).collect();
+        let vcd: VcdFile = uut.run(inputs)?.skip_while(|t| t.time < 25000).collect();
         vcd.write_to_file("ones.vcd", &VcdOptions::default())
             .into_diagnostic()?;
         Ok(())
@@ -317,7 +317,7 @@ pub mod step_6 {
     fn test_ones_counter_divided() -> miette::Result<()> {
         let inputs = (0..256).map(b8).map(signal).uniform(100);
         let uut = OneCounterDivided {};
-        uut.run(inputs).for_each(|s| {
+        uut.run(inputs)?.for_each(|s| {
             let input = s.input.val();
             let output_count = s.output.val().raw();
             let count_expected = input.raw().count_ones() as u128;

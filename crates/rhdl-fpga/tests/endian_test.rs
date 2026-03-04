@@ -143,7 +143,7 @@ fn test_input_stream() -> impl Iterator<Item = TimedSample<(ClockReset, Option<(
 fn test_trace() -> miette::Result<()> {
     let uut = U::default();
     let input = test_input_stream();
-    let vcd = uut.run(input).collect::<VcdFile>();
+    let vcd = uut.run(input)?.collect::<VcdFile>();
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("vcd")
         .join("lid");
@@ -161,7 +161,7 @@ fn test_hdl_generation() -> miette::Result<()> {
         .init();
     let uut = U::default();
     let input = test_input_stream();
-    let tb = uut.run(input).collect::<SynchronousTestBench<_, _>>();
+    let tb = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
     let tm = tb.rtl(&uut, &Default::default())?;
     tm.run_iverilog()?;
     Ok(())

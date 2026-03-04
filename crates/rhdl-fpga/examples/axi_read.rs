@@ -73,7 +73,7 @@ fn main() -> Result<(), RHDLError> {
         .clock_pos_edge(100)
         .take_while(|t| t.time < 1500);
 
-    let vcd = uut.run(input).collect::<SvgFile>();
+    let vcd = uut.run(input)?.collect::<SvgFile>();
     let options = SvgOptions::default().with_filter(".*controller.*axi.*");
     write_svg_as_markdown(vcd, "axi_read.md", options)?;
     Ok(())

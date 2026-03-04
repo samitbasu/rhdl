@@ -157,8 +157,6 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
 
 #[cfg(test)]
 mod tests {
-    use rhdl::{core::circuit::descriptor, serde_json};
-
     use super::*;
 
     #[test]

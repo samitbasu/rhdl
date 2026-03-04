@@ -166,7 +166,7 @@ impl Schematic {
             self.inner.iter().find_map(|child| child.find_by_id(id))
         }
     }
-    pub fn has_combinatorial_pathways(&self) -> Result<(), RHDLError> {
+    pub fn check_for_combinatorial_io_paths(&self) -> Result<(), RHDLError> {
         loop_check::check_combinatorial_pathways(self)
     }
 }

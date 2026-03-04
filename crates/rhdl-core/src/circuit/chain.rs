@@ -20,7 +20,6 @@
 //! and the output type is the output type of B.
 use quote::{format_ident, quote};
 use rhdl_vlog::declaration;
-use syn::parse_quote;
 
 use crate::RHDLError;
 use crate::circuit::descriptor::{Descriptor, SyncKind};
@@ -129,7 +128,9 @@ where
                 <B as SynchronousIO>::O::bits(),
                 "o",
             ),
-        ];
+        ]
+        .into_iter()
+        .flatten();
         let input_kind = <A as SynchronousIO>::I::static_kind();
         let pipe_kind = <A as SynchronousIO>::O::static_kind();
         let pipe = declaration(
@@ -149,15 +150,15 @@ where
         let b_hdl = b_descriptor.hdl()?;
         let a_modules = &a_hdl.modules;
         let b_modules = &b_hdl.modules;
-        let module_list: vlog::ModuleList = parse_quote! {
+        let module_list: vlog::ModuleList = rhdl_vlog::parse_quote_miette! {
             module #module_ident(input wire [1:0] clock_reset, #(#ports),*);
-                #pipe
+                #pipe;
                 #a_ident a(.clock_reset(clock_reset), .o(pipe), #a_input_binding);
                 #b_ident b(.clock_reset(clock_reset), .i(pipe), .o(o));
             endmodule
             #a_modules
             #b_modules
-        };
+        }?;
         Ok(HDLDescriptor {
             name: name.into(),
             modules: module_list,

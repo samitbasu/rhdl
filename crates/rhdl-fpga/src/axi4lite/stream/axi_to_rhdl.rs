@@ -170,7 +170,7 @@ mod tests {
             sink: SinkFromFn::new_from_iter(b_rng, 0.2),
         };
         let input = iter::repeat_n((), 10_000).with_reset(1).clock_pos_edge(100);
-        uut.run(input).for_each(drop);
+        uut.run_unchecked(input).for_each(drop);
         Ok(())
     }
 

@@ -11,7 +11,7 @@ mod tests {
         // Create the 3-bit counter UUT
         let uut = rhdl_fpga::core::counter::Counter::<3>::default();
         // Run the simulation and collect the SVG output using the SvgFile container
-        let svg = uut.run(inputs).collect::<SvgFile>();
+        let svg = uut.run(inputs).unwrap().collect::<SvgFile>();
         // Write the SVG to a file
         svg.write_to_file("counter_collect.svg", &SvgOptions::default())
             .expect("Failed to write SVG file");
@@ -28,7 +28,7 @@ mod tests {
         // Create the 3-bit counter UUT
         let uut = rhdl_fpga::core::counter::Counter::<3>::default();
         // Run the simulation and collect the VCD output using the VcdFile container
-        let vcd = uut.run(inputs).collect::<VcdFile>();
+        let vcd = uut.run(inputs).unwrap().collect::<VcdFile>();
         // Write the VCD to a file
         vcd.dump_to_file("counter_collect.vcd")
             .expect("Failed to write VCD file");
@@ -47,7 +47,7 @@ mod tests {
         // Create the 3-bit counter UUT
         let uut = rhdl_fpga::core::counter::Counter::<3>::default();
         // Run the simulation and collect the SVG output using the SvgFile container
-        let svg = uut.run(inputs).collect::<SvgFile>();
+        let svg = uut.run(inputs).unwrap().collect::<SvgFile>();
         // Write the SVG to a file
         svg.write_to_file("counter_collect_skip.svg", &SvgOptions::default())
             .expect("Failed to write SVG file");
@@ -66,7 +66,7 @@ mod tests {
         // Create the 3-bit counter UUT
         let uut = rhdl_fpga::core::counter::Counter::<3>::default();
         // Run the simulation and collect the VCD output using the VcdFile container
-        let vcd = uut.run(inputs).collect::<VcdFile>();
+        let vcd = uut.run(inputs).unwrap().collect::<VcdFile>();
         // Write the VCD to a file
         vcd.dump_to_file("counter_collect_skip.vcd")
             .expect("Failed to write VCD file");
@@ -84,6 +84,7 @@ mod tests {
         let uut = rhdl_fpga::core::counter::Counter::<3>::default();
         let svg = uut
             .run(inputs)
+            .unwrap()
             .skip_while(|t| t.output.raw() < 6)
             .take(20)
             .collect::<SvgFile>();
@@ -133,6 +134,7 @@ mod around_event_tests {
         let uut = rhdl_fpga::core::counter::Counter::<4>::default();
         let trace = uut
             .run(input)
+            .unwrap()
             .around_event(5, 5, |t| t.output.raw() == 15)
             .collect::<SvgFile>();
         trace

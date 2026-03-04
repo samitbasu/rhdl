@@ -394,7 +394,7 @@ mod tests {
         "#]];
         expect.assert_eq(&hdl);
         let stream = sync_stream();
-        let test_bench = uut.run(stream).collect::<TestBench<_, _>>();
+        let test_bench = uut.run(stream)?.collect::<TestBench<_, _>>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("synchronizer");
@@ -415,7 +415,7 @@ mod tests {
         // Assume the Blue stuff comes on the edges of a clock
         let input = sync_stream();
         let _ = uut
-            .run(input)
+            .run(input)?
             .glitch_check(|i| (i.input.cr.val().clock, i.output.val()))
             .last();
         Ok(())
@@ -425,7 +425,7 @@ mod tests {
     fn test_synchronizer_function() -> miette::Result<()> {
         let uut = Sync1Bit::<Red, Blue>::default();
         let input = sync_stream();
-        let vcd = uut.run(input).collect::<VcdFile>();
+        let vcd = uut.run(input)?.collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("synchronizer");

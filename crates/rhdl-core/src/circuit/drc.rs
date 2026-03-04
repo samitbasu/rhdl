@@ -51,6 +51,6 @@ impl Diagnostic for CombinatorialPath {
 pub fn no_combinatorial_paths<T: Synchronous>(uut: &T) -> miette::Result<()> {
     let descriptor = uut.descriptor(ScopedName::top())?;
     let schematic = descriptor.schematic()?;
-    schematic.has_combinatorial_pathways()?;
+    schematic.check_for_combinatorial_io_paths()?;
     return Ok(());
 }

@@ -5,7 +5,7 @@ fn main() -> Result<(), RHDLError> {
     let inputs = std::iter::repeat(()).without_reset().clock_pos_edge(100);
     let uut = Constant::new(b8(42));
     let vcd = uut
-        .run(inputs)
+        .run(inputs)?
         .take_while(|x| x.time < 500)
         .collect::<SvgFile>();
     write_svg_as_markdown(vcd, "constant.md", SvgOptions::default())?;

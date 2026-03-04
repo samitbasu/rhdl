@@ -87,8 +87,8 @@ pub struct ReadSwitch<const N: usize> {
 impl<const N: usize> ReadSwitch<N> {
     /// Create a new AXI Read Switch with the
     /// provided routing function.
-    pub fn try_new<F: DigitalFn + DigitalFn2<A0 = ClockReset, A1 = AxilAddr, O = Command>>(
-    ) -> Result<Self, RHDLError> {
+    pub fn try_new<F: DigitalFn + DigitalFn2<A0 = ClockReset, A1 = AxilAddr, O = Command>>()
+    -> Result<Self, RHDLError> {
         Ok(Self {
             endpoint: ReadEndpoint::default(),
             controllers: core::array::from_fn(|_| ReadController::default()),
@@ -390,7 +390,7 @@ mod tests {
         };
         let input = repeat_n((), 200).with_reset(1).clock_pos_edge(100);
         let sims = uut
-            .run(input)
+            .run_unchecked(input)
             .synchronous_sample()
             .filter_map(|ts| ts.output)
             .collect::<Vec<_>>();

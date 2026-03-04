@@ -262,7 +262,7 @@ mod tests {
                 Some(rhdl::core::sim::ResetOrData::Data(input))
             },
             100,
-        )
+        )?
         .take_while(|t| t.time < 100_000)
         .for_each(drop);
         Ok(())

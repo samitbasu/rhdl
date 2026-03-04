@@ -137,7 +137,7 @@ mod tests {
                     Some(ResetOrData::Data(input))
                 },
                 100,
-            )
+            )?
             .collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
@@ -175,7 +175,7 @@ mod tests {
                     Some(ResetOrData::Data(input))
                 },
                 100,
-            )
+            )?
             .synchronous_sample();
         let io = io
             .filter_map(|x| x.output.reply)

@@ -251,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn test_carloni_buffer() {
+    fn test_carloni_buffer() -> miette::Result<()> {
         let uut = Carloni::<b32>::default();
         let mut need_reset = true;
         let mut source_rng = XorShift128::default();
@@ -284,8 +284,9 @@ mod tests {
                 Some(ResetOrData::Data(input))
             },
             100,
-        )
+        )?
         .take_while(|t| t.time < 100_000)
         .for_each(drop);
+        Ok(())
     }
 }

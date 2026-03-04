@@ -15,7 +15,7 @@ fn main() -> Result<(), RHDLError> {
     });
     let inputs = inputs.with_reset(1).clock_pos_edge(100);
     let uut = OptionSyncBRAM::<b8, 4>::new((0..).map(|ndx| (b4(ndx), b8(ndx))));
-    let vcd = uut.run(inputs).collect::<SvgFile>();
+    let vcd = uut.run(inputs)?.collect::<SvgFile>();
     write_svg_as_markdown(vcd, "option_bram.md", SvgOptions::default())?;
     Ok(())
 }

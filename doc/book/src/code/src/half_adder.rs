@@ -219,7 +219,7 @@ pub mod step_4 {
         let inputs = [(false, false), (false, true), (true, false), (true, true)];
         let it = inputs.into_iter().map(signal).uniform(100);
         let uut = HalfAdder::default();
-        uut.run(it).for_each(|s| {
+        uut.run(it)?.for_each(|s| {
             let input = s.input.val();
             let output_sum = s.output.sum.val();
             let output_carry = s.output.carry.val();
@@ -248,7 +248,7 @@ pub mod step_4 {
         let inputs = [(false, false), (false, true), (true, false), (true, true)];
         let it = inputs.into_iter().map(signal).uniform(100);
         let uut = HalfAdder::default();
-        let tb: TestBench<_, _> = uut.run(it).collect();
+        let tb: TestBench<_, _> = uut.run(it)?.collect();
         let tb = tb.rtl(&uut, &TestBenchOptions::default())?;
         std::fs::write("half_rtl_tb.v", tb.to_string()).unwrap();
         Ok(())
@@ -261,7 +261,7 @@ pub mod step_4 {
         let inputs = [(false, false), (false, true), (true, false), (true, true)];
         let it = inputs.into_iter().map(signal).uniform(100);
         let uut = HalfAdder::default();
-        let svg = uut.run(it).collect::<SvgFile>();
+        let svg = uut.run(it)?.collect::<SvgFile>();
         svg.write_to_file(
             "half_adder.svg",
             &SvgOptions::default()
@@ -279,7 +279,7 @@ pub mod step_4 {
         let inputs = [(false, false), (false, true), (true, false), (true, true)];
         let it = inputs.into_iter().map(signal).uniform(100);
         let uut = HalfAdder::default();
-        let vcd = uut.run(it).collect::<VcdFile>();
+        let vcd = uut.run(it)?.collect::<VcdFile>();
         vcd.dump_to_file("half_adder.vcd").into_diagnostic()?;
         Ok(())
     }

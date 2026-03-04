@@ -69,7 +69,7 @@ use rhdl::prelude::*;
 use crate::{
     core::option::pack,
     lid::carloni::Carloni,
-    stream::{ready, StreamIO},
+    stream::{StreamIO, ready},
 };
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
@@ -128,7 +128,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_option_carloni_buffer() {
+    fn test_option_carloni_buffer() -> miette::Result<()> {
         let uut = StreamBuffer::<b32>::default();
         let mut need_reset = true;
         let mut source_rng = XorShift128::default();
@@ -159,8 +159,9 @@ mod tests {
                 Some(ResetOrData::Data(input))
             },
             100,
-        )
+        )?
         .take_while(|t| t.time < 100_000)
         .for_each(drop);
+        Ok(())
     }
 }

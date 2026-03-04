@@ -125,7 +125,7 @@ mod tests {
     fn test_delay_trace() -> miette::Result<()> {
         let uut = Delay::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
-        let vcd = uut.run(input).collect::<VcdFile>();
+        let vcd = uut.run(input)?.collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("delay");
@@ -140,7 +140,7 @@ mod tests {
     fn test_delay_works() -> miette::Result<()> {
         let uut = Delay::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
-        let output = uut.run(input).synchronous_sample();
+        let output = uut.run(input)?.synchronous_sample();
         let output = output.collect::<Vec<_>>();
         let count = output.iter().filter(|t| t.output.is_some()).count();
         assert!(count == 1);
@@ -244,7 +244,7 @@ mod tests {
     fn test_delay_hdl_works() -> miette::Result<()> {
         let uut = Delay::<Option<Bits<8>>, 4>::default();
         let input = test_pulse();
-        let test_bench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
+        let test_bench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &Default::default())?;
         tm.run_iverilog()?;
         Ok(())

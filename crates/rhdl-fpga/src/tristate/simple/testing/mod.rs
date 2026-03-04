@@ -48,7 +48,7 @@ mod tests {
             .chain(once(Some(Cmd::Read)).chain(std::iter::repeat_n(None, 4)));
         let input = input.with_reset(1).clock_pos_edge(100);
         let uut = super::U::default();
-        let svg = uut.run(input).collect::<SvgFile>();
+        let svg = uut.run(input)?.collect::<SvgFile>();
         svg.write_to_file("basic_tristate.svg", &SvgOptions::default())
             .into_diagnostic()?;
         Ok(())
@@ -62,7 +62,7 @@ mod tests {
             .chain(once(Some(Cmd::Read)).chain(std::iter::repeat_n(None, 4)));
         let input = input.with_reset(1).clock_pos_edge(100);
         let uut = super::U::default();
-        let vcd = uut.run(input).collect::<VcdFile>();
+        let vcd = uut.run(input)?.collect::<VcdFile>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("tristate");

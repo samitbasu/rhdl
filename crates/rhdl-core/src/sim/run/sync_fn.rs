@@ -1,10 +1,9 @@
 //! Extension trait to provide a closed loop `run_fn` method on synchronous circuits.
 use crate::{
-    Clock, ClockReset, Digital, Synchronous, SynchronousIO,
+    Clock, ClockReset, Digital, RHDLError, ScopedName, Synchronous, SynchronousIO,
     clock::clock,
     clock_reset,
     sim::ResetOrData,
-    trace,
     trace::{
         page::{set_trace_page, take_trace_page},
         session::Session,
@@ -101,8 +100,8 @@ where
             ResetOrData::Data(i) => {
                 let cr = clock_reset(clock, reset(false));
                 set_trace_page(Some(self.session.page()));
-                trace("clock", &cr.clock);
-                trace("reset", &cr.reset);
+                crate::trace("clock", &cr.clock);
+                crate::trace("reset", &cr.reset);
                 let o = self.uut.sim(cr, i, uut_state);
                 self.last_output = Some(o);
                 TracedSample {
@@ -115,8 +114,8 @@ where
             ResetOrData::Reset => {
                 let cr = clock_reset(clock, reset(true));
                 set_trace_page(Some(self.session.page()));
-                trace("clock", &cr.clock);
-                trace("reset", &cr.reset);
+                crate::trace("clock", &cr.clock);
+                crate::trace("reset", &cr.reset);
                 let o = self.uut.sim(cr, I::dont_care(), uut_state);
                 self.last_output = Some(o);
                 TracedSample {
@@ -190,7 +189,7 @@ pub trait RunSynchronousFeedbackExt {
         &self,
         input_fn: F,
         period: u64,
-    ) -> RunSynchronousFeedback<'_, Self, F, Self::S, Self::I, Self::O>
+    ) -> Result<RunSynchronousFeedback<'_, Self, F, Self::S, Self::I, Self::O>, RHDLError>
     where
         Self: Synchronous,
         F: FnMut(Self::O) -> Option<ResetOrData<Self::I>>;
@@ -204,17 +203,21 @@ where
         &self,
         input_fn: F,
         period: u64,
-    ) -> RunSynchronousFeedback<
-        '_,
-        Self,
-        F,
-        <Self as Synchronous>::S,
-        <Self as SynchronousIO>::I,
-        <Self as SynchronousIO>::O,
+    ) -> Result<
+        RunSynchronousFeedback<
+            '_,
+            Self,
+            F,
+            <Self as Synchronous>::S,
+            <Self as SynchronousIO>::I,
+            <Self as SynchronousIO>::O,
+        >,
+        RHDLError,
     >
     where
         F: FnMut(<Self as SynchronousIO>::O) -> Option<ResetOrData<<Self as SynchronousIO>::I>>,
     {
-        run_fn(self, input_fn, period)
+        let _ = self.descriptor(ScopedName::top())?;
+        Ok(run_fn(self, input_fn, period))
     }
 }

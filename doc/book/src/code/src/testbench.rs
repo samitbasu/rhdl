@@ -29,7 +29,7 @@ mod circuit_testbench {
         // The circuit under test
         let uut = AndGate;
         // Create the testbench
-        let testbench = uut.run(inputs).collect::<TestBench<_, _>>();
+        let testbench = uut.run(inputs)?.collect::<TestBench<_, _>>();
         // Generate the RTL testbench module
         let test_module = testbench.rtl(&uut, &TestBenchOptions::default())?;
         // Write the testbench to a Verilog file
@@ -52,7 +52,7 @@ mod counter_testbench {
             .with_reset(1)
             .clock_pos_edge(100);
         let uut = rhdl_fpga::core::counter::Counter::<3>::default();
-        let testbench = uut.run(input).collect::<SynchronousTestBench<_, _>>();
+        let testbench = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
         let test_module = testbench.rtl(&uut, &TestBenchOptions::default())?;
         std::fs::write("counter_test_tb.v", test_module.to_string()).unwrap();
         Ok(())

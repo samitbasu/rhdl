@@ -186,9 +186,20 @@ where
 #[cfg(test)]
 mod tests {
     use expect_test::expect;
+    use miette::IntoDiagnostic;
+    use rhdl::core::circuit::descriptor;
 
     use super::*;
     use std::path::PathBuf;
+
+    #[test]
+    fn test_no_combinatorial_paths() -> miette::Result<()> {
+        let uut = AsyncFIFO::<Bits<8>, Red, Blue, 5>::default();
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        let schematic = descriptor.schematic()?;
+        schematic.check_for_combinatorial_io_paths()?;
+        Ok(())
+    }
 
     #[test]
     fn basic_write_test() -> miette::Result<()> {
@@ -209,18 +220,18 @@ mod tests {
         });
         //        let input = test_stream();
         let uut = AsyncFIFO::<Bits<8>, Red, Blue, 5>::default();
-        let vcd = uut.run(input.clone()).collect::<VcdFile>();
+        let vcd = uut.run(input.clone())?.collect::<VcdFile>();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("fifo")
             .join("asynchronous");
-        std::fs::create_dir_all(&root).unwrap();
+        std::fs::create_dir_all(&root).into_diagnostic()?;
         let expect = expect!["e7749f770cd57651455c04b9081eb2ecc4949c7f23858a566260d864d75af61b"];
         let digest = vcd
             .dump_to_file(root.join("async_fifo_write_test.vcd"))
-            .unwrap();
+            .into_diagnostic()?;
         expect.assert_eq(&digest);
-        let test_bench = uut.run(input).collect::<TestBench<_, _>>();
+        let test_bench = uut.run(input)?.collect::<TestBench<_, _>>();
         let tm = test_bench.rtl(&uut, &TestBenchOptions::default())?;
         tm.run_iverilog()?;
         Ok(())

@@ -1,7 +1,7 @@
 //! Extension trait and types to provide for iterator-based open loop testing of
 //! asynchronous circuits.
 use crate::{
-    Circuit, CircuitIO, TimedSample,
+    Circuit, CircuitIO, RHDLError, ScopedName, TimedSample,
     trace::{
         page::{set_trace_page, take_trace_page},
         session::Session,
@@ -89,7 +89,10 @@ where
 /// Extension trait to provide a `run` method on asynchronous circuits.
 pub trait RunExt<I>: Circuit + Sized {
     /// Runs the circuit with the given iterator of timed inputs.
-    fn run(&self, iter: I) -> Run<'_, Self, <I as IntoIterator>::IntoIter, <Self as Circuit>::S>
+    fn run(
+        &self,
+        iter: I,
+    ) -> Result<Run<'_, Self, <I as IntoIterator>::IntoIter, <Self as Circuit>::S>, RHDLError>
     where
         I: IntoIterator;
 }
@@ -99,7 +102,14 @@ where
     T: Circuit,
     I: IntoIterator<Item = TimedSample<<T as CircuitIO>::I>>,
 {
-    fn run(&self, iter: I) -> Run<'_, Self, <I as IntoIterator>::IntoIter, <Self as Circuit>::S> {
-        run(self, iter.into_iter())
+    fn run(
+        &self,
+        iter: I,
+    ) -> Result<Run<'_, Self, <I as IntoIterator>::IntoIter, <Self as Circuit>::S>, RHDLError>
+    where
+        I: IntoIterator,
+    {
+        let _ = self.descriptor(ScopedName::top())?;
+        Ok(run(self, iter.into_iter()))
     }
 }

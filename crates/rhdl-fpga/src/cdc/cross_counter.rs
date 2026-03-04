@@ -220,7 +220,7 @@ mod tests {
         let uut = UC::default();
         let input = sync_stream();
         let _ = uut
-            .run(input)
+            .run(input)?
             .glitch_check(|t| (t.input.cr.val().clock, t.output.count))
             .last();
         Ok(())
@@ -236,7 +236,7 @@ mod tests {
             .join("cross");
         std::fs::create_dir_all(&root).unwrap();
         let outputs = uut
-            .run(input)
+            .run(input)?
             .sample_at_neg_edge(|t| t.input.cr.val().clock)
             .vcd_file(root.join("rw_counter.vcd"))
             .map(|t| t.output.count.val())
@@ -253,7 +253,7 @@ mod tests {
         type UC = CrossCounter<Red, Blue, 8>;
         let uut = UC::default();
         let input = sync_stream();
-        let test_bench = uut.run(input).collect::<TestBench<_, _>>();
+        let test_bench = uut.run(input)?.collect::<TestBench<_, _>>();
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("vcd")
             .join("cross");

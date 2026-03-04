@@ -45,7 +45,7 @@ fn stream() -> impl Iterator<Item = TimedSample<(ClockReset, Option<(bool, b8)>)
 fn test_trace() -> miette::Result<()> {
     let uut = U::default();
     let input = stream();
-    let vcd = uut.run(input).collect::<VcdFile>();
+    let vcd = uut.run(input)?.collect::<VcdFile>();
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("vcd")
         .join("flow_graph_if_let");
@@ -62,7 +62,7 @@ fn test_trace() -> miette::Result<()> {
 fn test_hdl() -> miette::Result<()> {
     let uut = U::default();
     let input = stream();
-    let tb = uut.run(input).collect::<SynchronousTestBench<_, _>>();
+    let tb = uut.run(input)?.collect::<SynchronousTestBench<_, _>>();
     let tm = tb.rtl(&uut, &Default::default())?;
     tm.run_iverilog()?;
     Ok(())
