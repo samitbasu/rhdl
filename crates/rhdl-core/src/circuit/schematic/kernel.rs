@@ -305,7 +305,7 @@ impl<'a> OpCodeBuilder<'a> {
 pub fn build_schematic(object: Arc<rhif::Object>) -> Result<Schematic, RHDLError> {
     let mut builder = SchematicBuilder::kernel();
     builder.with_name(&object.name);
-    builder.with_filename(&object.filename());
+    builder.with_filename(object.filename());
     builder.top_mut().type_name = object.type_name.to_string();
     // Import the arguments of the kernel as input ports
     for (index, arg) in object.arguments.iter().enumerate() {
@@ -339,7 +339,7 @@ pub fn build_schematic(object: Arc<rhif::Object>) -> Result<Schematic, RHDLError
         let child_index = builder.import(op_code_schematic);
         // Wire up the inputs to this opcode.
         for (index, input) in my_inputs.iter().enumerate() {
-            if let Some(source_child) = sources.get(&input) {
+            if let Some(source_child) = sources.get(input) {
                 builder.copy_child_output_to_child_input(*source_child, child_index, index);
             } else {
                 // This must be an input argument

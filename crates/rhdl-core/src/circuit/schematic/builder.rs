@@ -1,9 +1,11 @@
+use std::collections::BTreeMap;
+
 use crate::{
     CircuitIO, ClockReset, Digital, Kind, RHDLError, SynchronousIO, TypedBits,
     ast::{SourceLocation, spanned_source::SpannedSourceSet},
     circuit::schematic::{
-        CanonicalPath, Link, LinkKind, Port, PortId, Schematic, SchematicId, SchematicKind,
-        canonicalize_path, error::SchematicICE, port,
+        CanonicalPath, Link, LinkKind, Port, PortId, PortPosition, Schematic, SchematicId,
+        SchematicKind, canonicalize_path, error::SchematicICE, port,
     },
     error::rhdl_error,
     rhif::spec::Slot,
@@ -23,6 +25,9 @@ pub struct SchematicBuilder {
     id: u32,
     schematic_id: u32,
 }
+
+const PORT_SPACING: usize = 25;
+const EAST_WEST_PADDING: usize = 40;
 
 impl SchematicBuilder {
     pub fn circuit<C: CircuitIO>(name: &str) -> Result<Self, RHDLError> {
@@ -67,6 +72,9 @@ impl SchematicBuilder {
                 sources: SpannedSourceSet::default().into(),
                 location: None,
                 debug_text: String::default(),
+                origin: (0.0.into(), 0.0.into()),
+                size: (300.0.into(), 100.0.into()),
+                port_positions: BTreeMap::default(),
             },
             id: 0,
             schematic_id: 0,
@@ -170,7 +178,32 @@ impl SchematicBuilder {
         self.top.inner.len() - 1
     }
     pub fn build(self) -> Schematic {
-        self.top
+        let mut top = self.top;
+        let top_inputs = top.inputs.iter().flatten().count();
+        let top_outputs = top.outputs.len();
+        let max_ports = top_inputs.max(top_outputs);
+        let height = (max_ports * PORT_SPACING + EAST_WEST_PADDING) as f32;
+        let width = 300.0;
+        top.origin = (0.0.into(), 0.0.into());
+        top.size = (width.into(), height.into());
+        let pin = |x: usize| {
+            ((PORT_SPACING * x) as f32 - (PORT_SPACING * max_ports) as f32 / 2.0
+                + EAST_WEST_PADDING as f32 / 2.0)
+                .into()
+        };
+        let input_positions = top
+            .inputs
+            .iter()
+            .flatten()
+            .enumerate()
+            .map(|(ndx, port)| (port.id, PortPosition::East(pin(ndx))));
+        let output_positions = top
+            .outputs
+            .iter()
+            .enumerate()
+            .map(|(ndx, port)| (port.id, PortPosition::West(pin(ndx))));
+        top.port_positions = input_positions.chain(output_positions).collect();
+        top
     }
     pub fn connect(&mut self, from: PortId, to: PortId) -> &mut Self {
         self.top.links.push(Link {

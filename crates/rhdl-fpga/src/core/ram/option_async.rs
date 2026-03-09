@@ -284,4 +284,17 @@ mod tests {
         assert!(values.eq(output));
         Ok(())
     }
+
+    #[test]
+    fn test_no_combinatorial_paths() -> miette::Result<()> {
+        let uut = OptionAsyncBram::<Bits<8>, Red, Green, 4>::new(
+            (0..)
+                .enumerate()
+                .map(|(ndx, _)| (bits(ndx as u128), bits((15 - ndx) as u128))),
+        );
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        let schematic = descriptor.schematic()?;
+        schematic.check_for_combinatorial_io_paths()?;
+        Ok(())
+    }
 }

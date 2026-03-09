@@ -26,11 +26,11 @@ pub enum SchematicICE {
     #[error("Duplicate schematic id: {id:?}")]
     DuplicateSchematicId { id: SchematicId },
     #[error(
-        "Schematic has a combinatorial pathway from output {from:?} to input {to:?} - schematic has been written to {filename:?}"
+        "Schematic has a combinatorial pathway from {from:?} to {to:?} - schematic has been written to {filename:?}"
     )]
     CombinatorialPathway {
         filename: String,
-        from: PortId,
-        to: PortId,
+        from: Port,
+        to: Port,
     },
 }

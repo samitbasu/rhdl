@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.60", features = ["derive"] }
-eframe = "0.33.3"
+eframe = { version = "0.33.3", features = ["persistence"] }
 egui = "0.33.3"
 egui_tiles = "0.14.1"
 rhdl-core = { version = "0.1.0", path = "../rhdl-core" }

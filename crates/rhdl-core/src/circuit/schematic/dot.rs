@@ -4,9 +4,9 @@
 //! - Each input is mapped to a Record node, with one row per port.
 //! - The output is mapped to a Record node, with one row per port.
 //! - Each internal schematic is mapped to a record node with
-//!    The inputs on the left as a set of rows
-//!    The name of the schematic as the center of the record
-//!    The outputs on the right as a set of rows
+//!    - The inputs on the left as a set of rows
+//!    - The name of the schematic as the center of the record
+//!    - The outputs on the right as a set of rows
 //! - Each link is mapped as a directed edge from the source port to the destination port
 
 use super::{Port, PortId, Schematic};

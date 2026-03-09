@@ -215,6 +215,16 @@ mod tests {
     }
 
     #[test]
+    fn no_combinatorial_paths() -> miette::Result<()> {
+        type UC = CrossCounter<Red, Blue, 8>;
+        let uut = UC::default();
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        let schematic = descriptor.schematic()?;
+        schematic.check_for_combinatorial_io_paths()?;
+        Ok(())
+    }
+
+    #[test]
     fn test_performance() -> miette::Result<()> {
         type UC = CrossCounter<Red, Blue, 8>;
         let uut = UC::default();

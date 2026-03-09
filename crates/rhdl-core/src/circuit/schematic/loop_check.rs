@@ -106,8 +106,8 @@ pub fn check_combinatorial_pathways(schematic: &Schematic) -> Result<(), RHDLErr
                 let filename = dump_schematic(&set);
                 return Err(rhdl_error(SchematicICE::CombinatorialPathway {
                     filename,
-                    from: input_port.id,
-                    to: port.id,
+                    from: input_port.clone(),
+                    to: port.clone(),
                 }));
             }
         }

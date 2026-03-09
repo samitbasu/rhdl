@@ -19,7 +19,7 @@
 use std::marker::PhantomData;
 
 use badascii_doc::badascii;
-use rhdl::prelude::{kernel, Digital};
+use rhdl::prelude::{Digital, kernel};
 pub mod chunked;
 pub mod fifo_to_stream;
 pub mod filter;
@@ -60,6 +60,15 @@ pub struct StreamIO<T: Digital, S: Digital> {
     pub data: Option<T>,
     /// The ready signal either flowing into or out of the Pipe core
     pub ready: Ready<S>,
+}
+
+#[kernel]
+/// Helper function to create a StreamIO struct from raw data and ready signals
+pub fn stream_io<T: Digital, S: Digital>(data: Option<T>, raw: bool) -> StreamIO<T, S> {
+    StreamIO::<T, S> {
+        data,
+        ready: ready::<S>(raw),
+    }
 }
 
 #[derive(PartialEq, Debug, Clone, Copy, Digital)]

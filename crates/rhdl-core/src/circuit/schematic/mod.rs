@@ -35,7 +35,7 @@ pub struct TypedBits {
 impl From<&crate::types::typed_bits::TypedBits> for TypedBits {
     fn from(value: &crate::types::typed_bits::TypedBits) -> Self {
         Self {
-            bits: value.bits().iter().copied().collect(),
+            bits: value.bits().to_vec(),
             kind: value.kind().into(),
         }
     }
@@ -75,7 +75,7 @@ pub struct Object {
     pub source_pool: SourcePool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SchematicSet {
     pub schematics: Schematic,
     pub loop_ports: Vec<PortId>,
@@ -90,7 +90,104 @@ pub enum SchematicKind {
     Literal,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct Coordinate(i32);
+
+impl std::fmt::Display for Coordinate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value: f32 = (*self).into();
+        write!(f, "{value:.1}")
+    }
+}
+
+impl Coordinate {
+    pub fn clamp(self, min: Coordinate, max: Coordinate) -> Coordinate {
+        Coordinate(self.0.clamp(min.0, max.0))
+    }
+}
+
+const COORDINATE_SCALE: f32 = 10.0;
+
+impl From<f32> for Coordinate {
+    fn from(value: f32) -> Self {
+        Coordinate((value * COORDINATE_SCALE).round() as i32)
+    }
+}
+
+impl From<Coordinate> for f32 {
+    fn from(value: Coordinate) -> Self {
+        value.0 as f32 / COORDINATE_SCALE
+    }
+}
+
+impl std::ops::Add for Coordinate {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Coordinate(self.0 + rhs.0)
+    }
+}
+
+impl std::ops::Add<f32> for Coordinate {
+    type Output = Self;
+
+    fn add(self, rhs: f32) -> Self::Output {
+        self + Coordinate::from(rhs)
+    }
+}
+
+impl std::ops::Sub for Coordinate {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Coordinate(self.0 - rhs.0)
+    }
+}
+
+impl std::ops::Sub<f32> for Coordinate {
+    type Output = Self;
+
+    fn sub(self, rhs: f32) -> Self::Output {
+        self - Coordinate::from(rhs)
+    }
+}
+
+impl std::ops::AddAssign for Coordinate {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0;
+    }
+}
+
+impl std::ops::SubAssign for Coordinate {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 -= rhs.0;
+    }
+}
+
+impl std::ops::Div<f32> for Coordinate {
+    type Output = Self;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        let me: f32 = self.into();
+        (me / rhs).into()
+    }
+}
+
+impl std::ops::Neg for Coordinate {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Coordinate(-self.0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum PortPosition {
+    East(Coordinate),
+    West(Coordinate),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Schematic {
     pub id: SchematicId,
     pub name: String,
@@ -104,9 +201,29 @@ pub struct Schematic {
     pub links: Vec<Link>,
     pub sources: Intern<SpannedSourceSet>,
     pub location: Option<SourceLocation>,
+    pub origin: (Coordinate, Coordinate),
+    pub size: (Coordinate, Coordinate),
+    pub port_positions: BTreeMap<PortId, PortPosition>,
 }
 
 impl Schematic {
+    pub fn port_position(&self, pos: PortPosition) -> (Coordinate, Coordinate) {
+        match pos {
+            PortPosition::East(offset) => {
+                let x = self.origin.0 + self.size.0;
+                let y = self.origin.1 + self.size.1 / 2.0 + offset;
+                (x, y)
+            }
+            PortPosition::West(offset) => {
+                let x = self.origin.0;
+                let y = self.origin.1 + self.size.1 / 2.0 + offset;
+                (x, y)
+            }
+        }
+    }
+    pub fn port_position_by_id(&self, id: PortId) -> (Coordinate, Coordinate) {
+        self.port_position(self.port_positions[&id])
+    }
     pub fn max_port_id(&self) -> PortId {
         self.inputs
             .iter()
@@ -128,6 +245,16 @@ impl Schematic {
         self.inner
             .iter_mut()
             .for_each(|child| child.shift_ports(offset));
+        let new_port_positions = self
+            .port_positions
+            .iter()
+            .map(|(&port_id, &pos)| {
+                let mut new_port_id = port_id;
+                new_port_id.shift(offset);
+                (new_port_id, pos)
+            })
+            .collect();
+        self.port_positions = new_port_positions;
         for link in &mut self.links {
             link.from.shift(offset);
             link.to.shift(offset);
@@ -166,6 +293,35 @@ impl Schematic {
             self.inner.iter().find_map(|child| child.find_by_id(id))
         }
     }
+    pub fn find_by_id_mut(&mut self, id: SchematicId) -> Option<&mut Schematic> {
+        if self.id == id {
+            Some(self)
+        } else {
+            self.inner
+                .iter_mut()
+                .find_map(|child| child.find_by_id_mut(id))
+        }
+    }
+    pub fn find_port_by_id(&self, id: PortId) -> Option<&Port> {
+        self.inputs
+            .iter()
+            .flatten()
+            .chain(self.outputs.iter())
+            .find(|port| port.id == id)
+            .or_else(|| {
+                self.inner
+                    .iter()
+                    .find_map(|child| child.find_port_by_id(id))
+            })
+    }
+    pub fn is_port_input(&self, id: PortId) -> bool {
+        self.inputs.iter().flatten().any(|port| port.id == id)
+            || self.inner.iter().any(|child| child.is_port_input(id))
+    }
+    pub fn is_port_output(&self, id: PortId) -> bool {
+        self.outputs.iter().any(|port| port.id == id)
+            || self.inner.iter().any(|child| child.is_port_output(id))
+    }
     pub fn check_for_combinatorial_io_paths(&self) -> Result<(), RHDLError> {
         loop_check::check_combinatorial_pathways(self)
     }
@@ -196,6 +352,9 @@ impl SchematicId {
     }
     pub fn next(&self) -> SchematicId {
         SchematicId(self.0 + 1)
+    }
+    pub fn index(&self) -> u32 {
+        self.0
     }
 }
 

@@ -55,8 +55,6 @@ where
 {
     /// The generated ready signal
     pub ready: bool,
-    /// The write address to send to the BRAM
-    pub ram_write_address: Bits<N>,
     /// The write address to send to the read side (delayed)
     pub write_address: Bits<N>,
     /// The data to write to the BRAM
@@ -99,7 +97,6 @@ where
         None
     };
     o.ready = !full;
-    o.ram_write_address = q.write_address;
     o.write_address = q.write_address_delayed;
     let mut d = D::<T, N>::dont_care();
     d.write_address = if will_write {

@@ -6,6 +6,7 @@ pub mod core;
 pub mod doc;
 pub mod dsp;
 pub mod fifo;
+pub mod fifo_ng;
 pub mod gray;
 pub mod lid;
 pub mod pipe;

@@ -1,103 +1,26 @@
 use clap::Parser;
 use eframe::Result;
-use egui::{Color32, Scene, Ui, Widget};
-use rhdl_core::{
-    circuit::schematic::{Port, PortId, Schematic, SchematicId, SchematicKind, SchematicSet, Slot},
-    trace::container::svg::options,
+use egui::{Align2, Color32, Id, Pos2, Scene, Ui, Vec2, Widget, pos2};
+use rhdl_core::circuit::schematic::{
+    PortId, PortPosition, Schematic, SchematicId, SchematicKind, SchematicSet, Slot,
 };
 use std::{collections::HashSet, path::PathBuf};
 use taffy::{TaffyResult, prelude::*};
 
-const COLORS: [Color32; 8] = [
-    Color32::LIGHT_BLUE,
-    Color32::LIGHT_GREEN,
-    Color32::LIGHT_YELLOW,
-    Color32::LIGHT_RED,
-    Color32::LIGHT_GRAY,
-    Color32::DARK_GREEN,
-    Color32::KHAKI,
-    Color32::DARK_GRAY,
-];
-
-#[derive(Default)]
-struct KernelDetails {
-    name: String,
-    filename: String,
-    table: Vec<KernelTableEntry>,
-}
-
-impl egui::Widget for &KernelDetails {
-    fn ui(self, ui: &mut Ui) -> egui::Response {
-        let font = egui::FontId::monospace(10.0);
-        egui::Frame::new()
-            .inner_margin(egui::Margin::same(8))
-            .show(ui, |ui| {
-                ui.label(egui::RichText::new(&format!("Name: {}", self.name)).font(font.clone()));
-                ui.label(
-                    egui::RichText::new(&format!("Filename: {}", self.filename)).font(font.clone()),
-                );
-                egui::ScrollArea::both().show(ui, |ui| {
-                    egui::Grid::new("code")
-                        .num_columns(4)
-                        .striped(true)
-                        .min_row_height(12.0)
-                        .show(ui, |ui| {
-                            for entry in &self.table {
-                                ui.label(egui::RichText::new(&entry.inputs).font(font.clone()));
-                                let opcode_cut = &entry.opcode[..(entry.opcode.len().min(25))];
-                                ui.label(egui::RichText::new(opcode_cut).font(font.clone()))
-                                    .on_hover_text(
-                                        egui::RichText::new(&entry.opcode).font(font.clone()),
-                                    );
-                                ui.label(egui::RichText::new(&entry.outputs).font(font.clone()));
-                                ui.label(
-                                    egui::RichText::new(&entry.source_code).font(font.clone()),
-                                );
-                                ui.end_row();
-                            }
-                        });
-                });
-            });
-        ui.response()
-    }
-}
-
-struct KernelTableEntry {
-    inputs: String,
-    opcode: String,
-    outputs: String,
-    source_code: String,
-}
-
-/// The basic element of the schematic - a rounded box
-/// Placement of the element is determined by Taffy.
-struct Element {
-    label: String,
-    help_text: String,
-    colors: Color32,
-    rounding: f32,
-    sid: Option<SchematicId>,
-}
+use crate::{
+    avoid::grid,
+    kernel_details::{KernelDetails, render_kernel},
+    schematic_rendering::{Element, Options, SchematicRendering},
+};
+pub mod avoid;
+pub mod kernel_details;
+pub mod layout;
+pub mod schematic_rendering;
 
 #[derive(Parser)]
 struct Args {
     #[arg(long)]
     schematic: PathBuf,
-}
-
-#[derive(Clone, Copy)]
-pub struct Options {
-    pub input_block_width: f32,
-    pub rounding: f32,
-}
-
-impl Default for Options {
-    fn default() -> Self {
-        Self {
-            input_block_width: 200.0,
-            rounding: 5.0,
-        }
-    }
 }
 
 fn slot(slot: &Option<Slot>) -> String {
@@ -109,331 +32,31 @@ fn slot(slot: &Option<Slot>) -> String {
         .unwrap_or_default()
 }
 
-fn render_kernel(schematic: &Schematic, highlighted_ports: &HashSet<PortId>) -> KernelDetails {
-    if schematic.kind != SchematicKind::Kernel {
-        return KernelDetails::default();
-    }
-    let mut result = Vec::new();
-    // Add a table entry for each argument
-    for (index, portset) in schematic.inputs.iter().enumerate() {
-        for input_port in portset.iter() {
-            if highlighted_ports.contains(&input_port.id) {
-                result.push(KernelTableEntry {
-                    inputs: "Input".to_string(),
-                    opcode: format!("i{index}{:?}", input_port.path),
-                    outputs: slot(&input_port.slot),
-                    source_code: String::new(),
-                });
-            }
-        }
-    }
-    for child in &schematic.inner {
-        match child.kind {
-            SchematicKind::OpCode => {
-                if !has_highlighted_ports(child, highlighted_ports) {
-                    continue;
-                }
-            }
-            SchematicKind::Circuit | SchematicKind::Synchronous | SchematicKind::Kernel => {
-                continue;
-            }
-            _ => {}
-        }
-        result.push(KernelTableEntry {
-            inputs: child
-                .inputs
-                .iter()
-                .flatten()
-                .filter(|x| highlighted_ports.contains(&x.id))
-                .map(|port| format!("{}{:?}", slot(&port.slot), port.path))
-                .collect::<Vec<_>>()
-                .join(", "),
-            opcode: child.name.clone(),
-            outputs: child
-                .outputs
-                .iter()
-                .filter(|x| highlighted_ports.contains(&x.id))
-                .map(|port| format!("{}{:?}", slot(&port.slot), port.path))
-                .collect::<Vec<_>>()
-                .join(", "),
-            source_code: String::new(),
-        });
-    }
-    for output_port in &schematic.outputs {
-        if highlighted_ports.contains(&output_port.id) {
-            result.push(KernelTableEntry {
-                inputs: "Output".to_string(),
-                opcode: format!("o{:?}", output_port.path),
-                outputs: slot(&output_port.slot),
-                source_code: String::new(),
-            });
-        }
-    }
-    KernelDetails {
-        name: schematic.name.clone(),
-        filename: schematic.filename.clone(),
-        table: result,
-    }
-}
-
-struct SchematicRendering<'a> {
-    options: Options,
-    taffy_tree: TaffyTree<Element>,
-    highlighted_ports: &'a HashSet<PortId>,
-}
-
-fn has_highlighted_ports(schematic: &Schematic, highlighted_ports: &HashSet<PortId>) -> bool {
-    for input in schematic.inputs.iter().flatten() {
-        if highlighted_ports.contains(&input.id) {
-            return true;
-        }
-    }
-    for output in &schematic.outputs {
-        if highlighted_ports.contains(&output.id) {
-            return true;
-        }
-    }
-    false
-}
-
-impl<'a> SchematicRendering<'a> {
-    fn new(options: Options, highlighted_ports: &'a HashSet<PortId>) -> Self {
-        Self {
-            options,
-            taffy_tree: TaffyTree::new(),
-            highlighted_ports,
-        }
-    }
-    fn add_leaf_element(
-        &mut self,
-        context: Element,
-        width: f32,
-        height: Option<f32>,
-    ) -> TaffyResult<NodeId> {
-        let height = height
-            .map(Dimension::length)
-            .unwrap_or_else(Dimension::auto);
-        let node_id = self.taffy_tree.new_leaf_with_context(
-            Style {
-                size: Size {
-                    width: Dimension::length(width),
-                    height,
-                },
-                ..Default::default()
-            },
-            context,
-        )?;
-        Ok(node_id)
-    }
-    fn add_port(&mut self, label: &str, help: &str, color: Color32) -> TaffyResult<NodeId> {
-        self.add_leaf_element(
-            Element {
-                label: label.to_string(),
-                help_text: help.to_string(),
-                colors: color,
-                rounding: self.options.rounding,
-                sid: None,
-            },
-            self.options.input_block_width,
-            Some(20.0),
-        )
-    }
-    fn add_input_port_stack(
-        &mut self,
-        colors: Color32,
-        ports: &[Port],
-        index: usize,
-    ) -> TaffyResult<NodeId> {
-        let children = ports
-            .iter()
-            .map(|port| {
-                self.add_port(
-                    &format!("i{}{:?}", index, port.path),
-                    &format!("{:?}", port),
-                    if !self.highlighted_ports.contains(&port.id) {
-                        colors
-                    } else {
-                        Color32::RED
-                    },
-                )
-            })
-            .collect::<TaffyResult<Vec<_>>>()?;
-        // Lay these out in a vertical column
-        self.taffy_tree.new_with_children(
-            Style {
-                flex_direction: FlexDirection::Column,
-                align_items: Some(AlignItems::Stretch),
-                ..Default::default()
-            },
-            &children,
-        )
-    }
-    fn add_input_ports(&mut self, ports: &[Vec<Port>]) -> TaffyResult<NodeId> {
-        let input_stacks = ports
-            .iter()
-            .enumerate()
-            .map(|(index, group)| {
-                self.add_input_port_stack(COLORS[index % COLORS.len()], group, index)
-            })
-            .collect::<TaffyResult<Vec<_>>>()?;
-        self.taffy_tree.new_with_children(
-            Style {
-                flex_direction: FlexDirection::Column,
-                ..Default::default()
-            },
-            &input_stacks,
-        )
-    }
-    fn add_output_ports(&mut self, ports: &[Port]) -> TaffyResult<NodeId> {
-        let children = ports
-            .iter()
-            .map(|port| {
-                self.add_port(
-                    &format!("o{:?}", port.path),
-                    &format!("{:?}", port),
-                    if self.highlighted_ports.contains(&port.id) {
-                        Color32::RED
-                    } else {
-                        COLORS[6]
-                    },
-                )
-            })
-            .collect::<TaffyResult<Vec<_>>>()?;
-        // Lay these out in a vertical column
-        self.taffy_tree.new_with_children(
-            Style {
-                flex_direction: FlexDirection::Column,
-                ..Default::default()
-            },
-            &children,
-        )
-    }
-    fn add_black_box(&mut self, schematic: &Schematic) -> TaffyResult<NodeId> {
-        let direction = match schematic.kind {
-            SchematicKind::Kernel | SchematicKind::OpCode | SchematicKind::Literal => {
-                FlexDirection::Row
-            }
-            _ => FlexDirection::RowReverse,
-        };
-        let input_ports = self.add_input_ports(&schematic.inputs)?;
-        let body = self.add_leaf_element(
-            Element {
-                label: schematic.name.to_string(),
-                help_text: schematic.type_name.to_string(),
-                colors: COLORS[5],
-                rounding: self.options.rounding,
-                sid: Some(schematic.id),
-            },
-            300.0,
-            None,
-        )?;
-        let output_ports = self.add_output_ports(&schematic.outputs)?;
-        self.taffy_tree.new_with_children(
-            Style {
-                flex_direction: direction,
-                align_content: Some(AlignContent::Center),
-                ..Default::default()
-            },
-            &[input_ports, body, output_ports],
-        )
-    }
-    fn add_portless_box(&mut self, schematic: &Schematic) -> TaffyResult<NodeId> {
-        let lines = schematic.name.lines().count().max(1) as f32;
-        self.add_leaf_element(
-            Element {
-                label: schematic.name.to_string(),
-                help_text: schematic.type_name.to_string(),
-                colors: COLORS[5],
-                rounding: self.options.rounding,
-                sid: Some(schematic.id),
-            },
-            500.0,
-            Some(lines * 20.0),
-        )
-    }
-    fn layout_kernel(mut self, schematic: &Schematic) -> TaffyResult<(NodeId, TaffyTree<Element>)> {
-        let ops = schematic
-            .inner
-            .iter()
-            .filter_map(|child| match child.kind {
-                SchematicKind::Literal => Some(self.add_black_box(child)),
-                SchematicKind::OpCode => {
-                    if has_highlighted_ports(child, self.highlighted_ports) {
-                        Some(self.add_black_box(child))
-                    } else {
-                        None
-                    }
-                }
-                _ => None,
-            })
-            .collect::<TaffyResult<Vec<_>>>()?;
-        let node_id = self.taffy_tree.new_with_children(
-            Style {
-                flex_direction: FlexDirection::Column,
-                gap: Size {
-                    width: LengthPercentage::percent(1.0),
-                    height: LengthPercentage::length(25.0),
-                },
-                ..Default::default()
-            },
-            &ops,
-        )?;
-        self.taffy_tree.compute_layout(node_id, Size::MAX_CONTENT)?;
-        Ok((node_id, self.taffy_tree))
-    }
-    fn layout_tee(mut self, schematic: &Schematic) -> TaffyResult<(NodeId, TaffyTree<Element>)> {
-        let child_nodes = schematic
-            .inner
-            .iter()
-            .map(|child| self.add_black_box(child))
-            .collect::<TaffyResult<Vec<_>>>()?;
-        let center_column = self.taffy_tree.new_with_children(
-            Style {
-                flex_direction: FlexDirection::Column,
-                align_content: Some(AlignContent::Center),
-                gap: Size {
-                    width: LengthPercentage::percent(1.0),
-                    height: LengthPercentage::length(150.0),
-                },
-                ..Default::default()
-            },
-            &child_nodes,
-        )?;
-        let input_ports = self.add_input_ports(&schematic.inputs)?;
-        let output_ports = self.add_output_ports(&schematic.outputs)?;
-        let top = self.taffy_tree.new_with_children(
-            Style {
-                flex_direction: FlexDirection::Row,
-                align_content: Some(AlignContent::Center),
-                gap: Size {
-                    width: LengthPercentage::length(250.0),
-                    height: LengthPercentage::percent(1.0),
-                },
-                ..Default::default()
-            },
-            &[input_ports, center_column, output_ports],
-        )?;
-        self.taffy_tree.compute_layout(top, Size::MAX_CONTENT)?;
-        Ok((top, self.taffy_tree))
-    }
-}
-
 enum Pane {
     Schematic,
     Code,
 }
 
+enum PortAction {
+    Hover,
+    Click,
+    Drag(Pos2, Vec2),
+}
+
 struct App {
+    filename: PathBuf,
     schematic: Schematic,
     highlighted_ports: HashSet<PortId>,
     id_stack: Vec<SchematicId>,
     scene_rect: egui::Rect,
+    detail_scene_rect: egui::Rect,
     taffy_tree: TaffyTree<Element>,
     top: NodeId,
     options: Options,
     viz_tree: Option<egui_tiles::Tree<Pane>>,
     update_target: Option<SchematicId>,
     kernel: Option<KernelDetails>,
+    pin_drag: Option<PortId>,
 }
 
 impl egui_tiles::Behavior<Pane> for App {
@@ -448,9 +71,7 @@ impl egui_tiles::Behavior<Pane> for App {
                 self.draw_schematic(ui);
             }
             Pane::Code => {
-                self.kernel.as_ref().map(|kernel| {
-                    kernel.ui(ui);
-                });
+                self.draw_schematic_detail(ui);
             }
         }
         egui_tiles::UiResponse::default()
@@ -465,23 +86,30 @@ impl egui_tiles::Behavior<Pane> for App {
 }
 
 impl App {
-    fn new(schematic: Schematic, highlighted_ports: HashSet<PortId>) -> Self {
+    fn new(filename: PathBuf) -> Self {
+        let content = std::fs::read_to_string(&filename).expect("Failed to read file");
+        let set = serde_json::from_str::<SchematicSet>(&content).unwrap();
+        let schematic = set.schematics;
+        let highlighted_ports = set.loop_ports.into_iter().collect();
         let options = Options::default();
         let (top, taffy_tree) = SchematicRendering::new(options, &highlighted_ports)
             .layout_tee(&schematic)
             .unwrap();
         let tree = egui_tiles::Tree::new_horizontal("my_tree", vec![Pane::Schematic, Pane::Code]);
         Self {
+            filename,
             id_stack: vec![schematic.id],
             schematic,
             highlighted_ports,
             scene_rect: egui::Rect::ZERO,
+            detail_scene_rect: egui::Rect::ZERO,
             taffy_tree,
             top,
             options,
             viz_tree: Some(tree),
             update_target: None,
             kernel: None,
+            pin_drag: None,
         }
     }
     fn go_up(&mut self) {
@@ -578,18 +206,269 @@ impl App {
         }
         self.draw_node_recursive(self.top, 0.0, 0.0, ui).unwrap();
     }
+    fn draw_pin(
+        ui: &mut Ui,
+        port_id: PortId,
+        pin_position: Pos2,
+        pin_name: &str,
+        align: Align2,
+    ) -> Option<PortAction> {
+        let mut action = None;
+        ui.painter().circle_filled(pin_position, 3.0, Color32::RED);
+        // Is the circle hovered?
+        let response = ui.interact(
+            egui::Rect::from_center_size(pin_position, egui::vec2(10.0, 10.0)),
+            Id::new(("port_id", port_id.index())),
+            egui::Sense::click_and_drag(),
+        );
+        if response.dragged() {
+            let delta = response.drag_delta();
+            ui.painter()
+                .circle_stroke(pin_position + delta, 4.0, (1.0, Color32::LIGHT_BLUE));
+            action = Some(PortAction::Drag(
+                response.interact_pointer_pos().unwrap_or(pin_position),
+                delta,
+            ));
+        } else if response.clicked() {
+            action = Some(PortAction::Click);
+        } else if response.hovered() {
+            ui.painter()
+                .circle_stroke(pin_position, 4.0, (1.0, Color32::YELLOW));
+            action = Some(PortAction::Hover);
+        }
+        let delta = if align == Align2::LEFT_CENTER {
+            egui::vec2(5.0, 0.0)
+        } else {
+            egui::vec2(-5.0, 0.0)
+        };
+        ui.painter().text(
+            pin_position + delta,
+            align,
+            pin_name,
+            egui::FontId::monospace(9.0),
+            Color32::BLACK,
+        );
+        action
+    }
+    fn draw_schematic_plan_view(&mut self, sid: SchematicId, ui: &mut Ui) {
+        if let Some(schematic) = self.schematic.find_by_id_mut(sid) {
+            let grid = grid(schematic);
+            let children = schematic
+                .inner
+                .iter()
+                .map(|child| child.id)
+                .collect::<Vec<_>>();
+            for child_id in children {
+                self.draw_plan_view(child_id, ui);
+            }
+            for (y_ndx, y_pos) in grid.y.iter().enumerate() {
+                for (x_ndx, x_pos) in grid.x.iter().enumerate() {
+                    if !grid.occupied[y_ndx][x_ndx] {
+                        ui.painter().circle_filled(
+                            pos2((*x_pos).into(), (*y_pos).into()),
+                            2.0,
+                            Color32::LIGHT_GRAY,
+                        );
+                    }
+                }
+            }
+        }
+    }
+    fn draw_plan_view(&mut self, sid: SchematicId, ui: &mut Ui) {
+        if let Some(schematic) = self.schematic.find_by_id_mut(sid) {
+            // Draw a rectangle for the schematic item - rounded.
+            let outer_rect = egui::Rect::from_min_size(
+                egui::pos2(schematic.origin.0.into(), schematic.origin.1.into()),
+                egui::vec2(schematic.size.0.into(), schematic.size.1.into()),
+            );
+            ui.painter().rect(
+                outer_rect,
+                3.0,
+                Color32::LIGHT_GRAY,
+                (1.0, Color32::DARK_BLUE),
+                egui::StrokeKind::Middle,
+            );
+            let response = ui
+                .interact(
+                    egui::Rect::from_center_size(outer_rect.right_bottom(), egui::vec2(5.0, 5.0)),
+                    Id::new(("schematic_resize_right_bottom", sid.index())),
+                    egui::Sense::click_and_drag(),
+                )
+                .on_hover_cursor(egui::CursorIcon::ResizeNwSe);
+            if response.dragged() {
+                let delta = response.drag_delta();
+                schematic.size.0 += delta.x.into();
+                schematic.size.1 += delta.y.into();
+            }
+            let response = ui
+                .interact(
+                    egui::Rect::from_center_size(outer_rect.right_top(), egui::vec2(5.0, 5.0)),
+                    Id::new(("schematic_resize_right_top", sid.index())),
+                    egui::Sense::click_and_drag(),
+                )
+                .on_hover_cursor(egui::CursorIcon::ResizeNeSw);
+            if response.dragged() {
+                let delta = response.drag_delta();
+                schematic.origin.1 += delta.y.into();
+                schematic.size.0 += delta.x.into();
+            }
+            let response = ui
+                .interact(
+                    egui::Rect::from_center_size(outer_rect.left_bottom(), egui::vec2(5.0, 5.0)),
+                    Id::new(("schematic_resize_left_bottom", sid.index())),
+                    egui::Sense::click_and_drag(),
+                )
+                .on_hover_cursor(egui::CursorIcon::ResizeNeSw);
+            if response.dragged() {
+                let delta = response.drag_delta();
+                schematic.origin.0 += delta.x.into();
+                schematic.size.0 -= delta.x.into();
+                schematic.size.1 += delta.y.into();
+            }
+            let response = ui
+                .interact(
+                    egui::Rect::from_center_size(outer_rect.left_top(), egui::vec2(5.0, 5.0)),
+                    Id::new(("schematic_resize_left_top", sid.index())),
+                    egui::Sense::click_and_drag(),
+                )
+                .on_hover_cursor(egui::CursorIcon::ResizeNwSe);
+            if response.dragged() {
+                let delta = response.drag_delta();
+                schematic.origin.0 += delta.x.into();
+                schematic.origin.1 += delta.y.into();
+                schematic.size.0 -= delta.x.into();
+                schematic.size.1 -= delta.y.into();
+            }
+            let response = ui
+                .interact(
+                    outer_rect.shrink(20.0),
+                    Id::new(("schematic_drag", sid.index())),
+                    egui::Sense::click_and_drag(),
+                )
+                .on_hover_cursor(egui::CursorIcon::Grab);
+            if response.dragged() {
+                let delta = response.drag_delta();
+                schematic.origin.0 += delta.x.into();
+                schematic.origin.1 += delta.y.into();
+                ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::Grabbing);
+            }
+            // Draw a pin for each port, and add a label
+            let mut port_positions = std::mem::take(&mut schematic.port_positions);
+            for (&port_id, port_position) in port_positions.iter_mut() {
+                let port = schematic.find_port_by_id(port_id).unwrap();
+                let is_input = schematic.is_port_input(port_id);
+                let pin_name = if is_input {
+                    format!("i{:?}", port.path)
+                } else {
+                    format!("o{:?}", port.path)
+                };
+                let mut flip = false;
+                let pin_position = schematic.port_position(*port_position);
+                let pin_position = pos2(pin_position.0.into(), pin_position.1.into());
+                match port_position {
+                    PortPosition::West(offset) => {
+                        match Self::draw_pin(
+                            ui,
+                            port_id,
+                            pin_position,
+                            &pin_name,
+                            egui::Align2::LEFT_CENTER,
+                        ) {
+                            Some(PortAction::Click) => {
+                                self.pin_drag = Some(port_id);
+                            }
+                            Some(PortAction::Drag(pos, delta)) => {
+                                if pos.x > outer_rect.center().x {
+                                    flip = true;
+                                }
+                                *offset += delta.y.into();
+                                *offset = (*offset).clamp(
+                                    -(schematic.size.1 / 2.0 - 10.0),
+                                    schematic.size.1 / 2.0 - 10.0,
+                                );
+                            }
+                            _ => {}
+                        }
+                        if self.pin_drag == Some(port_id) {
+                            ui.painter().circle_stroke(
+                                pin_position,
+                                4.0,
+                                (1.0, Color32::LIGHT_BLUE),
+                            );
+                        }
+                    }
+                    PortPosition::East(offset) => {
+                        match Self::draw_pin(
+                            ui,
+                            port_id,
+                            pin_position,
+                            &pin_name,
+                            egui::Align2::RIGHT_CENTER,
+                        ) {
+                            Some(PortAction::Click) => {
+                                self.pin_drag = Some(port_id);
+                            }
+                            Some(PortAction::Drag(pos, delta)) => {
+                                if pos.x < outer_rect.center().x {
+                                    flip = true;
+                                }
+                                *offset += delta.y.into();
+                                *offset = (*offset).clamp(
+                                    -(schematic.size.1 / 2.0 - 10.0),
+                                    schematic.size.1 / 2.0 - 10.0,
+                                );
+                            }
+                            _ => {}
+                        }
+                        if self.pin_drag == Some(port_id) {
+                            ui.painter().circle_stroke(
+                                pin_position,
+                                4.0,
+                                (1.0, Color32::LIGHT_BLUE),
+                            );
+                        }
+                    }
+                }
+                if flip {
+                    *port_position = match port_position {
+                        PortPosition::East(offset) => PortPosition::West(*offset),
+                        PortPosition::West(offset) => PortPosition::East(*offset),
+                    };
+                }
+            }
+            schematic.port_positions = port_positions;
+        }
+    }
     fn draw_schematic(&mut self, ui: &mut Ui) {
         let scene = Scene::new().zoom_range(0.1..=2.0);
         let mut scene_rect = self.scene_rect;
         scene.show(ui, &mut scene_rect, |ui| {
-            self.draw_tree(ui);
+            ui.painter()
+                .vline(0.0, -1000.0..=1000.0, (1.0, Color32::DARK_GRAY));
+            ui.painter()
+                .hline(-1000.0..=1000.0, 0.0, (1.0, Color32::DARK_GRAY));
+            let sid = self.top_schematic_id();
+            self.draw_plan_view(sid, ui);
         });
         self.scene_rect = scene_rect;
+    }
+    fn draw_schematic_detail(&mut self, ui: &mut Ui) {
+        let scene = Scene::new().zoom_range(0.1..=2.0);
+        let mut scene_rect = self.detail_scene_rect;
+        scene.show(ui, &mut scene_rect, |ui| {
+            ui.painter()
+                .vline(0.0, -1000.0..=1000.0, (1.0, Color32::DARK_GRAY));
+            ui.painter()
+                .hline(-1000.0..=1000.0, 0.0, (1.0, Color32::DARK_GRAY));
+            let sid = self.top_schematic_id();
+            self.draw_schematic_plan_view(sid, ui);
+        });
+        self.detail_scene_rect = scene_rect;
     }
 }
 
 impl eframe::App for App {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             let mut viz_tree = std::mem::take(&mut self.viz_tree).unwrap();
             viz_tree.ui(self, ui);
@@ -600,17 +479,50 @@ impl eframe::App for App {
             }
         });
     }
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        let set = SchematicSet {
+            schematics: self.schematic.clone(),
+            loop_ports: self.highlighted_ports.iter().cloned().collect(),
+        };
+        let content = serde_json::to_string_pretty(&set).unwrap();
+        std::fs::write(&self.filename, content).expect("Failed to write file");
+    }
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        storage.set_string(
+            "scene_rect",
+            serde_json::to_string_pretty(&self.scene_rect).unwrap(),
+        );
+        storage.set_string(
+            "detail_scene_rect",
+            serde_json::to_string_pretty(&self.detail_scene_rect).unwrap(),
+        );
+    }
+    fn persist_egui_memory(&self) -> bool {
+        true
+    }
 }
 
 fn main() -> Result {
     let args = Args::parse();
-    let content =
-        std::boxed::Box::new(std::fs::read_to_string(args.schematic).expect("Failed to read file"));
-    let set = serde_json::from_str::<SchematicSet>(content.leak()).unwrap();
-    let app = App::new(set.schematics, set.loop_ports.into_iter().collect());
+    let mut app = App::new(args.schematic);
     eframe::run_native(
         "Schematic View",
         eframe::NativeOptions::default(),
-        Box::new(|_cc| Ok(Box::new(app))),
+        Box::new(|cc| {
+            if let Some(storage) = cc.storage {
+                if let Some(scene_rect_str) = storage.get_string("scene_rect")
+                    && let Ok(scene_rect) = serde_json::from_str::<egui::Rect>(&scene_rect_str)
+                {
+                    app.scene_rect = scene_rect;
+                }
+                if let Some(detail_scene_rect_str) = storage.get_string("detail_scene_rect")
+                    && let Ok(detail_scene_rect) =
+                        serde_json::from_str::<egui::Rect>(&detail_scene_rect_str)
+                {
+                    app.detail_scene_rect = detail_scene_rect;
+                }
+            }
+            Ok(Box::new(app))
+        }),
     )
 }
