@@ -132,11 +132,11 @@ use crate::{
     axi4lite::{
         stream::{axi_to_rhdl::Axi2Rhdl, rhdl_to_axi::Rhdl2Axi},
         types::{
-            response_codes, AXI4Error, AxilAddr, ResponseKind, StrobedData, WriteCommand,
-            WriteMISO, WriteMOSI, WriteResult,
+            AXI4Error, AxilAddr, ResponseKind, StrobedData, WriteCommand, WriteMISO, WriteMOSI,
+            WriteResult, response_codes,
         },
     },
-    stream::{map::Map, ready, tee::Tee, Ready},
+    stream::{Ready, map::Map, ready, tee::Tee},
 };
 
 #[derive(Clone, Synchronous, SynchronousDQ)]
@@ -259,12 +259,15 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
 
 #[cfg(test)]
 mod tests {
+    use rhdl::core::circuit::descriptor;
+
     use super::*;
 
     #[test]
     fn no_combinatorial_paths() -> miette::Result<()> {
         let uut = WriteController::default();
-        drc::no_combinatorial_paths(&uut)?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 

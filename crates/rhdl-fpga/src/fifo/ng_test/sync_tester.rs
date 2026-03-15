@@ -70,7 +70,8 @@ mod tests {
     #[test]
     fn test_no_combinatorial_path() -> miette::Result<()> {
         let uut = SyncTester::<16, 6>::default();
-        drc::no_combinatorial_paths(&uut)?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 }

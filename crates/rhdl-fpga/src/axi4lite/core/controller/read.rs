@@ -108,10 +108,10 @@ use crate::{
     axi4lite::{
         stream::{axi_to_rhdl::Axi2Rhdl, rhdl_to_axi::Rhdl2Axi},
         types::{
-            response_codes, AXI4Error, AxilAddr, ReadMISO, ReadMOSI, ReadResponse, ReadResult,
+            AXI4Error, AxilAddr, ReadMISO, ReadMOSI, ReadResponse, ReadResult, response_codes,
         },
     },
-    stream::{map::Map, Ready},
+    stream::{Ready, map::Map},
 };
 use rhdl::prelude::*;
 
@@ -208,12 +208,15 @@ pub fn kernel(_cr: ClockReset, i: In, q: Q) -> (Out, D) {
 
 #[cfg(test)]
 mod tests {
+    use rhdl::core::circuit::descriptor;
+
     use super::*;
 
     #[test]
     fn no_combinatorial_paths() -> miette::Result<()> {
         let uut = ReadController::default();
-        drc::no_combinatorial_paths(&uut)?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 

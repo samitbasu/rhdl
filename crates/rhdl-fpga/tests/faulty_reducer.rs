@@ -123,7 +123,8 @@ where
 #[test]
 fn test_no_combinatorial_paths() -> miette::Result<()> {
     let uut = U::<16, 8>::default();
-    let res = drc::no_combinatorial_paths(&uut);
+    let descriptor = uut.descriptor(ScopedName::top())?;
+    let res = descriptor.check_for_combinatorial_paths();
     let Err(_err) = res else {
         panic!("Expected this to fail");
     };

@@ -1,6 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    hash::RandomState,
+};
 
 use petgraph::{
+    algo::has_path_connecting,
     graph::{DiGraph, Graph, NodeIndex},
     visit::DfsPostOrder,
 };
@@ -86,22 +90,32 @@ pub fn check_combinatorial_pathways(schematic: &Schematic) -> Result<(), RHDLErr
     let mut map = HashMap::<PortId, NodeIndex>::default();
     map_schematic_to_graph(schematic, &mut graph, &mut map);
     link_up_graph(schematic, &mut graph, &map);
-    let mut visitor = DfsPostOrder::empty(&graph);
     let output_set: HashSet<PortId> = schematic.outputs.iter().map(|output| output.id).collect();
     for input_port in schematic.inputs.iter().flatten() {
         if input_port.ty == TraceType::Reset {
             continue;
         }
         let input_node = map[&input_port.id];
+        let mut visitor = DfsPostOrder::empty(&graph);
         visitor.move_to(input_node);
         let mut path = vec![input_port.id];
         while let Some(node) = visitor.next(&graph) {
             let port = &graph[node];
             path.push(port.id);
             if output_set.contains(&port.id) {
+                assert!(has_path_connecting(&graph, input_node, node, None));
+                let path = petgraph::algo::all_simple_paths::<Vec<_>, _, RandomState>(
+                    &graph, input_node, node, 0, None,
+                )
+                .take(1)
+                .collect::<Vec<Vec<_>>>();
+                let path = path[0]
+                    .iter()
+                    .map(|node_id| graph[*node_id].id)
+                    .collect::<Vec<_>>();
                 let set = SchematicSet {
                     schematics: schematic.clone(),
-                    loop_ports: path.clone(),
+                    loop_ports: path,
                 };
                 let filename = dump_schematic(&set);
                 return Err(rhdl_error(SchematicICE::CombinatorialPathway {

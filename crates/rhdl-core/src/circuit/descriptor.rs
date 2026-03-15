@@ -76,4 +76,10 @@ impl<T> Descriptor<T> {
                 name: self.name.to_string(),
             })
     }
+    /// Check for combinatorial paths in the circuit
+    pub fn check_for_combinatorial_paths(&self) -> miette::Result<()> {
+        let schematic = self.schematic()?;
+        schematic.check_for_combinatorial_io_paths()?;
+        Ok(())
+    }
 }

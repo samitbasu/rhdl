@@ -1,21 +1,25 @@
 use clap::Parser;
 use eframe::Result;
-use egui::{Align2, Color32, Id, Pos2, Scene, Ui, Vec2, Widget, pos2};
+use egui::{Align2, Color32, Id, Pos2, Scene, Ui, Vec2, Widget, pos2, vec2};
 use rhdl_core::circuit::schematic::{
-    PortId, PortPosition, Schematic, SchematicId, SchematicKind, SchematicSet, Slot,
+    Coordinate, Point, PortId, PortPosition, Schematic, SchematicId, SchematicKind, SchematicSet,
+    Slot,
 };
 use std::{collections::HashSet, path::PathBuf};
 use taffy::{TaffyResult, prelude::*};
 
 use crate::{
-    avoid::grid,
+    //avoid::grid,
     kernel_details::{KernelDetails, render_kernel},
+    layout::{add_detail, add_thumbnail},
     schematic_rendering::{Element, Options, SchematicRendering},
+    shape_editor::{Drawing, demo_drawing},
 };
-pub mod avoid;
+//pub mod avoid;
 pub mod kernel_details;
 pub mod layout;
 pub mod schematic_rendering;
+pub mod shape_editor;
 
 #[derive(Parser)]
 struct Args {
@@ -43,10 +47,20 @@ enum PortAction {
     Drag(Pos2, Vec2),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum DragState {
+    RightBottom {
+        sid: SchematicId,
+        initial_size: Point,
+        delta: Vec2,
+    },
+}
+
 struct App {
     filename: PathBuf,
     schematic: Schematic,
     highlighted_ports: HashSet<PortId>,
+    loop_ports: Vec<PortId>,
     id_stack: Vec<SchematicId>,
     scene_rect: egui::Rect,
     detail_scene_rect: egui::Rect,
@@ -56,7 +70,8 @@ struct App {
     viz_tree: Option<egui_tiles::Tree<Pane>>,
     update_target: Option<SchematicId>,
     kernel: Option<KernelDetails>,
-    pin_drag: Option<PortId>,
+    drag_state: Option<DragState>,
+    shapes: Drawing,
 }
 
 impl egui_tiles::Behavior<Pane> for App {
@@ -68,10 +83,17 @@ impl egui_tiles::Behavior<Pane> for App {
     ) -> egui_tiles::UiResponse {
         match pane {
             Pane::Schematic => {
-                self.draw_schematic(ui);
+                //self.draw_schematic(ui);
+                let scene = Scene::new().zoom_range(0.1..=4.0);
+                scene.show(ui, &mut self.scene_rect, |ui| {
+                    self.shapes.update(ui);
+                });
             }
             Pane::Code => {
-                self.draw_schematic_detail(ui);
+                if let Some(kernel) = self.kernel.as_ref() {
+                    ui.add(kernel);
+                }
+                //                self.draw_schematic_detail(ui);
             }
         }
         egui_tiles::UiResponse::default()
@@ -85,12 +107,27 @@ impl egui_tiles::Behavior<Pane> for App {
     }
 }
 
+const PIXEL_SIZE: f32 = 10.0;
+
+fn pixel(value: Coordinate) -> f32 {
+    let x: i32 = value.raw();
+    (x as f32) * PIXEL_SIZE
+}
+
+fn pixel_pos(value: Point) -> Pos2 {
+    pos2(pixel(value.x), pixel(value.y))
+}
+
 impl App {
     fn new(filename: PathBuf) -> Self {
         let content = std::fs::read_to_string(&filename).expect("Failed to read file");
         let set = serde_json::from_str::<SchematicSet>(&content).unwrap();
+        let mut shapes = Drawing::default();
+        add_detail(&set, &mut shapes);
         let schematic = set.schematics;
+        let loop_ports = set.loop_ports.clone();
         let highlighted_ports = set.loop_ports.into_iter().collect();
+        let kernel_details = render_kernel(&schematic.inner[0], &highlighted_ports);
         let options = Options::default();
         let (top, taffy_tree) = SchematicRendering::new(options, &highlighted_ports)
             .layout_tee(&schematic)
@@ -101,6 +138,7 @@ impl App {
             id_stack: vec![schematic.id],
             schematic,
             highlighted_ports,
+            loop_ports,
             scene_rect: egui::Rect::ZERO,
             detail_scene_rect: egui::Rect::ZERO,
             taffy_tree,
@@ -108,13 +146,29 @@ impl App {
             options,
             viz_tree: Some(tree),
             update_target: None,
-            kernel: None,
-            pin_drag: None,
+            kernel: Some(kernel_details),
+            drag_state: None,
+            shapes,
         }
     }
     fn go_up(&mut self) {
         if self.id_stack.len() > 1 {
             self.id_stack.pop();
+        }
+    }
+    fn get_schematic_thumbnail_render_size(&self, sid: SchematicId) -> Vec2 {
+        let schematic = self.schematic.find_by_id(sid).unwrap();
+        let size = schematic.layout.thumbnail_size;
+        let size = pixel_pos(size).to_vec2();
+        if let Some(DragState::RightBottom {
+            initial_size,
+            delta,
+            ..
+        }) = self.drag_state
+        {
+            pixel_pos(initial_size).to_vec2() + delta
+        } else {
+            size
         }
     }
     fn top_schematic_id(&self) -> SchematicId {
@@ -212,6 +266,7 @@ impl App {
         pin_position: Pos2,
         pin_name: &str,
         align: Align2,
+        highlighted: bool,
     ) -> Option<PortAction> {
         let mut action = None;
         ui.painter().circle_filled(pin_position, 3.0, Color32::RED);
@@ -221,8 +276,9 @@ impl App {
             Id::new(("port_id", port_id.index())),
             egui::Sense::click_and_drag(),
         );
-        if response.dragged() {
-            let delta = response.drag_delta();
+        if response.dragged()
+            && let Some(delta) = response.total_drag_delta()
+        {
             ui.painter()
                 .circle_stroke(pin_position + delta, 4.0, (1.0, Color32::LIGHT_BLUE));
             action = Some(PortAction::Drag(
@@ -246,41 +302,82 @@ impl App {
             align,
             pin_name,
             egui::FontId::monospace(9.0),
-            Color32::BLACK,
+            if highlighted {
+                Color32::RED
+            } else {
+                Color32::BLACK
+            },
         );
         action
     }
     fn draw_schematic_plan_view(&mut self, sid: SchematicId, ui: &mut Ui) {
         if let Some(schematic) = self.schematic.find_by_id_mut(sid) {
-            let grid = grid(schematic);
-            let children = schematic
-                .inner
-                .iter()
-                .map(|child| child.id)
-                .collect::<Vec<_>>();
-            for child_id in children {
-                self.draw_plan_view(child_id, ui);
-            }
-            for (y_ndx, y_pos) in grid.y.iter().enumerate() {
-                for (x_ndx, x_pos) in grid.x.iter().enumerate() {
-                    if !grid.occupied[y_ndx][x_ndx] {
-                        ui.painter().circle_filled(
-                            pos2((*x_pos).into(), (*y_pos).into()),
-                            2.0,
-                            Color32::LIGHT_GRAY,
-                        );
-                    }
+            {
+                let children = schematic
+                    .inner
+                    .iter()
+                    .map(|child| child.id)
+                    .collect::<Vec<_>>();
+                let child_offsets = schematic.layout.child_offsets.clone();
+                for (child_id, offset) in children.into_iter().zip(child_offsets.into_iter()) {
+                    self.draw_thumbnail_view(child_id, offset, ui);
                 }
             }
         }
+        /*
+        if let Some(schematic) = self.schematic.find_by_id(sid) {
+            let Some(grid) = grid(schematic) else {
+                eprintln!("No grid");
+                return;
+            };
+            for x in &grid.x {
+                ui.painter()
+                    .vline(pixel(*x), -100_000.0..=100_000.0, (1.0, Color32::DARK_GRAY));
+            }
+            for y in &grid.y {
+                ui.painter()
+                    .hline(-100_000.0..=100_000.0, pixel(*y), (1.0, Color32::DARK_GRAY));
+            }
+                         for link in &schematic.links {
+                           let Some(from_port) = schematic.port_position_by_id(link.from) else {
+                               continue;
+                           };
+                           let Some(to_port) = schematic.port_position_by_id(link.to) else {
+                               continue;
+                           };
+                           ui.painter().line_segment(
+                               [
+                                   pos2(from_port.0.into(), from_port.1.into()),
+                                   pos2(to_port.0.into(), to_port.1.into()),
+                               ],
+                               (1.0, Color32::LIGHT_YELLOW),
+                           );
+                           eprintln!("Routing from {:?} to {:?}", link.from, link.to);
+                           eprintln!("From {:?} to {:?}", from_port, to_port);
+                           if let Some(route) = grid.route(from_port, to_port)
+                               && route.len() >= 2
+                           {
+                               for window in route.windows(2) {
+                                   let from = window[0];
+                                   let to = window[1];
+                                   ui.painter().line_segment(
+                                       [
+                                           pos2(from.0.into(), from.1.into()),
+                                           pos2(to.0.into(), to.1.into()),
+                                       ],
+                                       (1.0, Color32::GREEN),
+                                   );
+                               }
+                           }
+                       }
+
+        }*/
     }
-    fn draw_plan_view(&mut self, sid: SchematicId, ui: &mut Ui) {
+    fn draw_thumbnail_view(&mut self, sid: SchematicId, offset: Point, ui: &mut Ui) {
         if let Some(schematic) = self.schematic.find_by_id_mut(sid) {
+            let thumbnail_size = pixel_pos(schematic.layout.thumbnail_size).to_vec2();
             // Draw a rectangle for the schematic item - rounded.
-            let outer_rect = egui::Rect::from_min_size(
-                egui::pos2(schematic.origin.0.into(), schematic.origin.1.into()),
-                egui::vec2(schematic.size.0.into(), schematic.size.1.into()),
-            );
+            let outer_rect = egui::Rect::from_min_size(pixel_pos(offset), thumbnail_size);
             ui.painter().rect(
                 outer_rect,
                 3.0,
@@ -296,9 +393,7 @@ impl App {
                 )
                 .on_hover_cursor(egui::CursorIcon::ResizeNwSe);
             if response.dragged() {
-                let delta = response.drag_delta();
-                schematic.size.0 += delta.x.into();
-                schematic.size.1 += delta.y.into();
+                eprintln!("Dragging right bottom");
             }
             let response = ui
                 .interact(
@@ -309,8 +404,8 @@ impl App {
                 .on_hover_cursor(egui::CursorIcon::ResizeNeSw);
             if response.dragged() {
                 let delta = response.drag_delta();
-                schematic.origin.1 += delta.y.into();
-                schematic.size.0 += delta.x.into();
+                //schematic.origin.1 += delta.y.into();
+                //schematic.size.0 += delta.x.into();
             }
             let response = ui
                 .interact(
@@ -321,9 +416,9 @@ impl App {
                 .on_hover_cursor(egui::CursorIcon::ResizeNeSw);
             if response.dragged() {
                 let delta = response.drag_delta();
-                schematic.origin.0 += delta.x.into();
-                schematic.size.0 -= delta.x.into();
-                schematic.size.1 += delta.y.into();
+                //schematic.origin.0 += delta.x.into();
+                //schematic.size.0 -= delta.x.into();
+                //schematic.size.1 += delta.y.into();
             }
             let response = ui
                 .interact(
@@ -334,10 +429,10 @@ impl App {
                 .on_hover_cursor(egui::CursorIcon::ResizeNwSe);
             if response.dragged() {
                 let delta = response.drag_delta();
-                schematic.origin.0 += delta.x.into();
-                schematic.origin.1 += delta.y.into();
-                schematic.size.0 -= delta.x.into();
-                schematic.size.1 -= delta.y.into();
+                //schematic.origin.0 += delta.x.into();
+                //schematic.origin.1 += delta.y.into();
+                //schematic.size.0 -= delta.x.into();
+                //schematic.size.1 -= delta.y.into();
             }
             let response = ui
                 .interact(
@@ -348,12 +443,12 @@ impl App {
                 .on_hover_cursor(egui::CursorIcon::Grab);
             if response.dragged() {
                 let delta = response.drag_delta();
-                schematic.origin.0 += delta.x.into();
-                schematic.origin.1 += delta.y.into();
+                //schematic.origin.0 += delta.x.into();
+                //schematic.origin.1 += delta.y.into();
                 ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::Grabbing);
             }
             // Draw a pin for each port, and add a label
-            let mut port_positions = std::mem::take(&mut schematic.port_positions);
+            let mut port_positions = std::mem::take(&mut schematic.layout.thumbnail_port_positions);
             for (&port_id, port_position) in port_positions.iter_mut() {
                 let port = schematic.find_port_by_id(port_id).unwrap();
                 let is_input = schematic.is_port_input(port_id);
@@ -363,8 +458,9 @@ impl App {
                     format!("o{:?}", port.path)
                 };
                 let mut flip = false;
-                let pin_position = schematic.port_position(*port_position);
-                let pin_position = pos2(pin_position.0.into(), pin_position.1.into());
+                let pin_position = schematic.layout.thumbnail_port_position(port_position) + offset;
+                let pin_position = pixel_pos(pin_position);
+                let is_highlighted = self.highlighted_ports.contains(&port_id);
                 match port_position {
                     PortPosition::West(offset) => {
                         match Self::draw_pin(
@@ -373,29 +469,32 @@ impl App {
                             pin_position,
                             &pin_name,
                             egui::Align2::LEFT_CENTER,
+                            is_highlighted,
                         ) {
                             Some(PortAction::Click) => {
-                                self.pin_drag = Some(port_id);
+                                //self.pin_drag = Some(port_id);
                             }
                             Some(PortAction::Drag(pos, delta)) => {
                                 if pos.x > outer_rect.center().x {
                                     flip = true;
                                 }
-                                *offset += delta.y.into();
-                                *offset = (*offset).clamp(
-                                    -(schematic.size.1 / 2.0 - 10.0),
-                                    schematic.size.1 / 2.0 - 10.0,
-                                );
+                                /*                                 *offset += delta.y.into();
+                                                               *offset = (*offset).clamp(
+                                                                   -(schematic.size.1 / 2.0 - 10.0),
+                                                                   schematic.size.1 / 2.0 - 10.0,
+                                                               );
+                                */
                             }
                             _ => {}
                         }
-                        if self.pin_drag == Some(port_id) {
-                            ui.painter().circle_stroke(
-                                pin_position,
-                                4.0,
-                                (1.0, Color32::LIGHT_BLUE),
-                            );
-                        }
+                        /*                         if self.pin_drag == Some(port_id) {
+                                                   ui.painter().circle_stroke(
+                                                       pin_position,
+                                                       4.0,
+                                                       (1.0, Color32::LIGHT_BLUE),
+                                                   );
+                                               }
+                        */
                     }
                     PortPosition::East(offset) => {
                         match Self::draw_pin(
@@ -404,29 +503,33 @@ impl App {
                             pin_position,
                             &pin_name,
                             egui::Align2::RIGHT_CENTER,
+                            is_highlighted,
                         ) {
                             Some(PortAction::Click) => {
-                                self.pin_drag = Some(port_id);
+                                // self.pin_drag = Some(port_id);
                             }
                             Some(PortAction::Drag(pos, delta)) => {
                                 if pos.x < outer_rect.center().x {
                                     flip = true;
                                 }
-                                *offset += delta.y.into();
-                                *offset = (*offset).clamp(
-                                    -(schematic.size.1 / 2.0 - 10.0),
-                                    schematic.size.1 / 2.0 - 10.0,
-                                );
+                                /*                                 *offset += delta.y.into();
+                                                               *offset = (*offset).clamp(
+                                                                   -(schematic.size.1 / 2.0 - 10.0),
+                                                                   schematic.size.1 / 2.0 - 10.0,
+                                                               );
+                                */
                             }
                             _ => {}
                         }
-                        if self.pin_drag == Some(port_id) {
-                            ui.painter().circle_stroke(
-                                pin_position,
-                                4.0,
-                                (1.0, Color32::LIGHT_BLUE),
-                            );
-                        }
+                        /*
+                           if self.pin_drag == Some(port_id) {
+                                                   ui.painter().circle_stroke(
+                                                       pin_position,
+                                                       4.0,
+                                                       (1.0, Color32::LIGHT_BLUE),
+                                                   );
+                                               }
+                        */
                     }
                 }
                 if flip {
@@ -436,7 +539,7 @@ impl App {
                     };
                 }
             }
-            schematic.port_positions = port_positions;
+            schematic.layout.thumbnail_port_positions = port_positions;
         }
     }
     fn draw_schematic(&mut self, ui: &mut Ui) {
@@ -448,7 +551,7 @@ impl App {
             ui.painter()
                 .hline(-1000.0..=1000.0, 0.0, (1.0, Color32::DARK_GRAY));
             let sid = self.top_schematic_id();
-            self.draw_plan_view(sid, ui);
+            self.draw_thumbnail_view(sid, Point::default(), ui);
         });
         self.scene_rect = scene_rect;
     }
@@ -482,7 +585,7 @@ impl eframe::App for App {
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         let set = SchematicSet {
             schematics: self.schematic.clone(),
-            loop_ports: self.highlighted_ports.iter().cloned().collect(),
+            loop_ports: self.loop_ports.clone(),
         };
         let content = serde_json::to_string_pretty(&set).unwrap();
         std::fs::write(&self.filename, content).expect("Failed to write file");

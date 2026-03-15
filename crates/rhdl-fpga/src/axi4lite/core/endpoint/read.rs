@@ -110,11 +110,11 @@ use crate::{
     axi4lite::{
         stream::{axi_to_rhdl::Axi2Rhdl, rhdl_to_axi::Rhdl2Axi},
         types::{
-            response_codes, AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI, ReadResponse,
-            ReadResult,
+            AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI, ReadResponse, ReadResult,
+            response_codes,
         },
     },
-    stream::{map::Map, Ready},
+    stream::{Ready, map::Map},
 };
 use rhdl::prelude::*;
 
@@ -222,7 +222,8 @@ mod tests {
     #[test]
     fn no_combinatorial_paths() -> miette::Result<()> {
         let uut = ReadEndpoint::default();
-        drc::no_combinatorial_paths(&uut)?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 }

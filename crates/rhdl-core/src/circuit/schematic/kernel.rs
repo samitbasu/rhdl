@@ -12,7 +12,7 @@ use crate::{
     rhif::{
         self,
         object::LocatedOpCode,
-        spec::{OpCode, Slot},
+        spec::{AluUnary, OpCode, Slot},
         visit::visit_slots,
     },
     types::path::{Path, PathElement, PathError, PathExt, sub_kind},
@@ -110,8 +110,19 @@ impl<'a> OpCodeBuilder<'a> {
                     .splat_input_port_to_output(my_inputs[&binary.arg2]);
             }
             OpCode::Unary(unary) => {
-                self.builder
-                    .splat_input_port_to_output(my_inputs[&unary.arg1]);
+                if unary.op == AluUnary::Val {
+                    // unary.arg1 is of kind signal(x)
+                    // unary.lhs is of kind x
+                    self.assign_from_to_path(
+                        unary.arg1,
+                        &Path::default().signal_value(),
+                        unary.lhs,
+                        &Path::default(),
+                    )?;
+                } else {
+                    self.builder
+                        .splat_input_port_to_output(my_inputs[&unary.arg1]);
+                }
             }
             OpCode::Select(select) => {
                 self.builder

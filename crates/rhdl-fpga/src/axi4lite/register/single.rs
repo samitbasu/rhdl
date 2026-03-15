@@ -163,7 +163,8 @@ mod tests {
     fn no_combinatorial_paths() -> miette::Result<()> {
         let uut = AxiRegister::new(bits(0), bits(0));
         AxiRegister::new(bits(0), bits(0));
-        drc::no_combinatorial_paths(&uut)?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 

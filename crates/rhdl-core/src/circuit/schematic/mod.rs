@@ -90,13 +90,20 @@ pub enum SchematicKind {
     Literal,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord, Default,
+)]
 pub struct Coordinate(i32);
+
+impl From<i32> for Coordinate {
+    fn from(value: i32) -> Self {
+        Coordinate(value)
+    }
+}
 
 impl std::fmt::Display for Coordinate {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value: f32 = (*self).into();
-        write!(f, "{value:.1}")
+        write!(f, "{}", self.0)
     }
 }
 
@@ -104,19 +111,11 @@ impl Coordinate {
     pub fn clamp(self, min: Coordinate, max: Coordinate) -> Coordinate {
         Coordinate(self.0.clamp(min.0, max.0))
     }
-}
-
-const COORDINATE_SCALE: f32 = 10.0;
-
-impl From<f32> for Coordinate {
-    fn from(value: f32) -> Self {
-        Coordinate((value * COORDINATE_SCALE).round() as i32)
+    pub fn raw(&self) -> i32 {
+        self.0
     }
-}
-
-impl From<Coordinate> for f32 {
-    fn from(value: Coordinate) -> Self {
-        value.0 as f32 / COORDINATE_SCALE
+    pub fn from_raw(raw: i32) -> Self {
+        Coordinate(raw)
     }
 }
 
@@ -128,11 +127,11 @@ impl std::ops::Add for Coordinate {
     }
 }
 
-impl std::ops::Add<f32> for Coordinate {
+impl std::ops::Add<i32> for Coordinate {
     type Output = Self;
 
-    fn add(self, rhs: f32) -> Self::Output {
-        self + Coordinate::from(rhs)
+    fn add(self, rhs: i32) -> Self::Output {
+        self + Coordinate::from_raw(rhs)
     }
 }
 
@@ -144,11 +143,11 @@ impl std::ops::Sub for Coordinate {
     }
 }
 
-impl std::ops::Sub<f32> for Coordinate {
+impl std::ops::Sub<i32> for Coordinate {
     type Output = Self;
 
-    fn sub(self, rhs: f32) -> Self::Output {
-        self - Coordinate::from(rhs)
+    fn sub(self, rhs: i32) -> Self::Output {
+        self - Coordinate::from_raw(rhs)
     }
 }
 
@@ -158,18 +157,15 @@ impl std::ops::AddAssign for Coordinate {
     }
 }
 
-impl std::ops::SubAssign for Coordinate {
-    fn sub_assign(&mut self, rhs: Self) {
-        self.0 -= rhs.0;
+impl std::ops::AddAssign<i32> for Coordinate {
+    fn add_assign(&mut self, rhs: i32) {
+        *self += Coordinate::from_raw(rhs);
     }
 }
 
-impl std::ops::Div<f32> for Coordinate {
-    type Output = Self;
-
-    fn div(self, rhs: f32) -> Self::Output {
-        let me: f32 = self.into();
-        (me / rhs).into()
+impl std::ops::SubAssign for Coordinate {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 -= rhs.0;
     }
 }
 
@@ -178,6 +174,37 @@ impl std::ops::Neg for Coordinate {
 
     fn neg(self) -> Self::Output {
         Coordinate(-self.0)
+    }
+}
+
+impl std::ops::Div<i32> for Coordinate {
+    type Output = Self;
+
+    fn div(self, rhs: i32) -> Self::Output {
+        Coordinate(self.0 / rhs)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
+pub struct Point {
+    pub x: Coordinate,
+    pub y: Coordinate,
+}
+
+impl Point {
+    pub fn new(x: Coordinate, y: Coordinate) -> Self {
+        Point { x, y }
+    }
+}
+
+impl std::ops::Add for Point {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Point {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
     }
 }
 
@@ -201,28 +228,43 @@ pub struct Schematic {
     pub links: Vec<Link>,
     pub sources: Intern<SpannedSourceSet>,
     pub location: Option<SourceLocation>,
-    pub origin: (Coordinate, Coordinate),
-    pub size: (Coordinate, Coordinate),
-    pub port_positions: BTreeMap<PortId, PortPosition>,
+    pub layout: Layout,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Layout {
+    pub thumbnail_size: Point,
+    pub thumbnail_port_positions: BTreeMap<PortId, PortPosition>,
+    pub child_offsets: Vec<Point>,
+    pub uplink_positions: BTreeMap<PortId, Point>,
+}
+
+impl Layout {
+    pub fn thumbnail_port_position(&self, pos: &PortPosition) -> Point {
+        let center_h = self.thumbnail_size.y / 2;
+        match pos {
+            PortPosition::East(coord) => Point {
+                x: self.thumbnail_size.x,
+                y: *coord + center_h,
+            },
+            PortPosition::West(coord) => Point {
+                x: Coordinate(0),
+                y: *coord + center_h,
+            },
+        }
+    }
 }
 
 impl Schematic {
-    pub fn port_position(&self, pos: PortPosition) -> (Coordinate, Coordinate) {
-        match pos {
-            PortPosition::East(offset) => {
-                let x = self.origin.0 + self.size.0;
-                let y = self.origin.1 + self.size.1 / 2.0 + offset;
-                (x, y)
-            }
-            PortPosition::West(offset) => {
-                let x = self.origin.0;
-                let y = self.origin.1 + self.size.1 / 2.0 + offset;
-                (x, y)
-            }
-        }
-    }
-    pub fn port_position_by_id(&self, id: PortId) -> (Coordinate, Coordinate) {
-        self.port_position(self.port_positions[&id])
+    pub fn all_ports(&self) -> Vec<PortId> {
+        let my_ports = self
+            .inputs
+            .iter()
+            .flatten()
+            .map(|port| port.id)
+            .chain(self.outputs.iter().map(|port| port.id));
+        let child_ports = self.inner.iter().flat_map(|child| child.all_ports());
+        my_ports.chain(child_ports).collect()
     }
     pub fn max_port_id(&self) -> PortId {
         self.inputs
@@ -245,16 +287,26 @@ impl Schematic {
         self.inner
             .iter_mut()
             .for_each(|child| child.shift_ports(offset));
-        let new_port_positions = self
-            .port_positions
+        self.layout.thumbnail_port_positions = self
+            .layout
+            .thumbnail_port_positions
             .iter()
-            .map(|(&port_id, &pos)| {
-                let mut new_port_id = port_id;
-                new_port_id.shift(offset);
-                (new_port_id, pos)
+            .map(|(port, pos)| {
+                let mut port = *port;
+                port.shift(offset);
+                (port, *pos)
             })
             .collect();
-        self.port_positions = new_port_positions;
+        self.layout.uplink_positions = self
+            .layout
+            .uplink_positions
+            .iter()
+            .map(|(port, pos)| {
+                let mut port = *port;
+                port.shift(offset);
+                (port, *pos)
+            })
+            .collect();
         for link in &mut self.links {
             link.from.shift(offset);
             link.to.shift(offset);

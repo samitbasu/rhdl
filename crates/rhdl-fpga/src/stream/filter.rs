@@ -157,7 +157,8 @@ mod tests {
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
         let filter = Filter::try_new::<keep_even>()?;
-        drc::no_combinatorial_paths(&filter)?;
+        let descriptor = filter.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 

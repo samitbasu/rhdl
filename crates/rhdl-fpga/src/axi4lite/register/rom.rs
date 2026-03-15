@@ -146,7 +146,8 @@ mod tests {
                 bits(0x1234ABCD),
             ],
         );
-        drc::no_combinatorial_paths(&uut)?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 }

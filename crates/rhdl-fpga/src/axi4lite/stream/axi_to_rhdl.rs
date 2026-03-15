@@ -177,7 +177,8 @@ mod tests {
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
         let uut: Axi2Rhdl<b8> = Axi2Rhdl::default();
-        drc::no_combinatorial_paths(&uut)?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 }

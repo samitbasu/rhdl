@@ -13,7 +13,6 @@ pub mod array;
 pub mod chain;
 pub mod circuit_impl;
 pub mod descriptor;
-pub mod drc;
 pub mod fixture;
 pub mod function;
 pub mod hdl;

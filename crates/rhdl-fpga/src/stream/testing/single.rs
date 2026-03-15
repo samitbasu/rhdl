@@ -62,10 +62,8 @@ where
 #[cfg(test)]
 mod tests {
 
-    use expect_test::expect;
-    use rhdl::core::circuit::drc;
-
     use super::*;
+    use expect_test::expect;
 
     #[test]
     fn test_single_trace() -> miette::Result<()> {
@@ -110,11 +108,14 @@ mod tests {
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
         let uut = crate::stream::stream_buffer::StreamBuffer::<Bits<16>>::default();
-        drc::no_combinatorial_paths(&uut)?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         let uut = crate::stream::fifo_to_stream::FIFOToStream::<Bits<8>>::default();
-        drc::no_combinatorial_paths(&uut)?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         let uut = crate::stream::stream_to_fifo::StreamToFIFO::<Bits<8>>::default();
-        drc::no_combinatorial_paths(&uut)?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 }

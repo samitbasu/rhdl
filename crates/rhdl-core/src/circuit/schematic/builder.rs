@@ -4,8 +4,8 @@ use crate::{
     CircuitIO, ClockReset, Digital, Kind, RHDLError, SynchronousIO, TypedBits,
     ast::{SourceLocation, spanned_source::SpannedSourceSet},
     circuit::schematic::{
-        CanonicalPath, Link, LinkKind, Port, PortId, PortPosition, Schematic, SchematicId,
-        SchematicKind, canonicalize_path, error::SchematicICE, port,
+        CanonicalPath, Layout, Link, LinkKind, Point, Port, PortId, PortPosition, Schematic,
+        SchematicId, SchematicKind, canonicalize_path, error::SchematicICE, port,
     },
     error::rhdl_error,
     rhif::spec::Slot,
@@ -26,8 +26,8 @@ pub struct SchematicBuilder {
     schematic_id: u32,
 }
 
-const PORT_SPACING: usize = 25;
-const EAST_WEST_PADDING: usize = 40;
+const PORT_SPACING: i32 = 3;
+const EAST_WEST_PADDING: i32 = 5;
 
 impl SchematicBuilder {
     pub fn circuit<C: CircuitIO>(name: &str) -> Result<Self, RHDLError> {
@@ -58,6 +58,12 @@ impl SchematicBuilder {
         me
     }
     fn new(kind: SchematicKind) -> Self {
+        let layout = Layout {
+            thumbnail_size: Point::new(300.into(), 100.into()),
+            thumbnail_port_positions: BTreeMap::default(),
+            child_offsets: vec![],
+            uplink_positions: BTreeMap::default(),
+        };
         Self {
             top: Schematic {
                 id: SchematicId(0),
@@ -72,9 +78,7 @@ impl SchematicBuilder {
                 sources: SpannedSourceSet::default().into(),
                 location: None,
                 debug_text: String::default(),
-                origin: (0.0.into(), 0.0.into()),
-                size: (300.0.into(), 100.0.into()),
-                port_positions: BTreeMap::default(),
+                layout,
             },
             id: 0,
             schematic_id: 0,
@@ -181,14 +185,12 @@ impl SchematicBuilder {
         let mut top = self.top;
         let top_inputs = top.inputs.iter().flatten().count();
         let top_outputs = top.outputs.len();
-        let max_ports = top_inputs.max(top_outputs);
-        let height = (max_ports * PORT_SPACING + EAST_WEST_PADDING) as f32;
-        let width = 300.0;
-        top.origin = (0.0.into(), 0.0.into());
-        top.size = (width.into(), height.into());
+        let max_ports = top_inputs.max(top_outputs) as i32;
+        let height = max_ports * PORT_SPACING + EAST_WEST_PADDING;
+        let width = 60;
+        top.layout.thumbnail_size = Point::new(width.into(), height.into());
         let pin = |x: usize| {
-            ((PORT_SPACING * x) as f32 - (PORT_SPACING * max_ports) as f32 / 2.0
-                + EAST_WEST_PADDING as f32 / 2.0)
+            ((PORT_SPACING * x as i32) - (PORT_SPACING * max_ports) / 2 + EAST_WEST_PADDING / 2)
                 .into()
         };
         let input_positions = top
@@ -202,7 +204,25 @@ impl SchematicBuilder {
             .iter()
             .enumerate()
             .map(|(ndx, port)| (port.id, PortPosition::West(pin(ndx))));
-        top.port_positions = input_positions.chain(output_positions).collect();
+        top.layout.thumbnail_port_positions = input_positions.chain(output_positions).collect();
+        top.layout.uplink_positions = top
+            .inputs
+            .iter()
+            .flatten()
+            .enumerate()
+            .map(|(ndx, port)| (port.id, Point::new(width.into(), pin(ndx))))
+            .chain(
+                top.outputs
+                    .iter()
+                    .enumerate()
+                    .map(|(ndx, port)| (port.id, Point::new(0.into(), pin(ndx)))),
+            )
+            .collect();
+        top.layout.child_offsets = top
+            .inner
+            .iter()
+            .map(|_| Point::new(0.into(), 0.into()))
+            .collect();
         top
     }
     pub fn connect(&mut self, from: PortId, to: PortId) -> &mut Self {

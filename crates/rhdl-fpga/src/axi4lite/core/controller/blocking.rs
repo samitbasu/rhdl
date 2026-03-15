@@ -258,7 +258,7 @@ mod tests {
         let hdl = descriptor.hdl()?;
         let module = hdl.modules.pretty();
         expect_test::expect_file!["blocking_controller.vlog"].assert_eq(&module);
-        drc::no_combinatorial_paths(&uut)?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 }

@@ -11,3 +11,6 @@ egui_tiles = "0.14.1"
 rhdl-core = { version = "0.1.0", path = "../rhdl-core" }
 serde_json = "1.0.149"
 taffy = "0.9.2"
+
+[dev-dependencies]
+expect-test = "1.5.1"

@@ -74,7 +74,7 @@ pub use rhdl_core::Descriptor;
 pub use rhdl_core::bitx::bitx_parse;
 pub use rhdl_core::bitx::bitx_string;
 pub use rhdl_core::bitx_vec;
-pub use rhdl_core::circuit::drc;
+// pub use rhdl_core::circuit::drc;
 pub use rhdl_core::circuit::fixture::Driver;
 pub use rhdl_core::circuit::fixture::ExportError;
 pub use rhdl_core::circuit::fixture::Fixture;

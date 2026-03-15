@@ -55,7 +55,7 @@ use crate::{
     axi4lite::{
         core::endpoint::{read::ReadEndpoint, write::WriteEndpoint},
         types::{
-            strobe_to_mask, AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI, WriteMISO, WriteMOSI,
+            AXI4Error, AxilAddr, AxilData, ReadMISO, ReadMOSI, WriteMISO, WriteMOSI, strobe_to_mask,
         },
     },
     core::{constant::Constant, dff::DFF},
@@ -174,7 +174,8 @@ mod tests {
     #[test]
     fn no_combinatorial_paths() -> miette::Result<()> {
         let uut: AxiRegBank<4> = AxiRegBank::new(bits(0x4_000_000), Default::default());
-        drc::no_combinatorial_paths(&uut)?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 

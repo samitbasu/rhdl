@@ -167,7 +167,8 @@ mod tests {
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
         let map = FilterMap::try_new::<filter_map_item>()?;
-        drc::no_combinatorial_paths(&map)?;
+        let descriptor = map.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 

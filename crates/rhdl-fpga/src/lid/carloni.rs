@@ -244,9 +244,8 @@ mod tests {
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
         let uut = Carloni::<b4>::default();
-        let obj = compile_design_stage1::<carloni_kernel<b4>>(CompilationMode::Synchronous)?;
-        eprintln!("{obj:?}");
-        drc::no_combinatorial_paths(&uut)?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 

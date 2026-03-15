@@ -207,7 +207,8 @@ mod tests {
     #[test]
     fn no_combinatorial_paths() -> miette::Result<()> {
         let uut: DFF<b4> = DFF::new(bits(0b1010));
-        drc::no_combinatorial_paths(&uut)?;
+        let descriptor = uut.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 

@@ -370,7 +370,8 @@ mod tests {
     #[test]
     fn test_no_combinatorial_paths() -> miette::Result<()> {
         let switch: ReadSwitch<2> = ReadSwitch::try_new::<decode_addr>()?;
-        drc::no_combinatorial_paths(&switch)?;
+        let descriptor = switch.descriptor(ScopedName::top())?;
+        descriptor.check_for_combinatorial_paths()?;
         Ok(())
     }
 
