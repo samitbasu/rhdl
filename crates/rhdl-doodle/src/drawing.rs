@@ -1,259 +1,18 @@
 use egui::{Color32, Id, Pos2, Rect, StrokeKind, Ui, Vec2, pos2, vec2};
 
-#[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Hash)]
-pub struct RectId(usize);
+use crate::{
+    geometry::minimum_distance_and_location,
+    grid::{GRID_SIZE, SHIM, grid, round_to_grid},
+    label::LabelSide,
+    polyline::{LineId, PolyLine},
+    rectbox::{LineAnchor, ModificationKind, RectBox, RectId},
+};
 
-impl RectId {
-    pub fn next(self) -> Self {
-        RectId(self.0 + 1)
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Hash)]
-pub struct LabelId(usize);
-
-impl LabelId {
-    pub fn next(self) -> Self {
-        LabelId(self.0 + 1)
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum LabelSide {
-    East,
-    West,
-}
-
-#[derive(Clone)]
-pub struct Label {
-    text: String,
-    side: LabelSide,
-    offset: f32,
-    id: LabelId,
-}
-
-#[derive(Clone, Copy)]
-pub enum ModificationKind {
-    Move,
-    ResizeRightBottom,
-    ResizeRightTop,
-    ResizeLeftBottom,
-    ResizeLeftTop,
-    LabelDrag,
-}
-
-pub struct SaveState {
-    kind: ModificationKind,
-    orig: Rect,
-}
-
-pub struct RectBox {
-    inner: Rect,
-    labels: Vec<Label>,
-    edit_kind: Option<SaveState>,
-    id: RectId,
-    label_id: LabelId,
-}
-
-impl RectBox {
-    pub fn new(inner: Rect, id: RectId) -> Self {
-        Self {
-            inner: snap(inner),
-            labels: Vec::new(),
-            edit_kind: None,
-            id,
-            label_id: LabelId::default(),
-        }
-    }
-    pub fn anchor_point(&self, id: LabelId) -> Pos2 {
-        let label = self.labels.iter().find(|l| l.id == id).unwrap();
-        match label.side {
-            LabelSide::East => pos2(self.inner.right(), self.inner.center().y + label.offset),
-            LabelSide::West => pos2(self.inner.left(), self.inner.center().y + label.offset),
-        }
-    }
-    pub fn add_label(&mut self, text: String, side: LabelSide, offset: f32) -> LineAnchor {
-        let id = self.label_id;
-        self.label_id = self.label_id.next();
-        self.labels.push(Label {
-            text,
-            side,
-            offset,
-            id,
-        });
-        LineAnchor {
-            rect: self.id,
-            label: id,
-        }
-    }
-    pub fn save_state(&mut self, kind: ModificationKind) {
-        if self.edit_kind.is_some() {
-            return;
-        }
-        self.edit_kind = Some(SaveState {
-            kind,
-            orig: self.inner,
-        });
-    }
-    pub fn drag_right_bottom(&mut self, delta: Vec2) {
-        self.save_state(ModificationKind::ResizeRightBottom);
-        self.inner.set_bottom(self.inner.bottom() + delta.y);
-        self.inner.set_right(self.inner.right() + delta.x);
-    }
-    pub fn drag_right_top(&mut self, delta: Vec2) {
-        self.save_state(ModificationKind::ResizeRightTop);
-        self.inner.set_top(self.inner.top() + delta.y);
-        self.inner.set_right(self.inner.right() + delta.x);
-    }
-    pub fn drag_left_bottom(&mut self, delta: Vec2) {
-        self.save_state(ModificationKind::ResizeLeftBottom);
-        self.inner.set_bottom(self.inner.bottom() + delta.y);
-        self.inner.set_left(self.inner.left() + delta.x);
-    }
-    pub fn drag_left_top(&mut self, delta: Vec2) {
-        self.save_state(ModificationKind::ResizeLeftTop);
-        self.inner.set_top(self.inner.top() + delta.y);
-        self.inner.set_left(self.inner.left() + delta.x);
-    }
-    pub fn drag_center(&mut self, delta: Vec2) {
-        self.save_state(ModificationKind::Move);
-        self.inner = self.inner.translate(delta);
-    }
-    pub fn predicted_rect(&self) -> Rect {
-        let min_height = round_to_even_grid(
-            self.labels
-                .iter()
-                .map(|label| label.offset.abs() * 2.0)
-                .fold(0.0, f32::max)
-                + SHIM * 2.0,
-        );
-        if let Some(save_state) = &self.edit_kind {
-            match save_state.kind {
-                ModificationKind::Move => grid_rect(self.inner),
-                ModificationKind::ResizeRightBottom => {
-                    let top_left = grid(save_state.orig.left_top());
-                    let mut bottom_right = grid(self.inner.right_bottom());
-                    let height = round_to_even_grid((bottom_right.y - top_left.y).max(min_height));
-                    bottom_right.y = top_left.y + height;
-                    Rect::from_two_pos(top_left, bottom_right)
-                }
-                ModificationKind::ResizeRightTop => {
-                    let bottom_left = grid(save_state.orig.left_bottom());
-                    let mut top_right = grid(self.inner.right_top());
-                    let height = round_to_even_grid((bottom_left.y - top_right.y).max(min_height));
-                    top_right.y = bottom_left.y - height;
-                    Rect::from_two_pos(bottom_left, top_right)
-                }
-                ModificationKind::ResizeLeftBottom => {
-                    let top_right = grid(save_state.orig.right_top());
-                    let mut bottom_left = grid(self.inner.left_bottom());
-                    let height = round_to_even_grid((bottom_left.y - top_right.y).max(min_height));
-                    bottom_left.y = top_right.y + height;
-                    Rect::from_two_pos(top_right, bottom_left)
-                }
-                ModificationKind::ResizeLeftTop => {
-                    let bottom_right = grid(save_state.orig.right_bottom());
-                    let mut top_left = grid(self.inner.left_top());
-                    let height = round_to_even_grid((bottom_right.y - top_left.y).max(min_height));
-                    top_left.y = bottom_right.y - height;
-                    Rect::from_two_pos(top_left, bottom_right)
-                }
-                ModificationKind::LabelDrag => grid_rect(self.inner),
-            }
-        } else {
-            self.inner
-        }
-    }
-    pub fn complete_edit(&mut self) {
-        self.inner = self.predicted_rect();
-        self.labels.iter_mut().for_each(|label| {
-            label.offset = round_to_grid(label.offset);
-        });
-        self.edit_kind = None;
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
-pub struct LineAnchor {
-    rect: RectId,
-    label: LabelId,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Hash)]
-pub struct LineId(usize);
-
-impl LineId {
-    pub fn next(self) -> Self {
-        LineId(self.0 + 1)
-    }
-}
-
-pub struct PolyLine {
-    start: LineAnchor,
-    points: Vec<Pos2>,
-    end: LineAnchor,
-    id: LineId,
-    editing: Option<usize>,
-}
-
-impl PolyLine {
-    pub fn start_edit(&mut self, contact: Contact) {
-        match contact.kind {
-            ContactKind::Start(ndx) => {
-                if ndx != 0 {
-                    self.editing = Some(ndx - 1);
-                }
-            }
-            ContactKind::Middle(ndx, pos) => {
-                self.points.insert(ndx, pos);
-                self.editing = Some(ndx);
-            }
-            ContactKind::End(ndx) => {
-                if ndx != self.points.len() + 1 {
-                    self.editing = Some(ndx - 1);
-                }
-            }
-        }
-    }
-    pub fn shift_edit_point(&mut self, delta: Vec2) {
-        if let Some(ndx) = self.editing {
-            self.points[ndx] += delta;
-        }
-    }
-    pub fn edit_point(&self) -> Option<Pos2> {
-        self.editing.map(|ndx| self.points[ndx])
-    }
-    pub fn finish_edit(&mut self) {
-        self.points.iter_mut().for_each(|p| *p = grid(*p));
-        // Remove duplicate points
-        self.points.dedup();
-        // Remove points that are on the same horizontal or vertical
-        // line as their neighbors, since they don't affect the shape of the line.
-        let drop_flag = self
-            .points
-            .windows(3)
-            .map(|w| {
-                (w[0].x == w[1].x && w[1].x == w[2].x) || (w[0].y == w[1].y && w[1].y == w[2].y)
-            })
-            .collect::<Vec<_>>();
-        // Drop the points based on drop_flag.  Drop_flag[0] corresponds to points[1], drop_flag[1] corresponds to points[2], etc.
-        let points = std::mem::take(&mut self.points);
-        let point_len = points.len();
-        self.points = points
-            .into_iter()
-            .enumerate()
-            .filter_map(|(i, p)| {
-                if i == 0 || i == point_len - 1 {
-                    Some(p)
-                } else if drop_flag[i - 1] {
-                    None
-                } else {
-                    Some(p)
-                }
-            })
-            .collect();
-        self.editing = None;
-    }
+pub enum State {
+    Idle,
+    AddingRect,
+    ResizingRect,
+    EditingLine,
 }
 
 #[derive(Default)]
@@ -261,123 +20,75 @@ pub struct Drawing {
     rect_id: RectId,
     rect_boxes: Vec<RectBox>,
     poly_lines: Vec<PolyLine>,
+    pub selected: Option<RectId>,
+    pub line_add_anchor: Option<LineAnchor>,
+    pub line_add_set: Vec<Pos2>,
+    pub line_add_current: Option<Pos2>,
 }
 
-pub const GRID_SIZE: f32 = 10.0;
-const SHIM: f32 = 4.0;
+const PORT_RADIUS: f32 = 3.0;
 const HIT_DISTANCE: f32 = 10.0;
-
-fn snap(rect: Rect) -> Rect {
-    Rect::from_min_max(
-        grid(pos2(rect.min.x, rect.min.y)),
-        grid(pos2(rect.max.x, rect.max.y)),
-    )
-}
-
-fn round_to_grid(value: f32) -> f32 {
-    (value / GRID_SIZE).round() * GRID_SIZE
-}
-
-fn round_to_even_grid(value: f32) -> f32 {
-    let n = (0.5 * (value / GRID_SIZE - 1.0)).round() as i32;
-    (n as f32 * 2.0) * GRID_SIZE
-}
-
-fn grid(pos: Pos2) -> Pos2 {
-    Pos2::new(round_to_grid(pos.x), round_to_grid(pos.y))
-}
 
 fn grid_vec(vec: Vec2) -> Vec2 {
     Vec2::new(round_to_grid(vec.x), round_to_grid(vec.y))
 }
 
-fn grid_rect(rect: Rect) -> Rect {
-    Rect::from_min_max(
-        grid(pos2(rect.min.x, rect.min.y)),
-        grid(pos2(rect.max.x, rect.max.y)),
-    )
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum ContactKind {
-    Start(usize),
-    Middle(usize, Pos2),
-    End(usize),
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct Contact {
-    kind: ContactKind,
-    distance: f32,
-    location: Pos2,
-}
-
-// Find the closest point to the line segment along with the distance to it.
-fn minimum_distance_and_location_on_segment(
-    ndx: usize,
-    start: Pos2,
-    end: Pos2,
-    target: Pos2,
-    hit_dist: f32,
-) -> Contact {
-    let line_vec = end - start;
-    let line_len = line_vec.length();
-    if line_len == 0.0 {
-        return Contact {
-            kind: ContactKind::Start(ndx),
-            distance: start.distance(target),
-            location: start,
-        };
-    }
-    let line_unit_vec = line_vec / line_len;
-    let projection = (target - start).dot(line_unit_vec);
-    if projection < hit_dist * 2.0 {
-        Contact {
-            kind: ContactKind::Start(ndx),
-            distance: start.distance(target),
-            location: start,
-        }
-    } else if projection > line_len - hit_dist * 2.0 {
-        Contact {
-            kind: ContactKind::End(ndx + 1),
-            distance: end.distance(target),
-            location: end,
-        }
-    } else {
-        let closest_point = start + line_unit_vec * projection;
-        Contact {
-            kind: ContactKind::Middle(ndx, closest_point),
-            distance: closest_point.distance(target),
-            location: closest_point,
-        }
-    }
-}
-
-// Find the closest point to the polyline along with the distance to it.
-fn minimum_distance_and_location(points: &[Pos2], target: Pos2) -> Contact {
-    points
-        .windows(2)
-        .enumerate()
-        .map(|(i, w)| minimum_distance_and_location_on_segment(i, w[0], w[1], target, 5.0))
-        .min_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap())
-        .unwrap()
-}
-
 impl Drawing {
+    pub fn set_selected(&mut self, id: Option<RectId>) {
+        self.selected = id;
+    }
+    pub fn line_add_anchor(&self) -> Option<Pos2> {
+        let anchor = self.line_add_anchor?;
+        let rbox = self.rect_boxes.iter().find(|r| r.id() == anchor.rect)?;
+        Some(rbox.anchor_point(anchor.label))
+    }
+    pub fn rect(&self, id: RectId) -> Option<&RectBox> {
+        self.rect_boxes.iter().find(|r| r.id() == id)
+    }
+    pub fn selected_rect_mut(&mut self) -> Option<&mut RectBox> {
+        self.selected
+            .and_then(|id| self.rect_boxes.iter_mut().find(|r| r.id() == id))
+    }
+    pub fn delete_selected(&mut self) {
+        if let Some(selected_id) = self.selected {
+            self.rect_boxes.retain(|r| r.id() != selected_id);
+        }
+    }
+    pub fn add_new_label(&mut self) {
+        if let Some(selected) = self.selected
+            && let Some(rect_box) = self.rect_boxes.iter_mut().find(|r| r.id() == selected)
+        {
+            let offset = rect_box
+                .labels
+                .iter()
+                .filter_map(|l| {
+                    if l.side == LabelSide::East {
+                        Some(l.offset.abs())
+                    } else {
+                        None
+                    }
+                })
+                .fold(0.0, f32::max);
+            rect_box.add_label("new label".to_string(), LabelSide::East, offset + 10.0);
+        }
+    }
     pub fn add_rect_box(&mut self, center: Pos2, size: Vec2) -> &mut RectBox {
         let center = grid(center);
         let size = grid_vec(size);
         let id = self.rect_id;
         self.rect_id = self.rect_id.next();
-        self.rect_boxes
-            .push(RectBox::new(Rect::from_center_size(center, size), id));
+        self.rect_boxes.push(RectBox::new(
+            "Untitled".to_string(),
+            Rect::from_center_size(center, size),
+            id,
+        ));
         self.rect_boxes.last_mut().unwrap()
     }
     pub fn anchor(&self, anchor: LineAnchor) -> Pos2 {
         let rect = self
             .rect_boxes
             .iter()
-            .find(|r| r.id == anchor.rect)
+            .find(|r| r.id() == anchor.rect)
             .unwrap();
         rect.anchor_point(anchor.label)
     }
@@ -385,7 +96,7 @@ impl Drawing {
         let id = self
             .poly_lines
             .last()
-            .map_or(LineId::default(), |l| l.id.next());
+            .map_or(LineId::default(), |l| l.id().next());
         self.poly_lines.push(PolyLine {
             start,
             points: points.iter().map(|&p| grid(p)).collect(),
@@ -396,20 +107,26 @@ impl Drawing {
     }
     pub fn update(&mut self, ui: &mut Ui) {
         (-100..=100).map(|y| y as f32 * GRID_SIZE).for_each(|h| {
-            ui.painter()
-                .hline(-10_000.0f32..=10_000.0f32, h, (0.15, Color32::LIGHT_GRAY));
+            ui.painter().hline(
+                -10_000.0f32..=10_000.0f32,
+                h,
+                (0.15, Color32::LIGHT_GRAY.linear_multiply(0.3)),
+            );
         });
         (-100..=100).map(|x| x as f32 * GRID_SIZE).for_each(|v| {
-            ui.painter()
-                .vline(v, -10_000.0f32..=10_000.0f32, (0.15, Color32::LIGHT_GRAY));
+            ui.painter().vline(
+                v,
+                -10_000.0f32..=10_000.0f32,
+                (0.15, Color32::LIGHT_GRAY.linear_multiply(0.3)),
+            );
         });
         // Draw the wires
         let mut poly_lines = std::mem::take(&mut self.poly_lines);
-        let mut is_editing = false;
+        let mut edit_active = false;
         let mut bound_rect = Rect::NOTHING;
         for poly_line in poly_lines.iter_mut() {
             if poly_line.editing.is_some() {
-                is_editing = true;
+                edit_active = true;
                 let points = std::iter::once(self.anchor(poly_line.start))
                     .chain(poly_line.points.iter().map(|p| grid(*p)))
                     .chain(std::iter::once(self.anchor(poly_line.end)))
@@ -447,7 +164,7 @@ impl Drawing {
             }
         }
 
-        if !is_editing {
+        if !edit_active {
             let response = ui.interact(
                 bound_rect,
                 Id::new("poly_line"),
@@ -492,8 +209,11 @@ impl Drawing {
             let mut editing = false;
             let egui_box = rect_box.inner;
             let is_dragging = rect_box.edit_kind.is_some();
+            let is_selected = self.selected == Some(rect_box.id());
             let stroke = if is_dragging {
                 (2.0, Color32::DARK_RED)
+            } else if is_selected {
+                (2.0, Color32::YELLOW)
             } else {
                 (1.0, Color32::DARK_BLUE)
             };
@@ -507,6 +227,53 @@ impl Drawing {
                     StrokeKind::Middle,
                 );
             }
+            if is_selected
+                && !ui.ctx().wants_keyboard_input()
+                && ui.input(|i| {
+                    i.key_pressed(egui::Key::Delete) | i.key_pressed(egui::Key::Backspace)
+                })
+            {
+                rect_box.save_state(ModificationKind::DeletePending);
+                editing = true;
+            }
+
+            /*             rect_box.edit_kind.is_none() {
+                           let hit_center = rect_box.inner.left_top() + vec2(-8.0, -8.0);
+                           let delete_radius = 4.0;
+                           let hit_box = Rect::from_center_size(
+                               hit_center,
+                               vec2(delete_radius * 2.0, delete_radius * 2.0),
+                           );
+                           let response = ui.interact(hit_box, Id::new("delete_button"), egui::Sense::click());
+                           let stroke = if response.hovered() { 2.0 } else { 1.0 };
+                           let delete_radius = if response.is_pointer_button_down_on() {
+                               5.0
+                           } else {
+                               4.0
+                           };
+                           if response.clicked() {
+                               rect_box.save_state(ModificationKind::DeletePending);
+                               editing = true;
+                           }
+                           ui.painter()
+                               .circle_stroke(hit_center, delete_radius, (stroke, Color32::DARK_RED));
+                           let delete_radius = delete_radius / 2.0_f32.sqrt();
+                           ui.painter().line_segment(
+                               [
+                                   hit_center + vec2(-delete_radius, -delete_radius),
+                                   hit_center + vec2(delete_radius, delete_radius),
+                               ],
+                               (stroke, Color32::DARK_RED),
+                           );
+                           ui.painter().line_segment(
+                               [
+                                   hit_center + vec2(-delete_radius, delete_radius),
+                                   hit_center + vec2(delete_radius, -delete_radius),
+                               ],
+                               (stroke, Color32::DARK_RED),
+                           );
+                       }
+            */
             ui.painter().rect(
                 egui_box,
                 3.0,
@@ -514,7 +281,14 @@ impl Drawing {
                 stroke,
                 StrokeKind::Middle,
             );
-            let id = rect_box.id;
+            ui.painter().text(
+                egui_box.center_top() + vec2(0.0, SHIM),
+                egui::Align2::CENTER_TOP,
+                &rect_box.name,
+                egui::FontId::monospace(10.0),
+                Color32::BLACK,
+            );
+            let id = rect_box.id();
             let mut labels = std::mem::take(&mut rect_box.labels);
             for label in labels.iter_mut() {
                 let (align, text_pos, shift) = match label.side {
@@ -531,7 +305,7 @@ impl Drawing {
                 };
                 ui.painter().circle(
                     text_pos + shift,
-                    2.0,
+                    PORT_RADIUS,
                     Color32::DARK_GRAY,
                     (0.5, Color32::DARK_RED),
                 );
@@ -545,11 +319,14 @@ impl Drawing {
                 let label_ndx = label.id;
                 let response = ui
                     .interact(
-                        Rect::from_center_size(text_pos + shift, vec2(3.0, 3.0)),
+                        Rect::from_center_size(
+                            text_pos + shift,
+                            vec2(PORT_RADIUS * 2.0, PORT_RADIUS * 2.0),
+                        ),
                         Id::new(("label", id, label_ndx)),
                         egui::Sense::click_and_drag(),
                     )
-                    .on_hover_cursor(egui::CursorIcon::Grab);
+                    .on_hover_cursor(egui::CursorIcon::Crosshair);
                 if response.hovered() {
                     ui.painter().circle(
                         text_pos + shift,
@@ -558,7 +335,7 @@ impl Drawing {
                         (0.5, Color32::WHITE),
                     );
                 }
-                if response.dragged() {
+                if response.dragged_by(egui::PointerButton::Secondary) {
                     let delta = response.drag_delta();
                     rect_box.save_state(ModificationKind::LabelDrag);
                     label.offset += delta.y;
@@ -572,9 +349,35 @@ impl Drawing {
                     editing = true;
                     ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::Grabbing);
                 }
+                if response.clicked_by(egui::PointerButton::Primary) {
+                    if let Some(start) = self.line_add_anchor {
+                        let new_poly = PolyLine {
+                            start,
+                            points: std::mem::take(&mut self.line_add_set),
+                            end: LineAnchor {
+                                rect: rect_box.id(),
+                                label: label.id,
+                            },
+                            id: self
+                                .poly_lines
+                                .last()
+                                .map_or(LineId::default(), |l| l.id.next()),
+                            editing: None,
+                        };
+                        self.poly_lines.push(new_poly);
+                        self.line_add_anchor = None;
+                        self.line_add_current = None;
+                    } else {
+                        self.line_add_anchor = Some(LineAnchor {
+                            rect: rect_box.id(),
+                            label: label.id,
+                        });
+                        self.line_add_current = response.interact_pointer_pos();
+                    }
+                }
             }
             rect_box.labels = labels;
-            let id = rect_box.id;
+            let id = rect_box.id();
             let response = ui
                 .interact(
                     egui::Rect::from_center_size(egui_box.right_bottom(), egui::vec2(5.0, 5.0)),
@@ -613,7 +416,7 @@ impl Drawing {
             }
             let response = ui
                 .interact(
-                    egui::Rect::from_center_size(egui_box.left_top(), egui::vec2(5.0, 5.0)),
+                    egui::Rect::from_center_size(egui_box.left_top(), vec2(5.0, 5.0)),
                     Id::new(("rect_box_left_top", id)),
                     egui::Sense::click_and_drag(),
                 )
@@ -635,14 +438,35 @@ impl Drawing {
                 rect_box.drag_center(delta);
                 editing = true;
                 ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::Grabbing);
+            } else if response.clicked() {
+                self.selected = Some(rect_box.id());
             }
             if !editing {
                 rect_box.complete_edit();
             }
+            edit_active = edit_active || editing;
         }
         if let Some(edit_pos) = self.rect_boxes.iter().position(|r| r.edit_kind.is_some()) {
             let last = self.rect_boxes.len() - 1;
             self.rect_boxes.swap(edit_pos, last);
+        }
+        self.rect_boxes.retain(|r| !r.delete_pending());
+        if let Some(start_anchor) = self.line_add_anchor
+            && let Some(current_pos) = self.line_add_current
+        {
+            let points = std::iter::once(self.anchor(start_anchor))
+                .chain(self.line_add_set.iter().copied())
+                .chain(std::iter::once(current_pos))
+                .collect::<Vec<_>>();
+            for segment in points.windows(2) {
+                ui.painter()
+                    .line_segment([segment[0], segment[1]], (0.5, Color32::DARK_RED));
+            }
+        }
+        if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+            self.line_add_anchor = None;
+            self.line_add_set.clear();
+            self.line_add_current = None;
         }
     }
 }

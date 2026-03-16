@@ -682,7 +682,7 @@ impl<'a> RTLCompiler<'a> {
         // Look up the function ID from the external functions.
         let func = &self.object.externals[id];
         // Compile it...
-        let func = compile_rtl(Arc::clone(&func))?;
+        let func = compile_rtl(Arc::clone(func))?;
         // Merge in the symbols.  Each symbol in the executed function, now has a corresponding
         // symbol in our symbol table
         let mut op_remap = self.symtab.merge(func.symtab);

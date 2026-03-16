@@ -87,7 +87,18 @@ pub mod double_staller {
 
 #[cfg(test)]
 mod tests {
+    use miette::IntoDiagnostic;
+
     use super::*;
+
+    #[test]
+    fn test_fill_drain_vcd() -> miette::Result<()> {
+        let input = (0..5000).map(|_| ()).with_reset(1).clock_pos_edge(100);
+        let uut = single_staller::FillDrainTestFixture::default();
+        let vcd = uut.run(input)?.collect::<VcdFile>();
+        vcd.dump_to_file("fill_drain_test.vcd").into_diagnostic()?;
+        Ok(())
+    }
 
     #[test]
     fn test_fill_drain() -> miette::Result<()> {
@@ -102,11 +113,8 @@ mod tests {
     fn test_fill_double_staller_drain() -> miette::Result<()> {
         let input = (0..5000).map(|_| ()).with_reset(1).clock_pos_edge(100);
         let uut = double_staller::FillDrainTestFixture::default();
-        let vcd = uut.run(input)?.collect::<VcdFile>();
-        vcd.dump_to_file("fill_double_staller_drain_test.vcd")
-            .unwrap();
-        //        let last = uut.run(input)?.last().unwrap();
-        //assert!(last.output);
+        let last = uut.run(input)?.last().unwrap();
+        assert!(last.output);
         Ok(())
     }
 }

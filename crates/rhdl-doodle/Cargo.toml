@@ -1,0 +1,12 @@
+[package]
+name = "rhdl-doodle"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.6.0", features = ["derive"] }
+eframe = { version = "0.33.3", features = ["persistence"] }
+egui = "0.33.3"
+egui_tiles = "0.14.1"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"

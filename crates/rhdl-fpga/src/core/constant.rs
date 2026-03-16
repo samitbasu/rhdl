@@ -32,7 +32,6 @@ use rhdl::{
     core::{
         ScopedName,
         circuit::{descriptor::SyncKind, schematic::builder::SchematicBuilder},
-        types::path::PathExt,
     },
     prelude::*,
 };

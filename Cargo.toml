@@ -13,7 +13,7 @@ members = [
     "crates/rhdl-trace-type",
     "crates/rhdl-vlog",
     "doc/book/src/code",
-    "doc/mdbook-rhdl", "crates/rhdl-schematic-view",
+    "doc/mdbook-rhdl", "crates/rhdl-schematic-view", "crates/rhdl-doodle",
 ]
 
 resolver = "2"

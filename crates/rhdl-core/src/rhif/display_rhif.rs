@@ -3,7 +3,7 @@ use crate::{
         AluBinary, AluUnary, Array, Assign, Binary, Case, CaseArgument, Cast, Enum, Exec,
         FieldValue, Index, Member, OpCode, Repeat, Splice, Struct, Tuple, Unary,
     },
-    util::{display_splice, splice},
+    util::display_splice,
 };
 
 use super::spec::{Retime, Select, Wrap};

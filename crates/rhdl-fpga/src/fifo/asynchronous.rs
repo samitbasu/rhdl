@@ -187,7 +187,6 @@ where
 mod tests {
     use expect_test::expect;
     use miette::IntoDiagnostic;
-    use rhdl::core::circuit::descriptor;
 
     use super::*;
     use std::path::PathBuf;
