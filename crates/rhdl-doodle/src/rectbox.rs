@@ -3,8 +3,8 @@ use egui::{Color32, Pos2, Rect, StrokeKind, Ui, Vec2, pos2, vec2};
 use crate::{
     drawing::ResizeMode,
     grid::{
-        MOVE_HOVER_DISTANCE, PORT_RADIUS, SHIM, grid, grid_rect, round_to_even_grid, round_to_grid,
-        snap,
+        GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, SHIM, grid, grid_rect, round_to_even_grid,
+        round_to_grid, snap,
     },
     label::{Label, LabelId, LabelSide},
 };
@@ -115,6 +115,60 @@ impl RectBox {
                 StrokeKind::Middle,
             );
         }
+        [
+            self.control_pin_location_east(),
+            self.control_pin_location_west(),
+        ]
+        .iter()
+        .for_each(|&pin_pos| {
+            ui.painter()
+                .circle(pin_pos, PORT_RADIUS, Color32::WHITE, (0.5, Color32::BLACK));
+            ui.painter().line_segment(
+                [
+                    pin_pos + vec2(-PORT_RADIUS / 2.0, 0.0),
+                    pin_pos + vec2(PORT_RADIUS / 2.0, 0.0),
+                ],
+                (1.0, Color32::BLACK),
+            );
+            ui.painter().line_segment(
+                [
+                    pin_pos + vec2(0.0, -PORT_RADIUS / 2.0),
+                    pin_pos + vec2(0.0, PORT_RADIUS / 2.0),
+                ],
+                (1.0, Color32::BLACK),
+            );
+        });
+    }
+    pub fn next_port_offset(&self, side: LabelSide) -> f32 {
+        (0_u32..)
+            .find_map(|ndx| {
+                let sign = if ndx.is_multiple_of(2) {
+                    1.0f32
+                } else {
+                    -1.0f32
+                };
+                let offset = ndx.div_ceil(2) as f32 * sign * GRID_SIZE;
+                if self
+                    .labels
+                    .iter()
+                    .any(|l| l.side == side && (l.offset - offset).abs() < GRID_SIZE * 0.6)
+                {
+                    None
+                } else {
+                    Some(offset)
+                }
+            })
+            .unwrap()
+    }
+    pub fn control_pin_location_east(&self) -> Pos2 {
+        // Find the first free offset
+        // We want to check 0, -1, 1, -2, 2,..
+        let offset = self.next_port_offset(LabelSide::East);
+        self.inner.right_center() + vec2(GRID_SIZE, offset)
+    }
+    pub fn control_pin_location_west(&self) -> Pos2 {
+        let offset = self.next_port_offset(LabelSide::West);
+        self.inner.left_center() + vec2(-GRID_SIZE, offset)
     }
     pub fn render_resizing(&self, ui: &mut Ui, mode: ResizeMode, delta: Vec2) {
         let resized_rect = resize_rect(&self.inner, mode, delta);
@@ -132,6 +186,13 @@ impl RectBox {
             Color32::LIGHT_GRAY,
             (2.0, Color32::DARK_RED),
             StrokeKind::Middle,
+        );
+        ui.painter().text(
+            resized_rect.center_top() + vec2(0.0, SHIM),
+            egui::Align2::CENTER_TOP,
+            &self.name,
+            egui::FontId::monospace(10.0),
+            Color32::BLACK,
         );
     }
     pub fn render_moving(&self, ui: &mut Ui, delta: Vec2) {

@@ -1,15 +1,10 @@
 use core::f32;
 use std::path::PathBuf;
 
-use egui::{DragPanButtons, Rect, Scene, TextEdit, pos2, vec2};
+use egui::{DragPanButtons, Rect, Scene, TextEdit, pos2};
 use egui_tiles::{Tree, UiResponse};
 
-use crate::{
-    drawing::Drawing,
-    grid::{GRID_SIZE, grid, round_to_even_grid},
-    label::LabelSide,
-    rectbox::{ModificationKind, RectId, SaveState},
-};
+use crate::{drawing::Drawing, label::LabelSide};
 
 enum Pane {
     Drawing,
@@ -21,8 +16,6 @@ pub struct App {
     drawing: Drawing,
     pub scene_rect: Rect,
     viz_tree: Option<Tree<Pane>>,
-    drag_id: Option<RectId>,
-    drag_start_pos: Option<egui::Pos2>,
 }
 
 impl App {
@@ -34,8 +27,6 @@ impl App {
             drawing: Drawing::default(),
             scene_rect: Rect::ZERO,
             viz_tree: Some(tree),
-            drag_id: None,
-            drag_start_pos: None,
         }
     }
     fn properties(&mut self, ui: &mut egui::Ui) {

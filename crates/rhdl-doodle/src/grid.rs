@@ -1,8 +1,8 @@
 use egui::{Pos2, Rect, pos2};
 
 pub const GRID_SIZE: f32 = 10.0;
-pub const SHIM: f32 = 4.0;
-pub const MOVE_HOVER_DISTANCE: f32 = GRID_SIZE * 1.0;
+pub const SHIM: f32 = 7.0;
+pub const MOVE_HOVER_DISTANCE: f32 = GRID_SIZE * 0.6;
 pub const PORT_RADIUS: f32 = 3.0;
 
 pub fn grid(pos: Pos2) -> Pos2 {

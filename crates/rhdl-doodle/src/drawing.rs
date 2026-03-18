@@ -1,13 +1,11 @@
 use egui::{
-    Color32, CursorIcon, Id, PointerButton, Pos2, Rect, Response, StrokeKind, Ui, Vec2, pos2, vec2,
+    Color32, CursorIcon, Id, PointerButton, Pos2, Rect, Response, StrokeKind, TextEdit, Ui, Vec2,
+    pos2, vec2,
 };
 
 use crate::{
     geometry::minimum_distance_and_location,
-    grid::{
-        GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, SHIM, grid, grid_rect, round_even_grid,
-        round_to_grid,
-    },
+    grid::{GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, SHIM, grid, grid_rect, round_even_grid},
     label::LabelSide,
     polyline::{LineId, PolyLine},
     rectbox::{LineAnchor, ModificationKind, RectBox, RectId, control_corner, resize_rect},
@@ -57,7 +55,12 @@ pub enum State {
         mode: ResizeMode,
         delta_pos: Vec2,
     },
-    EditingLine,
+    EditingName {
+        rect: RectId,
+    },
+    PinPlusClicked {
+        rect: RectId,
+    },
 }
 
 impl State {
@@ -66,8 +69,7 @@ impl State {
             State::PotentialResize { mode, .. } | State::ResizingRect { mode, .. } => match mode {
                 ResizeMode::LeftTop | ResizeMode::RightBottom => CursorIcon::ResizeNwSe,
                 ResizeMode::RightTop | ResizeMode::LeftBottom => CursorIcon::ResizeNeSw,
-                ResizeMode::CenterTop => CursorIcon::ResizeNorth,
-                ResizeMode::CenterBottom => CursorIcon::ResizeSouth,
+                ResizeMode::CenterTop | ResizeMode::CenterBottom => CursorIcon::ResizeVertical,
             },
             _ => CursorIcon::Default,
         }
@@ -94,10 +96,6 @@ pub struct Drawing {
 }
 
 const HIT_DISTANCE: f32 = 10.0;
-
-fn grid_vec(vec: Vec2) -> Vec2 {
-    Vec2::new(round_to_grid(vec.x), round_to_grid(vec.y))
-}
 
 impl Drawing {
     pub fn set_selected(&mut self, id: Option<RectId>) {
@@ -537,7 +535,7 @@ impl Drawing {
         }
     }
 
-    pub fn update_ro(&self, ui: &mut Ui) {
+    pub fn update_ro(&mut self, ui: &mut Ui) {
         ui.output_mut(|o| o.cursor_icon = self.state.cursor());
         (-100..=100).map(|y| y as f32 * GRID_SIZE).for_each(|h| {
             ui.painter().hline(
@@ -580,18 +578,7 @@ impl Drawing {
                 );
             }
         }
-
-        for rect_box in self.rect_boxes.iter() {
-            let egui_box = rect_box.inner;
-            let is_dragging = rect_box.edit_kind.is_some();
-            let is_selected = self.selected == Some(rect_box.id());
-            let stroke = if is_dragging {
-                (2.0, Color32::DARK_RED)
-            } else if is_selected {
-                (2.0, Color32::YELLOW)
-            } else {
-                (1.0, Color32::DARK_BLUE)
-            };
+        for rect_box in self.rect_boxes.iter_mut() {
             let mut is_resizing = false;
             if let State::MovingRect { rect, delta_pos } = self.state
                 && rect == rect_box.id()
@@ -611,6 +598,25 @@ impl Drawing {
             }
             if self.state.selected_id() == Some(rect_box.id()) && !is_resizing {
                 rect_box.render_control_frame(ui);
+            }
+            if let State::EditingName { rect } = self.state
+                && rect == rect_box.id()
+            {
+                let rect_name_width = rect_box.name.len() as f32 * 10.0 + 10.0;
+                let editor_position =
+                    rect_box.inner.center_top() + vec2(-rect_name_width / 2.0, SHIM);
+                let editor_rect = Rect::from_min_size(editor_position, vec2(rect_name_width, 20.0));
+                let response = ui.place(
+                    editor_rect,
+                    TextEdit::singleline(&mut rect_box.name)
+                        .font(egui::FontId::monospace(10.0))
+                        .desired_width(f32::INFINITY),
+                );
+                if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                    self.state = State::Selected { rect };
+                } else {
+                    response.request_focus();
+                }
             }
         }
         if let Some(start_anchor) = self.line_add_anchor
@@ -635,15 +641,6 @@ impl Drawing {
                 StrokeKind::Middle,
             );
         }
-    }
-    fn get_center_hover_candidate(&self, pos: Pos2) -> Option<RectId> {
-        self.rect_boxes.iter().find_map(|r| {
-            if r.inner.center().distance(pos) < MOVE_HOVER_DISTANCE {
-                Some(r.id())
-            } else {
-                None
-            }
-        })
     }
     pub fn update_state(&mut self, response: Response) {
         match self.state {
@@ -687,6 +684,26 @@ impl Drawing {
                 if response.clicked_by(PointerButton::Primary)
                     && let Some(pos) = response.interact_pointer_pos()
                 {
+                    if let Some(bbox) = self.rect_mut(rect)
+                        && bbox.control_pin_location_east().distance(pos) <= PORT_RADIUS
+                    {
+                        bbox.add_label(
+                            "port".into(),
+                            LabelSide::East,
+                            bbox.next_port_offset(LabelSide::East),
+                        );
+                        return;
+                    }
+                    if let Some(bbox) = self.rect_mut(rect)
+                        && bbox.control_pin_location_west().distance(pos) <= PORT_RADIUS
+                    {
+                        bbox.add_label(
+                            "port".into(),
+                            LabelSide::West,
+                            bbox.next_port_offset(LabelSide::West),
+                        );
+                        return;
+                    }
                     if let Some(bbox) = self.rect_boxes.iter().find(|r| r.inner.contains(pos)) {
                         self.state = State::Selected { rect: bbox.id() }
                     } else {
@@ -719,6 +736,9 @@ impl Drawing {
                             return;
                         }
                     }
+                }
+                if response.double_clicked_by(PointerButton::Primary) {
+                    self.state = State::EditingName { rect };
                 }
             }
             State::PotentialResize { rect, mode } => {
@@ -798,6 +818,11 @@ impl Drawing {
             State::Panning => {
                 if response.drag_stopped() {
                     self.state = State::Idle;
+                }
+            }
+            State::EditingName { rect } => {
+                if response.clicked() {
+                    self.state = State::Selected { rect };
                 }
             }
             _ => {}
