@@ -93,54 +93,56 @@ impl egui_tiles::Behavior<Pane> for App {
                     .zoom_range(0.1..=4.0)
                     .drag_pan_buttons(DragPanButtons::SECONDARY);
                 let response = scene.show(ui, &mut self.scene_rect, |ui| {
-                    self.drawing.update(ui);
+                    self.drawing.update_ro(ui);
                 });
-                let response = response.response;
-                if self.drawing.line_add_anchor.is_some() {
-                    if let Some(pos2) = response.hover_pos() {
-                        self.drawing.line_add_current = Some(pos2);
-                    }
-                }
-                if response.drag_started_by(egui::PointerButton::Primary)
-                    && let Some(pos) = response.interact_pointer_pos()
-                {
-                    self.drag_id = Some(
-                        self.drawing
-                            .add_rect_box(pos, vec2(GRID_SIZE, GRID_SIZE))
-                            .id(),
-                    );
-                    self.drawing.set_selected(self.drag_id);
-                    self.drag_start_pos = Some(grid(pos));
-                }
-                if response.dragged_by(egui::PointerButton::Primary)
-                    && let Some(_drag_id) = self.drag_id
-                    && let Some(pos) = response.interact_pointer_pos()
-                    && let Some(start) = self.drag_start_pos
-                    && let Some(rbox) = self.drawing.selected_rect_mut()
-                {
-                    rbox.inner = Rect::from_two_pos(start, grid(pos));
-                    rbox.edit_kind = Some(SaveState {
-                        kind: ModificationKind::Create,
-                        orig: rbox.inner,
-                    });
-                }
-                if response.drag_stopped_by(egui::PointerButton::Primary)
-                    && let Some(rbox) = self.drawing.selected_rect_mut()
-                {
-                    let width = round_to_even_grid(rbox.inner.width());
-                    let height = round_to_even_grid(rbox.inner.height());
-                    rbox.inner.set_height(height);
-                    rbox.inner.set_width(width);
-                    rbox.complete_edit();
-                    if height <= 0.0 || width <= 0.0 {
-                        self.drawing.delete_selected();
-                    }
-                    self.drag_id = None;
-                    self.drag_start_pos = None;
-                }
-                if response.clicked_by(egui::PointerButton::Primary) {
-                    self.drawing.set_selected(None);
-                }
+                self.drawing.update_state(response.response);
+                /*                 let response = response.response;
+                               if self.drawing.line_add_anchor.is_some()
+                                   && let Some(pos2) = response.hover_pos()
+                               {
+                                   self.drawing.line_add_current = Some(pos2);
+                               }
+                               if response.drag_started_by(egui::PointerButton::Primary)
+                                   && let Some(pos) = response.interact_pointer_pos()
+                               {
+                                   self.drag_id = Some(
+                                       self.drawing
+                                           .add_rect_box(pos, vec2(GRID_SIZE, GRID_SIZE))
+                                           .id(),
+                                   );
+                                   self.drawing.set_selected(self.drag_id);
+                                   self.drag_start_pos = Some(grid(pos));
+                               }
+                               if response.dragged_by(egui::PointerButton::Primary)
+                                   && let Some(_drag_id) = self.drag_id
+                                   && let Some(pos) = response.interact_pointer_pos()
+                                   && let Some(start) = self.drag_start_pos
+                                   && let Some(rbox) = self.drawing.selected_rect_mut()
+                               {
+                                   rbox.inner = Rect::from_two_pos(start, grid(pos));
+                                   rbox.edit_kind = Some(SaveState {
+                                       kind: ModificationKind::Create,
+                                       orig: rbox.inner,
+                                   });
+                               }
+                               if response.drag_stopped_by(egui::PointerButton::Primary)
+                                   && let Some(rbox) = self.drawing.selected_rect_mut()
+                               {
+                                   let width = round_to_even_grid(rbox.inner.width());
+                                   let height = round_to_even_grid(rbox.inner.height());
+                                   rbox.inner.set_height(height);
+                                   rbox.inner.set_width(width);
+                                   rbox.complete_edit();
+                                   if height <= 0.0 || width <= 0.0 {
+                                       self.drawing.delete_selected();
+                                   }
+                                   self.drag_id = None;
+                                   self.drag_start_pos = None;
+                               }
+                               if response.clicked_by(egui::PointerButton::Primary) {
+                                   self.drawing.set_selected(None);
+                               }
+                */
             }
             Pane::Properties => {
                 self.properties(ui);
@@ -163,7 +165,7 @@ impl eframe::App for App {
             ui.vertical(|ui| {
                 if ui.button("+Rect").clicked() {
                     self.drawing
-                        .add_rect_box(pos2(100.0, 100.0), vec2(250.0, 300.0));
+                        .add_rect_box(pos2(100.0, 100.0), pos2(250.0, 300.0));
                 }
                 let mut viz_tree = std::mem::take(&mut self.viz_tree).unwrap();
                 viz_tree.ui(self, ui);

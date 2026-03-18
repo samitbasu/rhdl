@@ -1,7 +1,11 @@
-use egui::{Pos2, Rect, Vec2, pos2};
+use egui::{Color32, Pos2, Rect, StrokeKind, Ui, Vec2, pos2, vec2};
 
 use crate::{
-    grid::{SHIM, grid, grid_rect, round_to_even_grid, round_to_grid, snap},
+    drawing::ResizeMode,
+    grid::{
+        MOVE_HOVER_DISTANCE, PORT_RADIUS, SHIM, grid, grid_rect, round_to_even_grid, round_to_grid,
+        snap,
+    },
     label::{Label, LabelId, LabelSide},
 };
 
@@ -46,6 +50,32 @@ pub struct LineAnchor {
     pub label: LabelId,
 }
 
+pub fn control_corner(rect: &Rect, mode: ResizeMode) -> Pos2 {
+    match mode {
+        ResizeMode::LeftTop => rect.left_top(),
+        ResizeMode::RightTop => rect.right_top(),
+        ResizeMode::LeftBottom => rect.left_bottom(),
+        ResizeMode::RightBottom => rect.right_bottom(),
+        ResizeMode::CenterTop => rect.center_top(),
+        ResizeMode::CenterBottom => rect.center_bottom(),
+    }
+}
+
+pub fn resize_rect(rect: &Rect, mode: ResizeMode, delta: Vec2) -> Rect {
+    match mode {
+        ResizeMode::LeftTop => Rect::from_two_pos(rect.left_top() + delta, rect.right_bottom()),
+        ResizeMode::RightTop => Rect::from_two_pos(rect.right_top() + delta, rect.left_bottom()),
+        ResizeMode::LeftBottom => Rect::from_two_pos(rect.left_bottom() + delta, rect.right_top()),
+        ResizeMode::RightBottom => Rect::from_two_pos(rect.right_bottom() + delta, rect.left_top()),
+        ResizeMode::CenterTop => {
+            Rect::from_two_pos(rect.left_top() + vec2(0.0, delta.y), rect.right_bottom())
+        }
+        ResizeMode::CenterBottom => {
+            Rect::from_two_pos(rect.left_bottom() + vec2(0.0, delta.y), rect.right_top())
+        }
+    }
+}
+
 impl RectBox {
     pub fn id(&self) -> RectId {
         self.id
@@ -58,6 +88,137 @@ impl RectBox {
             edit_kind: None,
             id,
             label_id: LabelId::default(),
+        }
+    }
+    pub fn render_control_frame(&self, ui: &mut Ui) {
+        let bbox = self.inner;
+        ui.painter().rect(
+            bbox,
+            0.0,
+            Color32::TRANSPARENT,
+            (0.5, Color32::DARK_RED),
+            StrokeKind::Middle,
+        );
+        for pos in [
+            bbox.left_top(),
+            bbox.right_top(),
+            bbox.left_bottom(),
+            bbox.right_bottom(),
+            bbox.center_top(),
+            bbox.center_bottom(),
+        ] {
+            ui.painter().rect(
+                Rect::from_center_size(pos, vec2(3.0, 3.0)),
+                0.0,
+                Color32::WHITE,
+                (0.5, Color32::BLACK),
+                StrokeKind::Middle,
+            );
+        }
+    }
+    pub fn render_resizing(&self, ui: &mut Ui, mode: ResizeMode, delta: Vec2) {
+        let resized_rect = resize_rect(&self.inner, mode, delta);
+        let predicted_rect = grid_rect(resized_rect);
+        ui.painter().rect(
+            predicted_rect,
+            3.0,
+            Color32::TRANSPARENT,
+            (1.0, Color32::DARK_GRAY),
+            StrokeKind::Middle,
+        );
+        ui.painter().rect(
+            resized_rect,
+            3.0,
+            Color32::LIGHT_GRAY,
+            (2.0, Color32::DARK_RED),
+            StrokeKind::Middle,
+        );
+    }
+    pub fn render_moving(&self, ui: &mut Ui, delta: Vec2) {
+        let shifted_rect = self.inner.translate(delta);
+        let predicted_rect = grid_rect(shifted_rect);
+        ui.painter().rect(
+            predicted_rect,
+            3.0,
+            Color32::TRANSPARENT,
+            (1.0, Color32::DARK_GRAY),
+            StrokeKind::Middle,
+        );
+        ui.painter().rect(
+            shifted_rect,
+            3.0,
+            Color32::LIGHT_GRAY,
+            (2.0, Color32::DARK_RED),
+            StrokeKind::Middle,
+        );
+        ui.painter().text(
+            shifted_rect.center_top() + vec2(0.0, SHIM),
+            egui::Align2::CENTER_TOP,
+            &self.name,
+            egui::FontId::monospace(10.0),
+            Color32::BLACK,
+        );
+        self.render_labels_with_box(shifted_rect, ui);
+    }
+    pub fn render_still(&self, ui: &mut Ui) {
+        let egui_box = self.inner;
+        ui.painter().rect(
+            egui_box,
+            3.0,
+            Color32::LIGHT_GRAY,
+            (1.0, Color32::BLUE),
+            StrokeKind::Middle,
+        );
+        ui.painter().line_segment(
+            [
+                egui_box.center() + vec2(-MOVE_HOVER_DISTANCE / 2.0, 0.0),
+                egui_box.center() + vec2(MOVE_HOVER_DISTANCE / 2.0, 0.0),
+            ],
+            (0.5, Color32::LIGHT_RED.gamma_multiply(0.4)),
+        );
+        ui.painter().line_segment(
+            [
+                egui_box.center() + vec2(0.0, -MOVE_HOVER_DISTANCE / 2.0),
+                egui_box.center() + vec2(0.0, MOVE_HOVER_DISTANCE / 2.0),
+            ],
+            (0.5, Color32::LIGHT_RED.gamma_multiply(0.4)),
+        );
+        ui.painter().text(
+            egui_box.center_top() + vec2(0.0, SHIM),
+            egui::Align2::CENTER_TOP,
+            &self.name,
+            egui::FontId::monospace(10.0),
+            Color32::BLACK,
+        );
+        self.render_labels_with_box(egui_box, ui);
+    }
+    fn render_labels_with_box(&self, bbox: Rect, ui: &mut Ui) {
+        for label in &self.labels {
+            let (align, text_pos, shift) = match label.side {
+                LabelSide::East => (
+                    egui::Align2::RIGHT_CENTER,
+                    pos2(bbox.right() - SHIM, bbox.center().y + label.offset),
+                    vec2(SHIM, 0.0),
+                ),
+                LabelSide::West => (
+                    egui::Align2::LEFT_CENTER,
+                    pos2(bbox.left() + SHIM, bbox.center().y + label.offset),
+                    vec2(-SHIM, 0.0),
+                ),
+            };
+            ui.painter().circle(
+                text_pos + shift,
+                PORT_RADIUS,
+                Color32::DARK_GRAY,
+                (0.5, Color32::DARK_RED),
+            );
+            ui.painter().text(
+                text_pos,
+                align,
+                &label.text,
+                egui::FontId::monospace(8.0),
+                Color32::BLACK,
+            );
         }
     }
     pub fn anchor_point(&self, id: LabelId) -> Pos2 {

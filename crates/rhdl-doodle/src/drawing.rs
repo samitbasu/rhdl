@@ -1,18 +1,84 @@
-use egui::{Color32, Id, Pos2, Rect, StrokeKind, Ui, Vec2, pos2, vec2};
+use egui::{
+    Color32, CursorIcon, Id, PointerButton, Pos2, Rect, Response, StrokeKind, Ui, Vec2, pos2, vec2,
+};
 
 use crate::{
     geometry::minimum_distance_and_location,
-    grid::{GRID_SIZE, SHIM, grid, round_to_grid},
+    grid::{
+        GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, SHIM, grid, grid_rect, round_even_grid,
+        round_to_grid,
+    },
     label::LabelSide,
     polyline::{LineId, PolyLine},
-    rectbox::{LineAnchor, ModificationKind, RectBox, RectId},
+    rectbox::{LineAnchor, ModificationKind, RectBox, RectId, control_corner, resize_rect},
 };
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ResizeMode {
+    LeftTop,
+    RightTop,
+    LeftBottom,
+    RightBottom,
+    CenterTop,
+    CenterBottom,
+}
+
+const RESIZE_MODES: &[ResizeMode] = &[
+    ResizeMode::LeftTop,
+    ResizeMode::RightTop,
+    ResizeMode::LeftBottom,
+    ResizeMode::RightBottom,
+    ResizeMode::CenterTop,
+    ResizeMode::CenterBottom,
+];
+
+#[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
 pub enum State {
+    #[default]
     Idle,
-    AddingRect,
-    ResizingRect,
+    Panning,
+    AddingRect {
+        start_pos: Pos2,
+        end_pos: Pos2,
+    },
+    MovingRect {
+        rect: RectId,
+        delta_pos: Vec2,
+    },
+    Selected {
+        rect: RectId,
+    },
+    PotentialResize {
+        rect: RectId,
+        mode: ResizeMode,
+    },
+    ResizingRect {
+        rect: RectId,
+        mode: ResizeMode,
+        delta_pos: Vec2,
+    },
     EditingLine,
+}
+
+impl State {
+    pub fn cursor(&self) -> CursorIcon {
+        match self {
+            State::PotentialResize { mode, .. } | State::ResizingRect { mode, .. } => match mode {
+                ResizeMode::LeftTop | ResizeMode::RightBottom => CursorIcon::ResizeNwSe,
+                ResizeMode::RightTop | ResizeMode::LeftBottom => CursorIcon::ResizeNeSw,
+                ResizeMode::CenterTop => CursorIcon::ResizeNorth,
+                ResizeMode::CenterBottom => CursorIcon::ResizeSouth,
+            },
+            _ => CursorIcon::Default,
+        }
+    }
+    pub fn selected_id(&self) -> Option<RectId> {
+        match self {
+            State::Selected { rect } => Some(*rect),
+            State::PotentialResize { rect, .. } | State::ResizingRect { rect, .. } => Some(*rect),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Default)]
@@ -24,9 +90,9 @@ pub struct Drawing {
     pub line_add_anchor: Option<LineAnchor>,
     pub line_add_set: Vec<Pos2>,
     pub line_add_current: Option<Pos2>,
+    state: State,
 }
 
-const PORT_RADIUS: f32 = 3.0;
 const HIT_DISTANCE: f32 = 10.0;
 
 fn grid_vec(vec: Vec2) -> Vec2 {
@@ -44,6 +110,9 @@ impl Drawing {
     }
     pub fn rect(&self, id: RectId) -> Option<&RectBox> {
         self.rect_boxes.iter().find(|r| r.id() == id)
+    }
+    pub fn rect_mut(&mut self, id: RectId) -> Option<&mut RectBox> {
+        self.rect_boxes.iter_mut().find(|r| r.id() == id)
     }
     pub fn selected_rect_mut(&mut self) -> Option<&mut RectBox> {
         self.selected
@@ -72,14 +141,12 @@ impl Drawing {
             rect_box.add_label("new label".to_string(), LabelSide::East, offset + 10.0);
         }
     }
-    pub fn add_rect_box(&mut self, center: Pos2, size: Vec2) -> &mut RectBox {
-        let center = grid(center);
-        let size = grid_vec(size);
+    pub fn add_rect_box(&mut self, start: Pos2, end: Pos2) -> &mut RectBox {
         let id = self.rect_id;
         self.rect_id = self.rect_id.next();
         self.rect_boxes.push(RectBox::new(
             "Untitled".to_string(),
-            Rect::from_center_size(center, size),
+            Rect::from_two_pos(start, end),
             id,
         ));
         self.rect_boxes.last_mut().unwrap()
@@ -469,17 +536,284 @@ impl Drawing {
             self.line_add_current = None;
         }
     }
+
+    pub fn update_ro(&self, ui: &mut Ui) {
+        ui.output_mut(|o| o.cursor_icon = self.state.cursor());
+        (-100..=100).map(|y| y as f32 * GRID_SIZE).for_each(|h| {
+            ui.painter().hline(
+                -10_000.0f32..=10_000.0f32,
+                h,
+                (0.15, Color32::LIGHT_GRAY.linear_multiply(0.3)),
+            );
+        });
+        (-100..=100).map(|x| x as f32 * GRID_SIZE).for_each(|v| {
+            ui.painter().vline(
+                v,
+                -10_000.0f32..=10_000.0f32,
+                (0.15, Color32::LIGHT_GRAY.linear_multiply(0.3)),
+            );
+        });
+        // Draw the wires
+        for poly_line in self.poly_lines.iter() {
+            if poly_line.editing.is_some() {
+                let points = std::iter::once(self.anchor(poly_line.start))
+                    .chain(poly_line.points.iter().map(|p| grid(*p)))
+                    .chain(std::iter::once(self.anchor(poly_line.end)))
+                    .collect::<Vec<_>>();
+                ui.painter()
+                    .add(egui::Shape::line(points, (1.0, Color32::DARK_GRAY)));
+            }
+            let points = std::iter::once(self.anchor(poly_line.start))
+                .chain(poly_line.points.iter().cloned())
+                .chain(std::iter::once(self.anchor(poly_line.end)))
+                .collect::<Vec<_>>();
+            ui.painter().add(egui::Shape::line(
+                points.clone(),
+                (1.0, Color32::DARK_GREEN),
+            ));
+            if let Some(edit_pos) = poly_line.edit_point() {
+                ui.painter().circle(
+                    edit_pos,
+                    1.5,
+                    Color32::LIGHT_GRAY,
+                    (0.5, Color32::DARK_BLUE),
+                );
+            }
+        }
+
+        for rect_box in self.rect_boxes.iter() {
+            let egui_box = rect_box.inner;
+            let is_dragging = rect_box.edit_kind.is_some();
+            let is_selected = self.selected == Some(rect_box.id());
+            let stroke = if is_dragging {
+                (2.0, Color32::DARK_RED)
+            } else if is_selected {
+                (2.0, Color32::YELLOW)
+            } else {
+                (1.0, Color32::DARK_BLUE)
+            };
+            let mut is_resizing = false;
+            if let State::MovingRect { rect, delta_pos } = self.state
+                && rect == rect_box.id()
+            {
+                rect_box.render_moving(ui, delta_pos);
+            } else if let State::ResizingRect {
+                rect,
+                delta_pos,
+                mode,
+            } = self.state
+                && rect == rect_box.id()
+            {
+                is_resizing = true;
+                rect_box.render_resizing(ui, mode, delta_pos);
+            } else {
+                rect_box.render_still(ui);
+            }
+            if self.state.selected_id() == Some(rect_box.id()) && !is_resizing {
+                rect_box.render_control_frame(ui);
+            }
+        }
+        if let Some(start_anchor) = self.line_add_anchor
+            && let Some(current_pos) = self.line_add_current
+        {
+            let points = std::iter::once(self.anchor(start_anchor))
+                .chain(self.line_add_set.iter().copied())
+                .chain(std::iter::once(current_pos))
+                .collect::<Vec<_>>();
+            for segment in points.windows(2) {
+                ui.painter()
+                    .line_segment([segment[0], segment[1]], (0.5, Color32::DARK_RED));
+            }
+        }
+        if let State::AddingRect { start_pos, end_pos } = &self.state {
+            let rect = Rect::from_two_pos(*start_pos, *end_pos);
+            ui.painter().rect(
+                rect,
+                3.0,
+                Color32::TRANSPARENT,
+                (1.0, Color32::DARK_RED),
+                StrokeKind::Middle,
+            );
+        }
+    }
+    fn get_center_hover_candidate(&self, pos: Pos2) -> Option<RectId> {
+        self.rect_boxes.iter().find_map(|r| {
+            if r.inner.center().distance(pos) < MOVE_HOVER_DISTANCE {
+                Some(r.id())
+            } else {
+                None
+            }
+        })
+    }
+    pub fn update_state(&mut self, response: Response) {
+        match self.state {
+            State::Idle => {
+                if response.drag_started_by(egui::PointerButton::Primary)
+                    && let Some(pos_start) = response.interact_pointer_pos()
+                {
+                    if let Some(rbox) = self.rect_boxes.iter().find(|r| r.inner.contains(pos_start))
+                    {
+                        self.state = State::MovingRect {
+                            rect: rbox.id(),
+                            delta_pos: vec2(0.0, 0.0),
+                        };
+                        return;
+                    }
+                    self.state = State::AddingRect {
+                        start_pos: grid(pos_start),
+                        end_pos: grid(pos_start),
+                    };
+                } else if response.is_pointer_button_down_on()
+                    && response
+                        .ctx
+                        .input(|i| i.pointer.button_down(PointerButton::Secondary))
+                {
+                    self.state = State::Panning;
+                }
+                if response.clicked_by(PointerButton::Primary)
+                    && let Some(pos) = response.interact_pointer_pos()
+                {
+                    for rect_box in &self.rect_boxes {
+                        if rect_box.inner.contains(pos) {
+                            self.state = State::Selected {
+                                rect: rect_box.id(),
+                            };
+                            break;
+                        }
+                    }
+                }
+            }
+            State::Selected { rect } => {
+                if response.clicked_by(PointerButton::Primary)
+                    && let Some(pos) = response.interact_pointer_pos()
+                {
+                    if let Some(bbox) = self.rect_boxes.iter().find(|r| r.inner.contains(pos)) {
+                        self.state = State::Selected { rect: bbox.id() }
+                    } else {
+                        self.state = State::Idle;
+                    }
+                }
+                if response.drag_started_by(PointerButton::Primary)
+                    && let Some(pos) = response.interact_pointer_pos()
+                {
+                    if let Some(bbox) = self.rect_boxes.iter().find(|r| r.inner.contains(pos)) {
+                        self.state = State::MovingRect {
+                            rect: bbox.id(),
+                            delta_pos: vec2(0.0, 0.0),
+                        };
+                        return;
+                    }
+                    self.state = State::AddingRect {
+                        start_pos: grid(pos),
+                        end_pos: grid(pos),
+                    }
+                }
+                if let Some(hover_pos) = response.hover_pos()
+                    && let Some(bbox) = self.rect(rect)
+                {
+                    for mode in RESIZE_MODES {
+                        if hover_pos.distance(control_corner(&bbox.inner, *mode))
+                            < MOVE_HOVER_DISTANCE
+                        {
+                            self.state = State::PotentialResize { rect, mode: *mode };
+                            return;
+                        }
+                    }
+                }
+            }
+            State::PotentialResize { rect, mode } => {
+                if let Some(hover_pos) = response.hover_pos()
+                    && let Some(bbox) = self.rect(rect)
+                    && hover_pos.distance(control_corner(&bbox.inner, mode)) >= MOVE_HOVER_DISTANCE
+                {
+                    self.state = State::Selected { rect };
+                }
+                if response.drag_started_by(egui::PointerButton::Primary) {
+                    self.state = State::ResizingRect {
+                        rect,
+                        delta_pos: vec2(0.0, 0.0),
+                        mode,
+                    }
+                }
+            }
+            State::ResizingRect {
+                rect,
+                mode,
+                delta_pos,
+            } => {
+                if response.dragged_by(egui::PointerButton::Primary) {
+                    let delta = response.drag_delta();
+                    self.state = State::ResizingRect {
+                        rect,
+                        mode,
+                        delta_pos: delta_pos + delta,
+                    }
+                } else if (response.drag_stopped_by(egui::PointerButton::Primary)
+                    || !response.dragged())
+                    && let Some(bbox) = self.rect_mut(rect)
+                {
+                    bbox.inner = grid_rect(resize_rect(&bbox.inner, mode, delta_pos));
+                    self.state = State::Selected { rect };
+                }
+            }
+            State::MovingRect { rect, delta_pos } => {
+                if response.dragged_by(egui::PointerButton::Primary) {
+                    let delta = response.drag_delta();
+                    self.state = State::MovingRect {
+                        rect,
+                        delta_pos: delta_pos + delta,
+                    }
+                } else if (response.drag_stopped_by(egui::PointerButton::Primary)
+                    || !response.dragged())
+                    && let Some(rbox) = self.rect_mut(rect)
+                {
+                    rbox.inner = grid_rect(rbox.inner.translate(delta_pos));
+                    self.state = State::Selected { rect };
+                }
+            }
+            State::AddingRect { start_pos, end_pos } => {
+                if response.dragged_by(egui::PointerButton::Primary)
+                    && let Some(pos) = response.interact_pointer_pos()
+                {
+                    self.state = State::AddingRect {
+                        start_pos,
+                        end_pos: round_even_grid(start_pos, pos),
+                    };
+                } else if response.drag_stopped_by(egui::PointerButton::Primary) {
+                    let candidate_rect = Rect::from_two_pos(start_pos, end_pos);
+                    if candidate_rect.width() > GRID_SIZE && candidate_rect.height() > GRID_SIZE {
+                        let rect = self.add_rect_box(start_pos, end_pos);
+                        self.state = State::Selected { rect: rect.id() };
+                    } else {
+                        self.state = State::Idle;
+                    }
+                }
+                if response
+                    .ctx
+                    .input(|i| i.pointer.button_down(PointerButton::Secondary))
+                {
+                    self.state = State::Panning;
+                }
+            }
+            State::Panning => {
+                if response.drag_stopped() {
+                    self.state = State::Idle;
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 pub fn demo_drawing() -> Drawing {
     let mut drawing = Drawing::default();
-    let box1 = drawing.add_rect_box(pos2(100.0, 100.0), vec2(80.0, 60.0));
+    let box1 = drawing.add_rect_box(pos2(100.0, 100.0), pos2(180.0, 160.0));
     let anchor1 = box1.add_label(
         "i.1.write_logic".to_string(),
         LabelSide::East,
         -GRID_SIZE * 2.0,
     );
-    let box2 = drawing.add_rect_box(pos2(300.0, 200.0), vec2(120.0, 90.0));
+    let box2 = drawing.add_rect_box(pos2(300.0, 200.0), pos2(420.0, 290.0));
     let anchor2 = box2.add_label(
         "o.1.read_logic".to_string(),
         LabelSide::West,
