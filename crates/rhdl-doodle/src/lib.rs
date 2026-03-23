@@ -5,3 +5,4 @@ pub mod grid;
 pub mod label;
 pub mod polyline;
 pub mod rectbox;
+pub mod render;

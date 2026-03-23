@@ -2,10 +2,7 @@ use egui::{Color32, Pos2, Rect, StrokeKind, Ui, Vec2, pos2, vec2};
 
 use crate::{
     drawing::ResizeMode,
-    grid::{
-        GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, SHIM, grid, grid_rect, round_to_even_grid,
-        round_to_grid, snap,
-    },
+    grid::{GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, SHIM, grid_rect, round_to_grid, snap},
     label::{Label, LabelId, LabelSide},
 };
 
@@ -90,203 +87,58 @@ impl RectBox {
             label_id: LabelId::default(),
         }
     }
-    pub fn render_control_frame(&self, ui: &mut Ui) {
-        let bbox = self.inner;
-        ui.painter().rect(
-            bbox,
-            0.0,
-            Color32::TRANSPARENT,
-            (0.5, Color32::DARK_RED),
-            StrokeKind::Middle,
-        );
-        for pos in [
-            bbox.left_top(),
-            bbox.right_top(),
-            bbox.left_bottom(),
-            bbox.right_bottom(),
-            bbox.center_top(),
-            bbox.center_bottom(),
-        ] {
-            ui.painter().rect(
-                Rect::from_center_size(pos, vec2(3.0, 3.0)),
-                0.0,
-                Color32::WHITE,
-                (0.5, Color32::BLACK),
-                StrokeKind::Middle,
-            );
+    pub fn next_port_offset(&self, side: LabelSide) -> Option<f32> {
+        let max_pos = (self.inner.height() / GRID_SIZE) as i32 - 1;
+        if max_pos <= 0 {
+            return None;
         }
-        [
-            self.control_pin_location_east(),
-            self.control_pin_location_west(),
-        ]
-        .iter()
-        .for_each(|&pin_pos| {
-            ui.painter()
-                .circle(pin_pos, PORT_RADIUS, Color32::WHITE, (0.5, Color32::BLACK));
-            ui.painter().line_segment(
-                [
-                    pin_pos + vec2(-PORT_RADIUS / 2.0, 0.0),
-                    pin_pos + vec2(PORT_RADIUS / 2.0, 0.0),
-                ],
-                (1.0, Color32::BLACK),
-            );
-            ui.painter().line_segment(
-                [
-                    pin_pos + vec2(0.0, -PORT_RADIUS / 2.0),
-                    pin_pos + vec2(0.0, PORT_RADIUS / 2.0),
-                ],
-                (1.0, Color32::BLACK),
-            );
-        });
+        (0_u32..max_pos as u32).find_map(|ndx| {
+            let offset = ndx as f32 * GRID_SIZE;
+            if self
+                .labels
+                .iter()
+                .any(|l| l.side == side && (l.offset - offset).abs() < GRID_SIZE * 0.6)
+            {
+                None
+            } else {
+                Some(offset)
+            }
+        })
     }
-    pub fn next_port_offset(&self, side: LabelSide) -> f32 {
-        (0_u32..)
-            .find_map(|ndx| {
-                let sign = if ndx.is_multiple_of(2) {
-                    1.0f32
-                } else {
-                    -1.0f32
-                };
-                let offset = ndx.div_ceil(2) as f32 * sign * GRID_SIZE;
-                if self
-                    .labels
-                    .iter()
-                    .any(|l| l.side == side && (l.offset - offset).abs() < GRID_SIZE * 0.6)
-                {
-                    None
-                } else {
-                    Some(offset)
-                }
-            })
-            .unwrap()
-    }
-    pub fn control_pin_location_east(&self) -> Pos2 {
+    pub fn control_pin_location_east(&self) -> Option<Pos2> {
         // Find the first free offset
         // We want to check 0, -1, 1, -2, 2,..
-        let offset = self.next_port_offset(LabelSide::East);
-        self.inner.right_center() + vec2(GRID_SIZE, offset)
+        let offset = self.next_port_offset(LabelSide::East)?;
+        Some(self.inner.right_top() + vec2(GRID_SIZE, GRID_SIZE + offset))
     }
-    pub fn control_pin_location_west(&self) -> Pos2 {
-        let offset = self.next_port_offset(LabelSide::West);
-        self.inner.left_center() + vec2(-GRID_SIZE, offset)
+    pub fn control_pin_location_west(&self) -> Option<Pos2> {
+        let offset = self.next_port_offset(LabelSide::West)?;
+        Some(self.inner.left_top() + vec2(-GRID_SIZE, GRID_SIZE + offset))
     }
-    pub fn render_resizing(&self, ui: &mut Ui, mode: ResizeMode, delta: Vec2) {
-        let resized_rect = resize_rect(&self.inner, mode, delta);
-        let predicted_rect = grid_rect(resized_rect);
-        ui.painter().rect(
-            predicted_rect,
-            3.0,
-            Color32::TRANSPARENT,
-            (1.0, Color32::DARK_GRAY),
-            StrokeKind::Middle,
-        );
-        ui.painter().rect(
-            resized_rect,
-            3.0,
-            Color32::LIGHT_GRAY,
-            (2.0, Color32::DARK_RED),
-            StrokeKind::Middle,
-        );
-        ui.painter().text(
-            resized_rect.center_top() + vec2(0.0, SHIM),
-            egui::Align2::CENTER_TOP,
-            &self.name,
-            egui::FontId::monospace(10.0),
-            Color32::BLACK,
-        );
-    }
-    pub fn render_moving(&self, ui: &mut Ui, delta: Vec2) {
-        let shifted_rect = self.inner.translate(delta);
-        let predicted_rect = grid_rect(shifted_rect);
-        ui.painter().rect(
-            predicted_rect,
-            3.0,
-            Color32::TRANSPARENT,
-            (1.0, Color32::DARK_GRAY),
-            StrokeKind::Middle,
-        );
-        ui.painter().rect(
-            shifted_rect,
-            3.0,
-            Color32::LIGHT_GRAY,
-            (2.0, Color32::DARK_RED),
-            StrokeKind::Middle,
-        );
-        ui.painter().text(
-            shifted_rect.center_top() + vec2(0.0, SHIM),
-            egui::Align2::CENTER_TOP,
-            &self.name,
-            egui::FontId::monospace(10.0),
-            Color32::BLACK,
-        );
-        self.render_labels_with_box(shifted_rect, ui);
-    }
-    pub fn render_still(&self, ui: &mut Ui) {
-        let egui_box = self.inner;
-        ui.painter().rect(
-            egui_box,
-            3.0,
-            Color32::LIGHT_GRAY,
-            (1.0, Color32::BLUE),
-            StrokeKind::Middle,
-        );
-        ui.painter().line_segment(
-            [
-                egui_box.center() + vec2(-MOVE_HOVER_DISTANCE / 2.0, 0.0),
-                egui_box.center() + vec2(MOVE_HOVER_DISTANCE / 2.0, 0.0),
-            ],
-            (0.5, Color32::LIGHT_RED.gamma_multiply(0.4)),
-        );
-        ui.painter().line_segment(
-            [
-                egui_box.center() + vec2(0.0, -MOVE_HOVER_DISTANCE / 2.0),
-                egui_box.center() + vec2(0.0, MOVE_HOVER_DISTANCE / 2.0),
-            ],
-            (0.5, Color32::LIGHT_RED.gamma_multiply(0.4)),
-        );
-        ui.painter().text(
-            egui_box.center_top() + vec2(0.0, SHIM),
-            egui::Align2::CENTER_TOP,
-            &self.name,
-            egui::FontId::monospace(10.0),
-            Color32::BLACK,
-        );
-        self.render_labels_with_box(egui_box, ui);
-    }
-    fn render_labels_with_box(&self, bbox: Rect, ui: &mut Ui) {
-        for label in &self.labels {
-            let (align, text_pos, shift) = match label.side {
-                LabelSide::East => (
-                    egui::Align2::RIGHT_CENTER,
-                    pos2(bbox.right() - SHIM, bbox.center().y + label.offset),
-                    vec2(SHIM, 0.0),
-                ),
-                LabelSide::West => (
-                    egui::Align2::LEFT_CENTER,
-                    pos2(bbox.left() + SHIM, bbox.center().y + label.offset),
-                    vec2(-SHIM, 0.0),
-                ),
-            };
-            ui.painter().circle(
-                text_pos + shift,
-                PORT_RADIUS,
-                Color32::DARK_GRAY,
-                (0.5, Color32::DARK_RED),
-            );
-            ui.painter().text(
-                text_pos,
-                align,
-                &label.text,
-                egui::FontId::monospace(8.0),
-                Color32::BLACK,
-            );
-        }
+    pub fn control_pin_for_label(&self, label_id: LabelId) -> Option<Pos2> {
+        self.labels
+            .iter()
+            .find(|l| l.id == label_id)
+            .map(|label| match label.side {
+                LabelSide::East => {
+                    self.inner.right_top() + vec2(GRID_SIZE, GRID_SIZE + label.offset)
+                }
+                LabelSide::West => {
+                    self.inner.left_top() + vec2(-GRID_SIZE, GRID_SIZE + label.offset)
+                }
+            })
     }
     pub fn anchor_point(&self, id: LabelId) -> Pos2 {
         let label = self.labels.iter().find(|l| l.id == id).unwrap();
         match label.side {
-            LabelSide::East => pos2(self.inner.right(), self.inner.center().y + label.offset),
-            LabelSide::West => pos2(self.inner.left(), self.inner.center().y + label.offset),
+            LabelSide::East => pos2(
+                self.inner.right(),
+                self.inner.top() + GRID_SIZE + label.offset,
+            ),
+            LabelSide::West => pos2(
+                self.inner.left(),
+                self.inner.top() + GRID_SIZE + label.offset,
+            ),
         }
     }
     pub fn add_label(&mut self, text: String, side: LabelSide, offset: f32) -> LineAnchor {
@@ -337,49 +189,7 @@ impl RectBox {
         self.inner = self.inner.translate(delta);
     }
     pub fn predicted_rect(&self) -> Rect {
-        let min_height = round_to_even_grid(
-            self.labels
-                .iter()
-                .map(|label| label.offset.abs() * 2.0)
-                .fold(0.0, f32::max)
-                + SHIM * 2.0,
-        );
-        if let Some(save_state) = &self.edit_kind {
-            match save_state.kind {
-                ModificationKind::Move => grid_rect(self.inner),
-                ModificationKind::ResizeRightBottom => {
-                    let top_left = grid(save_state.orig.left_top());
-                    let mut bottom_right = grid(self.inner.right_bottom());
-                    let height = round_to_even_grid((bottom_right.y - top_left.y).max(min_height));
-                    bottom_right.y = top_left.y + height;
-                    Rect::from_two_pos(top_left, bottom_right)
-                }
-                ModificationKind::ResizeRightTop => {
-                    let bottom_left = grid(save_state.orig.left_bottom());
-                    let mut top_right = grid(self.inner.right_top());
-                    let height = round_to_even_grid((bottom_left.y - top_right.y).max(min_height));
-                    top_right.y = bottom_left.y - height;
-                    Rect::from_two_pos(bottom_left, top_right)
-                }
-                ModificationKind::ResizeLeftBottom => {
-                    let top_right = grid(save_state.orig.right_top());
-                    let mut bottom_left = grid(self.inner.left_bottom());
-                    let height = round_to_even_grid((bottom_left.y - top_right.y).max(min_height));
-                    bottom_left.y = top_right.y + height;
-                    Rect::from_two_pos(top_right, bottom_left)
-                }
-                ModificationKind::ResizeLeftTop => {
-                    let bottom_right = grid(save_state.orig.right_bottom());
-                    let mut top_left = grid(self.inner.left_top());
-                    let height = round_to_even_grid((bottom_right.y - top_left.y).max(min_height));
-                    top_left.y = bottom_right.y - height;
-                    Rect::from_two_pos(top_left, bottom_right)
-                }
-                _ => grid_rect(self.inner),
-            }
-        } else {
-            grid_rect(self.inner)
-        }
+        grid_rect(self.inner)
     }
     pub fn complete_edit(&mut self) {
         self.inner = self.predicted_rect();
