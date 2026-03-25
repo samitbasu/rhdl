@@ -7,7 +7,10 @@ use crate::{
     label::{LabelId, LabelSide},
     polyline::{LineId, PolyLine},
     rectbox::{LineAnchor, RectBox, RectId, control_corner, resize_rect},
-    render::{FocusResult, estimate_bbox_for_label, get_hamburger_rect, render_rect_box},
+    render::{
+        FocusResult, estimate_bbox_for_label, get_control_pin_bbox, get_hamburger_rect,
+        render_rect_box,
+    },
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -29,7 +32,7 @@ const RESIZE_MODES: &[ResizeMode] = &[
     ResizeMode::CenterBottom,
 ];
 
-#[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
+#[derive(Clone, PartialEq, Eq, Default, Debug)]
 pub enum State {
     #[default]
     Idle,
@@ -74,6 +77,13 @@ pub enum State {
         rect: RectId,
         label: LabelId,
     },
+    PortPinHovered {
+        rect: RectId,
+        label: LabelId,
+    },
+    AddingRoute {
+        anchor: LineAnchor,
+    },
 }
 
 impl State {
@@ -86,18 +96,9 @@ impl State {
             },
             State::PortLabelHovered { .. } => CursorIcon::Text,
             State::PortLabelGripHovered { .. } => CursorIcon::Grab,
+            State::PortPinHovered { .. } | State::AddingRoute { .. } => CursorIcon::Crosshair,
             State::PortDragged { .. } => CursorIcon::Grabbing,
             _ => CursorIcon::Default,
-        }
-    }
-    pub fn selected_id(&self) -> Option<RectId> {
-        match self {
-            State::Selected { rect } => Some(*rect),
-            State::PotentialResize { rect, .. } | State::ResizingRect { rect, .. } => Some(*rect),
-            State::PortDragged { rect, .. } => Some(*rect),
-            State::PortLabelHovered { rect, .. } => Some(*rect),
-            State::PortLabelGripHovered { rect, .. } => Some(*rect),
-            _ => None,
         }
     }
 }
@@ -111,6 +112,7 @@ pub struct Drawing {
     pub line_add_anchor: Option<LineAnchor>,
     pub line_add_set: Vec<Pos2>,
     pub line_add_current: Option<Pos2>,
+    pub adding_points: Vec<Pos2>,
     state: State,
 }
 
@@ -187,7 +189,7 @@ impl Drawing {
             editing: None,
         });
     }
-    pub fn update_ro(&mut self, ui: &mut Ui) {
+    pub fn render(&mut self, ui: &mut Ui) {
         ui.output_mut(|o| o.cursor_icon = self.state.cursor());
         (-100..=100).map(|y| y as f32 * GRID_SIZE).for_each(|h| {
             ui.painter().hline(
@@ -258,6 +260,16 @@ impl Drawing {
                 (1.0, Color32::DARK_RED),
                 StrokeKind::Middle,
             );
+        }
+        if let State::AddingRoute { anchor } = &self.state {
+            let start_pos = self.anchor(*anchor);
+            let points = std::iter::once(start_pos)
+                .chain(self.adding_points.iter().copied())
+                .collect::<Vec<_>>();
+            for segment in points.windows(2) {
+                ui.painter()
+                    .line_segment([segment[0], segment[1]], (0.5, Color32::DARK_RED));
+            }
         }
     }
     pub fn update_state(&mut self, response: Response) {
@@ -394,6 +406,15 @@ impl Drawing {
                             };
                             return;
                         }
+                        let pin_location = get_control_pin_bbox(bbox.inner, label);
+                        if pin_location.contains(hover_pos) {
+                            eprintln!("Hovering over pin for label {}", label.text);
+                            self.state = State::PortPinHovered {
+                                rect,
+                                label: label.id,
+                            };
+                            return;
+                        }
                     }
                 }
                 if response.double_clicked_by(PointerButton::Primary) {
@@ -441,13 +462,31 @@ impl Drawing {
                 }
                 if let Some(hover_pos) = response.hover_pos()
                     && let Some(bbox) = self.rect(rect)
-                    && let Some(label) = bbox.labels.iter().find(|l| l.id == label)
+                    && let Some(label) = bbox.label(label)
                 {
                     let hamburger_rect = get_hamburger_rect(bbox.inner, label).expand(2.0);
                     if !hamburger_rect.contains(hover_pos) {
                         eprintln!("No longer hovering over grip for label {}", label.text);
                         self.state = State::Selected { rect };
                     }
+                }
+            }
+            State::PortPinHovered { rect, label } => {
+                if let Some(hover_pos) = response.hover_pos()
+                    && let Some(bbox) = self.rect(rect)
+                    && let Some(label) = bbox.label(label)
+                {
+                    let pin_location = get_control_pin_bbox(bbox.inner, label);
+                    if !pin_location.contains(hover_pos) {
+                        eprintln!("No longer hovering over pin for label {}", label.text);
+                        self.state = State::Selected { rect };
+                    }
+                }
+                if response.clicked_by(egui::PointerButton::Primary) {
+                    self.adding_points.clear();
+                    self.state = State::AddingRoute {
+                        anchor: LineAnchor { rect, label },
+                    };
                 }
             }
             State::ResizingRect {
@@ -555,6 +594,14 @@ impl Drawing {
                             label.side = LabelSide::East;
                         }
                     }
+                }
+            }
+            State::AddingRoute { anchor } => {
+                if response.clicked_by(egui::PointerButton::Primary) {
+                    if let Some(pos) = response.interact_pointer_pos() {
+                        self.adding_points.push(grid(pos));
+                    }
+                    self.state = State::AddingRoute { anchor };
                 }
             }
             _ => {}

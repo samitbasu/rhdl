@@ -99,7 +99,7 @@ fn render_frame(rect: &RectBox, ui: &mut Ui) {
     );
 }
 
-fn render_normal(rect: &RectBox, grip_state: GripState, ui: &mut Ui) {
+fn render_with_grip_state(rect: &RectBox, grip_state: GripState, ui: &mut Ui) {
     render_frame(rect, ui);
     render_labels_with_box(rect.labels.iter(), rect.inner, grip_state, ui);
 }
@@ -179,6 +179,20 @@ pub fn estimate_bbox_for_label(bbox: Rect, label: &Label) -> Rect {
     }
 }
 
+pub fn get_control_pin_bbox(bbox: Rect, label: &Label) -> Rect {
+    let y_coord = bbox.top() + GRID_SIZE + label.offset;
+    match label.side {
+        LabelSide::East => Rect::from_center_size(
+            pos2(bbox.right() + GRID_SIZE, y_coord),
+            vec2(PORT_RADIUS * 2.0, PORT_RADIUS * 2.0),
+        ),
+        LabelSide::West => Rect::from_center_size(
+            pos2(bbox.left() - GRID_SIZE, y_coord),
+            vec2(PORT_RADIUS * 2.0, PORT_RADIUS * 2.0),
+        ),
+    }
+}
+
 pub fn get_hamburger_rect(bbox: Rect, label: &Label) -> Rect {
     let y_coord = bbox.top() + GRID_SIZE + label.offset;
     let (text_pos, stem) = match label.side {
@@ -254,7 +268,7 @@ pub fn draw_control_frame(rrect: &RectBox, ui: &mut Ui) -> Option<()> {
 }
 
 fn render_selected(target: &RectBox, ui: &mut Ui) {
-    render_normal(target, GripState::Drawn, ui);
+    render_with_grip_state(target, GripState::Drawn, ui);
     draw_control_frame(target, ui);
 }
 
@@ -277,6 +291,18 @@ pub fn render_rect_box(target: &mut RectBox, state: &State, ui: &mut Ui) -> Focu
             if target.id() == *rect =>
         {
             render_selected(target, ui);
+        }
+        State::PortPinHovered { rect, label } if target.id() == *rect => {
+            render_selected(target, ui);
+            if let Some(label) = target.label(*label) {
+                let bbox = get_control_pin_bbox(target.inner, label);
+                ui.painter().circle(
+                    bbox.center(),
+                    PORT_RADIUS,
+                    Color32::GRAY,
+                    (1.0, Color32::BLACK),
+                );
+            }
         }
         State::ResizingRect {
             rect,
@@ -343,7 +369,7 @@ pub fn render_rect_box(target: &mut RectBox, state: &State, ui: &mut Ui) -> Focu
                 response.request_focus();
             }
         }
-        _ => render_normal(target, GripState::Hidden, ui),
+        _ => render_with_grip_state(target, GripState::Hidden, ui),
     }
     FocusResult::KeptFocus
 }

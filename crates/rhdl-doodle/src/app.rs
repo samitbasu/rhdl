@@ -83,7 +83,7 @@ impl egui_tiles::Behavior<Pane> for App {
                     .zoom_range(0.1..=4.0)
                     .drag_pan_buttons(DragPanButtons::SECONDARY);
                 let response = scene.show(ui, &mut self.scene_rect, |ui| {
-                    self.drawing.update_ro(ui);
+                    self.drawing.render(ui);
                 });
                 self.drawing.update_state(response.response);
                 /*                 let response = response.response;
