@@ -1,20 +1,13 @@
 use egui::{
-    Color32, CursorIcon, PointerButton, Pos2, Rect, Response, StrokeKind, TextEdit, Ui, Vec2, pos2,
-    vec2,
+    Color32, CursorIcon, PointerButton, Pos2, Rect, Response, StrokeKind, Ui, Vec2, pos2, vec2,
 };
 
 use crate::{
-    grid::{
-        GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, PORT_TEXT_SIZE, SHIM, TITLE_TEXT_SIZE, grid,
-        grid_rect,
-    },
+    grid::{GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, grid, grid_rect},
     label::{LabelId, LabelSide},
     polyline::{LineId, PolyLine},
     rectbox::{LineAnchor, RectBox, RectId, control_corner, resize_rect},
-    render::{
-        FocusResult, GripState, draw_control_frame, draw_dragged_label, draw_moving_rect,
-        draw_resizing_rect, estimate_bbox_for_label, get_hamburger_rect, render_rect_box,
-    },
+    render::{FocusResult, estimate_bbox_for_label, get_hamburger_rect, render_rect_box},
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

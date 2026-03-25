@@ -1,10 +1,10 @@
-use egui::{Color32, Pos2, Rect, Response, Stroke, StrokeKind, TextEdit, Ui, Vec2, pos2, vec2};
+use egui::{Color32, Rect, Stroke, StrokeKind, TextEdit, Ui, Vec2, pos2, vec2};
 
 use crate::{
     drawing::{ResizeMode, State},
     grid::{
-        CONTROL_HANDLE_SIZE, GRID_SIZE, GRIP_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS,
-        PORT_TEXT_SIZE, SHIM, TITLE_TEXT_SIZE, grid_rect,
+        CONTROL_HANDLE_SIZE, GRID_SIZE, GRIP_SIZE, PORT_RADIUS, PORT_TEXT_SIZE, SHIM,
+        TITLE_TEXT_SIZE, grid_rect,
     },
     label::{Label, LabelId, LabelSide},
     rectbox::{RectBox, resize_rect},

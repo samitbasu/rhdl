@@ -1,8 +1,8 @@
-use egui::{Color32, Pos2, Rect, StrokeKind, Ui, Vec2, pos2, vec2};
+use egui::{Pos2, Rect, Vec2, pos2, vec2};
 
 use crate::{
     drawing::ResizeMode,
-    grid::{GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, SHIM, grid_rect, round_to_grid, snap},
+    grid::{GRID_SIZE, grid_rect, round_to_grid, snap},
     label::{Label, LabelId, LabelSide},
 };
 
