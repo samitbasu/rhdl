@@ -74,6 +74,12 @@ pub fn resize_rect(rect: &Rect, mode: ResizeMode, delta: Vec2) -> Rect {
 }
 
 impl RectBox {
+    pub fn label(&self, id: LabelId) -> Option<&Label> {
+        self.labels.iter().find(|l| l.id == id)
+    }
+    pub fn label_mut(&mut self, id: LabelId) -> Option<&mut Label> {
+        self.labels.iter_mut().find(|l| l.id == id)
+    }
     pub fn id(&self) -> RectId {
         self.id
     }
@@ -86,6 +92,28 @@ impl RectBox {
             id,
             label_id: LabelId::default(),
         }
+    }
+    pub fn is_port_offset_available(&self, side: LabelSide, offset: f32) -> bool {
+        if offset < 0.0 || offset > self.inner.height() {
+            return false;
+        }
+        self.labels
+            .iter()
+            .filter(|l| l.side == side)
+            .all(|l| (l.offset - offset).abs() >= GRID_SIZE * 0.2)
+    }
+    pub fn update_label_offset(&mut self, label_id: LabelId, delta_y: f32) {
+        let Some(label_ref) = self.label(label_id) else {
+            return;
+        };
+        let label_offset = round_to_grid(label_ref.offset + delta_y);
+        if !self.is_port_offset_available(label_ref.side, label_offset) {
+            return;
+        }
+        let Some(label_ref) = self.label_mut(label_id) else {
+            return;
+        };
+        label_ref.offset = label_offset;
     }
     pub fn next_port_offset(&self, side: LabelSide) -> Option<f32> {
         let max_pos = (self.inner.height() / GRID_SIZE) as i32 - 1;

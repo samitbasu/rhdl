@@ -4,12 +4,16 @@ use egui::{
 };
 
 use crate::{
-    grid::{GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, SHIM, grid, grid_rect},
+    grid::{
+        GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, PORT_TEXT_SIZE, SHIM, TITLE_TEXT_SIZE, grid,
+        grid_rect,
+    },
     label::{LabelId, LabelSide},
     polyline::{LineId, PolyLine},
     rectbox::{LineAnchor, RectBox, RectId, control_corner, resize_rect},
     render::{
-        draw_control_frame, draw_dragged_label, draw_moving_rect, draw_resizing_rect, render_still,
+        FocusResult, GripState, draw_control_frame, draw_dragged_label, draw_moving_rect,
+        draw_resizing_rect, estimate_bbox_for_label, get_hamburger_rect, render_rect_box,
     },
 };
 
@@ -60,13 +64,22 @@ pub enum State {
     EditingName {
         rect: RectId,
     },
-    PinPlusClicked {
-        rect: RectId,
-    },
     PortDragged {
         rect: RectId,
         label: LabelId,
         delta_pos: Vec2,
+    },
+    PortLabelHovered {
+        rect: RectId,
+        label: LabelId,
+    },
+    PortLabelGripHovered {
+        rect: RectId,
+        label: LabelId,
+    },
+    EditingLabelText {
+        rect: RectId,
+        label: LabelId,
     },
 }
 
@@ -78,6 +91,9 @@ impl State {
                 ResizeMode::RightTop | ResizeMode::LeftBottom => CursorIcon::ResizeNeSw,
                 ResizeMode::CenterTop | ResizeMode::CenterBottom => CursorIcon::ResizeVertical,
             },
+            State::PortLabelHovered { .. } => CursorIcon::Text,
+            State::PortLabelGripHovered { .. } => CursorIcon::Grab,
+            State::PortDragged { .. } => CursorIcon::Grabbing,
             _ => CursorIcon::Default,
         }
     }
@@ -86,6 +102,8 @@ impl State {
             State::Selected { rect } => Some(*rect),
             State::PotentialResize { rect, .. } | State::ResizingRect { rect, .. } => Some(*rect),
             State::PortDragged { rect, .. } => Some(*rect),
+            State::PortLabelHovered { rect, .. } => Some(*rect),
+            State::PortLabelGripHovered { rect, .. } => Some(*rect),
             _ => None,
         }
     }
@@ -220,53 +238,10 @@ impl Drawing {
             }
         }
         for rect_box in self.rect_boxes.iter_mut() {
-            let mut is_resizing = false;
-            if let State::MovingRect { rect, delta_pos } = self.state
-                && rect == rect_box.id()
-            {
-                draw_moving_rect(rect_box, ui, delta_pos);
-            } else if let State::ResizingRect {
-                rect,
-                delta_pos,
-                mode,
-            } = self.state
-                && rect == rect_box.id()
-            {
-                is_resizing = true;
-                draw_resizing_rect(rect_box, ui, mode, delta_pos);
-            } else {
-                render_still(rect_box, ui);
-            }
-            if self.state.selected_id() == Some(rect_box.id()) && !is_resizing {
-                draw_control_frame(rect_box, ui);
-            }
-            if let State::PortDragged {
-                rect,
-                label,
-                delta_pos,
-            } = self.state
-                && rect == rect_box.id()
-            {
-                draw_dragged_label(rect_box, label, delta_pos, ui);
-            }
-            if let State::EditingName { rect } = self.state
-                && rect == rect_box.id()
-            {
-                let rect_name_width = rect_box.name.len() as f32 * 10.0 + 10.0;
-                let editor_position =
-                    rect_box.inner.center_top() + vec2(-rect_name_width / 2.0, SHIM);
-                let editor_rect = Rect::from_min_size(editor_position, vec2(rect_name_width, 20.0));
-                let response = ui.place(
-                    editor_rect,
-                    TextEdit::singleline(&mut rect_box.name)
-                        .font(egui::FontId::monospace(10.0))
-                        .desired_width(f32::INFINITY),
-                );
-                if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                    self.state = State::Selected { rect };
-                } else {
-                    response.request_focus();
-                }
+            if render_rect_box(rect_box, &self.state, ui) == FocusResult::LostFocus {
+                self.state = State::Selected {
+                    rect: rect_box.id(),
+                };
             }
         }
         if let Some(start_anchor) = self.line_add_anchor
@@ -293,6 +268,12 @@ impl Drawing {
         }
     }
     pub fn update_state(&mut self, response: Response) {
+        if response.drag_started() {
+            eprintln!("Drag started this frame");
+        }
+        if response.drag_stopped() {
+            eprintln!("Drag stopped this frame");
+        }
         match self.state {
             State::Idle => {
                 if response.drag_started_by(egui::PointerButton::Primary)
@@ -401,6 +382,26 @@ impl Drawing {
                             return;
                         }
                     }
+                    for label in &bbox.labels {
+                        let label_bbox = estimate_bbox_for_label(bbox.inner, label);
+                        if label_bbox.contains(hover_pos) {
+                            eprintln!("Hovering over label {}", label.text);
+                            self.state = State::PortLabelHovered {
+                                rect,
+                                label: label.id,
+                            };
+                            return;
+                        }
+                        let hamburger_rect = get_hamburger_rect(bbox.inner, label).expand(2.0);
+                        if hamburger_rect.contains(hover_pos) {
+                            eprintln!("Hovering over grip for label {}", label.text);
+                            self.state = State::PortLabelGripHovered {
+                                rect,
+                                label: label.id,
+                            };
+                            return;
+                        }
+                    }
                 }
                 if response.double_clicked_by(PointerButton::Primary) {
                     self.state = State::EditingName { rect };
@@ -418,6 +419,41 @@ impl Drawing {
                         rect,
                         delta_pos: vec2(0.0, 0.0),
                         mode,
+                    }
+                }
+            }
+            State::PortLabelHovered { rect, label } => {
+                if let Some(hover_pos) = response.hover_pos()
+                    && let Some(bbox) = self.rect(rect)
+                    && let Some(label) = bbox.labels.iter().find(|l| l.id == label)
+                {
+                    let label_bbox = estimate_bbox_for_label(bbox.inner, label);
+                    if !label_bbox.contains(hover_pos) {
+                        self.state = State::Selected { rect };
+                    }
+                }
+                if response.double_clicked_by(egui::PointerButton::Primary) {
+                    self.state = State::EditingLabelText { rect, label };
+                }
+            }
+            State::PortLabelGripHovered { rect, label } => {
+                if response.drag_started_by(egui::PointerButton::Primary) || response.dragged() {
+                    eprintln!("Starting to drag port label grip");
+                    self.state = State::PortDragged {
+                        rect,
+                        label,
+                        delta_pos: vec2(0.0, 0.0),
+                    };
+                    return;
+                }
+                if let Some(hover_pos) = response.hover_pos()
+                    && let Some(bbox) = self.rect(rect)
+                    && let Some(label) = bbox.labels.iter().find(|l| l.id == label)
+                {
+                    let hamburger_rect = get_hamburger_rect(bbox.inner, label).expand(2.0);
+                    if !hamburger_rect.contains(hover_pos) {
+                        eprintln!("No longer hovering over grip for label {}", label.text);
+                        self.state = State::Selected { rect };
                     }
                 }
             }
@@ -490,6 +526,11 @@ impl Drawing {
                     self.state = State::Selected { rect };
                 }
             }
+            State::EditingLabelText { rect, .. } => {
+                if response.clicked() {
+                    self.state = State::Selected { rect };
+                }
+            }
             State::PortDragged {
                 rect,
                 label,
@@ -501,14 +542,33 @@ impl Drawing {
                         rect,
                         label,
                         delta_pos: delta_pos + delta,
+                    };
+                } else if response.drag_stopped_by(egui::PointerButton::Primary)
+                    || !response.dragged()
+                {
+                    if let Some(rbox) = self.rect_mut(rect) {
+                        rbox.update_label_offset(label, delta_pos.y);
                     }
-                } else if response.drag_stopped_by(egui::PointerButton::Primary) {
-                    self.line_add_anchor = Some(LineAnchor { rect, label });
-                    self.line_add_current = None;
+                    self.state = State::Selected { rect };
+                }
+                if let Some(pos) = response.interact_pointer_pos()
+                    && let Some(rbox) = self.rect_mut(rect)
+                {
+                    let center_line = rbox.inner.center().x;
+                    if let Some(label) = rbox.label_mut(label) {
+                        if pos.x < center_line {
+                            label.side = LabelSide::West;
+                        } else {
+                            label.side = LabelSide::East;
+                        }
+                    }
                 }
             }
             _ => {}
         }
+    }
+    pub fn demo() -> Self {
+        demo_drawing()
     }
 }
 

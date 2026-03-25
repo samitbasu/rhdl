@@ -20,11 +20,10 @@ pub struct App {
 
 impl App {
     pub fn new(filename: PathBuf) -> Self {
-        let tree =
-            egui_tiles::Tree::new_horizontal("viz_tree", vec![Pane::Drawing, Pane::Properties]);
+        let tree = egui_tiles::Tree::new_horizontal("viz_tree", vec![Pane::Drawing]);
         Self {
             filename,
-            drawing: Drawing::default(),
+            drawing: Drawing::demo(),
             scene_rect: Rect::ZERO,
             viz_tree: Some(tree),
         }
