@@ -1,13 +1,17 @@
 use egui::{Color32, Rect, Stroke, StrokeKind, TextEdit, Ui, Vec2, pos2, vec2};
 
 use crate::{
-    drawing::{ResizeMode, State},
     grid::{
         CONTROL_HANDLE_SIZE, GRID_SIZE, GRIP_SIZE, PORT_RADIUS, PORT_TEXT_SIZE, SHIM,
         TITLE_TEXT_SIZE, grid_rect,
     },
     label::{Label, LabelId, LabelSide},
     rectbox::{RectBox, resize_rect},
+    state::{
+        EditingLabelText, EditingName, MovingRect, PortDragged, PortLabelGripHovered,
+        PortLabelHovered, PortPinHovered, PotentialResize, ResizeMode, ResizingRect, Selected,
+        State,
+    },
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -281,18 +285,18 @@ pub enum FocusResult {
 
 pub fn render_rect_box(target: &mut RectBox, state: &State, ui: &mut Ui) -> FocusResult {
     match state {
-        State::MovingRect { rect, delta_pos } if target.id() == *rect => {
+        State::MovingRect(MovingRect { rect, delta_pos }) if target.id() == *rect => {
             draw_moving_rect(target, ui, *delta_pos);
         }
-        State::Selected { rect }
-        | State::PotentialResize { rect, .. }
-        | State::PortLabelHovered { rect, .. }
-        | State::PortLabelGripHovered { rect, .. }
+        State::Selected(Selected { rect })
+        | State::PotentialResize(PotentialResize { rect, .. })
+        | State::PortLabelHovered(PortLabelHovered { rect, .. })
+        | State::PortLabelGripHovered(PortLabelGripHovered { rect, .. })
             if target.id() == *rect =>
         {
             render_selected(target, ui);
         }
-        State::PortPinHovered { rect, label } if target.id() == *rect => {
+        State::PortPinHovered(PortPinHovered { rect, label }) if target.id() == *rect => {
             render_selected(target, ui);
             if let Some(label) = target.label(*label) {
                 let bbox = get_control_pin_bbox(target.inner, label);
@@ -304,18 +308,19 @@ pub fn render_rect_box(target: &mut RectBox, state: &State, ui: &mut Ui) -> Focu
                 );
             }
         }
-        State::ResizingRect {
+        State::ResizingRect(ResizingRect {
             rect,
             mode,
             delta_pos,
-        } if target.id() == *rect => {
+            ..
+        }) if target.id() == *rect => {
             draw_resizing_rect(target, ui, *mode, *delta_pos);
         }
-        State::PortDragged {
+        State::PortDragged(PortDragged {
             rect,
             label,
             delta_pos,
-        } if target.id() == *rect => {
+        }) if target.id() == *rect => {
             render_frame(target, ui);
             render_labels_with_box(
                 target.labels.iter().filter(|l| l.id != *label),
@@ -330,7 +335,7 @@ pub fn render_rect_box(target: &mut RectBox, state: &State, ui: &mut Ui) -> Focu
             );
             draw_dragged_label(target, *label, *delta_pos, ui);
         }
-        State::EditingName { rect } if target.id() == *rect => {
+        State::EditingName(EditingName { rect }) if target.id() == *rect => {
             render_selected(target, ui);
             let rect_name_width = target.name.len() as f32 * 10.0 + 10.0;
             let editor_position = target.inner.center_top() + vec2(-rect_name_width / 2.0, SHIM);
@@ -347,7 +352,7 @@ pub fn render_rect_box(target: &mut RectBox, state: &State, ui: &mut Ui) -> Focu
                 response.request_focus();
             }
         }
-        State::EditingLabelText { rect, label } if target.id() == *rect => {
+        State::EditingLabelText(EditingLabelText { rect, label }) if target.id() == *rect => {
             render_selected(target, ui);
             let target_inner = target.inner;
             let Some(label_ref) = target.label_mut(*label) else {

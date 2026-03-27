@@ -1,9 +1,9 @@
 use egui::{Pos2, Rect, Vec2, pos2, vec2};
 
 use crate::{
-    drawing::ResizeMode,
     grid::{GRID_SIZE, grid_rect, round_to_grid, snap},
     label::{Label, LabelId, LabelSide},
+    state::ResizeMode,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Hash)]
@@ -79,6 +79,12 @@ impl RectBox {
     }
     pub fn label_mut(&mut self, id: LabelId) -> Option<&mut Label> {
         self.labels.iter_mut().find(|l| l.id == id)
+    }
+    pub fn anchors(&self) -> impl Iterator<Item = LineAnchor> {
+        self.labels.iter().map(|label| LineAnchor {
+            rect: self.id,
+            label: label.id,
+        })
     }
     pub fn id(&self) -> RectId {
         self.id
@@ -160,11 +166,11 @@ impl RectBox {
         let label = self.labels.iter().find(|l| l.id == id).unwrap();
         match label.side {
             LabelSide::East => pos2(
-                self.inner.right(),
+                self.inner.right() + GRID_SIZE,
                 self.inner.top() + GRID_SIZE + label.offset,
             ),
             LabelSide::West => pos2(
-                self.inner.left(),
+                self.inner.left() - GRID_SIZE,
                 self.inner.top() + GRID_SIZE + label.offset,
             ),
         }
