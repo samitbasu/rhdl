@@ -34,6 +34,7 @@ pub enum State {
     PortPinHovered(PortPinHovered),
     AddingRoute(AddingRoute),
     ProposedRoute(Route),
+    AutoRoute(AutoRoute),
 }
 
 impl State {
@@ -95,6 +96,12 @@ impl From<AddingRoute> for State {
 impl From<Route> for State {
     fn from(value: Route) -> Self {
         State::ProposedRoute(value)
+    }
+}
+
+impl From<AutoRoute> for State {
+    fn from(value: AutoRoute) -> Self {
+        State::AutoRoute(value)
     }
 }
 
@@ -173,26 +180,32 @@ pub enum RouteEdge {
 #[derive(Clone, PartialEq, Debug)]
 pub struct AddingRoute {
     pub anchor: LineAnchor,
-    pub turns: Vec<Vec2>,
+    pub edges: Vec<RouteEdge>,
+    pub head: Pos2,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct AutoRoute {
+    pub start: LineAnchor,
     pub head: Pos2,
 }
 
 impl AddingRoute {
     pub fn last_point(&self, start: Pos2) -> Pos2 {
-        self.turns
-            .iter()
-            .fold(start, |current_pos, delta| current_pos + *delta)
+        follow(start, self.edges.iter().copied())
+            .last()
+            .unwrap_or(start)
     }
     pub fn points(&self, start: Pos2) -> impl Iterator<Item = Pos2> {
-        orthogonalize(start, self.turns.iter().copied()).chain(std::iter::once(self.head))
+        follow(start, self.edges.iter().copied()).chain(std::iter::once(self.head))
     }
     pub fn add_point(&mut self, start_pos: Pos2, new_pos: Pos2) {
         let last_point = self.last_point(start_pos);
         let delta = new_pos - last_point;
         if delta.x.abs() > delta.y.abs() {
-            self.turns.push(vec2(delta.x, 0.0));
+            self.edges.push(RouteEdge::Horizontal(delta.x));
         } else {
-            self.turns.push(vec2(0.0, delta.y));
+            self.edges.push(RouteEdge::Vertical(delta.y));
         }
     }
 }
@@ -200,44 +213,40 @@ impl AddingRoute {
 #[derive(Clone, PartialEq, Debug)]
 pub struct Route {
     pub start: LineAnchor,
-    pub turns: NonEmpty<Vec2>,
-    pub tail: f32,
+    pub edges: NonEmpty<RouteEdge>,
+    pub tail: Vec2,
     pub finish: LineAnchor,
 }
 
-fn hvec(del: Vec2) -> Vec2 {
-    vec2(del.x, 0.0)
-}
-
-fn vvec(del: Vec2) -> Vec2 {
-    vec2(0.0, del.y)
-}
-
-fn orthogonalize(start: Pos2, deltas: impl Iterator<Item = Vec2>) -> impl Iterator<Item = Pos2> {
-    deltas
-        .flat_map(|delta| [hvec(delta), vvec(delta)])
-        .scan(start, |current_pos, delta| {
-            *current_pos += delta;
-            Some(*current_pos)
-        })
+fn follow(start: Pos2, deltas: impl Iterator<Item = RouteEdge>) -> impl Iterator<Item = Pos2> {
+    deltas.scan(start, |current_pos, delta| {
+        let new_pos = match delta {
+            RouteEdge::Horizontal(offset) => pos2(current_pos.x + offset, current_pos.y),
+            RouteEdge::Vertical(offset) => pos2(current_pos.x, current_pos.y + offset),
+        };
+        *current_pos = new_pos;
+        Some(new_pos)
+    })
 }
 
 impl Route {
-    fn last_point(&self, start: Pos2) -> Pos2 {
-        self.turns
-            .iter()
-            .fold(start, |current_pos, delta| current_pos + *delta)
-            + vec2(self.tail, 0.0)
+    pub fn update_tail(&mut self, start: Pos2, end: Pos2) {
+        //        let route = follow(start, self.edges.iter().copied()).chain(std::iter::once(end));
+        let last_point_of_route = follow(start, self.edges.iter().copied())
+            .last()
+            .unwrap_or(start);
+        self.tail = end - last_point_of_route;
     }
-    pub fn points(&self, start: Pos2) -> impl Iterator<Item = Pos2> {
-        let turns = self
-            .turns
-            .iter()
-            .copied()
-            .chain(std::iter::once(vec2(self.tail, 0.0)));
-        std::iter::once(start)
-            .chain(orthogonalize(start, turns))
-            .chain(std::iter::once(self.last_point(start)))
+    pub fn points(&self, start: Pos2) -> Vec<Pos2> {
+        let mut body = follow(start, self.edges.iter().copied()).collect::<Vec<_>>();
+        let last = body.last().copied().unwrap_or(start);
+        if self.tail.x.abs() > self.tail.y.abs() {
+            body.push(pos2(last.x + self.tail.x, last.y));
+        } else {
+            body.push(pos2(last.x, last.y + self.tail.y));
+        }
+        body.push(pos2(last.x + self.tail.x, last.y + self.tail.y));
+        body
     }
     pub fn from_adding_route(
         start: Pos2,
@@ -245,11 +254,13 @@ impl Route {
         adding: AddingRoute,
         finish: LineAnchor,
     ) -> Self {
-        let tail = end.x - adding.last_point(start).x;
-        let turns = NonEmpty::from_vec(adding.turns).unwrap_or(NonEmpty::singleton(vec2(0.0, 0.0)));
+        let last_point_of_route = adding.last_point(start);
+        let tail = end - last_point_of_route;
+        let turns = NonEmpty::from_vec(adding.edges)
+            .unwrap_or(NonEmpty::singleton(RouteEdge::Horizontal(0.0)));
         Self {
             start: adding.anchor,
-            turns,
+            edges: turns,
             tail,
             finish,
         }

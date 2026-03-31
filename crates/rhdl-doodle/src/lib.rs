@@ -6,4 +6,5 @@ pub mod label;
 pub mod polyline;
 pub mod rectbox;
 pub mod render;
+pub mod router;
 pub mod state;

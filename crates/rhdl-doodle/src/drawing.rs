@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use egui::{Color32, PointerButton, Pos2, Rect, Response, StrokeKind, Ui, Vec2, pos2, vec2};
 
 use crate::{
@@ -9,8 +11,9 @@ use crate::{
         FocusResult, estimate_bbox_for_label, get_control_pin_bbox, get_hamburger_rect,
         render_rect_box,
     },
+    router::{Graph, Node},
     state::{
-        AddingRect, AddingRoute, EditingLabelText, EditingName, MovingRect, PortDragged,
+        AddingRect, AddingRoute, AutoRoute, EditingLabelText, EditingName, MovingRect, PortDragged,
         PortLabelGripHovered, PortLabelHovered, PortPinHovered, PotentialResize, ResizeMode,
         ResizingRect, Route, RouteEdge, Selected, State,
     },
@@ -29,13 +32,15 @@ const RESIZE_MODES: &[ResizeMode] = &[
 pub struct Drawing {
     rect_id: RectId,
     rect_boxes: Vec<RectBox>,
-    poly_lines: Vec<PolyLine>,
     routes: Vec<Route>,
+    graph: Graph,
     pub selected: Option<RectId>,
     pub line_add_anchor: Option<LineAnchor>,
     pub line_add_set: Vec<Pos2>,
     pub line_add_current: Option<Pos2>,
     state: State,
+    auto_route: Vec<Pos2>,
+    visit_set: HashSet<Node>,
 }
 
 impl Drawing {
@@ -91,25 +96,18 @@ impl Drawing {
         self.rect_boxes.last_mut().unwrap()
     }
     pub fn anchor(&self, anchor: LineAnchor) -> Pos2 {
-        let rect = self
-            .rect_boxes
-            .iter()
-            .find(|r| r.id() == anchor.rect)
-            .unwrap();
-        rect.anchor_point(anchor.label)
-    }
-    pub fn add_line(&mut self, start: LineAnchor, points: &[Pos2], end: LineAnchor) {
-        let id = self
-            .poly_lines
-            .last()
-            .map_or(LineId::default(), |l| l.id().next());
-        self.poly_lines.push(PolyLine {
-            start,
-            points: points.iter().map(|&p| grid(p)).collect(),
-            end,
-            id,
-            editing: None,
-        });
+        if let State::MovingRect(inner) = &self.state
+            && anchor.rect == inner.rect
+        {
+            self.rect(anchor.rect).unwrap().anchor_point(anchor.label) + inner.delta_pos
+        } else if let State::PortDragged(inner) = &self.state
+            && anchor.rect == inner.rect
+            && anchor.label == inner.label
+        {
+            self.rect(anchor.rect).unwrap().anchor_point(anchor.label) + inner.delta_pos
+        } else {
+            self.rect(anchor.rect).unwrap().anchor_point(anchor.label)
+        }
     }
     // When the geometry of a rect changes, we need to rescan the routes
     // to ensure that they remain orthogonal.  Because routes are
@@ -118,30 +116,14 @@ impl Drawing {
     // edge of the route.  If the route contains only 1 edge, we need to add
     // an additional edge to allow for vertical/horizontal displacement of
     // the end point.
-    pub fn reorthogonalize_routes(&mut self) {
-        /*         for route in self.routes.iter_mut() {
-                   let start_point = self.anchor(route.start);
-                   let end_point = self.anchor(route.finish);
-                   if route.edges.len() == 1 {
-                       let to_add = match route.edges[0] {
-                           RouteEdge::Horizontal(_) => RouteEdge::Vertical(0.0),
-                           RouteEdge::Vertical(_) => RouteEdge::Horizontal(0.0),
-                       };
-                       route.edges.push(to_add);
-                   }
-                   // Compute the last point in the route (excluding the end point)
-                   let last_point = route
-                       .edges
-                       .iter()
-                       .fold(start_point, |current_pos, edge| match edge {
-                           RouteEdge::Horizontal(offset) => pos2(current_pos.x + offset, current_pos.y),
-                           RouteEdge::Vertical(offset) => pos2(current_pos.x, current_pos.y + offset),
-                       });
-                   // Calculate the delta run from the last point to the end point
-                   let delta = end_point - last_point;
-                   // If the last edge of the run is vertical,
-               }
-        */
+    pub fn fixup_routes(&mut self) {
+        let mut routes = std::mem::take(&mut self.routes);
+        for route in routes.iter_mut() {
+            let start_point = self.anchor(route.start);
+            let end_point = self.anchor(route.finish);
+            route.update_tail(start_point, end_point);
+        }
+        self.routes = routes;
     }
     pub fn render(&mut self, ui: &mut Ui) {
         ui.output_mut(|o| o.cursor_icon = self.state.cursor());
@@ -159,37 +141,13 @@ impl Drawing {
                 (0.15, Color32::LIGHT_GRAY.linear_multiply(0.3)),
             );
         });
-        // Draw the wires
-        for poly_line in self.poly_lines.iter() {
-            if poly_line.editing.is_some() {
-                let points = std::iter::once(self.anchor(poly_line.start))
-                    .chain(poly_line.points.iter().map(|p| grid(*p)))
-                    .chain(std::iter::once(self.anchor(poly_line.end)))
-                    .collect::<Vec<_>>();
-                ui.painter()
-                    .add(egui::Shape::line(points, (1.0, Color32::DARK_GRAY)));
-            }
-            let points = std::iter::once(self.anchor(poly_line.start))
-                .chain(poly_line.points.iter().cloned())
-                .chain(std::iter::once(self.anchor(poly_line.end)))
-                .collect::<Vec<_>>();
-            ui.painter().add(egui::Shape::line(
-                points.clone(),
-                (1.0, Color32::DARK_GREEN),
-            ));
-            if let Some(edit_pos) = poly_line.edit_point() {
-                ui.painter().circle(
-                    edit_pos,
-                    1.5,
-                    Color32::LIGHT_GRAY,
-                    (0.5, Color32::DARK_BLUE),
-                );
-            }
-        }
         for route in &self.routes {
             let start_pos = self.anchor(route.start);
-            let end_pos = self.anchor(route.finish);
-            let points = route.points(start_pos).collect();
+            let points = route.points(start_pos);
+            for point in &points {
+                ui.painter()
+                    .circle(*point, 1.5, Color32::LIGHT_GRAY, (0.5, Color32::DARK_BLUE));
+            }
             ui.painter()
                 .add(egui::Shape::line(points, (1.0, Color32::DARK_BLUE)));
         }
@@ -226,7 +184,7 @@ impl Drawing {
         }
         if let State::ProposedRoute(inner) = &self.state {
             let start_pos = self.anchor(inner.start);
-            let points = inner.points(start_pos).collect::<Vec<_>>();
+            let points = inner.points(start_pos);
             ui.painter().line(points, (0.5, Color32::DARK_RED));
             let end_pos = self.anchor(inner.finish);
             ui.painter().circle(
@@ -236,6 +194,42 @@ impl Drawing {
                 (0.5, Color32::DARK_RED),
             );
         }
+        if let State::AutoRoute(_) = &self.state {
+            let points = self.auto_route.clone();
+            ui.painter().line(points, (0.5, Color32::LIGHT_YELLOW));
+            self.visit_set.iter().for_each(|node| {
+                let pos = self.graph.pos(*node);
+                ui.painter().circle(
+                    pos,
+                    2.0,
+                    Color32::LIGHT_YELLOW,
+                    (0.5, Color32::LIGHT_YELLOW),
+                );
+            });
+        }
+        self.graph.iter().for_each(|(node, edges)| {
+            let node_pos = self.graph.pos(node);
+            let east_pos = node_pos + vec2(GRID_SIZE / 2.0, 0.0);
+            let south_pos = node_pos + vec2(0.0, GRID_SIZE / 2.0);
+            if let Some(east_weight) = edges.east {
+                ui.painter().text(
+                    east_pos,
+                    egui::Align2::CENTER_CENTER,
+                    east_weight.to_string(),
+                    egui::FontId::monospace(5.0),
+                    Color32::LIGHT_GREEN,
+                );
+            }
+            if let Some(south_weight) = edges.south {
+                ui.painter().text(
+                    south_pos,
+                    egui::Align2::CENTER_CENTER,
+                    south_weight.to_string(),
+                    egui::FontId::monospace(5.0),
+                    Color32::LIGHT_GREEN,
+                );
+            }
+        });
     }
     fn handle_idle_state(&self, response: Response) -> State {
         if response.drag_started_by(egui::PointerButton::Primary)
@@ -401,11 +395,20 @@ impl Drawing {
             }
         }
         if response.clicked_by(egui::PointerButton::Primary)
+            && let Some(pos) = response.interact_pointer_pos()
+        {
+            return AutoRoute {
+                start: LineAnchor { rect, label },
+                head: pos,
+            }
+            .into();
+        }
+        if response.clicked_by(egui::PointerButton::Primary)
             && let Some(head) = response.interact_pointer_pos()
         {
             return AddingRoute {
                 anchor: LineAnchor { rect, label },
-                turns: Vec::new(),
+                edges: Vec::new(),
                 head,
             }
             .into();
@@ -512,6 +515,15 @@ impl Drawing {
         }
         State::port_dragged(rect, label, delta_pos)
     }
+    fn handle_auto_route(&mut self, mut auto_route: AutoRoute, response: Response) -> State {
+        if response.clicked_by(egui::PointerButton::Primary) {
+            return State::selected(auto_route.start.rect);
+        }
+        if let Some(pos) = response.hover_pos() {
+            auto_route.head = pos;
+        }
+        State::AutoRoute(auto_route)
+    }
     fn handle_adding_route(&self, mut adding_route: AddingRoute, response: Response) -> State {
         if response.clicked_by(egui::PointerButton::Primary)
             && let Some(pos) = response.interact_pointer_pos()
@@ -540,8 +552,13 @@ impl Drawing {
                 .flat_map(|rect| rect.anchors())
                 .find(|anchor| self.anchor(*anchor).distance(pos) < PORT_RADIUS)
             {
-                return Route::from_adding_route(start_pos, last_point, adding_route, anchor)
-                    .into();
+                return Route::from_adding_route(
+                    start_pos,
+                    self.anchor(anchor),
+                    adding_route,
+                    anchor,
+                )
+                .into();
             }
 
             return AddingRoute {
@@ -562,7 +579,7 @@ impl Drawing {
             if last_point.distance(pos) > PORT_RADIUS {
                 return AddingRoute {
                     anchor: proposed_route.start,
-                    turns: proposed_route.turns.into(),
+                    edges: proposed_route.edges.into(),
                     head: pos,
                 }
                 .into();
@@ -572,6 +589,7 @@ impl Drawing {
     }
     pub fn update_state(&mut self, response: Response) {
         let old_state = std::mem::take(&mut self.state);
+        let mut route_fixup = false;
         self.state = match old_state {
             State::Idle => self.handle_idle_state(response),
             State::Selected(Selected { rect }) => self.handle_selected_state(rect, response),
@@ -592,8 +610,12 @@ impl Drawing {
                 rect,
                 mode,
                 delta_pos,
-            }) => self.handle_resizing_rect(rect, mode, delta_pos, response),
+            }) => {
+                route_fixup = true;
+                self.handle_resizing_rect(rect, mode, delta_pos, response)
+            }
             State::MovingRect(MovingRect { rect, delta_pos }) => {
+                route_fixup = true;
                 self.handle_moving_rect(rect, delta_pos, response)
             }
             State::AddingRect(AddingRect { start_pos, end_pos }) => {
@@ -608,10 +630,75 @@ impl Drawing {
                 rect,
                 label,
                 delta_pos,
-            }) => self.handle_port_dragged(rect, label, delta_pos, response),
+            }) => {
+                route_fixup = true;
+                self.handle_port_dragged(rect, label, delta_pos, response)
+            }
             State::AddingRoute(inner) => self.handle_adding_route(inner, response),
+            State::AutoRoute(inner) => {
+                route_fixup = true;
+                self.handle_auto_route(inner, response)
+            }
             State::ProposedRoute(inner) => self.handle_proposed_route(inner, response),
         };
+        if route_fixup {
+            self.fixup_routes();
+            self.update_graph();
+        }
+    }
+    fn update_graph(&mut self) {
+        let min_x = self
+            .rect_boxes
+            .iter()
+            .map(|r| r.inner.left())
+            .fold(f32::INFINITY, f32::min);
+        let min_y = self
+            .rect_boxes
+            .iter()
+            .map(|r| r.inner.top())
+            .fold(f32::INFINITY, f32::min);
+        let max_x = self
+            .rect_boxes
+            .iter()
+            .map(|r| r.inner.right())
+            .fold(f32::NEG_INFINITY, f32::max);
+        let max_y = self
+            .rect_boxes
+            .iter()
+            .map(|r| r.inner.bottom())
+            .fold(f32::NEG_INFINITY, f32::max);
+        let ncols = ((max_x - min_x) / GRID_SIZE).ceil() as usize + 9;
+        let nrows = ((max_y - min_y) / GRID_SIZE).ceil() as usize + 9;
+        let mut graph = Graph::new(
+            nrows,
+            ncols,
+            pos2(min_x - 4.0 * GRID_SIZE, min_y - 4.0 * GRID_SIZE),
+        );
+        for rect_box in &self.rect_boxes {
+            let top_left = graph.node(rect_box.inner.left_top());
+            let bottom_right = graph.node(rect_box.inner.right_bottom());
+            graph.block_rect(top_left, bottom_right);
+            for radii in 1..=3 {
+                graph.north_south_bumpers(top_left, bottom_right, radii, 25 * (4 - radii) as i16);
+                graph.east_west_bumpers(top_left, bottom_right, radii, 25 * (4 - radii) as i16);
+            }
+        }
+        if let State::AutoRoute(inner) = &self.state {
+            eprintln!("Auto-routing from {:?} to {:?}", inner.start, inner.head);
+            let start_pos = self.anchor(inner.start);
+            let head_pos = inner.head;
+            let start_node = graph.node(start_pos);
+            let head_node = graph.node(head_pos);
+            let tic = std::time::Instant::now();
+            if let Some((path, visit_set, min_cost)) = graph.path_find(start_node, head_node) {
+                eprintln!("Found path in {:?} with cost {:?}", tic.elapsed(), min_cost);
+                self.auto_route = path.into_iter().map(|node| graph.pos(node)).collect();
+                self.visit_set = visit_set;
+            } else {
+                eprintln!("no route found!");
+            }
+        }
+        self.graph = graph;
     }
     pub fn demo() -> Self {
         demo_drawing()
@@ -620,25 +707,30 @@ impl Drawing {
 
 pub fn demo_drawing() -> Drawing {
     let mut drawing = Drawing::default();
-    let box1 = drawing.add_rect_box(pos2(100.0, 100.0), pos2(180.0, 160.0));
-    let anchor1 = box1.add_label(
+    let origin_1 = pos2(-1000.0, -1000.0);
+    let size = vec2(200.0, 200.0);
+    let box1 = drawing.add_rect_box(origin_1, origin_1 + size);
+    box1.add_label(
         "i.1.write_logic".to_string(),
-        LabelSide::East,
-        -GRID_SIZE * 2.0,
-    );
-    let box2 = drawing.add_rect_box(pos2(300.0, 200.0), pos2(420.0, 290.0));
-    let anchor2 = box2.add_label(
-        "o.1.read_logic".to_string(),
         LabelSide::West,
-        -GRID_SIZE * 2.0,
+        GRID_SIZE * 1.0,
     );
-    let anchor3 = box2.add_label("o.1.ram.read@.clock".to_string(), LabelSide::West, 0.0);
-    let anchor4 = box2.add_label(
-        "o.1.ram.read@.addr".to_string(),
+    box1.add_label(
+        "i.0.write_logic".to_string(),
         LabelSide::West,
         GRID_SIZE * 2.0,
     );
-    drawing.add_line(anchor1, &[pos2(200.0, 100.0), pos2(200.0, 200.0)], anchor2);
-    drawing.add_line(anchor3, &[pos2(320.0, 200.0)], anchor4);
+    let origin_2 = pos2(1000.0, 1000.0);
+    let box2 = drawing.add_rect_box(origin_2, origin_2 + size);
+    box2.add_label(
+        "o.1.read_logic".to_string(),
+        LabelSide::East,
+        GRID_SIZE * 1.0,
+    );
+    box2.add_label(
+        "o.0.read_logic".to_string(),
+        LabelSide::East,
+        GRID_SIZE * 2.0,
+    );
     drawing
 }
