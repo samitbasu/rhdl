@@ -213,7 +213,7 @@ enum Direction {
 
 const TURN_COST: Cost = Cost::new(25.0);
 const MOVE_COST: Cost = Cost::new(1.0);
-const WIRE_COST: Cost = Cost::new(10.0);
+pub const WIRE_COST: Cost = Cost::new(10.0);
 
 fn turn_cost(from: Option<Direction>, to: Direction) -> Cost {
     if let Some(from_dir) = from {
@@ -244,7 +244,6 @@ pub struct Graph {
     nrows: usize,
     ncols: usize,
     origin: Pos2,
-    ng: RouterNG,
 }
 
 // Render the graph to the console for debug purposes.
@@ -354,9 +353,6 @@ impl Graph {
             })
         })
     }
-    pub fn debug_marks(&self) -> Vec<Mark> {
-        self.ng.debug_marks()
-    }
     pub fn new(nrows: usize, ncols: usize, origin: Pos2) -> Self {
         // Start out with full connectivity
         let mut nodes = vec![vec![Cell::default(); ncols]; nrows];
@@ -365,7 +361,6 @@ impl Graph {
             nrows,
             ncols,
             origin,
-            ng: RouterNG::default(),
         }
     }
     fn row_segment(
@@ -417,7 +412,7 @@ impl Graph {
             .map(move |row_slice| &mut row_slice[col])
     }
     pub fn seed_vert_channel(&mut self, seed: Pos2, cost: Cost) {
-        self.ng.seed_vert_channel(seed, cost);
+        //self.ng.seed_vert_channel(seed, cost);
         let Some(point) = self.point(seed) else {
             return;
         };
@@ -442,7 +437,7 @@ impl Graph {
         }
     }
     pub fn seed_horiz_channel(&mut self, seed: Pos2, cost: Cost) {
-        self.ng.seed_horiz_channel(seed, cost);
+        //self.ng.seed_horiz_channel(seed, cost);
         let Some(point) = self.point(seed) else {
             return;
         };
@@ -467,7 +462,7 @@ impl Graph {
         }
     }
     pub fn block_rectangle(&mut self, rect: Rect) {
-        self.ng.add_block(rect.left_top(), rect.right_bottom());
+        //self.ng.add_block(rect.left_top(), rect.right_bottom());
         let Some(pos_lt) = self.point(rect.left_top()) else {
             return;
         };
@@ -623,9 +618,9 @@ impl Graph {
         false
     }
     pub fn add_route(&mut self, start: Pos2, edges: &[RouteEdge]) {
-        self.ng.add_route(start, edges, WIRE_COST);
+        //self.ng.add_route(start, edges, WIRE_COST);
         let tic = std::time::Instant::now();
-        self.ng.normalize_segments();
+        //        self.ng.normalize_segments();
         eprintln!(
             "Adding route starting at {:?} with edges {:?} - elapsed time to normalize segments: {:?}",
             start,
@@ -772,21 +767,5 @@ impl Graph {
             ));
         }
         successors
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use egui::pos2;
-
-    use super::*;
-
-    #[test]
-    fn test_grid_display() {
-        let mut grid = Graph::new(30, 40, Pos2 { x: 0.0, y: 0.0 });
-        grid.block_rectangle(Rect::from_points(&[pos2(10.0, 10.0), pos2(50.0, 30.0)]));
-        grid.block_rectangle(Rect::from_points(&[pos2(30.0, 40.0), pos2(70.0, 70.0)]));
-        grid.block_rectangle(Rect::from_points(&[pos2(200.0, 100.0), pos2(260.0, 150.0)]));
-        println!("{}", grid);
     }
 }

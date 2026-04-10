@@ -11,7 +11,8 @@ use crate::{
         FocusResult, estimate_bbox_for_label, get_control_pin_bbox, get_hamburger_rect,
         render_rect_box,
     },
-    router::{COST_ZERO, Cell, Cost, Graph, Point},
+    router::{COST_ZERO, Cell, Cost, Graph, Point, WIRE_COST},
+    router_ng::{RouterNG, RouterNGBuilder},
     state::{
         AddingRect, AddingRoute, AutoRoute, EditingLabelText, EditingName, InProgressAutoRoute,
         MovingRect, PortDragged, PortLabelGripHovered, PortLabelHovered, PortPinHovered,
@@ -38,7 +39,6 @@ pub struct Drawing {
     rect_boxes: Vec<RectBox>,
     routes: Vec<Route>,
     auto_routes: Vec<AutoRoute>,
-    graph: Graph,
     pub selected: Option<RectId>,
     pub line_add_anchor: Option<LineAnchor>,
     pub line_add_set: Vec<Pos2>,
@@ -176,18 +176,9 @@ impl Drawing {
                 .add(egui::Shape::line(points, (1.0, Color32::DARK_BLUE)));
         }
         for route in &self.auto_routes {
-            let points = route.display_points(self.anchor(route.start));
-            /*             for point in &points {
-                           ui.painter().circle(
-                               *point,
-                               0.6,
-                               Color32::LIGHT_YELLOW,
-                               (0.5, Color32::LIGHT_YELLOW),
-                           );
-                       }
-            */
+            let points = route.points();
             ui.painter()
-                .add(egui::Shape::line(points, (0.3, Color32::BLACK)));
+                .add(egui::Shape::line(points, (1.0, Color32::DARK_GREEN)));
         }
         crate::turtle::draw(&self.marks, ui.painter());
         for rect_box in self.rect_boxes.iter_mut() {
@@ -236,72 +227,7 @@ impl Drawing {
         if let State::InProgressAutoRoute(_) = &self.state {
             let points = self.auto_route.clone();
             ui.painter().line(points, (0.5, Color32::LIGHT_YELLOW));
-            self.visit_set.iter().for_each(|node| {
-                let pos = self.graph.pos(*node);
-                ui.painter().circle(
-                    pos,
-                    2.0,
-                    Color32::LIGHT_YELLOW,
-                    (0.5, Color32::LIGHT_YELLOW),
-                );
-            });
         }
-        /*         self.graph.iter().for_each(|(node, cell)| {
-                   let node_pos = self.graph.pos(node);
-                   let east_pos = node_pos + vec2(GRID_SIZE, 0.0);
-                   let south_pos = node_pos + vec2(0.0, GRID_SIZE);
-                   match cell {
-                       Cell::Blocked => {
-                           ui.painter().rect_filled(
-                               Rect::from_two_pos(node_pos, node_pos + vec2(GRID_SIZE, GRID_SIZE)),
-                               0.0,
-                               Color32::DARK_RED.gamma_multiply(0.2),
-                           );
-                       }
-                       Cell::Corner { east, south } => {
-                           ui.painter().line_segment(
-                               [node_pos, east_pos],
-                               (
-                                   0.5,
-                                   Color32::LIGHT_GREEN.linear_multiply(1.0 - f32::from(*east)),
-                               ),
-                           );
-                           ui.painter().line_segment(
-                               [node_pos, south_pos],
-                               (
-                                   0.5,
-                                   Color32::LIGHT_GREEN.linear_multiply(1.0 - f32::from(*south)),
-                               ),
-                           );
-                       }
-                       Cell::Horizontal { east } => {
-                           ui.painter().line_segment(
-                               [node_pos, east_pos],
-                               (
-                                   0.5,
-                                   Color32::LIGHT_GREEN.linear_multiply(1.0 - f32::from(*east)),
-                               ),
-                           );
-                       }
-                       Cell::HorizontalOnly { east } => {
-                           ui.painter().line_segment(
-                               [node_pos, east_pos],
-                               (0.5, Color32::WHITE.linear_multiply(1.0 - f32::from(*east))),
-                           );
-                       }
-                       Cell::Vertical { south } => {
-                           ui.painter().line_segment(
-                               [node_pos, south_pos],
-                               (
-                                   0.5,
-                                   Color32::LIGHT_GREEN.linear_multiply(1.0 - f32::from(*south)),
-                               ),
-                           );
-                       }
-                       Cell::Empty => {}
-                   }
-               });
-        */
         if let State::ProposedAutoRoute(inner) = &self.state {
             let points = self.auto_route.clone();
             ui.painter().line(points, (1.5, Color32::LIGHT_YELLOW));
@@ -795,18 +721,20 @@ impl Drawing {
         }
     }
     fn update_graph(&mut self) {
-        let nrows = 100;
-        let ncols = 100;
-        let origin = pos2(-50.0, -50.0);
-        let mut graph = Graph::new(nrows, ncols, origin);
+        let mut builder = RouterNGBuilder::default();
         for rect_box in &self.rect_boxes {
             let rect = self.routing_box(rect_box.id());
-            graph.block_rectangle(rect);
+            builder.add_block(rect.left_top(), rect.right_bottom());
             for label in &rect_box.labels {
                 let anchor_pos = rect_box.anchor_point(label.id);
-                graph.seed_horiz_channel(anchor_pos, COST_ZERO);
+                let anchor_pos = match label.side {
+                    LabelSide::East => anchor_pos + vec2(GRID_SIZE, 0.0),
+                    LabelSide::West => anchor_pos - vec2(GRID_SIZE, 0.0),
+                };
+                builder.add_h_channel(anchor_pos, COST_ZERO);
             }
         }
+        let mut router = builder.build();
         // First all routes that haven't changed
         let mut routes = std::mem::take(&mut self.auto_routes);
         for route in routes.iter_mut() {
@@ -814,26 +742,23 @@ impl Drawing {
             let anchor_end = grid(self.anchor(route.finish));
             if route.start_pos == self.anchor(route.start)
                 && route.end_pos == self.anchor(route.finish)
-                && !graph.is_route_blocked(anchor_start, &route.edges)
+                && !router.is_route_blocked(anchor_start, &route.edges)
             {
-                graph.add_route(self.anchor(route.start), &route.edges);
-                eprintln!(
-                    "Route has points: {:?}",
-                    route.points(self.anchor(route.start))
-                );
-            } else if let Some((path, _, _)) = graph.waypoint_path(anchor_start, &[], anchor_end) {
+                router.add_existing_route(self.anchor(route.start), &route.edges, WIRE_COST);
+                eprintln!("Route has points: {:?}", route.points());
+            } else if let Some(path) = router.waypoint_path(anchor_start, &[], anchor_end) {
                 eprintln!("Rip and reroute found path: {:?}", path);
                 *route = AutoRoute::build(
                     route.start,
                     route.finish,
                     &path
                         .into_iter()
-                        .map(|node| graph.pos(node))
+                        .map(|node| node.into())
                         .collect::<Vec<Pos2>>(),
                 );
                 route.start_pos = anchor_start;
                 route.end_pos = anchor_end;
-                graph.add_route(anchor_start, &route.edges);
+                router.add_existing_route(anchor_start, &route.edges, WIRE_COST);
             }
         }
         self.auto_routes = routes;
@@ -841,29 +766,29 @@ impl Drawing {
             eprintln!("Auto-routing from {:?} to {:?}", inner.start, inner.head);
             let start_pos = self.anchor(inner.start);
             let head_pos = grid(inner.head);
-            if let Some((path, visit_set, min_cost)) =
-                graph.waypoint_path(start_pos, &inner.waypoints, head_pos)
-            {
+            if let Some(path) = router.waypoint_path(start_pos, &inner.waypoints, head_pos) {
                 eprintln!("Found path through waypoints: {:?}", path);
-                self.auto_route = path.into_iter().map(|node| graph.pos(node)).collect();
-                self.visit_set = visit_set;
+                self.auto_route = path.into_iter().map(|node| node.into()).collect();
+            } else {
+                eprintln!("no path found!");
+                self.auto_route = router
+                    .reachable_neighbors(start_pos)
+                    .into_iter()
+                    .map(|node| node.into())
+                    .collect();
             }
         }
         if let State::ProposedAutoRoute(inner) = &self.state {
             let start_pos = grid(self.anchor(inner.start));
             let end = grid(self.anchor(inner.finish));
-            if let Some((path, visit_set, min_cost)) =
-                graph.waypoint_path(start_pos, &inner.waypoints, end)
-            {
+            if let Some(path) = router.waypoint_path(start_pos, &inner.waypoints, end) {
                 eprintln!("Found proposed path through waypoints: {:?}", path);
-                self.auto_route = path.into_iter().map(|node| graph.pos(node)).collect();
-                self.visit_set = visit_set;
+                self.auto_route = path.into_iter().map(|node| node.into()).collect();
             } else {
                 eprintln!("no proposed path found!");
             }
         }
-        self.marks = graph.debug_marks();
-        self.graph = graph;
+        self.marks = router.debug_marks();
     }
     pub fn demo() -> Self {
         demo_drawing()

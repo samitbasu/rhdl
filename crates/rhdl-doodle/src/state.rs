@@ -236,9 +236,9 @@ pub struct AutoRoute {
 }
 
 impl AutoRoute {
-    pub fn points(&self, start: Pos2) -> Vec<Pos2> {
-        std::iter::once(start)
-            .chain(follow(start, self.edges.iter().copied()))
+    pub fn points(&self) -> Vec<Pos2> {
+        std::iter::once(self.start_pos)
+            .chain(follow(self.start_pos, self.edges.iter().copied()))
             .collect()
     }
     // For display, we diagonally cut GRID/4.0 off the of the route, so that
