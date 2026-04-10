@@ -162,18 +162,21 @@ impl RectBox {
                 }
             })
     }
-    pub fn anchor_point(&self, id: LabelId) -> Pos2 {
+    pub fn anchor_point_with_rect(&self, rect: Rect, id: LabelId) -> Pos2 {
         let label = self.labels.iter().find(|l| l.id == id).unwrap();
         match label.side {
             LabelSide::East => pos2(
-                self.inner.right() + GRID_SIZE,
-                self.inner.top() + GRID_SIZE + label.offset,
+                rect.right() + GRID_SIZE,
+                rect.top() + GRID_SIZE + label.offset,
             ),
             LabelSide::West => pos2(
-                self.inner.left() - GRID_SIZE,
-                self.inner.top() + GRID_SIZE + label.offset,
+                rect.left() - GRID_SIZE,
+                rect.top() + GRID_SIZE + label.offset,
             ),
         }
+    }
+    pub fn anchor_point(&self, id: LabelId) -> Pos2 {
+        self.anchor_point_with_rect(self.inner, id)
     }
     pub fn add_label(&mut self, text: String, side: LabelSide, offset: f32) -> LineAnchor {
         let id = self.label_id;

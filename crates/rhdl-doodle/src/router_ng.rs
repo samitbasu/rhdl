@@ -1,0 +1,1235 @@
+use std::collections::{BTreeMap, BTreeSet};
+
+use egui::pos2;
+use pathfinding::directed::dijkstra::dijkstra;
+use petgraph::{graph::NodeIndex, visit::EdgeRef};
+
+use crate::{
+    router::{COST_ZERO, Cost},
+    state::RouteEdge,
+    turtle::{Mark, Turtle},
+};
+
+// This is a lattice point on the grid.  The grid is double ended
+// and the coordinates can be negative, so we use a signed integer.
+// We use two newtype wrappers to handle the two axes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CoordX(i32);
+
+impl From<f32> for CoordX {
+    fn from(value: f32) -> Self {
+        CoordX((value / crate::grid::GRID_SIZE).round() as i32)
+    }
+}
+
+impl From<i32> for CoordX {
+    fn from(value: i32) -> Self {
+        CoordX(value)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CoordY(i32);
+
+impl From<f32> for CoordY {
+    fn from(value: f32) -> Self {
+        CoordY((value / crate::grid::GRID_SIZE).round() as i32)
+    }
+}
+
+impl From<i32> for CoordY {
+    fn from(value: i32) -> Self {
+        CoordY(value)
+    }
+}
+
+impl std::ops::Add for CoordX {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self {
+        CoordX(self.0 + rhs.0)
+    }
+}
+
+impl std::ops::Add for CoordY {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self {
+        CoordY(self.0 + rhs.0)
+    }
+}
+
+// A point on the grid is a pair of coordinates
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Point {
+    pub x: CoordX,
+    pub y: CoordY,
+}
+
+impl Point {
+    pub fn manhattan_distance(self, other: Point) -> i32 {
+        (self.x.0 - other.x.0).abs() + (self.y.0 - other.y.0).abs()
+    }
+}
+
+fn point(x: impl Into<CoordX>, y: impl Into<CoordY>) -> Point {
+    Point {
+        x: x.into(),
+        y: y.into(),
+    }
+}
+
+const INFINITY_X: CoordX = CoordX(i32::MAX >> 4);
+const INFINITY_Y: CoordY = CoordY(i32::MAX >> 4);
+const NEG_INFINITY_X: CoordX = CoordX(i32::MIN >> 4);
+const NEG_INFINITY_Y: CoordY = CoordY(i32::MIN >> 4);
+
+// Conversion from a Pos2 to a point cannot fail unless there is an
+// overflow/underflow situation, which we do not handle.
+impl From<egui::Pos2> for Point {
+    fn from(pos: egui::Pos2) -> Self {
+        Point {
+            x: CoordX::from(pos.x),
+            y: CoordY::from(pos.y),
+        }
+    }
+}
+
+// Round tripping will move any Pos2 to the nearest lattice point.
+impl From<Point> for egui::Pos2 {
+    fn from(point: Point) -> Self {
+        egui::Pos2::new(
+            (point.x.0 as f32) * crate::grid::GRID_SIZE,
+            (point.y.0 as f32) * crate::grid::GRID_SIZE,
+        )
+    }
+}
+
+// A blocked rectangle - inclusive of the edges.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Block {
+    pub top_left: Point,
+    pub bottom_right: Point,
+}
+
+impl Block {
+    pub fn spans_y(&self, y: CoordY) -> bool {
+        self.top_left.y <= y && self.bottom_right.y >= y
+    }
+    pub fn spans_x(&self, x: CoordX) -> bool {
+        self.top_left.x <= x && self.bottom_right.x >= x
+    }
+    pub fn is_left_of(&self, x: CoordX) -> bool {
+        self.bottom_right.x < x
+    }
+    pub fn is_right_of(&self, x: CoordX) -> bool {
+        self.top_left.x > x
+    }
+    pub fn is_above(&self, y: CoordY) -> bool {
+        self.bottom_right.y < y
+    }
+    pub fn is_below(&self, y: CoordY) -> bool {
+        self.top_left.y > y
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ChannelOrientation {
+    Horizontal,
+    Vertical,
+}
+
+// A routing channel has a seed coordinate and a cost.
+// the seed coordinate is the point that anchors the
+// channel, which can then be vertical or horizontal.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Channel {
+    pub seed: Point,
+    pub cost: Cost,
+    pub orientation: ChannelOrientation,
+}
+
+fn h_channel(seed: impl Into<Point>, cost: impl Into<Cost>) -> Channel {
+    Channel {
+        seed: seed.into(),
+        cost: cost.into(),
+        orientation: ChannelOrientation::Horizontal,
+    }
+}
+
+fn v_channel(seed: impl Into<Point>, cost: impl Into<Cost>) -> Channel {
+    Channel {
+        seed: seed.into(),
+        cost: cost.into(),
+        orientation: ChannelOrientation::Vertical,
+    }
+}
+
+// A linear segment is a start and end coordinate and a cost.
+// A segment is either horizontal or vertical, and the cost is
+// the cost of routing through that segment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Segment<P> {
+    pub start: P,
+    pub end: P,
+    pub cost: Cost,
+}
+
+type HSegment = Segment<CoordX>;
+type VSegment = Segment<CoordY>;
+
+fn hseg(start: impl Into<CoordX>, end: impl Into<CoordX>, cost: impl Into<Cost>) -> HSegment {
+    HSegment {
+        start: start.into(),
+        end: end.into(),
+        cost: cost.into(),
+    }
+}
+
+fn vseg(start: impl Into<CoordY>, end: impl Into<CoordY>, cost: impl Into<Cost>) -> VSegment {
+    VSegment {
+        start: start.into(),
+        end: end.into(),
+        cost: cost.into(),
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum EventSense {
+    Enter,
+    Scan,
+    Exit,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct Event<T, C> {
+    time: T,
+    sense: EventSense,
+    payload: C,
+}
+
+impl<T: Copy, C: Copy> Event<T, C> {
+    fn t(&self) -> T {
+        self.time
+    }
+    fn cost(&self) -> C {
+        self.payload
+    }
+    fn count(&self) -> i32 {
+        match self.sense {
+            EventSense::Enter => 1,
+            EventSense::Exit => -1,
+            EventSense::Scan => 0,
+        }
+    }
+    fn is_enter(&self) -> bool {
+        matches!(self.sense, EventSense::Enter)
+    }
+    fn enter(time: T, payload: C) -> Self {
+        Event {
+            time,
+            sense: EventSense::Enter,
+            payload,
+        }
+    }
+    fn exit(time: T, payload: C) -> Self {
+        Event {
+            time,
+            sense: EventSense::Exit,
+            payload,
+        }
+    }
+    fn scan(time: T, payload: C) -> Self {
+        Event {
+            time,
+            sense: EventSense::Scan,
+            payload,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+enum Direction {
+    North,
+    South,
+    East,
+    West,
+}
+
+const TURN_COST: Cost = Cost::new(25.0);
+const MOVE_COST: Cost = Cost::new(1.0);
+const WIRE_COST: Cost = Cost::new(10.0);
+
+fn turn_cost(from: Option<Direction>, to: Direction) -> Cost {
+    if let Some(from_dir) = from {
+        if from_dir == to { COST_ZERO } else { TURN_COST }
+    } else {
+        COST_ZERO
+    }
+}
+
+#[derive(Default, Copy, Clone, Debug, PartialEq, Eq, Hash)]
+struct SearchState {
+    node: NodeIndex,
+    dir: Option<Direction>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct RouterNGBuilder {
+    /// The blocking rectangles
+    blocks: Vec<Block>,
+    /// The routing channels
+    channels: Vec<Channel>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct RouterNG {
+    /// The blocking rectangles
+    blocks: Vec<Block>,
+    /// The routing channels
+    channels: Vec<Channel>,
+    /// The horizontal routing segments
+    h_segments: BTreeMap<CoordY, Vec<HSegment>>,
+    /// The vertical routing segments
+    v_segments: BTreeMap<CoordX, Vec<VSegment>>,
+    /// The intersection points
+    nodes: BTreeSet<Point>,
+    /// The search graph
+    graph: petgraph::Graph<Point, Cost>,
+    /// The map from node to index
+    node_to_index: BTreeMap<Point, petgraph::graph::NodeIndex>,
+    /// Needs to be rebuilt
+    dirty: bool,
+}
+
+impl RouterNG {
+    pub fn debug_marks(&self) -> Vec<Mark> {
+        let mut turtle = Turtle::default();
+        // Draw the blocks as red outlines
+        let rect_stroke = (1.0, egui::Color32::LIGHT_RED);
+        for block in &self.blocks {
+            let top_left = block.top_left;
+            let bottom_right = block.bottom_right;
+            turtle.move_to(top_left.into());
+            turtle.line_to(point(bottom_right.x, top_left.y).into(), rect_stroke.into());
+            turtle.line_to(bottom_right.into(), rect_stroke.into());
+            turtle.line_to(point(top_left.x, bottom_right.y).into(), rect_stroke.into());
+            turtle.line_to(point(top_left.x, bottom_right.y).into(), rect_stroke.into());
+            turtle.line_to(point(top_left.x, bottom_right.y).into(), rect_stroke.into());
+            turtle.line_to(top_left.into(), rect_stroke.into());
+        }
+        // Add the horizontal segments as green lines
+        let horiz_stroke = (1.0, egui::Color32::LIGHT_GREEN);
+        self.h_segments.iter().for_each(|(&vert, h_segs)| {
+            h_segs.iter().for_each(|h_seg| {
+                turtle.move_to(point(h_seg.start, vert).into());
+                turtle.circle(2.5, egui::Color32::LIGHT_GREEN);
+                turtle.line_to(point(h_seg.end, vert).into(), horiz_stroke.into());
+                turtle.circle(2.5, egui::Color32::LIGHT_GREEN);
+            })
+        });
+        // Add the vertical segments as blue lines
+        let vert_stroke = (1.0, egui::Color32::LIGHT_BLUE);
+        self.v_segments.iter().for_each(|(&horiz, v_segs)| {
+            v_segs.iter().for_each(|v_seg| {
+                turtle.move_to(point(horiz, v_seg.start).into());
+                turtle.circle(2.5, egui::Color32::LIGHT_BLUE);
+                turtle.line_to(point(horiz, v_seg.end).into(), vert_stroke.into());
+                turtle.circle(2.5, egui::Color32::LIGHT_BLUE);
+            })
+        });
+        // Add the nodes as purple circles (slightly smaller)
+        self.nodes.iter().for_each(|&node| {
+            turtle.move_to(node.into());
+            turtle.circle(1.7, egui::Color32::PURPLE);
+        });
+        turtle.compile()
+    }
+    fn add_routing_moat(
+        &mut self,
+        top_left: Point,
+        bottom_right: Point,
+        distance: i32,
+        cost: Cost,
+    ) {
+        let min_x = top_left.x.0.min(bottom_right.x.0);
+        let max_x = top_left.x.0.max(bottom_right.x.0);
+        let min_y = top_left.y.0.min(bottom_right.y.0);
+        let max_y = top_left.y.0.max(bottom_right.y.0);
+        self.channels
+            .push(v_channel(point(min_x - distance - 2, min_y), cost));
+        self.channels
+            .push(v_channel(point(min_x - distance - 2, max_y), cost));
+        self.channels
+            .push(v_channel(point(max_x + distance + 2, min_y), cost));
+        self.channels
+            .push(v_channel(point(max_x + distance + 2, max_y), cost));
+        self.channels
+            .push(h_channel(point(min_x, min_y - distance - 2), cost));
+        self.channels
+            .push(h_channel(point(max_x, min_y - distance - 2), cost));
+        self.channels
+            .push(h_channel(point(min_x, max_y + distance + 2), cost));
+        self.channels
+            .push(h_channel(point(max_x, max_y + distance + 2), cost));
+        self.dirty = true;
+    }
+    pub fn add_routable_point(&mut self, point: impl Into<Point>) {
+        let point: Point = point.into();
+        self.channels.push(h_channel(point, COST_ZERO));
+        self.channels.push(v_channel(point, COST_ZERO));
+        self.dirty = true;
+    }
+    pub fn add_block(&mut self, top_left: impl Into<Point>, bottom_right: impl Into<Point>) {
+        let top_left: Point = top_left.into();
+        let bottom_right: Point = bottom_right.into();
+        let min_x = top_left.x.0.min(bottom_right.x.0);
+        let max_x = top_left.x.0.max(bottom_right.x.0);
+        let min_y = top_left.y.0.min(bottom_right.y.0);
+        let max_y = top_left.y.0.max(bottom_right.y.0);
+        let block = Block {
+            top_left: point(min_x, min_y),
+            bottom_right: point(max_x, max_y),
+        };
+        self.blocks.push(block);
+        // Add the routing channels around the blocked rectangle.
+        for moat_lane in 0..5 {
+            let cost = if moat_lane == 0 {
+                Cost::new(0.2)
+            } else {
+                COST_ZERO
+            };
+            self.add_routing_moat(top_left, bottom_right, moat_lane, cost);
+        }
+        self.dirty = true;
+    }
+    fn seed_horiz_channel(&mut self, center: impl Into<Point>, cost: impl Into<Cost>) {
+        let center: Point = center.into();
+        let cost: Cost = cost.into();
+        let mut left_endpoint = NEG_INFINITY_X;
+        let mut right_endpoint = INFINITY_X;
+        for block in &self.blocks {
+            // Loop over the blocks.  For each block, if it intersects the horizontal
+            // channel, then we update the left and right endpoints of the channel.
+            // First, we test that the y-coordinate
+            if block.spans_y(center.y) {
+                if block.spans_x(center.x) {
+                    // The span is blocked since the seed point of the
+                    // span is in the middle of a block - reject it.
+                    return;
+                }
+                if block.is_left_of(center.x) {
+                    // The block is to the left of the center, so it can only affect the left endpoint.
+                    left_endpoint = left_endpoint.max(block.bottom_right.x);
+                }
+                if block.is_right_of(center.x) {
+                    // The block is to the right of the center, so it can only affect the right endpoint.
+                    right_endpoint = right_endpoint.min(block.top_left.x);
+                }
+            }
+        }
+        // Add a horizontal segment for the channel if it is valid.
+        if left_endpoint < right_endpoint {
+            self.add_horiz_segment(center.y, left_endpoint, right_endpoint, cost);
+        }
+    }
+    fn seed_vert_channel(&mut self, center: impl Into<Point>, cost: impl Into<Cost>) {
+        let center: Point = center.into();
+        let cost: Cost = cost.into();
+        let mut top_endpoint = NEG_INFINITY_Y;
+        let mut bottom_endpoint = INFINITY_Y;
+        for block in &self.blocks {
+            // Loop over the blocks.  For each block, if it intersects the vertical
+            // channel, then we update the top and bottom endpoints of the channel.
+            // First, we test that the x-coordinate
+            if block.spans_x(center.x) {
+                if block.spans_y(center.y) {
+                    // The span is blocked since the seed point of the
+                    // span is in the middle of a block - reject it.
+                    return;
+                }
+                if block.is_above(center.y) {
+                    // The block is above the center, so it can only affect the top endpoint.
+                    top_endpoint = top_endpoint.max(block.bottom_right.y);
+                }
+                if block.is_below(center.y) {
+                    // The block is below the center, so it can only affect the bottom endpoint.
+                    bottom_endpoint = bottom_endpoint.min(block.top_left.y);
+                }
+            }
+        }
+        // Add a vertical segment for the channel if it is valid.
+        if top_endpoint < bottom_endpoint {
+            self.add_vert_segment(center.x, top_endpoint, bottom_endpoint, cost);
+        }
+    }
+    fn add_horiz_segment(
+        &mut self,
+        vert: impl Into<CoordY>,
+        left: impl Into<CoordX>,
+        right: impl Into<CoordX>,
+        cost: impl Into<Cost>,
+    ) {
+        let vert: CoordY = vert.into();
+        let left: CoordX = left.into();
+        let right: CoordX = right.into();
+        let cost: Cost = cost.into();
+        if right > left {
+            self.h_segments
+                .entry(vert)
+                .or_default()
+                .push(hseg(left, right, cost));
+        }
+    }
+    fn add_vert_segment(
+        &mut self,
+        horiz: impl Into<CoordX>,
+        top: impl Into<CoordY>,
+        bottom: impl Into<CoordY>,
+        cost: impl Into<Cost>,
+    ) {
+        let horiz: CoordX = horiz.into();
+        let top: CoordY = top.into();
+        let bottom: CoordY = bottom.into();
+        let cost: Cost = cost.into();
+        if bottom > top {
+            self.v_segments
+                .entry(horiz)
+                .or_default()
+                .push(vseg(top, bottom, cost));
+        }
+    }
+    fn successors(&self, state: &SearchState) -> Vec<(SearchState, Cost)> {
+        let prev_dir = state.dir;
+        let prev_point = *self.graph.node_weight(state.node).unwrap();
+        let mut successors = vec![];
+        for edge in self.graph.edges(state.node) {
+            let neighbor = edge.target();
+            let cost = *edge.weight();
+            let neighbor_point = *self.graph.node_weight(neighbor).unwrap();
+            let dir = if neighbor_point.x > prev_point.x {
+                Direction::East
+            } else if neighbor_point.x < prev_point.x {
+                Direction::West
+            } else if neighbor_point.y > prev_point.y {
+                Direction::South
+            } else {
+                Direction::North
+            };
+            let step_length = neighbor_point.manhattan_distance(prev_point) as f64;
+            let step_cost = turn_cost(prev_dir, dir) + MOVE_COST * step_length + cost * step_length;
+            successors.push((
+                SearchState {
+                    node: neighbor,
+                    dir: Some(dir),
+                },
+                step_cost,
+            ));
+        }
+        successors
+    }
+    pub fn path_find(
+        &mut self,
+        start: impl Into<Point>,
+        end: impl Into<Point>,
+    ) -> Option<Vec<Point>> {
+        self.build();
+        let start: Point = start.into();
+        let end: Point = end.into();
+        let start = SearchState {
+            node: self.node_to_index[&start],
+            dir: None,
+        };
+        let result = dijkstra(
+            &start,
+            |state| self.successors(state),
+            |state| state.node == self.node_to_index[&end],
+        );
+        result.map(|(path, _cost)| {
+            path.into_iter()
+                .map(|state| *self.graph.node_weight(state.node).unwrap())
+                .collect()
+        })
+    }
+    pub fn add_route(
+        &mut self,
+        start: impl Into<Point>,
+        edges: &[RouteEdge],
+        cost: impl Into<Cost>,
+    ) {
+        let mut current_point = start.into();
+        let cost: Cost = cost.into();
+        for edge in edges {
+            match edge {
+                RouteEdge::Horizontal(length) => {
+                    let next_point =
+                        point(current_point.x + CoordX::from(*length), current_point.y);
+                    if *length > 0.0 {
+                        self.add_horiz_segment(
+                            current_point.y,
+                            current_point.x,
+                            next_point.x,
+                            cost,
+                        );
+                    } else {
+                        self.add_horiz_segment(
+                            current_point.y,
+                            next_point.x,
+                            current_point.x,
+                            cost,
+                        );
+                    }
+                    current_point = next_point;
+                }
+                RouteEdge::Vertical(length) => {
+                    let next_point =
+                        point(current_point.x, current_point.y + CoordY::from(*length));
+                    if *length > 0.0 {
+                        self.add_vert_segment(current_point.x, current_point.y, next_point.y, cost);
+                    } else {
+                        self.add_vert_segment(current_point.x, next_point.y, current_point.y, cost);
+                    }
+                    current_point = next_point;
+                }
+            }
+        }
+    }
+    fn build(&mut self) {
+        if !self.dirty {
+            return;
+        }
+        self.h_segments.clear();
+        self.v_segments.clear();
+        let channels = std::mem::take(&mut self.channels);
+        for channel in &channels {
+            match channel.orientation {
+                ChannelOrientation::Horizontal => {
+                    self.seed_horiz_channel(channel.seed, channel.cost);
+                }
+                ChannelOrientation::Vertical => {
+                    self.seed_vert_channel(channel.seed, channel.cost);
+                }
+            }
+        }
+        self.channels = channels;
+        self.normalize_segments();
+        self.dirty = false;
+    }
+    fn normalize_segments(&mut self) {
+        let h_segments = std::mem::take(&mut self.h_segments);
+        for (vert, segments) in h_segments {
+            normalize_collinear_segments(segments, |left, right, cost| {
+                self.add_horiz_segment(vert, left, right, cost);
+            });
+        }
+        let v_segments = std::mem::take(&mut self.v_segments);
+        for (horiz, segments) in v_segments {
+            normalize_collinear_segments(segments, |top, bottom, cost| {
+                self.add_vert_segment(horiz, top, bottom, cost);
+            });
+        }
+        self.nodes = collect_intersections(self.iter_hsegs(), self.iter_vsegs());
+        // Re-segment, but now add segments for each node.
+        let mut h_segments = std::mem::take(&mut self.h_segments);
+        self.nodes.iter().for_each(|&node| {
+            h_segments
+                .entry(node.y)
+                .or_default()
+                .push(hseg(node.x, node.x, COST_ZERO));
+        });
+        for (vert, segments) in h_segments {
+            normalize_collinear_segments(segments, |left, right, cost| {
+                self.add_horiz_segment(vert, left, right, cost);
+            });
+        }
+        let mut v_segments = std::mem::take(&mut self.v_segments);
+        self.nodes.iter().for_each(|&node| {
+            v_segments
+                .entry(node.x)
+                .or_default()
+                .push(vseg(node.y, node.y, COST_ZERO));
+        });
+        for (horiz, segments) in v_segments {
+            normalize_collinear_segments(segments, |top, bottom, cost| {
+                self.add_vert_segment(horiz, top, bottom, cost);
+            });
+        }
+        let mut nodes = collect_intersections(self.iter_hsegs(), self.iter_vsegs());
+        nodes.extend(
+            self.iter_hsegs()
+                .flat_map(|(y, h_seg)| [point(h_seg.start, y), point(h_seg.end, y)])
+                .chain(
+                    self.iter_vsegs()
+                        .flat_map(|(x, v_seg)| [point(x, v_seg.start), point(x, v_seg.end)]),
+                ),
+        );
+        self.nodes = nodes;
+        self.rebuild_graph();
+    }
+    fn iter_hsegs(&self) -> impl Iterator<Item = (CoordY, HSegment)> + '_ {
+        self.h_segments
+            .iter()
+            .flat_map(|(&y, h_segs)| h_segs.iter().map(move |h_seg| (y, *h_seg)))
+    }
+    fn iter_vsegs(&self) -> impl Iterator<Item = (CoordX, VSegment)> + '_ {
+        self.v_segments
+            .iter()
+            .flat_map(|(&x, v_segs)| v_segs.iter().map(move |v_seg| (x, *v_seg)))
+    }
+    fn rebuild_graph(&mut self) {
+        let mut node_to_index: BTreeMap<Point, petgraph::graph::NodeIndex> = BTreeMap::new();
+        let mut graph = petgraph::Graph::new();
+        for &node in &self.nodes {
+            let index = graph.add_node(node);
+            node_to_index.insert(node, index);
+        }
+        for hseg in self.iter_hsegs() {
+            let y = hseg.0;
+            let h_seg = hseg.1;
+            let start_node = point(h_seg.start, y);
+            let end_node = point(h_seg.end, y);
+            graph.add_edge(
+                node_to_index[&start_node],
+                node_to_index[&end_node],
+                h_seg.cost,
+            );
+        }
+        for vseg in self.iter_vsegs() {
+            let x = vseg.0;
+            let v_seg = vseg.1;
+            let start_node = point(x, v_seg.start);
+            let end_node = point(x, v_seg.end);
+            graph.add_edge(
+                node_to_index[&start_node],
+                node_to_index[&end_node],
+                v_seg.cost,
+            );
+        }
+        self.graph = graph;
+        self.node_to_index = node_to_index;
+    }
+}
+
+// Run a line-sweep stype algorithm to collect the intersections.
+// The algorithm works by converting a list of events.  Each event
+// is either the start or end of a horizontal segment (using the Enter/Exit events)
+// or a vertical segment (using the Scan event).  The events are sorted by their X-coordinate,
+// and then processed in order.  We maintain a list of active horizontal segments at any given
+// time, and then when we encounter a scan event, we list out all intersections of that vertical
+// segment with the active horizontal segments.
+fn collect_intersections(
+    h_segments: impl IntoIterator<Item = (CoordY, HSegment)>,
+    v_segments: impl IntoIterator<Item = (CoordX, VSegment)>,
+) -> BTreeSet<Point> {
+    let mut events: Vec<Event<CoordX, (CoordY, CoordY)>> = h_segments
+        .into_iter()
+        .flat_map(|(y, h_seg)| {
+            [
+                Event::enter(h_seg.start, (y, y)),
+                Event::exit(h_seg.end, (y, y)),
+            ]
+        })
+        .chain(
+            v_segments
+                .into_iter()
+                .map(|(x, v_seg)| Event::scan(x, (v_seg.start, v_seg.end))),
+        )
+        .collect::<Vec<_>>();
+    events.sort();
+    let mut intersections = BTreeSet::new();
+    // Use a map to count active segments at each y-coordinate
+    // This handles segments that touch at boundaries (e.g., one ends at x=10, another starts at x=10)
+    let mut active_h_segments: BTreeMap<CoordY, usize> = BTreeMap::new();
+    for event in events {
+        match event.sense {
+            EventSense::Enter => {
+                let y = event.cost().0;
+                *active_h_segments.entry(y).or_insert(0) += 1;
+            }
+            EventSense::Exit => {
+                let y = event.cost().0;
+                if let Some(count) = active_h_segments.get_mut(&y) {
+                    *count = count.saturating_sub(1);
+                    if *count == 0 {
+                        active_h_segments.remove(&y);
+                    }
+                }
+            }
+            EventSense::Scan => {
+                let (start, end) = event.cost();
+                // Check all y-coordinates with non-zero count (active segments)
+                for (&y, &count) in &active_h_segments {
+                    if count > 0 && y >= start && y <= end {
+                        intersections.insert(point(event.t(), y));
+                    }
+                }
+            }
+        }
+    }
+    intersections
+}
+
+fn normalize_collinear_segments<T: Ord + Copy>(
+    segments: impl IntoIterator<Item = Segment<T>>,
+    mut maker: impl FnMut(T, T, Cost),
+) {
+    let mut events = segments
+        .into_iter()
+        .flat_map(|seg| {
+            [
+                Event::enter(seg.start, seg.cost),
+                Event::exit(seg.end, seg.cost),
+            ]
+        })
+        .collect::<Vec<_>>();
+    // Sort the events by their coordinate, with Enter events before Exit events in case of ties.
+    events.sort();
+    scan_disjoint_segments(events, |start, end, cost| {
+        maker(start, end, cost);
+    });
+}
+
+fn scan_disjoint_segments<T: Ord + Copy>(
+    events: impl IntoIterator<Item = Event<T, Cost>>,
+    mut maker: impl FnMut(T, T, Cost),
+) {
+    let mut events_iter = events.into_iter();
+
+    // Handle the first event to initialize state
+    let Some(first_event) = events_iter.next() else {
+        return;
+    };
+
+    let mut last_t = first_event.t();
+    let mut line_count = first_event.count();
+    let mut current_cost = if first_event.is_enter() {
+        first_event.cost()
+    } else {
+        COST_ZERO - first_event.cost()
+    };
+
+    // Process remaining events
+    for event in events_iter {
+        let t = event.t();
+        // Invariant: line_count > 0 means last_t was assigned in a previous iteration
+        if line_count != 0 {
+            maker(last_t, t, current_cost);
+        }
+        last_t = t;
+        line_count += event.count();
+        current_cost = if event.is_enter() {
+            current_cost + event.cost()
+        } else {
+            current_cost - event.cost()
+        };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    macro_rules! hseg {
+        (y=$y:expr, [$(($start:expr => $end:expr, $cost:expr)),* $(,)?]) => {
+            BTreeMap::from([(
+                CoordY($y),
+                vec![
+                    $(HSegment {
+                        start: CoordX($start),
+                        end: CoordX($end),
+                        cost: $cost.into(),
+                    }),*
+                ]
+            )])
+        };
+    }
+
+    macro_rules! vseg {
+        (x=$x:expr, [$(($start:expr => $end:expr, $cost:expr)),* $(,)?]) => {
+            BTreeMap::from([(
+                CoordX($x),
+                vec![
+                    $(VSegment {
+                        start: CoordY($start),
+                        end: CoordY($end),
+                        cost: $cost.into(),
+                    }),*
+                ]
+            )])
+        };
+    }
+
+    // Brute force algorithm
+    fn collect_intersections_brute_force(
+        h_segments: impl IntoIterator<Item = (CoordY, HSegment)>,
+        v_segments: impl IntoIterator<Item = (CoordX, VSegment)>,
+    ) -> Vec<Point> {
+        let mut points = vec![];
+        let v_segments = v_segments.into_iter().collect::<Vec<_>>();
+        for (y, hseg) in h_segments.into_iter() {
+            for (x, vseg) in &v_segments {
+                if hseg.start <= *x && hseg.end >= *x && vseg.start <= y && vseg.end >= y {
+                    points.push(point(*x, y));
+                }
+            }
+        }
+        points
+    }
+
+    #[test]
+    fn test_vseed() {
+        let mut router = RouterNG::default();
+        router.seed_vert_channel(point(0, 0), 1.0);
+        router.normalize_segments();
+        assert_eq!(
+            router.v_segments,
+            BTreeMap::from([(CoordX(0), vec![vseg(NEG_INFINITY_Y, INFINITY_Y, 1.0)])])
+        );
+    }
+
+    #[test]
+    fn test_normalize() {
+        let mut router = RouterNG::default();
+        router.add_horiz_segment(0, 0, 10, 1.0);
+        router.add_horiz_segment(0, 5, 15, 2.0);
+        router.normalize_segments();
+        assert_eq!(
+            router.h_segments,
+            hseg!(y=0, [(0=>5, 1.0), (5=>10, 3.0), (10=>15, 2.0)])
+        );
+    }
+
+    #[test]
+    fn test_normalize_complete_overlap() {
+        // One segment completely contains another
+        let mut router = RouterNG::default();
+        router.add_horiz_segment(0, 0, 20, 1.0);
+        router.add_horiz_segment(0, 5, 15, 2.0);
+        router.normalize_segments();
+        assert_eq!(
+            router.h_segments,
+            hseg!(y=0, [(0=>5, 1.0), (5=>15, 3.0), (15=>20, 1.0)])
+        );
+    }
+
+    #[test]
+    fn test_normalize_no_overlap() {
+        // Segments don't overlap at all
+        let mut router = RouterNG::default();
+        router.add_horiz_segment(0, 0, 10, 1.0);
+        router.add_horiz_segment(0, 20, 30, 2.0);
+        router.normalize_segments();
+        assert_eq!(router.h_segments, hseg!(y=0, [(0=>10, 1.0), (20=>30, 2.0)]));
+    }
+
+    #[test]
+    fn test_normalize_adjacent_segments() {
+        // Segments touch at endpoints but don't overlap
+        let mut router = RouterNG::default();
+        router.add_horiz_segment(0, 0, 10, 1.0);
+        router.add_horiz_segment(0, 10, 20, 2.0);
+        router.normalize_segments();
+        assert_eq!(router.h_segments, hseg!(y=0, [(0=>10, 1.0), (10=>20, 2.0)]));
+    }
+
+    #[test]
+    fn test_normalize_triple_overlap() {
+        // Three segments with various overlaps
+        let mut router = RouterNG::default();
+        router.add_horiz_segment(0, 0, 15, 1.0);
+        router.add_horiz_segment(0, 5, 20, 2.0);
+        router.add_horiz_segment(0, 10, 25, 3.0);
+        router.normalize_segments();
+        assert_eq!(
+            router.h_segments,
+            hseg!(y=0, [(0=>5, 1.0), (5=>10, 3.0), (10=>15, 6.0), (15=>20, 5.0), (20=>25, 3.0)])
+        );
+    }
+
+    #[test]
+    fn test_normalize_multiple_rows() {
+        // Segments on different rows should be handled independently
+        let mut router = RouterNG::default();
+        router.add_horiz_segment(0, 0, 10, 1.0);
+        router.add_horiz_segment(0, 5, 15, 2.0);
+        router.add_horiz_segment(5, 0, 10, 3.0);
+        router.add_horiz_segment(5, 5, 15, 4.0);
+        router.normalize_segments();
+
+        let mut expected = BTreeMap::new();
+        expected.extend(hseg!(y=0, [(0=>5, 1.0), (5=>10, 3.0), (10=>15, 2.0)]));
+        expected.extend(hseg!(y=5, [(0=>5, 3.0), (5=>10, 7.0), (10=>15, 4.0)]));
+        assert_eq!(router.h_segments, expected);
+    }
+
+    #[test]
+    fn test_normalize_negative_coords() {
+        // Segments in negative coordinate space
+        let mut router = RouterNG::default();
+        router.add_horiz_segment(-5, -20, -10, 1.0);
+        router.add_horiz_segment(-5, -15, -5, 2.0);
+        router.normalize_segments();
+        assert_eq!(
+            router.h_segments,
+            hseg!(y=-5, [(-20 => -15, 1.0), (-15 => -10, 3.0), (-10 => -5, 2.0)])
+        );
+    }
+
+    #[test]
+    fn test_normalize_vertical_segments() {
+        // Test vertical segment normalization
+        let mut router = RouterNG::default();
+        router.add_vert_segment(0, 0, 10, 1.0);
+        router.add_vert_segment(0, 5, 15, 2.0);
+        router.normalize_segments();
+        assert_eq!(
+            router.v_segments,
+            vseg!(x=0, [(0=>5, 1.0), (5=>10, 3.0), (10=>15, 2.0)])
+        );
+    }
+
+    #[test]
+    fn test_normalize_identical_segments() {
+        // Same segment added twice
+        let mut router = RouterNG::default();
+        router.add_horiz_segment(0, 0, 10, 1.0);
+        router.add_horiz_segment(0, 0, 10, 1.0);
+        router.normalize_segments();
+        assert_eq!(router.h_segments, hseg!(y=0, [(0=>10, 2.0)]));
+    }
+
+    #[test]
+    fn test_normalize_reverse_order() {
+        // Segments added in decreasing coordinate order
+        let mut router = RouterNG::default();
+        router.add_horiz_segment(0, 20, 30, 1.0);
+        router.add_horiz_segment(0, 10, 25, 2.0);
+        router.add_horiz_segment(0, 0, 15, 3.0);
+        router.normalize_segments();
+        assert_eq!(
+            router.h_segments,
+            hseg!(y=0, [(0=>10, 3.0), (10=>15, 5.0), (15=>20, 2.0), (20=>25, 3.0), (25=>30, 1.0)])
+        );
+    }
+
+    // Tests for collect_intersections function
+
+    #[test]
+    fn test_collect_intersections_no_intersections() {
+        // Horizontal segments with no vertical intersections
+        let h_segs = vec![
+            (CoordY(0), hseg(0, 10, 1.0)),
+            (CoordY(5), hseg(15, 25, 1.0)),
+        ];
+        // Vertical segment outside the y-range of all horizontal segments
+        let v_segs = vec![(CoordX(20), vseg(10, 15, 1.0))];
+        let intersections = collect_intersections(h_segs, v_segs);
+        assert_eq!(intersections, BTreeSet::new());
+    }
+
+    #[test]
+    fn test_collect_intersections_at_boundaries() {
+        // Intersections at segment boundaries (start/end)
+        let h_segs = vec![(CoordY(5), hseg(0, 10, 1.0))];
+        // Vertical segment at the start of horizontal segment
+        let v_segs_start = vec![(CoordX(0), vseg(0, 10, 1.0))];
+        let intersections = collect_intersections(h_segs.clone(), v_segs_start);
+        assert_eq!(intersections, BTreeSet::from([point(0, 5)]));
+
+        // Vertical segment at the end of horizontal segment
+        let v_segs_end = vec![(CoordX(10), vseg(0, 10, 1.0))];
+        let intersections = collect_intersections(h_segs.clone(), v_segs_end);
+        assert_eq!(intersections, BTreeSet::from([point(10, 5)]));
+
+        // Vertical segment spanning from horizontal's y-coordinate exactly
+        let v_segs_y_start = vec![(CoordX(5), vseg(5, 15, 1.0))];
+        let intersections = collect_intersections(h_segs.clone(), v_segs_y_start);
+        assert_eq!(intersections, BTreeSet::from([point(5, 5)]));
+
+        // Vertical segment ending at horizontal's y-coordinate exactly
+        let v_segs_y_end = vec![(CoordX(5), vseg(0, 5, 1.0))];
+        let intersections = collect_intersections(h_segs, v_segs_y_end);
+        assert_eq!(intersections, BTreeSet::from([point(5, 5)]));
+    }
+
+    #[test]
+    fn test_collect_intersections_corners() {
+        // Corner case: vertical start == horizontal start
+        let h_segs = vec![(CoordY(5), hseg(10, 20, 1.0))];
+        let v_segs = vec![(CoordX(10), vseg(5, 15, 1.0))];
+        let intersections = collect_intersections(h_segs, v_segs);
+        assert_eq!(intersections, BTreeSet::from([point(10, 5)]));
+    }
+
+    #[test]
+    fn test_collect_intersections_corner_all_endpoints() {
+        // All four corners: (h.start, v.start), (h.start, v.end), (h.end, v.start), (h.end, v.end)
+        let h_seg_y = CoordY(10);
+        let h_segs = vec![(h_seg_y, hseg(5, 15, 1.0))];
+
+        // Test (h.start, v.start) corner
+        let v_segs = vec![(CoordX(5), vseg(10, 20, 1.0))];
+        let intersections = collect_intersections(h_segs.clone(), v_segs);
+        assert_eq!(intersections, BTreeSet::from([point(5, 10)]));
+
+        // Test (h.start, v.end) corner
+        let v_segs = vec![(CoordX(5), vseg(0, 10, 1.0))];
+        let intersections = collect_intersections(h_segs.clone(), v_segs);
+        assert_eq!(intersections, BTreeSet::from([point(5, 10)]));
+
+        // Test (h.end, v.start) corner
+        let v_segs = vec![(CoordX(15), vseg(10, 20, 1.0))];
+        let intersections = collect_intersections(h_segs.clone(), v_segs);
+        assert_eq!(intersections, BTreeSet::from([point(15, 10)]));
+
+        // Test (h.end, v.end) corner
+        let v_segs = vec![(CoordX(15), vseg(0, 10, 1.0))];
+        let intersections = collect_intersections(h_segs, v_segs);
+        assert_eq!(intersections, BTreeSet::from([point(15, 10)]));
+    }
+
+    #[test]
+    fn test_collect_intersections_multiple() {
+        // Multiple intersections from a single vertical segment crossing multiple horizontal segments
+        let h_segs = vec![
+            (CoordY(5), hseg(0, 20, 1.0)),
+            (CoordY(10), hseg(0, 20, 1.0)),
+            (CoordY(15), hseg(0, 20, 1.0)),
+        ];
+        let v_segs = vec![(CoordX(10), vseg(0, 20, 1.0))];
+        let intersections = collect_intersections(h_segs, v_segs);
+        assert_eq!(
+            intersections,
+            BTreeSet::from([point(10, 5), point(10, 10), point(10, 15)])
+        );
+    }
+
+    #[test]
+    fn test_collect_intersections_multiple_verticals() {
+        // Single horizontal segment crossing multiple vertical segments
+        let h_segs = vec![(CoordY(10), hseg(0, 30, 1.0))];
+        let v_segs = vec![
+            (CoordX(5), vseg(5, 15, 1.0)),
+            (CoordX(15), vseg(5, 15, 1.0)),
+            (CoordX(25), vseg(5, 15, 1.0)),
+        ];
+        let intersections = collect_intersections(h_segs, v_segs);
+        assert_eq!(
+            intersections,
+            BTreeSet::from([point(5, 10), point(15, 10), point(25, 10)])
+        );
+    }
+
+    #[test]
+    fn test_collect_intersections_vertical_outside_horizontal_y_range() {
+        // Vertical segment exists in x-range of horizontal but y is outside
+        let h_segs = vec![(CoordY(10), hseg(0, 20, 1.0))];
+        let v_segs = vec![(CoordX(10), vseg(15, 25, 1.0))];
+        let intersections = collect_intersections(h_segs, v_segs);
+        assert_eq!(intersections, BTreeSet::new());
+    }
+
+    #[test]
+    fn test_collect_intersections_empty_inputs() {
+        // Empty horizontal segments
+        let intersections = collect_intersections(vec![], vec![(CoordX(5), vseg(0, 10, 1.0))]);
+        assert_eq!(intersections, BTreeSet::new());
+
+        // Empty vertical segments
+        let intersections = collect_intersections(vec![(CoordY(5), hseg(0, 10, 1.0))], vec![]);
+        assert_eq!(intersections, BTreeSet::new());
+
+        // Both empty
+        let intersections: BTreeSet<Point> = collect_intersections(
+            Vec::<(CoordY, HSegment)>::new(),
+            Vec::<(CoordX, VSegment)>::new(),
+        );
+        assert_eq!(intersections, BTreeSet::new());
+    }
+
+    #[test]
+    fn test_random_segments_line_sweep_matches_brute_force() {
+        use rand::rngs::StdRng;
+        use rand::{RngExt, SeedableRng};
+
+        // Use a fixed seed for reproducibility
+        let mut rng = StdRng::seed_from_u64(42);
+
+        const NUM_H_SEGMENTS: usize = 1000;
+        const NUM_V_SEGMENTS: usize = 1000;
+        const FIELD_SIZE: i32 = 200;
+
+        let mut router = RouterNG::default();
+
+        // Generate random horizontal segments
+        for _ in 0..NUM_H_SEGMENTS {
+            let y = rng.random_range(0..FIELD_SIZE);
+            let x1 = rng.random_range(0..FIELD_SIZE);
+            let x2 = rng.random_range(0..FIELD_SIZE);
+            let (start, end) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
+            // Ensure non-zero length segments
+            if start < end {
+                router.add_horiz_segment(y, start, end, rng.random_range(0.1..10.0));
+            }
+        }
+
+        // Generate random vertical segments
+        for _ in 0..NUM_V_SEGMENTS {
+            let x = rng.random_range(0..FIELD_SIZE);
+            let y1 = rng.random_range(0..FIELD_SIZE);
+            let y2 = rng.random_range(0..FIELD_SIZE);
+            let (start, end) = if y1 <= y2 { (y1, y2) } else { (y2, y1) };
+            // Ensure non-zero length segments
+            if start < end {
+                router.add_vert_segment(x, start, end, rng.random_range(0.1..10.0));
+            }
+        }
+
+        // Normalize segments (merge overlapping segments)
+        let normalize_start = std::time::Instant::now();
+        router.normalize_segments();
+        let normalize_time = normalize_start.elapsed();
+
+        println!("Normalization took: {:?}", normalize_time);
+        println!(
+            "Normalized to {} horizontal segments and {} vertical segments",
+            router.h_segments.values().map(|v| v.len()).sum::<usize>(),
+            router.v_segments.values().map(|v| v.len()).sum::<usize>()
+        );
+
+        // Collect intersections using line-sweep algorithm
+        let line_sweep_start = std::time::Instant::now();
+        let line_sweep_intersections =
+            collect_intersections(router.iter_hsegs(), router.iter_vsegs());
+        let line_sweep_time = line_sweep_start.elapsed();
+
+        println!("Line-sweep algorithm took: {:?}", line_sweep_time);
+        println!("Found {} intersections", line_sweep_intersections.len());
+
+        // Collect intersections using brute force algorithm
+        let brute_force_start = std::time::Instant::now();
+        let brute_force_intersections: BTreeSet<Point> =
+            collect_intersections_brute_force(router.iter_hsegs(), router.iter_vsegs())
+                .into_iter()
+                .collect();
+        let brute_force_time = brute_force_start.elapsed();
+
+        println!("Brute-force algorithm took: {:?}", brute_force_time);
+
+        let speedup = brute_force_time.as_secs_f64() / line_sweep_time.as_secs_f64();
+        println!("Line-sweep is {:.2}x faster than brute-force", speedup);
+
+        // Compare results
+        assert_eq!(
+            line_sweep_intersections.len(),
+            brute_force_intersections.len(),
+            "Number of intersections differs: line-sweep found {}, brute-force found {}",
+            line_sweep_intersections.len(),
+            brute_force_intersections.len()
+        );
+
+        assert_eq!(
+            line_sweep_intersections, brute_force_intersections,
+            "Intersection sets differ between line-sweep and brute-force algorithms"
+        );
+    }
+}
