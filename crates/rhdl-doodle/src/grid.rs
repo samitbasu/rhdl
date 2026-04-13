@@ -4,12 +4,13 @@ pub const GRID_SIZE: f32 = 10.0;
 pub const SHIM: f32 = 7.0;
 pub const MOVE_HOVER_DISTANCE: f32 = GRID_SIZE * 0.8;
 pub const PORT_RADIUS: f32 = 3.0;
+pub const LINE_RADIUS: f32 = 5.0;
 pub const TITLE_TEXT_SIZE: f32 = 10.0;
 pub const PORT_TEXT_SIZE: f32 = 8.0;
 pub const CONTROL_HANDLE_SIZE: f32 = 3.0;
 pub const GRIP_SIZE: f32 = 6.0;
 
-pub fn grid(pos: Pos2) -> Pos2 {
+pub fn snap_to_grip(pos: Pos2) -> Pos2 {
     Pos2::new(round_to_grid(pos.x), round_to_grid(pos.y))
 }
 
@@ -19,14 +20,14 @@ pub fn round_to_grid(value: f32) -> f32 {
 
 pub fn snap(rect: Rect) -> Rect {
     Rect::from_min_max(
-        grid(pos2(rect.min.x, rect.min.y)),
-        grid(pos2(rect.max.x, rect.max.y)),
+        snap_to_grip(pos2(rect.min.x, rect.min.y)),
+        snap_to_grip(pos2(rect.max.x, rect.max.y)),
     )
 }
 
 pub fn grid_rect(rect: Rect) -> Rect {
     Rect::from_min_max(
-        grid(pos2(rect.min.x, rect.min.y)),
-        grid(pos2(rect.max.x, rect.max.y)),
+        snap_to_grip(pos2(rect.min.x, rect.min.y)),
+        snap_to_grip(pos2(rect.max.x, rect.max.y)),
     )
 }

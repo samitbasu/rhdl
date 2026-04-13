@@ -1,24 +1,121 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use egui::pos2;
 use pathfinding::directed::dijkstra::dijkstra;
 use petgraph::{
-    algo::DfsSpace,
     graph::{NodeIndex, UnGraph},
     visit::EdgeRef,
 };
 
 use crate::{
-    router::{COST_ZERO, Cost},
-    state::RouteEdge,
+    state::{RouteDirection, RouteEdge},
     turtle::{Mark, Turtle},
 };
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Copy)]
+pub struct Cost(i64);
+
+impl pathfinding::num_traits::Zero for Cost {
+    fn zero() -> Self {
+        COST_ZERO
+    }
+    fn is_zero(&self) -> bool {
+        self.0 == 0
+    }
+}
+
+const UNIT_SCALE: f64 = 16_777_216.0; // 2^24
+
+impl From<Cost> for f64 {
+    fn from(value: Cost) -> Self {
+        value.0 as f64 / UNIT_SCALE
+    }
+}
+
+impl From<f64> for Cost {
+    fn from(value: f64) -> Self {
+        Self((value * UNIT_SCALE) as i64)
+    }
+}
+
+impl From<f32> for Cost {
+    fn from(value: f32) -> Self {
+        Self((value as f64 * UNIT_SCALE) as i64)
+    }
+}
+
+impl Cost {
+    pub const fn new(cost: f64) -> Self {
+        Self((cost * UNIT_SCALE) as i64)
+    }
+}
+
+impl std::ops::AddAssign<Cost> for Cost {
+    fn add_assign(&mut self, rhs: Cost) {
+        self.0 += rhs.0;
+    }
+}
+
+impl std::ops::SubAssign<Cost> for Cost {
+    fn sub_assign(&mut self, rhs: Cost) {
+        self.0 -= rhs.0;
+    }
+}
+
+impl std::ops::Add<Cost> for Cost {
+    type Output = Self;
+
+    fn add(self, rhs: Cost) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+
+impl std::ops::Sub<Cost> for Cost {
+    type Output = Self;
+
+    fn sub(self, rhs: Cost) -> Self::Output {
+        Self(self.0 - rhs.0)
+    }
+}
+
+impl std::ops::Mul<Cost> for i64 {
+    type Output = Cost;
+
+    fn mul(self, rhs: Cost) -> Self::Output {
+        Cost(self * rhs.0)
+    }
+}
+
+impl std::ops::Mul<f64> for Cost {
+    type Output = Cost;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        Cost((self.0 as f64 * rhs) as i64)
+    }
+}
+
+pub const COST_ZERO: Cost = Cost(0);
+
+impl std::fmt::Display for Cost {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.2}", self.0 as f64 / UNIT_SCALE)
+    }
+}
 
 // This is a lattice point on the grid.  The grid is double ended
 // and the coordinates can be negative, so we use a signed integer.
 // We use two newtype wrappers to handle the two axes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CoordX(i32);
+
+impl CoordX {
+    fn min(self, other: Self) -> Self {
+        CoordX(self.0.min(other.0))
+    }
+
+    fn max(self, other: Self) -> Self {
+        CoordX(self.0.max(other.0))
+    }
+}
 
 impl From<f32> for CoordX {
     fn from(value: f32) -> Self {
@@ -34,6 +131,16 @@ impl From<i32> for CoordX {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CoordY(i32);
+
+impl CoordY {
+    fn min(self, other: Self) -> Self {
+        CoordY(self.0.min(other.0))
+    }
+
+    fn max(self, other: Self) -> Self {
+        CoordY(self.0.max(other.0))
+    }
+}
 
 impl From<f32> for CoordY {
     fn from(value: f32) -> Self {
@@ -183,28 +290,30 @@ impl Block {
     pub fn is_below(&self, y: CoordY) -> bool {
         self.top_left.y > y
     }
-
-    fn intersects_edge(&self, start_point: Point, edge: RouteEdge) -> bool {
+    pub fn contains(&self, point: Point) -> bool {
+        self.spans_x(point.x) && self.spans_y(point.y)
+    }
+    fn intersects_edge(&self, edge: &RouteEdge) -> bool {
         // Check for intersection between the edge and the block.  The edge is
         // either horizontal or vertical, so we can check for intersection by comparing the coordinates.
-        match edge {
-            RouteEdge::Horizontal(length) => {
-                let end_point = start_point + CoordX::from(length);
-                let min_x = start_point.x.0.min(end_point.x.0);
-                let max_x = start_point.x.0.max(end_point.x.0);
+        match edge.direction() {
+            RouteDirection::Horizontal => {
+                let end_point: Point = edge.end.into();
+                let start_point: Point = edge.start.into();
+                let min_x = start_point.x.min(end_point.x);
+                let max_x = start_point.x.max(end_point.x);
+                // The edge goes from [min_x,max_x], and we have the interval
+                // [self.top_left.x, self.bottom_right.x] - the edge intersects the block if the intervals overlap.
                 self.spans_y(start_point.y)
-                    && (self.spans_x(CoordX(min_x))
-                        || self.spans_x(CoordX(max_x))
-                        || (self.is_left_of(CoordX(min_x)) && self.is_right_of(CoordX(max_x))))
+                    && interval_overlap(min_x, max_x, self.top_left.x, self.bottom_right.x)
             }
-            RouteEdge::Vertical(length) => {
-                let end_point = start_point + CoordY::from(length);
-                let min_y = start_point.y.0.min(end_point.y.0);
-                let max_y = start_point.y.0.max(end_point.y.0);
+            RouteDirection::Vertical => {
+                let end_point: Point = edge.end.into();
+                let start_point: Point = edge.start.into();
+                let min_y = start_point.y.min(end_point.y);
+                let max_y = start_point.y.max(end_point.y);
                 self.spans_x(start_point.x)
-                    && (self.spans_y(CoordY(min_y))
-                        || self.spans_y(CoordY(max_y))
-                        || (self.is_above(CoordY(min_y)) && self.is_below(CoordY(max_y))))
+                    && interval_overlap(min_y, max_y, self.top_left.y, self.bottom_right.y)
             }
         }
     }
@@ -333,13 +442,53 @@ enum Direction {
     West,
 }
 
+impl Direction {
+    fn opposite(self) -> Self {
+        match self {
+            Direction::North => Direction::South,
+            Direction::South => Direction::North,
+            Direction::East => Direction::West,
+            Direction::West => Direction::East,
+        }
+    }
+}
+
 const TURN_COST: Cost = Cost::new(25.0);
 const MOVE_COST: Cost = Cost::new(1.0);
 pub const WIRE_COST: Cost = Cost::new(10.0);
 
+fn cross_cost(
+    from: Option<Direction>,
+    to: Direction,
+    cost_to_cross_east_west: Cost,
+    cost_to_cross_north_south: Cost,
+) -> Cost {
+    if let Some(from_dir) = from {
+        match (from_dir, to) {
+            (Direction::North, Direction::South) | (Direction::South, Direction::North) => {
+                cost_to_cross_east_west
+            }
+            (Direction::East, Direction::West) | (Direction::West, Direction::East) => {
+                cost_to_cross_north_south
+            }
+            _ => COST_ZERO,
+        }
+    } else {
+        COST_ZERO
+    }
+}
+
 fn turn_cost(from: Option<Direction>, to: Direction) -> Cost {
     if let Some(from_dir) = from {
-        if from_dir == to { COST_ZERO } else { TURN_COST }
+        if from_dir == to {
+            COST_ZERO
+        } else {
+            if to == from_dir.opposite() {
+                TURN_COST * 100.0
+            } else {
+                TURN_COST
+            }
+        }
     } else {
         COST_ZERO
     }
@@ -408,7 +557,7 @@ impl RouterNGBuilder {
             let cost = if moat_lane == 0 {
                 Cost::new(0.2)
             } else {
-                COST_ZERO
+                Cost::new(0.1)
             };
             self.add_routing_moat(top_left, bottom_right, moat_lane, cost);
         }
@@ -506,64 +655,31 @@ impl RouterNG {
         }
         turtle.compile()
     }
-    pub fn is_route_blocked(&mut self, start: impl Into<Point>, edges: &[RouteEdge]) -> bool {
+    pub fn is_route_blocked(&mut self, edges: &[RouteEdge]) -> bool {
         self.update();
-        let mut current_point = start.into();
-        for &edge in edges {
-            if self
-                .blocks
-                .iter()
-                .any(|block| block.intersects_edge(current_point, edge))
-            {
-                return true;
-            }
-            let next_point = match edge {
-                RouteEdge::Horizontal(length) => current_point + CoordX::from(length),
-                RouteEdge::Vertical(length) => current_point + CoordY::from(length),
-            };
-            current_point = next_point;
-        }
-        false
+        edges
+            .iter()
+            .any(|edge| self.blocks.iter().any(|block| block.intersects_edge(edge)))
     }
-    pub fn add_existing_route(
-        &mut self,
-        start: impl Into<Point>,
-        edges: &[RouteEdge],
-        cost: impl Into<Cost>,
-    ) {
-        let mut current_point = start.into();
+    pub fn is_accessible(&self, test: impl Into<Point>) -> bool {
+        let test: Point = test.into();
+        !self.blocks.iter().any(|block| block.contains(test))
+    }
+    pub fn add_existing_route(&mut self, edges: &[RouteEdge], cost: impl Into<Cost>) {
         let cost: Cost = cost.into();
         for edge in edges {
-            match edge {
-                RouteEdge::Horizontal(length) => {
-                    let next_point =
-                        point(current_point.x + CoordX::from(*length), current_point.y);
-                    if *length > 0.0 {
-                        self.add_horiz_segment(
-                            current_point.y,
-                            current_point.x,
-                            next_point.x,
-                            cost,
-                        );
-                    } else {
-                        self.add_horiz_segment(
-                            current_point.y,
-                            next_point.x,
-                            current_point.x,
-                            cost,
-                        );
-                    }
-                    current_point = next_point;
+            let start: Point = edge.start.into();
+            let end: Point = edge.end.into();
+            match edge.direction() {
+                RouteDirection::Horizontal => {
+                    let left = start.x.min(end.x);
+                    let right = start.x.max(end.x);
+                    self.add_horiz_segment(start.y, left, right, cost);
                 }
-                RouteEdge::Vertical(length) => {
-                    let next_point =
-                        point(current_point.x, current_point.y + CoordY::from(*length));
-                    if *length > 0.0 {
-                        self.add_vert_segment(current_point.x, current_point.y, next_point.y, cost);
-                    } else {
-                        self.add_vert_segment(current_point.x, next_point.y, current_point.y, cost);
-                    }
-                    current_point = next_point;
+                RouteDirection::Vertical => {
+                    let top = start.y.min(end.y);
+                    let bottom = start.y.max(end.y);
+                    self.add_vert_segment(start.x, top, bottom, cost);
                 }
             }
         }
@@ -780,37 +896,73 @@ impl RouterNG {
     fn successors(&self, state: &SearchState) -> Vec<(SearchState, Cost)> {
         let prev_dir = state.dir;
         let prev_point = *self.graph.node_weight(state.node).unwrap();
-        let mut successors = vec![];
+        let mut north_cost: Option<Cost> = None;
+        let mut south_cost: Option<Cost> = None;
+        let mut east_cost: Option<Cost> = None;
+        let mut west_cost: Option<Cost> = None;
+        // Get the costs to move in the 4 cardinal directions from the current node.
         for edge in self.graph.edges(state.node) {
             let neighbor = edge.target();
             let cost = *edge.weight();
             let neighbor_point = *self.graph.node_weight(neighbor).unwrap();
-            let dir = if neighbor_point.x > prev_point.x {
-                Direction::East
+            if neighbor_point.x > prev_point.x {
+                east_cost = Some(cost);
             } else if neighbor_point.x < prev_point.x {
-                Direction::West
+                west_cost = Some(cost);
             } else if neighbor_point.y > prev_point.y {
-                Direction::South
+                south_cost = Some(cost);
             } else {
-                Direction::North
+                north_cost = Some(cost);
             };
-            let step_length = neighbor_point.manhattan_distance(prev_point) as f64;
-            let step_cost = turn_cost(prev_dir, dir) + MOVE_COST * step_length + cost * step_length;
-            successors.push((
-                SearchState {
-                    node: neighbor,
-                    dir: Some(dir),
-                },
-                step_cost,
-            ));
         }
-        successors
+        // Calculate the east and west cost as a single cost,
+        // since if we are north/south bound, we should consider
+        // this a crossing.
+        let east_west_crossing_cost = match (east_cost, west_cost) {
+            (Some(east), Some(west)) => east.max(west),
+            _ => COST_ZERO,
+        };
+        let north_south_crossing_cost = match (north_cost, south_cost) {
+            (Some(north), Some(south)) => north.max(south),
+            _ => COST_ZERO,
+        };
+        // Rescan the edges to generate the successors with the correct costs.
+        self.graph
+            .edges(state.node)
+            .map(|edge| {
+                let neighbor = edge.target();
+                let cost = *edge.weight();
+                let neighbor_point = *self.graph.node_weight(neighbor).unwrap();
+                let dir = if neighbor_point.x > prev_point.x {
+                    Direction::East
+                } else if neighbor_point.x < prev_point.x {
+                    Direction::West
+                } else if neighbor_point.y > prev_point.y {
+                    Direction::South
+                } else {
+                    Direction::North
+                };
+                let step_length = neighbor_point.manhattan_distance(prev_point) as f64;
+                let step_cost = turn_cost(prev_dir, dir)
+                    + MOVE_COST * step_length
+                    + cost * step_length
+                    + cross_cost(
+                        prev_dir,
+                        dir,
+                        east_west_crossing_cost,
+                        north_south_crossing_cost,
+                    );
+                (
+                    SearchState {
+                        node: neighbor,
+                        dir: Some(dir),
+                    },
+                    step_cost,
+                )
+            })
+            .collect()
     }
-    pub fn path_find(
-        &mut self,
-        start: impl Into<Point>,
-        end: impl Into<Point>,
-    ) -> Option<Vec<Point>> {
+    fn path_find(&mut self, start: impl Into<Point>, end: impl Into<Point>) -> Option<Vec<Point>> {
         self.update();
         let start: Point = start.into();
         let end: Point = end.into();
@@ -854,7 +1006,7 @@ impl RouterNG {
 }
 
 // Run a line-sweep stype algorithm to collect the intersections.
-// The algorithm works by converting a list of events.  Each event
+// The algorithm works by creating a list of events sorted in x.  Each event
 // is either the start or end of a horizontal segment (using the Enter/Exit events)
 // or a vertical segment (using the Scan event).  The events are sorted by their X-coordinate,
 // and then processed in order.  We maintain a list of active horizontal segments at any given
@@ -966,6 +1118,10 @@ fn scan_disjoint_segments<T: Ord + Copy>(
             current_cost - event.cost()
         };
     }
+}
+
+fn interval_overlap<T: Ord>(a_start: T, a_end: T, b_start: T, b_end: T) -> bool {
+    a_start < b_end && b_start < a_end
 }
 
 #[cfg(test)]

@@ -1,10 +1,10 @@
 use egui::{CursorIcon, Pos2, Vec2, pos2, vec2};
-use nonempty::NonEmpty;
 
 use crate::{
-    grid::GRID_SIZE,
+    grid::{GRID_SIZE, LINE_RADIUS, snap_to_grip},
     label::LabelId,
     rectbox::{LineAnchor, RectId},
+    router_ng::Point,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -33,10 +33,11 @@ pub enum State {
     PortLabelGripHovered(PortLabelGripHovered),
     EditingLabelText(EditingLabelText),
     PortPinHovered(PortPinHovered),
-    AddingRoute(AddingRoute),
-    ProposedRoute(Route),
     InProgressAutoRoute(InProgressAutoRoute),
     ProposedAutoRoute(ProposedAutoRoute),
+    RouteEdgeHovered(RouteEdgeHovered),
+    RouteEdgeDragged(RouteEdgeDragged),
+    WaypointHovered(WaypointHovered),
 }
 
 impl State {
@@ -89,15 +90,9 @@ impl State {
     }
 }
 
-impl From<AddingRoute> for State {
-    fn from(value: AddingRoute) -> Self {
-        State::AddingRoute(value)
-    }
-}
-
-impl From<Route> for State {
-    fn from(value: Route) -> Self {
-        State::ProposedRoute(value)
+impl From<RouteEdgeHovered> for State {
+    fn from(value: RouteEdgeHovered) -> Self {
+        State::RouteEdgeHovered(value)
     }
 }
 
@@ -110,6 +105,18 @@ impl From<InProgressAutoRoute> for State {
 impl From<ProposedAutoRoute> for State {
     fn from(value: ProposedAutoRoute) -> Self {
         State::ProposedAutoRoute(value)
+    }
+}
+
+impl From<WaypointHovered> for State {
+    fn from(value: WaypointHovered) -> Self {
+        State::WaypointHovered(value)
+    }
+}
+
+impl From<RouteEdgeDragged> for State {
+    fn from(value: RouteEdgeDragged) -> Self {
+        State::RouteEdgeDragged(value)
     }
 }
 
@@ -139,6 +146,13 @@ pub struct PotentialResize {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct EditingName {
     pub rect: RectId,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RouteEdgeDragged {
+    pub id: RouteId,
+    pub edge_index: EdgeId,
+    pub delta_pos: Vec2,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -179,17 +193,42 @@ pub struct ResizingRect {
     pub delta_pos: Vec2,
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
-pub enum RouteEdge {
-    Horizontal(f32),
-    Vertical(f32),
+#[derive(Clone, PartialEq, Eq, Hash, Copy, Debug, PartialOrd, Ord)]
+pub struct EdgeId(usize);
+
+#[derive(Clone, PartialEq, Eq, Hash, Copy, Debug, PartialOrd, Ord)]
+pub enum RouteDirection {
+    Horizontal,
+    Vertical,
 }
 
-#[derive(Clone, PartialEq, Debug)]
-pub struct AddingRoute {
-    pub anchor: LineAnchor,
-    pub edges: Vec<RouteEdge>,
-    pub head: Pos2,
+#[derive(Clone, PartialEq, Copy, Debug)]
+pub struct RouteEdge {
+    pub id: EdgeId,
+    pub start: Pos2,
+    pub end: Pos2,
+}
+
+impl RouteEdge {
+    pub fn distance(&self, pos: Pos2) -> f32 {
+        let start = self.start;
+        let end = self.end;
+        let line_vec = end - start;
+        let line_len = line_vec.length();
+        if line_len == 0.0 {
+            return (pos - start).length();
+        }
+        let t = ((pos - start).dot(line_vec) / line_len.powi(2)).clamp(0.0, 1.0);
+        let projection = start + line_vec * t;
+        (pos - projection).length()
+    }
+    pub fn direction(&self) -> RouteDirection {
+        if (self.end.x - self.start.x).abs() > (self.end.y - self.start.y).abs() {
+            RouteDirection::Horizontal
+        } else {
+            RouteDirection::Vertical
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -206,24 +245,26 @@ pub struct ProposedAutoRoute {
     pub finish: LineAnchor,
 }
 
-impl AddingRoute {
-    pub fn last_point(&self, start: Pos2) -> Pos2 {
-        follow(start, self.edges.iter().copied())
-            .last()
-            .unwrap_or(start)
+#[derive(Clone, PartialEq, Debug)]
+pub struct WaypointHovered {
+    pub route: AutoRoute,
+    pub waypoint: Pos2,
+}
+
+#[derive(Clone, PartialEq, Hash, Copy, Debug, Eq, PartialOrd, Ord, Default)]
+pub struct RouteId(usize);
+
+impl RouteId {
+    pub fn next(&self) -> Self {
+        RouteId(self.0 + 1)
     }
-    pub fn points(&self, start: Pos2) -> impl Iterator<Item = Pos2> {
-        follow(start, self.edges.iter().copied()).chain(std::iter::once(self.head))
-    }
-    pub fn add_point(&mut self, start_pos: Pos2, new_pos: Pos2) {
-        let last_point = self.last_point(start_pos);
-        let delta = new_pos - last_point;
-        if delta.x.abs() > delta.y.abs() {
-            self.edges.push(RouteEdge::Horizontal(delta.x));
-        } else {
-            self.edges.push(RouteEdge::Vertical(delta.y));
-        }
-    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct RouteEdgeHovered {
+    pub id: RouteId,
+    pub edge_index: EdgeId,
+    pub direction: RouteDirection,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -233,134 +274,191 @@ pub struct AutoRoute {
     pub finish: LineAnchor,
     pub start_pos: Pos2,
     pub end_pos: Pos2,
+    pub waypoints: Vec<Pos2>,
 }
 
 impl AutoRoute {
     pub fn points(&self) -> Vec<Pos2> {
-        std::iter::once(self.start_pos)
-            .chain(follow(self.start_pos, self.edges.iter().copied()))
-            .collect()
-    }
-    // For display, we diagonally cut GRID/4.0 off the of the route, so that
-    // traces that meet at a junction don't visually merge together.
-    // Instead of
-    //.     | <-B
-    //.     |.  v
-    //. ----+-----
-    //. ^   |
-    //. A-> |
-    // We instead draw
-    //.     | <-B
-    //.     |.  v
-    //. --   \-----
-    //.    \
-    //. ^   |
-    //. A-> |
-    // This visual tweak requires tracking each time the track turns from horizontal
-    // to vertical, and then adjusting the display position of the route slightly at those points.
-    pub fn display_points(&self, start: Pos2) -> Vec<Pos2> {
-        const CHAMFER: f32 = GRID_SIZE / 5.0;
+        // We do not want the start and end points duplicated for internal edges.
         let mut points = Vec::new();
-        let mut pos = start;
-
-        for (i, edge) in self.edges.iter().enumerate() {
-            // Check if we're turning at the start of this edge
-            let turning_in = i > 0 && {
-                let prev = &self.edges[i - 1];
-                !matches!(
-                    (prev, edge),
-                    (RouteEdge::Horizontal(_), RouteEdge::Horizontal(_))
-                        | (RouteEdge::Vertical(_), RouteEdge::Vertical(_))
-                )
-            };
-
-            // Check if we're turning at the end of this edge
-            let turning_out = i + 1 < self.edges.len() && {
-                let next = &self.edges[i + 1];
-                !matches!(
-                    (edge, next),
-                    (RouteEdge::Horizontal(_), RouteEdge::Horizontal(_))
-                        | (RouteEdge::Vertical(_), RouteEdge::Vertical(_))
-                )
-            };
-
-            // Move forward by CHAMFER if we're turning in
-            if turning_in {
-                pos = match edge {
-                    RouteEdge::Horizontal(dx) => pos + vec2(dx.signum() * CHAMFER, 0.0),
-                    RouteEdge::Vertical(dy) => pos + vec2(0.0, dy.signum() * CHAMFER),
-                };
-            }
-            points.push(pos);
-
-            // Move along the edge, stopping CHAMFER short if we're turning out
-            let distance = match edge {
-                RouteEdge::Horizontal(dx) => dx.abs() - if turning_out { CHAMFER } else { 0.0 },
-                RouteEdge::Vertical(dy) => dy.abs() - if turning_out { CHAMFER } else { 0.0 },
-            };
-            pos = match edge {
-                RouteEdge::Horizontal(dx) => pos + vec2(dx.signum() * distance, 0.0),
-                RouteEdge::Vertical(dy) => pos + vec2(0.0, dy.signum() * distance),
-            };
-            points.push(pos);
-
-            // Move to the actual corner position (full edge endpoint)
-            pos = match edge {
-                RouteEdge::Horizontal(dx) => {
-                    pos + vec2(dx.signum() * if turning_out { CHAMFER } else { 0.0 }, 0.0)
-                }
-                RouteEdge::Vertical(dy) => {
-                    pos + vec2(0.0, dy.signum() * if turning_out { CHAMFER } else { 0.0 })
-                }
-            };
+        points.push(self.start_pos);
+        for edge in &self.edges {
+            points.push(edge.end);
         }
-
         points
     }
-    pub fn build(start: LineAnchor, finish: LineAnchor, points: &[Pos2]) -> Self {
+    // If we consider the path as a parametric function of distance travelled, then
+    // for any given point, there is a closest point on the path to it.
+    // This function computes the distance travelled along the path to the first point
+    // where the target is within tolerance distance.
+    pub fn travel_distance_to_closest_point(&self, pos: Pos2, tolerance: f32) -> Option<f32> {
+        let mut distance_travelled = 0.0;
+        for edge in &self.edges {
+            let edge_length = (edge.end - edge.start).length();
+            let distance_to_edge = edge.distance(pos);
+            if distance_to_edge <= tolerance {
+                return Some(distance_travelled + (edge_length - distance_to_edge));
+            }
+            distance_travelled += edge_length;
+        }
+        None
+    }
+    pub fn edge(&self, edge_index: EdgeId) -> Option<&RouteEdge> {
+        self.edges.iter().find(|edge| edge.id == edge_index)
+    }
+    pub fn edge_mut(&mut self, edge_index: EdgeId) -> Option<&mut RouteEdge> {
+        self.edges.iter_mut().find(|edge| edge.id == edge_index)
+    }
+    pub fn is_z_bend(&self, edge_index: EdgeId) -> bool {
+        if let Some(ndx) = self.edges.iter().position(|edge| edge.id == edge_index)
+            && ndx > 0
+            && ndx < self.edges.len() - 1
+        {
+            return self.edges[ndx - 1].direction() == self.edges[ndx + 1].direction()
+                && self.edges[ndx].direction() != self.edges[ndx - 1].direction();
+        }
+        false
+    }
+
+    pub fn move_edge(&mut self, edge_index: EdgeId, delta: Vec2) {
+        if let Some(ndx) = self.edges.iter().position(|edge| edge.id == edge_index)
+            && self.is_z_bend(edge_index)
+        {
+            // If this is the vertical segment of a horizontal z-bend, then
+            // we calculate the new vertical position of the bend, and update
+            // the start and end of the adjacent edges accordingly.
+            let (start, end) = {
+                let edge = &mut self.edges[ndx];
+                let start = edge.start;
+                match edge.direction() {
+                    RouteDirection::Horizontal => {
+                        let delta = vec2(0.0, delta.y);
+                        let new_start: Pos2 = start + delta;
+                        edge.start.y = new_start.y;
+                        edge.end.y = new_start.y;
+                    }
+                    RouteDirection::Vertical => {
+                        let delta = vec2(delta.x, 0.0);
+                        let new_start: Pos2 = start + delta;
+                        edge.start.x = new_start.x;
+                        edge.end.x = new_start.x;
+                    }
+                }
+                (edge.start, edge.end)
+            };
+            self.edges[ndx - 1].end = start;
+            self.edges[ndx + 1].start = end;
+        }
+    }
+    pub fn finish_drag(&mut self, edge_index: EdgeId) {
+        if !self.is_z_bend(edge_index) {
+            return;
+        }
+        self.edges.iter_mut().for_each(|edge| {
+            edge.start = snap_to_grip(edge.start);
+            edge.end = snap_to_grip(edge.end);
+        });
+        if let Some((start, end)) = self.edge(edge_index).map(|edge| (edge.start, edge.end)) {
+            self.waypoints.push(start);
+            self.waypoints.push(end);
+        }
+        // Drop all waypoints that are no longer on the path.
+        self.update_waypoints();
+    }
+    pub fn update_waypoints(&mut self) {
+        // For each waypoint, retain only those that have `self.travel_distance_to_closest_point`
+        // within `GRID_SIZE * 0.5` is Some(t).  And the store the values of `t` in a separate array.
+        let mut waypoint_distances = self
+            .waypoints
+            .iter()
+            .flat_map(|&wp| {
+                self.travel_distance_to_closest_point(wp, GRID_SIZE * 0.5)
+                    .map(|t| (wp, t))
+            })
+            .collect::<Vec<_>>();
+        // Sort the waypoints in the order they appear on the path.
+        waypoint_distances.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+        self.waypoints = waypoint_distances.into_iter().map(|(wp, _)| wp).collect();
+    }
+    pub fn grid_points(&self) -> Vec<Point> {
+        self.points().into_iter().map(|pos| pos.into()).collect()
+    }
+    pub fn hovered_edge(&self, hover_pos: Pos2) -> Option<EdgeId> {
+        self.edges.iter().find_map(|edge| {
+            if edge.distance(hover_pos) <= LINE_RADIUS {
+                Some(edge.id)
+            } else {
+                None
+            }
+        })
+    }
+    pub fn build(
+        start: LineAnchor,
+        finish: LineAnchor,
+        points: &[Pos2],
+        waypoints: &[Pos2],
+    ) -> Self {
         // Scan through the set of points, and create a set of edges.
         // Each edge should be either horizontal or vertical,
         // and should continue as long as possible until the direction changes.
         let mut edges = Vec::new();
-        let mut current_pos = None;
-        let mut accumulated_edge: Option<RouteEdge> = None;
         let start_pos = points.first().copied().unwrap_or(pos2(0.0, 0.0));
         let end_pos = points.last().copied().unwrap_or(pos2(0.0, 0.0));
 
-        for &point in points {
-            if let Some(prev_pos) = current_pos {
-                let delta: Vec2 = point - prev_pos;
-                let new_edge = if delta.x.abs() > delta.y.abs() {
-                    RouteEdge::Horizontal(delta.x)
-                } else {
-                    RouteEdge::Vertical(delta.y)
-                };
-
-                // Check if we can merge with the accumulated edge
-                accumulated_edge = match accumulated_edge {
-                    Some(RouteEdge::Horizontal(acc)) => match new_edge {
-                        RouteEdge::Horizontal(dx) => Some(RouteEdge::Horizontal(acc + dx)),
-                        RouteEdge::Vertical(_) => {
-                            edges.push(RouteEdge::Horizontal(acc));
-                            Some(new_edge)
-                        }
-                    },
-                    Some(RouteEdge::Vertical(acc)) => match new_edge {
-                        RouteEdge::Vertical(dy) => Some(RouteEdge::Vertical(acc + dy)),
-                        RouteEdge::Horizontal(_) => {
-                            edges.push(RouteEdge::Vertical(acc));
-                            Some(new_edge)
-                        }
-                    },
-                    None => Some(new_edge),
-                };
-            }
-            current_pos = Some(point);
+        if points.is_empty() {
+            return Self {
+                start,
+                edges,
+                finish,
+                start_pos,
+                end_pos,
+                waypoints: waypoints.to_vec(),
+            };
         }
 
-        // Don't forget to push the last accumulated edge
-        if let Some(edge) = accumulated_edge {
-            edges.push(edge);
+        let mut edge_id = 0;
+        let mut segment_start = points[0];
+        let mut i = 1;
+
+        while i < points.len() {
+            let current = points[i];
+            let delta = current - segment_start;
+            let current_direction = if delta.x.abs() > delta.y.abs() {
+                RouteDirection::Horizontal
+            } else {
+                RouteDirection::Vertical
+            };
+
+            // Look ahead to see how far we can extend this edge
+            let mut segment_end = current;
+            let mut j = i + 1;
+
+            while j < points.len() {
+                let next = points[j];
+                let next_delta = next - points[j - 1];
+                let next_direction = if next_delta.x.abs() > next_delta.y.abs() {
+                    RouteDirection::Horizontal
+                } else {
+                    RouteDirection::Vertical
+                };
+
+                if next_direction == current_direction {
+                    segment_end = next;
+                    j += 1;
+                } else {
+                    break;
+                }
+            }
+            let len = (segment_end - segment_start).length();
+            edges.push(RouteEdge {
+                id: EdgeId(edge_id),
+                start: segment_start.into(),
+                end: segment_end.into(),
+            });
+
+            edge_id += 1;
+            segment_start = segment_end;
+            i = j;
         }
 
         Self {
@@ -369,63 +467,7 @@ impl AutoRoute {
             finish,
             start_pos,
             end_pos,
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct Route {
-    pub start: LineAnchor,
-    pub edges: NonEmpty<RouteEdge>,
-    pub tail: Vec2,
-    pub finish: LineAnchor,
-}
-
-pub fn follow(start: Pos2, deltas: impl Iterator<Item = RouteEdge>) -> impl Iterator<Item = Pos2> {
-    deltas.scan(start, |current_pos, delta| {
-        let new_pos = match delta {
-            RouteEdge::Horizontal(offset) => pos2(current_pos.x + offset, current_pos.y),
-            RouteEdge::Vertical(offset) => pos2(current_pos.x, current_pos.y + offset),
-        };
-        *current_pos = new_pos;
-        Some(new_pos)
-    })
-}
-
-impl Route {
-    pub fn update_tail(&mut self, start: Pos2, end: Pos2) {
-        //        let route = follow(start, self.edges.iter().copied()).chain(std::iter::once(end));
-        let last_point_of_route = follow(start, self.edges.iter().copied())
-            .last()
-            .unwrap_or(start);
-        self.tail = end - last_point_of_route;
-    }
-    pub fn points(&self, start: Pos2) -> Vec<Pos2> {
-        let mut body = follow(start, self.edges.iter().copied()).collect::<Vec<_>>();
-        let last = body.last().copied().unwrap_or(start);
-        if self.tail.x.abs() > self.tail.y.abs() {
-            body.push(pos2(last.x + self.tail.x, last.y));
-        } else {
-            body.push(pos2(last.x, last.y + self.tail.y));
-        }
-        body.push(pos2(last.x + self.tail.x, last.y + self.tail.y));
-        body
-    }
-    pub fn from_adding_route(
-        start: Pos2,
-        end: Pos2,
-        adding: AddingRoute,
-        finish: LineAnchor,
-    ) -> Self {
-        let last_point_of_route = adding.last_point(start);
-        let tail = end - last_point_of_route;
-        let turns = NonEmpty::from_vec(adding.edges)
-            .unwrap_or(NonEmpty::singleton(RouteEdge::Horizontal(0.0)));
-        Self {
-            start: adding.anchor,
-            edges: turns,
-            tail,
-            finish,
+            waypoints: waypoints.to_vec(),
         }
     }
 }
@@ -441,8 +483,12 @@ impl State {
             },
             State::PortLabelHovered { .. } => CursorIcon::Text,
             State::PortLabelGripHovered { .. } => CursorIcon::Grab,
-            State::PortPinHovered { .. } | State::AddingRoute { .. } => CursorIcon::Crosshair,
+            State::PortPinHovered { .. } => CursorIcon::Crosshair,
             State::PortDragged { .. } => CursorIcon::Grabbing,
+            State::RouteEdgeHovered(inner) => match inner.direction {
+                RouteDirection::Horizontal => CursorIcon::ResizeVertical,
+                RouteDirection::Vertical => CursorIcon::ResizeHorizontal,
+            },
             _ => CursorIcon::Default,
         }
     }

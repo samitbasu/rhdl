@@ -1,4 +1,6 @@
-use egui::{Color32, Rect, Stroke, StrokeKind, TextEdit, Ui, Vec2, pos2, vec2};
+use std::vec;
+
+use egui::{Color32, Pos2, Rect, Stroke, StrokeKind, TextEdit, Ui, Vec2, pos2, vec2};
 
 use crate::{
     grid::{
@@ -7,10 +9,11 @@ use crate::{
     },
     label::{Label, LabelId, LabelSide},
     rectbox::{RectBox, resize_rect},
+    render,
     state::{
-        EditingLabelText, EditingName, MovingRect, PortDragged, PortLabelGripHovered,
-        PortLabelHovered, PortPinHovered, PotentialResize, ResizeMode, ResizingRect, Selected,
-        State,
+        AutoRoute, EdgeId, EditingLabelText, EditingName, MovingRect, PortDragged,
+        PortLabelGripHovered, PortLabelHovered, PortPinHovered, PotentialResize, ResizeMode,
+        ResizingRect, Selected, State,
     },
 };
 
@@ -377,4 +380,76 @@ pub fn render_rect_box(target: &mut RectBox, state: &State, ui: &mut Ui) -> Focu
         _ => render_with_grip_state(target, GripState::Hidden, ui),
     }
     FocusResult::KeptFocus
+}
+
+pub enum RenderSegment {
+    Edge { from: Pos2, to: Pos2 },
+    Chamfer { from: Pos2, to: Pos2, center: Pos2 },
+}
+
+pub struct RenderedPath {
+    pub segments: Vec<RenderSegment>,
+}
+
+impl From<Vec<RenderSegment>> for RenderedPath {
+    fn from(segments: Vec<RenderSegment>) -> Self {
+        Self { segments }
+    }
+}
+
+impl RenderedPath {
+    pub fn render(&self, ui: &mut Ui, stroke: impl Into<Stroke>) {
+        let stroke = stroke.into();
+        let mut points = vec![];
+        for segment in &self.segments {
+            let (from, to) = match segment {
+                RenderSegment::Edge { from, to } => (*from, *to),
+                RenderSegment::Chamfer { from, to, .. } => (*from, *to),
+            };
+            if points.last() != Some(&from) {
+                points.push(from);
+            }
+            points.push(to);
+        }
+        ui.painter().line(points, stroke);
+    }
+}
+
+pub fn render_path_with_chamfered_corners(points: &[Pos2]) -> RenderedPath {
+    let start = points.first().cloned().unwrap_or_default();
+    let end = points.last().cloned().unwrap_or_default();
+    let mut rendered_segments: Vec<RenderSegment> = Vec::new();
+    let mut last = start;
+    for window in points.windows(3) {
+        let [prev, current, next] = [window[0], window[1], window[2]];
+        let v1 = (current - prev).normalized();
+        let v2 = (next - current).normalized();
+        let angle = v1.dot(v2);
+        if angle.abs() < 0.1 {
+            let chamfer_length = GRID_SIZE / 4.0;
+            let chamfer_point1 = current - v1 * chamfer_length;
+            let chamfer_point2 = current + v2 * chamfer_length;
+            rendered_segments.push(RenderSegment::Edge {
+                from: last,
+                to: chamfer_point1,
+            });
+            rendered_segments.push(RenderSegment::Chamfer {
+                from: chamfer_point1,
+                to: chamfer_point2,
+                center: current,
+            });
+            last = chamfer_point2;
+        } else {
+            rendered_segments.push(RenderSegment::Edge {
+                from: last,
+                to: current,
+            });
+            last = current;
+        }
+    }
+    rendered_segments.push(RenderSegment::Edge {
+        from: last,
+        to: end,
+    });
+    rendered_segments.into()
 }

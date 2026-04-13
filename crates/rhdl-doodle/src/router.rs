@@ -5,96 +5,6 @@ use pathfinding::{num_traits::Zero, prelude::*};
 
 use crate::{grid::GRID_SIZE, router_ng::RouterNG, state::RouteEdge, turtle::Mark};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Copy)]
-pub struct Cost(i64);
-
-impl pathfinding::num_traits::Zero for Cost {
-    fn zero() -> Self {
-        COST_ZERO
-    }
-    fn is_zero(&self) -> bool {
-        self.0 == 0
-    }
-}
-
-const UNIT_SCALE: f64 = 16_777_216.0; // 2^24
-
-impl From<Cost> for f64 {
-    fn from(value: Cost) -> Self {
-        value.0 as f64 / UNIT_SCALE as f64
-    }
-}
-
-impl From<f64> for Cost {
-    fn from(value: f64) -> Self {
-        Self((value * UNIT_SCALE) as i64)
-    }
-}
-
-impl From<f32> for Cost {
-    fn from(value: f32) -> Self {
-        Self((value as f64 * UNIT_SCALE) as i64)
-    }
-}
-
-impl Cost {
-    pub const fn new(cost: f64) -> Self {
-        Self((cost * UNIT_SCALE) as i64)
-    }
-}
-
-impl std::ops::AddAssign<Cost> for Cost {
-    fn add_assign(&mut self, rhs: Cost) {
-        self.0 += rhs.0;
-    }
-}
-
-impl std::ops::SubAssign<Cost> for Cost {
-    fn sub_assign(&mut self, rhs: Cost) {
-        self.0 -= rhs.0;
-    }
-}
-
-impl std::ops::Add<Cost> for Cost {
-    type Output = Self;
-
-    fn add(self, rhs: Cost) -> Self::Output {
-        Self(self.0 + rhs.0)
-    }
-}
-
-impl std::ops::Sub<Cost> for Cost {
-    type Output = Self;
-
-    fn sub(self, rhs: Cost) -> Self::Output {
-        Self(self.0 - rhs.0)
-    }
-}
-
-impl std::ops::Mul<Cost> for i64 {
-    type Output = Cost;
-
-    fn mul(self, rhs: Cost) -> Self::Output {
-        Cost(self * rhs.0)
-    }
-}
-
-impl std::ops::Mul<f64> for Cost {
-    type Output = Cost;
-
-    fn mul(self, rhs: f64) -> Self::Output {
-        Cost((self.0 as f64 * rhs) as i64)
-    }
-}
-
-pub const COST_ZERO: Cost = Cost(0);
-
-impl std::fmt::Display for Cost {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:.2}", self.0 as f64 / UNIT_SCALE)
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Cell {
     Vertical {
@@ -333,7 +243,7 @@ impl Graph {
         }
         let col = ((pos.x - self.origin.x) / GRID_SIZE).floor() as usize;
         let row = ((pos.y - self.origin.y) / GRID_SIZE).floor() as usize;
-        Some(Point { row, col })
+        Some(point(row, col))
     }
     pub fn pos(&self, node: Point) -> Pos2 {
         let x = self.origin.x + node.col as f32 * GRID_SIZE;
@@ -342,15 +252,9 @@ impl Graph {
     }
     pub fn iter(&self) -> impl Iterator<Item = (Point, &Cell)> {
         self.nodes.iter().enumerate().flat_map(|(row_idx, row)| {
-            row.iter().enumerate().map(move |(col_idx, edges)| {
-                (
-                    Point {
-                        row: row_idx,
-                        col: col_idx,
-                    },
-                    edges,
-                )
-            })
+            row.iter()
+                .enumerate()
+                .map(move |(col_idx, edges)| (point(row_idx, col_idx), edges))
         })
     }
     pub fn new(nrows: usize, ncols: usize, origin: Pos2) -> Self {
