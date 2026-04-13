@@ -1,9 +1,14 @@
 use std::collections::BTreeMap;
 
-use egui::{Color32, PointerButton, Pos2, Rect, Response, StrokeKind, Ui, Vec2, pos2, vec2};
+use egui::{
+    Color32, PointerButton, Pos2, Rect, Response, StrokeKind, TextEdit, Ui, Vec2, pos2, vec2,
+};
 
 use crate::{
-    grid::{GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, grid_rect, round_to_grid, snap_to_grip},
+    grid::{
+        GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, ROUTE_TEXT_SIZE, grid_rect, round_to_grid,
+        snap_to_grip,
+    },
     label::{LabelId, LabelSide},
     rectbox::{LineAnchor, RectBox, RectId, control_corner, resize_rect},
     render::{
@@ -12,10 +17,11 @@ use crate::{
     },
     router_ng::{COST_ZERO, Point, RouterNGBuilder, WIRE_COST},
     state::{
-        AddingRect, AutoRoute, EditingLabelText, EditingName, InProgressAutoRoute, MovingRect,
-        PortDragged, PortLabelGripHovered, PortLabelHovered, PortPinHovered, PotentialResize,
-        ProposedAutoRoute, ResizeMode, ResizingRect, RouteEdgeDragged, RouteEdgeHovered, RouteId,
-        Selected, State, WaypointHovered,
+        AddingRect, AutoRoute, EditingLabelText, EditingName, EditingRouteLabelText,
+        InProgressAutoRoute, MovingRect, PortDragged, PortLabelGripHovered, PortLabelHovered,
+        PortPinHovered, PotentialResize, ProposedAutoRoute, ResizeMode, ResizingRect,
+        RouteDirection, RouteEdgeDragged, RouteEdgeHovered, RouteId, RouteLabelHovered, Selected,
+        State, WaypointHovered,
     },
     turtle::Mark,
 };
@@ -170,6 +176,18 @@ impl Drawing {
                 ui.painter()
                     .circle_filled(*wp, PORT_RADIUS, Color32::LIGHT_GREEN);
             }
+            for edge in &route.edges {
+                let edge_start: Pos2 = edge.start;
+                if !edge.label.is_empty() {
+                    ui.painter().text(
+                        edge_start,
+                        egui::Align2::LEFT_BOTTOM,
+                        &edge.label,
+                        egui::FontId::monospace(ROUTE_TEXT_SIZE),
+                        Color32::LIGHT_GREEN,
+                    );
+                }
+            }
         }
         for rect_box in self.rect_boxes.iter_mut() {
             if render_rect_box(rect_box, &self.state, ui) == FocusResult::LostFocus {
@@ -208,7 +226,7 @@ impl Drawing {
             points.render(ui, (0.5, Color32::LIGHT_YELLOW));
             inner.waypoints.iter().for_each(|wp| {
                 ui.painter()
-                    .circle_filled((*wp).into(), PORT_RADIUS, Color32::LIGHT_YELLOW);
+                    .circle_filled(*wp, PORT_RADIUS, Color32::LIGHT_YELLOW);
             });
         }
         if let State::ProposedAutoRoute(inner) = &self.state {
@@ -255,6 +273,24 @@ impl Drawing {
             let points = render_path_with_chamfered_corners(&projected_path);
             points.render(ui, (1.5, Color32::GRAY.gamma_multiply(0.2)));
         }
+        if let State::EditingRouteLabelText(target) = &self.state
+            && let Some(route) = self.auto_routes.get_mut(&target.id)
+            && let Some(edge) = route.edge_mut(target.edge_index)
+        {
+            let edge_start: Pos2 = edge.start;
+            let editor_width = 25.0;
+            let editor_position =
+                Rect::from_center_size(edge_start, vec2(editor_width, ROUTE_TEXT_SIZE));
+            let response = ui.place(
+                editor_position,
+                TextEdit::singleline(&mut edge.label)
+                    .font(egui::FontId::monospace(ROUTE_TEXT_SIZE))
+                    .desired_width(f32::INFINITY),
+            );
+            if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                // Do something.
+            }
+        }
     }
     fn handle_idle_state(&self, response: Response) -> State {
         if response.drag_started_by(egui::PointerButton::Primary)
@@ -286,12 +322,20 @@ impl Drawing {
                     && let Some(edge) = route.edge(edge_id)
                 {
                     let dir = edge.direction();
-                    return RouteEdgeHovered {
-                        id: *id,
-                        edge_index: edge_id,
-                        direction: dir,
+                    if route.is_z_bend(edge_id) {
+                        return RouteEdgeHovered {
+                            id: *id,
+                            edge_index: edge_id,
+                            direction: dir,
+                        }
+                        .into();
+                    } else if dir == RouteDirection::Horizontal {
+                        return RouteLabelHovered {
+                            id: *id,
+                            edge_index: edge_id,
+                        }
+                        .into();
                     }
-                    .into();
                 }
             }
         }
@@ -407,7 +451,7 @@ impl Drawing {
     fn handle_port_label_hovered(&self, rect: RectId, label: LabelId, response: Response) -> State {
         if let Some(hover_pos) = response.hover_pos()
             && let Some(bbox) = self.rect(rect)
-            && let Some(label) = bbox.labels.iter().find(|l| l.id == label)
+            && let Some(label) = bbox.label(label)
         {
             let label_bbox = estimate_bbox_for_label(bbox.inner, label);
             if !label_bbox.contains(hover_pos) {
@@ -418,6 +462,24 @@ impl Drawing {
             return State::editing_label_text(rect, label);
         }
         State::port_label_hovered(rect, label)
+    }
+    fn handle_route_label_hovered(&self, route: RouteLabelHovered, response: Response) -> State {
+        if let Some(hover_pos) = response.hover_pos() {
+            let Some(edge_index) = self.auto_routes[&route.id].hovered_edge(hover_pos) else {
+                return State::Idle;
+            };
+            if edge_index != route.edge_index {
+                return State::Idle;
+            }
+        }
+        if response.double_clicked_by(egui::PointerButton::Primary) {
+            return EditingRouteLabelText {
+                id: route.id,
+                edge_index: route.edge_index,
+            }
+            .into();
+        }
+        route.into()
     }
     fn handle_port_label_grip_hovered(
         &self,
@@ -567,6 +629,16 @@ impl Drawing {
         }
         State::editing_label_text(rect, label)
     }
+    fn handle_editing_route_label_text(
+        &self,
+        inner: EditingRouteLabelText,
+        response: Response,
+    ) -> State {
+        if response.clicked() {
+            return State::Idle;
+        }
+        inner.into()
+    }
     fn handle_route_edge_dragged(&mut self, inner: RouteEdgeDragged, response: Response) -> State {
         if response.dragged_by(egui::PointerButton::Primary) {
             let delta = response.drag_delta();
@@ -696,6 +768,7 @@ impl Drawing {
         self.reroute = false;
         self.state = match old_state {
             State::Idle => self.handle_idle_state(response),
+            State::RouteLabelHovered(inner) => self.handle_route_label_hovered(inner, response),
             State::RouteEdgeHovered(route) => self.handle_route_edge_hovered(route, response),
             State::WaypointHovered(inner) => self.handle_waypoint_hovered(inner, response),
             State::RouteEdgeDragged(inner) => {
@@ -736,6 +809,9 @@ impl Drawing {
             State::EditingName(EditingName { rect }) => self.handle_editing_name(rect, response),
             State::EditingLabelText(EditingLabelText { rect, label }) => {
                 self.handle_editing_label_text(rect, label, response)
+            }
+            State::EditingRouteLabelText(inner) => {
+                self.handle_editing_route_label_text(inner, response)
             }
             State::PortDragged(PortDragged {
                 rect,

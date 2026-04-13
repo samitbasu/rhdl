@@ -1,14 +1,15 @@
 use egui::{Pos2, Rect, pos2};
 
-pub const GRID_SIZE: f32 = 10.0;
-pub const SHIM: f32 = 7.0;
+pub const GRID_SIZE: f32 = 15.0;
+pub const SHIM: f32 = GRID_SIZE * 0.7;
 pub const MOVE_HOVER_DISTANCE: f32 = GRID_SIZE * 0.8;
-pub const PORT_RADIUS: f32 = 3.0;
-pub const LINE_RADIUS: f32 = 5.0;
-pub const TITLE_TEXT_SIZE: f32 = 10.0;
-pub const PORT_TEXT_SIZE: f32 = 8.0;
-pub const CONTROL_HANDLE_SIZE: f32 = 3.0;
-pub const GRIP_SIZE: f32 = 6.0;
+pub const PORT_RADIUS: f32 = GRID_SIZE * 0.3;
+pub const LINE_RADIUS: f32 = GRID_SIZE * 0.5;
+pub const TITLE_TEXT_SIZE: f32 = GRID_SIZE;
+pub const PORT_TEXT_SIZE: f32 = GRID_SIZE * 0.8;
+pub const ROUTE_TEXT_SIZE: f32 = GRID_SIZE * 0.6;
+pub const CONTROL_HANDLE_SIZE: f32 = GRID_SIZE * 0.3;
+pub const GRIP_SIZE: f32 = GRID_SIZE * 0.6;
 
 pub fn snap_to_grip(pos: Pos2) -> Pos2 {
     Pos2::new(round_to_grid(pos.x), round_to_grid(pos.y))

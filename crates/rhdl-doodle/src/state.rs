@@ -38,6 +38,8 @@ pub enum State {
     RouteEdgeHovered(RouteEdgeHovered),
     RouteEdgeDragged(RouteEdgeDragged),
     WaypointHovered(WaypointHovered),
+    RouteLabelHovered(RouteLabelHovered),
+    EditingRouteLabelText(EditingRouteLabelText),
 }
 
 impl State {
@@ -120,6 +122,18 @@ impl From<RouteEdgeDragged> for State {
     }
 }
 
+impl From<RouteLabelHovered> for State {
+    fn from(value: RouteLabelHovered) -> Self {
+        State::RouteLabelHovered(value)
+    }
+}
+
+impl From<EditingRouteLabelText> for State {
+    fn from(value: EditingRouteLabelText) -> Self {
+        State::EditingRouteLabelText(value)
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Default, Debug)]
 pub struct AddingRect {
     pub start_pos: Pos2,
@@ -169,6 +183,18 @@ pub struct PortLabelHovered {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RouteLabelHovered {
+    pub id: RouteId,
+    pub edge_index: EdgeId,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct EditingRouteLabelText {
+    pub id: RouteId,
+    pub edge_index: EdgeId,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PortLabelGripHovered {
     pub rect: RectId,
     pub label: LabelId,
@@ -202,11 +228,12 @@ pub enum RouteDirection {
     Vertical,
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct RouteEdge {
     pub id: EdgeId,
     pub start: Pos2,
     pub end: Pos2,
+    pub label: String,
 }
 
 impl RouteEdge {
@@ -449,11 +476,11 @@ impl AutoRoute {
                     break;
                 }
             }
-            let len = (segment_end - segment_start).length();
             edges.push(RouteEdge {
                 id: EdgeId(edge_id),
-                start: segment_start.into(),
-                end: segment_end.into(),
+                start: segment_start,
+                end: segment_end,
+                label: String::new(),
             });
 
             edge_id += 1;
@@ -481,7 +508,7 @@ impl State {
                 ResizeMode::RightTop | ResizeMode::LeftBottom => CursorIcon::ResizeNeSw,
                 ResizeMode::CenterTop | ResizeMode::CenterBottom => CursorIcon::ResizeVertical,
             },
-            State::PortLabelHovered { .. } => CursorIcon::Text,
+            State::PortLabelHovered { .. } | State::RouteLabelHovered { .. } => CursorIcon::Text,
             State::PortLabelGripHovered { .. } => CursorIcon::Grab,
             State::PortPinHovered { .. } => CursorIcon::Crosshair,
             State::PortDragged { .. } => CursorIcon::Grabbing,
