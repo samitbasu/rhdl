@@ -35,11 +35,16 @@ pub enum State {
     PortPinHovered(PortPinHovered),
     InProgressAutoRoute(InProgressAutoRoute),
     ProposedAutoRoute(ProposedAutoRoute),
+    RouteHovered(RouteHovered),
+    RouteSelected(RouteSelected),
     RouteEdgeHovered(RouteEdgeHovered),
     RouteEdgeDragged(RouteEdgeDragged),
     WaypointHovered(WaypointHovered),
+    WaypointDragged(WaypointDragged),
     RouteLabelHovered(RouteLabelHovered),
     EditingRouteLabelText(EditingRouteLabelText),
+    RouteControlPointHovered(RouteControlPointHovered),
+    RouteControlPointDragged(RouteControlPointDragged),
 }
 
 impl State {
@@ -92,6 +97,29 @@ impl State {
     }
 }
 
+impl From<RouteControlPointHovered> for State {
+    fn from(value: RouteControlPointHovered) -> Self {
+        State::RouteControlPointHovered(value)
+    }
+}
+
+impl From<RouteControlPointDragged> for State {
+    fn from(value: RouteControlPointDragged) -> Self {
+        State::RouteControlPointDragged(value)
+    }
+}
+
+impl From<RouteHovered> for State {
+    fn from(value: RouteHovered) -> Self {
+        State::RouteHovered(value)
+    }
+}
+
+impl From<RouteSelected> for State {
+    fn from(value: RouteSelected) -> Self {
+        State::RouteSelected(value)
+    }
+}
 impl From<RouteEdgeHovered> for State {
     fn from(value: RouteEdgeHovered) -> Self {
         State::RouteEdgeHovered(value)
@@ -131,6 +159,12 @@ impl From<RouteLabelHovered> for State {
 impl From<EditingRouteLabelText> for State {
     fn from(value: EditingRouteLabelText) -> Self {
         State::EditingRouteLabelText(value)
+    }
+}
+
+impl From<WaypointDragged> for State {
+    fn from(value: WaypointDragged) -> Self {
+        State::WaypointDragged(value)
     }
 }
 
@@ -183,6 +217,19 @@ pub struct PortLabelHovered {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RouteControlPointHovered {
+    pub id: RouteId,
+    pub edge: EdgeId,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RouteControlPointDragged {
+    pub id: RouteId,
+    pub edge: EdgeId,
+    pub delta_pos: Vec2,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct RouteLabelHovered {
     pub id: RouteId,
     pub edge_index: EdgeId,
@@ -223,6 +270,9 @@ pub struct ResizingRect {
 pub struct EdgeId(usize);
 
 #[derive(Clone, PartialEq, Eq, Hash, Copy, Debug, PartialOrd, Ord)]
+pub struct WaypointId(usize);
+
+#[derive(Clone, PartialEq, Eq, Hash, Copy, Debug, PartialOrd, Ord)]
 pub enum RouteDirection {
     Horizontal,
     Vertical,
@@ -258,24 +308,40 @@ impl RouteEdge {
     }
 }
 
+pub fn next_waypoint_id(waypoints: &[Waypoint]) -> WaypointId {
+    waypoints
+        .iter()
+        .map(|wp| wp.id)
+        .max()
+        .map(|id| WaypointId(id.0 + 1))
+        .unwrap_or(WaypointId(0))
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct InProgressAutoRoute {
     pub start: LineAnchor,
-    pub waypoints: Vec<Pos2>,
+    pub waypoints: Vec<Waypoint>,
     pub head: Pos2,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct ProposedAutoRoute {
     pub start: LineAnchor,
-    pub waypoints: Vec<Pos2>,
+    pub waypoints: Vec<Waypoint>,
     pub finish: LineAnchor,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct WaypointHovered {
-    pub route: AutoRoute,
-    pub waypoint: Pos2,
+    pub route: RouteId,
+    pub waypoint: Waypoint,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct WaypointDragged {
+    pub route: RouteId,
+    pub waypoint: Waypoint,
+    pub delta_pos: Vec2,
 }
 
 #[derive(Clone, PartialEq, Hash, Copy, Debug, Eq, PartialOrd, Ord, Default)]
@@ -288,10 +354,32 @@ impl RouteId {
 }
 
 #[derive(Clone, PartialEq, Debug)]
+pub struct RouteHovered {
+    pub id: RouteId,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct RouteSelected {
+    pub id: RouteId,
+}
+
+#[derive(Clone, PartialEq, Debug)]
 pub struct RouteEdgeHovered {
     pub id: RouteId,
     pub edge_index: EdgeId,
     pub direction: RouteDirection,
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct Waypoint {
+    pub pos: Pos2,
+    pub id: WaypointId,
+}
+
+impl Into<Point> for Waypoint {
+    fn into(self) -> Point {
+        self.pos.into()
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -301,7 +389,7 @@ pub struct AutoRoute {
     pub finish: LineAnchor,
     pub start_pos: Pos2,
     pub end_pos: Pos2,
-    pub waypoints: Vec<Pos2>,
+    pub waypoints: Vec<Waypoint>,
 }
 
 impl AutoRoute {
@@ -318,7 +406,7 @@ impl AutoRoute {
     // for any given point, there is a closest point on the path to it.
     // This function computes the distance travelled along the path to the first point
     // where the target is within tolerance distance.
-    pub fn travel_distance_to_closest_point(&self, pos: Pos2, tolerance: f32) -> Option<f32> {
+    fn travel_distance_to_closest_point(&self, pos: Pos2, tolerance: f32) -> Option<f32> {
         let mut distance_travelled = 0.0;
         for edge in &self.edges {
             let edge_length = (edge.end - edge.start).length();
@@ -329,6 +417,17 @@ impl AutoRoute {
             distance_travelled += edge_length;
         }
         None
+    }
+    fn is_on_corner(&self, pos: Pos2, tolerance: f32) -> bool {
+        self.edges.windows(2).any(|window| {
+            let corner = window[0].end;
+            if window[0].direction() != window[1].direction()
+                && (pos - corner).length() <= tolerance
+            {
+                return true;
+            }
+            false
+        })
     }
     pub fn edge(&self, edge_index: EdgeId) -> Option<&RouteEdge> {
         self.edges.iter().find(|edge| edge.id == edge_index)
@@ -346,7 +445,18 @@ impl AutoRoute {
         }
         false
     }
-
+    pub fn drag_points(&self) -> Vec<(Pos2, EdgeId)> {
+        self.edges
+            .iter()
+            .filter_map(|edge| {
+                if self.is_z_bend(edge.id) {
+                    Some(((edge.start + edge.end.to_vec2()) * 0.5, edge.id))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
     pub fn move_edge(&mut self, edge_index: EdgeId, delta: Vec2) {
         if let Some(ndx) = self.edges.iter().position(|edge| edge.id == edge_index)
             && self.is_z_bend(edge_index)
@@ -385,27 +495,31 @@ impl AutoRoute {
             edge.start = snap_to_grip(edge.start);
             edge.end = snap_to_grip(edge.end);
         });
-        if let Some((start, end)) = self.edge(edge_index).map(|edge| (edge.start, edge.end)) {
-            self.waypoints.push(start);
-            self.waypoints.push(end);
-        }
+        /*         if let Some((start, end)) = self.edge(edge_index).map(|edge| (edge.start, edge.end)) {
+                   self.waypoints.push(start);
+                   self.waypoints.push(end);
+               }
+        */
         // Drop all waypoints that are no longer on the path.
         self.update_waypoints();
     }
     pub fn update_waypoints(&mut self) {
+        return; // TODO
         // For each waypoint, retain only those that have `self.travel_distance_to_closest_point`
         // within `GRID_SIZE * 0.5` is Some(t).  And the store the values of `t` in a separate array.
         let mut waypoint_distances = self
             .waypoints
             .iter()
-            .flat_map(|&wp| {
-                self.travel_distance_to_closest_point(wp, GRID_SIZE * 0.5)
+            .flat_map(|wp| {
+                self.travel_distance_to_closest_point(wp.pos, GRID_SIZE)
                     .map(|t| (wp, t))
             })
             .collect::<Vec<_>>();
         // Sort the waypoints in the order they appear on the path.
         waypoint_distances.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-        self.waypoints = waypoint_distances.into_iter().map(|(wp, _)| wp).collect();
+        //waypoint_distances.dedup_by(|a, b| a.0 == b.0);
+        //waypoint_distances.retain(|(wp, _)| self.is_on_corner(wp.pos, GRID_SIZE * 0.5));
+        self.waypoints = waypoint_distances.into_iter().map(|(wp, _)| *wp).collect();
     }
     pub fn grid_points(&self) -> Vec<Point> {
         self.points().into_iter().map(|pos| pos.into()).collect()
@@ -423,7 +537,7 @@ impl AutoRoute {
         start: LineAnchor,
         finish: LineAnchor,
         points: &[Pos2],
-        waypoints: &[Pos2],
+        waypoints: &[Waypoint],
     ) -> Self {
         // Scan through the set of points, and create a set of edges.
         // Each edge should be either horizontal or vertical,
@@ -496,6 +610,16 @@ impl AutoRoute {
             end_pos,
             waypoints: waypoints.to_vec(),
         }
+    }
+    fn build_waypoints(points: &[Pos2]) -> Vec<Waypoint> {
+        points
+            .iter()
+            .enumerate()
+            .map(|(i, &pos)| Waypoint {
+                pos,
+                id: WaypointId(i),
+            })
+            .collect()
     }
 }
 

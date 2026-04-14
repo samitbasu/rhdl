@@ -7,7 +7,7 @@ use petgraph::{
 };
 
 use crate::{
-    state::{RouteDirection, RouteEdge},
+    state::{RouteDirection, RouteEdge, Waypoint},
     turtle::{Mark, Turtle},
 };
 
@@ -983,7 +983,12 @@ impl RouterNG {
                 .collect()
         })
     }
-    pub fn waypoint_path<T>(&mut self, start: T, waypoints: &[T], head: T) -> Option<Vec<Point>>
+    pub fn waypoint_path<T>(
+        &mut self,
+        start: T,
+        waypoints: &[Waypoint],
+        head: T,
+    ) -> Option<Vec<Point>>
     where
         T: Into<Point> + Copy,
     {
@@ -992,15 +997,19 @@ impl RouterNG {
         self.seed_horiz_channel(start, COST_ZERO);
         self.seed_vert_channel(start, COST_ZERO);
         let mut current: Point = start.into();
-        for &waypoint in waypoints.iter().chain(std::iter::once(&head)) {
-            let waypoint: Point = waypoint.into();
+        let head = head.into();
+        for waypoint in waypoints
+            .iter()
+            .map(|wp| Point::from(wp.pos))
+            .chain(std::iter::once(head))
+        {
             self.seed_horiz_channel(waypoint, COST_ZERO);
             self.seed_vert_channel(waypoint, COST_ZERO);
             let subpath = self.path_find(current, waypoint)?;
             path.extend(subpath);
             current = waypoint;
         }
-        eprintln!("Waypoint pathfinding took {:?}", tic.elapsed());
+        //        eprintln!("Waypoint pathfinding took {:?}", tic.elapsed());
         Some(path)
     }
 }
