@@ -7,7 +7,7 @@ use petgraph::{
 };
 
 use crate::{
-    state::{RouteDirection, RouteEdge, Waypoint},
+    state::{RouteDirection, RouteEdge, Waypoint, WaypointId},
     turtle::{Mark, Turtle},
 };
 
@@ -187,6 +187,12 @@ impl std::ops::Sub for CoordY {
 pub struct Point {
     pub x: CoordX,
     pub y: CoordY,
+}
+
+impl std::fmt::Display for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({},{})", self.x.0, self.y.0)
+    }
 }
 
 impl Point {
@@ -747,6 +753,12 @@ impl RouterNG {
             self.add_vert_segment(center.x, top_endpoint, bottom_endpoint, cost);
         }
     }
+    fn seed_channels(&mut self, center: impl Into<Point>, cost: impl Into<Cost>) {
+        let center: Point = center.into();
+        let cost: Cost = cost.into();
+        self.seed_horiz_channel(center, cost);
+        self.seed_vert_channel(center, cost);
+    }
     fn add_horiz_segment(
         &mut self,
         vert: impl Into<CoordY>,
@@ -988,29 +1000,77 @@ impl RouterNG {
         start: T,
         waypoints: &[Waypoint],
         head: T,
-    ) -> Option<Vec<Point>>
+    ) -> Option<Vec<TaggedPoint>>
     where
         T: Into<Point> + Copy,
     {
         let mut path = Vec::new();
-        let tic = std::time::Instant::now();
-        self.seed_horiz_channel(start, COST_ZERO);
-        self.seed_vert_channel(start, COST_ZERO);
-        let mut current: Point = start.into();
-        let head = head.into();
-        for waypoint in waypoints
-            .iter()
-            .map(|wp| Point::from(wp.pos))
-            .chain(std::iter::once(head))
-        {
-            self.seed_horiz_channel(waypoint, COST_ZERO);
-            self.seed_vert_channel(waypoint, COST_ZERO);
-            let subpath = self.path_find(current, waypoint)?;
-            path.extend(subpath);
-            current = waypoint;
+        self.seed_channels(start, COST_ZERO);
+        if let Some(first_wp) = waypoints.first() {
+            self.seed_channels(first_wp.pos, COST_ZERO);
+            let subpath = self.path_find(start, first_wp.pos)?;
+            path.extend(subpath.into_iter().map(|point| TaggedPoint {
+                pos: point,
+                segment: SegmentKind::StartToWaypoint(first_wp.id),
+            }));
+            for windows in waypoints.windows(2) {
+                let wp_start = windows[0];
+                let wp_end = windows[1];
+                self.seed_channels(wp_end.pos, COST_ZERO);
+                let subpath = self.path_find(wp_start, wp_end)?;
+                path.extend(subpath.into_iter().map(|point| TaggedPoint {
+                    segment: SegmentKind::WaypointToWaypoint(wp_start.id, wp_end.id),
+                    pos: point,
+                }));
+            }
+            let last_wp = waypoints.last().unwrap_or(first_wp);
+            self.seed_channels(head, COST_ZERO);
+            let subpath = self.path_find(last_wp.pos, head)?;
+            path.extend(subpath.into_iter().map(|point| TaggedPoint {
+                pos: point,
+                segment: SegmentKind::WaypointToEnd(last_wp.id),
+            }));
+            Some(path)
+        } else {
+            self.seed_channels(head, COST_ZERO);
+            let subpath = self.path_find(start, head)?;
+            Some(
+                subpath
+                    .into_iter()
+                    .map(|point| TaggedPoint {
+                        pos: point,
+                        segment: SegmentKind::StartToEnd,
+                    })
+                    .collect(),
+            )
         }
-        //        eprintln!("Waypoint pathfinding took {:?}", tic.elapsed());
-        Some(path)
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum SegmentKind {
+    StartToWaypoint(WaypointId),
+    WaypointToWaypoint(WaypointId, WaypointId),
+    WaypointToEnd(WaypointId),
+    StartToEnd,
+}
+
+#[derive(Copy, Clone)]
+pub struct TaggedPoint {
+    pub segment: SegmentKind,
+    pub pos: Point,
+}
+
+impl std::fmt::Debug for TaggedPoint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.segment {
+            SegmentKind::StartToEnd => write!(f, "s->e {}", self.pos),
+            SegmentKind::StartToWaypoint(wp) => write!(f, "s->wp[{}] {}", wp, self.pos),
+            SegmentKind::WaypointToWaypoint(wp0, wp1) => {
+                write!(f, "wp[{}]->wp[{}] {}", wp0, wp1, self.pos)
+            }
+            SegmentKind::WaypointToEnd(wp) => write!(f, "wp[{}] -> e {}", wp, self.pos),
+        }
     }
 }
 
