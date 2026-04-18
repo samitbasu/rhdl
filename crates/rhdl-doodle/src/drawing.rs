@@ -7,7 +7,7 @@ use egui::{
 use crate::{
     grid::{
         GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, ROUTE_TEXT_SIZE, grid_rect, round_to_grid,
-        snap_to_grip,
+        snap_to_grid,
     },
     label::{LabelId, LabelSide},
     rectbox::{LineAnchor, RectBox, RectId, control_corner, resize_rect},
@@ -15,14 +15,14 @@ use crate::{
         FocusResult, estimate_bbox_for_label, get_control_pin_bbox, get_hamburger_rect,
         render_path_with_chamfered_corners, render_rect_box,
     },
-    router_ng::{COST_ZERO, Point, RouterNGBuilder, TaggedPoint, WIRE_COST},
+    router_ng::{COST_ZERO, Point, RouterNGBuilder, SegmentKind, TaggedPoint, WIRE_COST},
     state::{
         AddTextButtonHovered, AddingRect, AutoRoute, EditingLabelText, EditingName,
         EditingRouteLabelText, InProgressAutoRoute, MovingRect, PortDragged, PortLabelGripHovered,
         PortLabelHovered, PortPinHovered, PotentialResize, ProposedAutoRoute, ResizeMode,
-        ResizingRect, RouteEdgeDragged, RouteEdgeHovered, RouteHovered, RouteId, RouteLabelHovered,
-        RouteSelected, Selected, State, Waypoint, WaypointDragged, WaypointHovered,
-        next_waypoint_id,
+        ResizingRect, RouteCornerHovered, RouteEdgeDragged, RouteEdgeHovered, RouteHovered,
+        RouteId, RouteLabelHovered, RouteSelected, Selected, State, Waypoint, WaypointDragged,
+        WaypointHovered, next_waypoint_id,
     },
     turtle::Mark,
 };
@@ -139,7 +139,7 @@ impl Drawing {
                 effective_rect.right() + GRID_SIZE
             };
             let anchor_y = round_to_grid(current_pos.y);
-            snap_to_grip(Pos2::new(anchor_x, anchor_y))
+            snap_to_grid(Pos2::new(anchor_x, anchor_y))
         } else {
             self.rect(anchor.rect)
                 .unwrap()
@@ -174,20 +174,20 @@ impl Drawing {
         for route in self.auto_routes.values() {
             let points = render_path_with_chamfered_corners(&route.points());
             points.render(ui, (1.0, Color32::DARK_GREEN));
-            for edge in &route.edges {
-                let label_pos: Pos2 = edge.center();
-                if let Some(label_id) = &edge.label
-                    && let Some(label) = route.label(*label_id)
-                {
-                    ui.painter().text(
-                        label_pos,
-                        egui::Align2::CENTER_BOTTOM,
-                        &label.text,
-                        egui::FontId::monospace(ROUTE_TEXT_SIZE),
-                        Color32::LIGHT_GREEN,
-                    );
-                }
-            }
+            // for edge in &route.edges {
+            //     let label_pos: Pos2 = edge.center();
+            //     if let Some(label_id) = &edge.label
+            //         && let Some(label) = route.label(*label_id)
+            //     {
+            //         ui.painter().text(
+            //             label_pos,
+            //             egui::Align2::CENTER_BOTTOM,
+            //             &label.text,
+            //             egui::FontId::monospace(ROUTE_TEXT_SIZE),
+            //             Color32::LIGHT_GREEN,
+            //         );
+            //     }
+            // }
         }
         for rect_box in self.rect_boxes.iter_mut() {
             if render_rect_box(rect_box, &self.state, ui) == FocusResult::LostFocus {
@@ -264,6 +264,12 @@ impl Drawing {
                     (0.5, Color32::BLACK),
                 );
             }
+            ui.painter().circle(
+                target.pos,
+                PORT_RADIUS,
+                Color32::LIGHT_GRAY.linear_multiply(0.5),
+                (0.5, Color32::BLACK),
+            );
             for tp in route.text_anchors() {
                 // Draw a T in a box to indicate that this is a text anchor.
                 ui.painter().text(
@@ -297,13 +303,43 @@ impl Drawing {
         }
         if let State::RouteEdgeHovered(target) = &self.state {
             let route = &self.auto_routes[&target.id];
+            for wp in &route.waypoints {
+                ui.painter().circle(
+                    wp.pos,
+                    PORT_RADIUS,
+                    Color32::LIGHT_GREEN.linear_multiply(0.5),
+                    (0.5, Color32::BLACK),
+                );
+            }
             if let Some(edge) = route.edge(target.edge_index) {
                 let edge_start: Pos2 = edge.start;
                 let edge_end: Pos2 = edge.end;
-                ui.painter().circle_filled(
-                    (edge_start + edge_end.to_vec2()) * 0.5,
+                let edge_dir = (edge_end - edge_start).normalized();
+                let edge_start = edge_start + edge_dir * PORT_RADIUS;
+                let edge_end = edge_end - edge_dir * PORT_RADIUS;
+                ui.painter().line_segment(
+                    [edge_start, edge_end],
+                    (2.5, Color32::LIGHT_GREEN.linear_multiply(0.5)),
+                );
+            }
+        }
+        if let State::RouteCornerHovered(target) = &self.state {
+            let route = &self.auto_routes[&target.id];
+            for wp in &route.waypoints {
+                ui.painter().circle(
+                    wp.pos,
                     PORT_RADIUS,
-                    Color32::LIGHT_GREEN,
+                    Color32::LIGHT_GREEN.linear_multiply(0.5),
+                    (0.5, Color32::BLACK),
+                );
+            }
+            if let Some(edge_1) = route.edge(target.edge_1) {
+                let edge_1_end: Pos2 = edge_1.end;
+                ui.painter().circle(
+                    edge_1_end,
+                    PORT_RADIUS,
+                    Color32::LIGHT_RED.linear_multiply(0.5),
+                    (0.5, Color32::BLACK),
                 );
             }
         }
@@ -311,7 +347,7 @@ impl Drawing {
             let projected_path = self.auto_routes[&target.id]
                 .points()
                 .into_iter()
-                .map(snap_to_grip)
+                .map(snap_to_grid)
                 .collect::<Vec<Pos2>>();
             let points = render_path_with_chamfered_corners(&projected_path);
             points.render(ui, (1.5, Color32::GRAY.gamma_multiply(0.2)));
@@ -385,6 +421,46 @@ impl Drawing {
             }
         }
     }
+    fn handle_route_hover_check(&self, response: Response) -> Option<State> {
+        let hover_pos = response.hover_pos()?;
+        for (id, route) in &self.auto_routes {
+            for waypoint in &route.waypoints {
+                if waypoint.pos.distance(hover_pos) <= PORT_RADIUS * 1.5 {
+                    eprintln!("Hovering over waypoint {:?}", waypoint.id);
+                    return Some(
+                        WaypointHovered {
+                            route: *id,
+                            waypoint: waypoint.id,
+                        }
+                        .into(),
+                    );
+                }
+            }
+            if let Some((edge_1, edge_2)) = route.hovered_corner(hover_pos) {
+                return Some(
+                    RouteCornerHovered {
+                        id: *id,
+                        edge_1,
+                        edge_2,
+                    }
+                    .into(),
+                );
+            }
+            if let Some(edge_id) = route.hovered_edge(hover_pos)
+                && let Some(edge) = route.edge(edge_id)
+            {
+                return Some(
+                    RouteEdgeHovered {
+                        id: *id,
+                        edge_index: edge_id,
+                        direction: edge.direction(),
+                    }
+                    .into(),
+                );
+            }
+        }
+        None
+    }
     fn handle_idle_state(&self, response: Response) -> State {
         if response.drag_started_by(egui::PointerButton::Primary)
             && let Some(pos_start) = response.interact_pointer_pos()
@@ -392,7 +468,7 @@ impl Drawing {
             if let Some(rbox) = self.rect_boxes.iter().find(|r| r.inner.contains(pos_start)) {
                 return State::moving_rect(rbox.id(), vec2(0.0, 0.0));
             }
-            return State::adding_rect(pos_start, snap_to_grip(pos_start));
+            return State::adding_rect(pos_start, snap_to_grid(pos_start));
         } else if response.is_pointer_button_down_on()
             && response
                 .ctx
@@ -409,24 +485,8 @@ impl Drawing {
                 }
             }
         }
-        if let Some(hover_pos) = response.hover_pos() {
-            for (id, route) in &self.auto_routes {
-                for waypoint in &route.waypoints {
-                    if waypoint.pos.distance(hover_pos) <= PORT_RADIUS * 1.5 {
-                        eprintln!("Hovering over waypoint {:?}", waypoint.id);
-                        return WaypointHovered {
-                            route: *id,
-                            waypoint: waypoint.id,
-                        }
-                        .into();
-                    }
-                }
-                if let Some(edge_id) = route.hovered_edge(hover_pos) {
-                    return RouteHovered { id: *id }.into();
-                }
-            }
-        }
-        State::Idle
+        self.handle_route_hover_check(response)
+            .unwrap_or(State::Idle)
     }
     fn handle_selected_state(&mut self, rect: RectId, response: Response) -> State {
         if response.double_clicked_by(PointerButton::Primary) {
@@ -478,7 +538,7 @@ impl Drawing {
             if let Some(bbox) = self.rect_boxes.iter().find(|r| r.inner.contains(pos)) {
                 return State::moving_rect(bbox.id(), vec2(0.0, 0.0));
             }
-            return State::adding_rect(pos, snap_to_grip(pos));
+            return State::adding_rect(pos, snap_to_grid(pos));
         }
         if let Some(hover_pos) = response.hover_pos()
             && let Some(bbox) = self.rect(rect)
@@ -507,21 +567,8 @@ impl Drawing {
                 }
             }
         }
-        if let Some(hover_pos) = response.hover_pos() {
-            for (id, route) in &self.auto_routes {
-                if let Some(edge_id) = route.hovered_edge(hover_pos)
-                    && let Some(edge) = route.edge(edge_id)
-                {
-                    return RouteEdgeHovered {
-                        id: *id,
-                        edge_index: edge_id,
-                        direction: edge.direction(),
-                    }
-                    .into();
-                }
-            }
-        }
-        State::selected(rect)
+        self.handle_route_hover_check(response)
+            .unwrap_or(State::selected(rect))
     }
     fn handle_potential_resize(&self, rect: RectId, mode: ResizeMode, response: Response) -> State {
         if let Some(hover_pos) = response.hover_pos()
@@ -611,33 +658,94 @@ impl Drawing {
         }
         State::port_pin_hovered(rect, label)
     }
-    fn handle_route_hovered(&self, inner: RouteHovered, response: Response) -> State {
-        if response.clicked_by(egui::PointerButton::Primary) {
-            return RouteSelected { id: inner.id }.into();
-        }
-        if let Some(route) = self.auto_routes.get(&inner.id)
-            && let Some(hover_pos) = response.hover_pos()
+    fn handle_route_corner_hovered(
+        &mut self,
+        inner: RouteCornerHovered,
+        response: Response,
+    ) -> State {
+        if (response.drag_started_by(egui::PointerButton::Primary) || response.dragged())
+            && let Some(pos) = response.interact_pointer_pos()
         {
-            if let Some(waypoint_id) = route.hit_waypoint(hover_pos, PORT_RADIUS) {
-                return WaypointHovered {
+            eprintln!("Starting to drag route corner");
+            let route = self.auto_routes.get_mut(&inner.id).unwrap();
+            if let Some(waypoint_id) = route.hit_waypoint(pos, PORT_RADIUS) {
+                return WaypointDragged {
                     route: inner.id,
                     waypoint: waypoint_id,
+                    delta_pos: vec2(0.0, 0.0),
                 }
                 .into();
             }
-            if let Some(text_anchor_id) = route.hit_text_anchor(hover_pos) {
-                eprintln!("Hovering over text anchor {:?}", text_anchor_id);
-                return AddTextButtonHovered {
+            if let Some(edge) = route.edge(inner.edge_1) {
+                let waypoint_id = route.add_waypoint(snap_to_grid(pos), edge.kind);
+                return WaypointDragged {
                     route: inner.id,
-                    edge_id: text_anchor_id,
+                    waypoint: waypoint_id,
+                    delta_pos: vec2(0.0, 0.0),
                 }
                 .into();
-            }
-            if route.hovered_edge(hover_pos).is_some() {
-                return RouteHovered { id: inner.id }.into();
             }
         }
-        State::Idle
+        self.handle_route_hover_check(response)
+            .unwrap_or(State::Idle)
+    }
+    fn handle_route_hovered(&mut self, inner: RouteHovered, response: Response) -> State {
+        if (response.drag_started() || response.dragged())
+            && let Some(pos) = response.interact_pointer_pos()
+        {
+            let route = self.auto_routes.get_mut(&inner.id).unwrap();
+            if let Some(waypoint_id) = route.hit_waypoint(pos, PORT_RADIUS) {
+                eprintln!("Starting to drag waypoint");
+                return WaypointDragged {
+                    route: inner.id,
+                    waypoint: waypoint_id,
+                    delta_pos: vec2(0.0, 0.0),
+                }
+                .into();
+            }
+            if let Some(edge) = route.edge(inner.edge_index) {
+                let waypoint_id = route.add_waypoint(snap_to_grid(pos), edge.kind);
+                return WaypointDragged {
+                    route: inner.id,
+                    waypoint: waypoint_id,
+                    delta_pos: vec2(0.0, 0.0),
+                }
+                .into();
+            }
+        }
+        self.handle_route_hover_check(response)
+            .unwrap_or(State::Idle)
+        // // if response.clicked_by(egui::PointerButton::Primary) {
+        // //     return RouteSelected { id: inner.id }.into();
+        // // }
+        // if let Some(route) = self.auto_routes.get(&inner.id)
+        //     && let Some(hover_pos) = response.hover_pos()
+        // {
+        //     if let Some(waypoint_id) = route.hit_waypoint(hover_pos, PORT_RADIUS) {
+        //         return WaypointHovered {
+        //             route: inner.id,
+        //             waypoint: waypoint_id,
+        //         }
+        //         .into();
+        //     }
+        //     if let Some(text_anchor_id) = route.hit_text_anchor(hover_pos) {
+        //         eprintln!("Hovering over text anchor {:?}", text_anchor_id);
+        //         return AddTextButtonHovered {
+        //             route: inner.id,
+        //             edge_id: text_anchor_id,
+        //         }
+        //         .into();
+        //     }
+        //     if let Some(edge_id) = route.hovered_edge(hover_pos) {
+        //         return RouteHovered {
+        //             id: inner.id,
+        //             pos: snap_to_grid(hover_pos),
+        //             edge_index: edge_id,
+        //         }
+        //         .into();
+        //     }
+        // }
+        // State::Idle
     }
     fn handle_route_selected(&self, inner: RouteSelected, response: Response) -> State {
         if response.clicked_by(egui::PointerButton::Primary) {
@@ -655,22 +763,8 @@ impl Drawing {
             }
             .into();
         }
-        if let Some(hover_pos) = response.hover_pos() {
-            if let Some(edge_index) = self.auto_routes[&route.id].hovered_edge(hover_pos)
-                && let Some(edge) = self.auto_routes[&route.id].edge(edge_index)
-            {
-                RouteEdgeHovered {
-                    id: route.id,
-                    edge_index,
-                    direction: edge.direction(),
-                }
-                .into()
-            } else {
-                State::Idle
-            }
-        } else {
-            State::Idle
-        }
+        self.handle_route_hover_check(response)
+            .unwrap_or(State::Idle)
     }
     fn handle_add_text_button_hovered(
         &mut self,
@@ -680,14 +774,14 @@ impl Drawing {
         if response.clicked_by(egui::PointerButton::Primary)
             && let Some(route) = self.auto_routes.get_mut(&inner.route)
         {
-            let label = route.new_label(inner.edge_id);
-            eprintln!("Adding label {label:?} to edge {:?}", inner.edge_id);
-            return EditingRouteLabelText {
-                id: inner.route,
-                edge_index: inner.edge_id,
-                label_id: label,
-            }
-            .into();
+            // let label = route.new_label(inner.edge_id);
+            // eprintln!("Adding label {label:?} to edge {:?}", inner.edge_id);
+            // return EditingRouteLabelText {
+            //     id: inner.route,
+            //     edge_index: inner.edge_id,
+            //     label_id: label,
+            // }
+            // .into();
         }
         if let Some(hover_pos) = response.hover_pos() {
             let route = &self.auto_routes[&inner.route];
@@ -709,13 +803,8 @@ impl Drawing {
             }
             .into();
         }
-        if let Some(hover_pos) = response.hover_pos()
-            && let Some(wp) = self.auto_routes[&inner.route].waypoint(inner.waypoint)
-            && wp.pos.distance(hover_pos) > PORT_RADIUS * 1.5
-        {
-            return State::Idle;
-        }
-        inner.into()
+        self.handle_route_hover_check(response)
+            .unwrap_or(State::Idle)
     }
     fn handle_waypoint_dragged(&mut self, inner: WaypointDragged, response: Response) -> State {
         if response.dragged_by(egui::PointerButton::Primary) {
@@ -730,7 +819,7 @@ impl Drawing {
         } else if response.drag_stopped_by(egui::PointerButton::Primary) || !response.dragged() {
             let route = self.auto_routes.get_mut(&inner.route).unwrap();
             route.waypoints.iter_mut().for_each(|wp| {
-                wp.pos = snap_to_grip(wp.pos);
+                wp.pos = snap_to_grid(wp.pos);
             });
             self.reroute = true;
             return State::Idle;
@@ -771,7 +860,7 @@ impl Drawing {
         if response.dragged_by(egui::PointerButton::Primary)
             && let Some(pos) = response.interact_pointer_pos()
         {
-            return State::adding_rect(snap_to_grip(start_pos), snap_to_grip(pos));
+            return State::adding_rect(snap_to_grid(start_pos), snap_to_grid(pos));
         } else if response.drag_stopped_by(egui::PointerButton::Primary) {
             let candidate_rect = Rect::from_two_pos(start_pos, end_pos);
             if candidate_rect.width() > GRID_SIZE && candidate_rect.height() > GRID_SIZE {
@@ -877,8 +966,9 @@ impl Drawing {
         {
             let id = next_waypoint_id(&auto_route.waypoints);
             auto_route.waypoints.push(Waypoint {
-                pos: snap_to_grip(pos),
+                pos: snap_to_grid(pos),
                 id,
+                label: None,
             });
             return auto_route.into();
         }
@@ -949,6 +1039,7 @@ impl Drawing {
             State::RouteSelected(route) => self.handle_route_selected(route, response),
             State::RouteLabelHovered(inner) => self.handle_route_label_hovered(inner, response),
             State::RouteEdgeHovered(route) => self.handle_route_edge_hovered(route, response),
+            State::RouteCornerHovered(route) => self.handle_route_corner_hovered(route, response),
             State::WaypointHovered(inner) => self.handle_waypoint_hovered(inner, response),
             State::AddTextButtonHovered(inner) => {
                 self.handle_add_text_button_hovered(inner, response)
@@ -1035,8 +1126,8 @@ impl Drawing {
         // First all routes that haven't changed
         let mut routes = std::mem::take(&mut self.auto_routes);
         for (id, route) in routes.iter_mut() {
-            let anchor_start = snap_to_grip(self.anchor(route.start));
-            let anchor_end = snap_to_grip(self.anchor(route.finish));
+            let anchor_start = snap_to_grid(self.anchor(route.start));
+            let anchor_end = snap_to_grid(self.anchor(route.finish));
             if route.start_pos == self.anchor(route.start)
                 && route.end_pos == self.anchor(route.finish)
                 && !router.is_route_blocked(&route.edges)
@@ -1051,13 +1142,18 @@ impl Drawing {
                     .copied()
                     .filter(|waypoint| router.is_accessible(waypoint.pos))
                     .collect::<Vec<_>>();
-                if waypoints.len() != old_count {
-                    eprintln!(
-                        "Route {:?} lost {} waypoints due to inaccessibility",
-                        id,
-                        old_count - waypoints.len()
-                    );
+                // If two waypoints are at the same location, only keep one
+                // of them.
+                let mut unique_waypoints: Vec<Waypoint> = Vec::new();
+                for waypoint in waypoints {
+                    if !unique_waypoints.iter().any(|w| w.pos == waypoint.pos)
+                        && waypoint.pos != route.start_pos
+                        && waypoint.pos != route.end_pos
+                    {
+                        unique_waypoints.push(waypoint);
+                    }
                 }
+                let waypoints = unique_waypoints;
                 if let Some(path) = router.waypoint_path(anchor_start, &waypoints, anchor_end) {
                     eprintln!("{path:?}");
                     *route = AutoRoute::build(route.start, route.finish, &path, &waypoints);
@@ -1074,7 +1170,7 @@ impl Drawing {
         if let State::InProgressAutoRoute(inner) = &self.state {
             eprintln!("Auto-routing from {:?} to {:?}", inner.start, inner.head);
             let start_pos = self.anchor(inner.start);
-            let head_pos = snap_to_grip(inner.head);
+            let head_pos = snap_to_grid(inner.head);
             if let Some(path) = router.waypoint_path(start_pos, &inner.waypoints, head_pos) {
                 eprintln!("Found path through waypoints: {:?}", path);
                 self.auto_route = path;
@@ -1083,8 +1179,8 @@ impl Drawing {
             }
         }
         if let State::ProposedAutoRoute(inner) = &self.state {
-            let start_pos = snap_to_grip(self.anchor(inner.start));
-            let end = snap_to_grip(self.anchor(inner.finish));
+            let start_pos = snap_to_grid(self.anchor(inner.start));
+            let end = snap_to_grid(self.anchor(inner.finish));
             if let Some(path) = router.waypoint_path(start_pos, &inner.waypoints, end) {
                 eprintln!("Found proposed path through waypoints: {:?}", path);
                 self.auto_route = path;

@@ -2,7 +2,7 @@ use egui::{Pos2, Vec2};
 
 use crate::{
     geometry::{Contact, ContactKind},
-    grid::snap_to_grip,
+    grid::snap_to_grid,
     rectbox::LineAnchor,
 };
 
@@ -54,7 +54,7 @@ impl PolyLine {
         self.editing.map(|ndx| self.points[ndx])
     }
     pub fn finish_edit(&mut self) {
-        self.points.iter_mut().for_each(|p| *p = snap_to_grip(*p));
+        self.points.iter_mut().for_each(|p| *p = snap_to_grid(*p));
         // Remove duplicate points
         self.points.dedup();
         // Remove points that are on the same horizontal or vertical

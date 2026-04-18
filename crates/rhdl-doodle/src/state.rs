@@ -1,7 +1,7 @@
 use egui::{CursorIcon, Pos2, Vec2, pos2, vec2};
 
 use crate::{
-    grid::{LINE_RADIUS, MIN_TEXT_EDGE_LENGTH, ROUTE_TEXT_SIZE, SHIM, snap_to_grip},
+    grid::{LINE_RADIUS, MIN_TEXT_EDGE_LENGTH, ROUTE_TEXT_SIZE, SHIM, snap_to_grid},
     label::LabelId,
     rectbox::{LineAnchor, RectId},
     router_ng::{Point, SegmentKind, TaggedPoint},
@@ -39,6 +39,7 @@ pub enum State {
     RouteSelected(RouteSelected),
     RouteEdgeHovered(RouteEdgeHovered),
     RouteEdgeDragged(RouteEdgeDragged),
+    RouteCornerHovered(RouteCornerHovered),
     WaypointHovered(WaypointHovered),
     WaypointDragged(WaypointDragged),
     RouteLabelHovered(RouteLabelHovered),
@@ -112,7 +113,11 @@ impl From<RouteEdgeHovered> for State {
         State::RouteEdgeHovered(value)
     }
 }
-
+impl From<RouteCornerHovered> for State {
+    fn from(value: RouteCornerHovered) -> Self {
+        State::RouteCornerHovered(value)
+    }
+}
 impl From<InProgressAutoRoute> for State {
     fn from(value: InProgressAutoRoute) -> Self {
         State::InProgressAutoRoute(value)
@@ -293,7 +298,6 @@ pub struct RouteEdge {
     pub start: Pos2,
     pub end: Pos2,
     pub kind: SegmentKind,
-    pub label: Option<WireLabelId>,
 }
 
 impl RouteEdge {
@@ -320,10 +324,7 @@ impl RouteEdge {
         (self.end - self.start).length()
     }
     pub fn text_anchor(&self) -> Option<Pos2> {
-        if self.direction() == RouteDirection::Horizontal
-            && self.length() >= MIN_TEXT_EDGE_LENGTH
-            && self.label.is_none()
-        {
+        if self.direction() == RouteDirection::Horizontal && self.length() >= MIN_TEXT_EDGE_LENGTH {
             Some(pos2(
                 (self.start.x + self.end.x) / 2.0,
                 self.start.y - SHIM / 2.0,
@@ -385,6 +386,8 @@ impl RouteId {
 #[derive(Clone, PartialEq, Debug)]
 pub struct RouteHovered {
     pub id: RouteId,
+    pub pos: Pos2,
+    pub edge_index: EdgeId,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -399,10 +402,18 @@ pub struct RouteEdgeHovered {
     pub direction: RouteDirection,
 }
 
+#[derive(Clone, PartialEq, Debug)]
+pub struct RouteCornerHovered {
+    pub id: RouteId,
+    pub edge_1: EdgeId,
+    pub edge_2: EdgeId,
+}
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Waypoint {
     pub pos: Pos2,
     pub id: WaypointId,
+    pub label: Option<WireLabelId>,
 }
 
 impl From<Waypoint> for Point {
@@ -428,21 +439,39 @@ pub struct AutoRoute {
     pub labels: Vec<WireLabel>,
 }
 
+fn next_edge_id(edges: &[RouteEdge]) -> EdgeId {
+    edges
+        .iter()
+        .map(|edge| edge.id)
+        .max()
+        .map(|id| EdgeId(id.0 + 1))
+        .unwrap_or(EdgeId(0))
+}
+
 impl AutoRoute {
-    pub fn new_label(&mut self, edge: EdgeId) -> WireLabelId {
-        let id = self
-            .labels
-            .iter()
-            .map(|label| label.id)
-            .max()
-            .map(|id| WireLabelId(id.0 + 1))
-            .unwrap_or(WireLabelId(0));
-        self.labels.push(WireLabel {
-            id,
-            text: String::default(),
-        });
-        self.edge_mut(edge).unwrap().label = Some(id);
-        id
+    pub fn add_waypoint(&mut self, pos: Pos2, segment: SegmentKind) -> WaypointId {
+        let waypoint_id = next_waypoint_id(&self.waypoints);
+        let wp = Waypoint {
+            id: waypoint_id,
+            pos,
+            label: None,
+        };
+        match segment {
+            SegmentKind::WaypointToEnd(_) | SegmentKind::StartToEnd => {
+                self.waypoints.push(wp);
+            }
+            SegmentKind::StartToWaypoint(_) => {
+                self.waypoints.insert(0, wp);
+            }
+            SegmentKind::WaypointToWaypoint(wp_before, _) => {
+                if let Some(index) = self.waypoints.iter().position(|wp| wp.id == wp_before) {
+                    self.waypoints.insert(index + 1, wp);
+                } else {
+                    self.waypoints.push(wp);
+                }
+            }
+        }
+        waypoint_id
     }
     pub fn label(&self, label_id: WireLabelId) -> Option<&WireLabel> {
         self.labels.iter().find(|label| label.id == label_id)
@@ -531,8 +560,8 @@ impl AutoRoute {
             return;
         }
         self.edges.iter_mut().for_each(|edge| {
-            edge.start = snap_to_grip(edge.start);
-            edge.end = snap_to_grip(edge.end);
+            edge.start = snap_to_grid(edge.start);
+            edge.end = snap_to_grid(edge.end);
         });
         // Drop all waypoints that are no longer on the path.
         self.update_waypoints();
@@ -541,9 +570,25 @@ impl AutoRoute {
     pub fn grid_points(&self) -> Vec<Point> {
         self.points().into_iter().map(|pos| pos.into()).collect()
     }
+    pub fn hovered_corner(&self, hover_pos: Pos2) -> Option<(EdgeId, EdgeId)> {
+        self.edges.windows(2).find_map(|edges| {
+            let edge1 = &edges[0];
+            let edge2 = &edges[1];
+            if edge1.end.distance(hover_pos) <= LINE_RADIUS
+                && edge1.direction() != edge2.direction()
+            {
+                Some((edge1.id, edge2.id))
+            } else {
+                None
+            }
+        })
+    }
     pub fn hovered_edge(&self, hover_pos: Pos2) -> Option<EdgeId> {
         self.edges.iter().find_map(|edge| {
-            if edge.distance(hover_pos) <= LINE_RADIUS {
+            if edge.distance(hover_pos) <= LINE_RADIUS
+                && edge.start.distance(hover_pos) > LINE_RADIUS
+                && edge.end.distance(hover_pos) > LINE_RADIUS
+            {
                 Some(edge.id)
             } else {
                 None
@@ -571,7 +616,6 @@ impl AutoRoute {
                 id: EdgeId(edge_id),
                 start: start.pos.into(),
                 end: end.pos.into(),
-                label: None,
                 kind: start.segment,
             });
             edge_id += 1;

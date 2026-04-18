@@ -12,7 +12,7 @@ pub const CONTROL_HANDLE_SIZE: f32 = GRID_SIZE * 0.3;
 pub const GRIP_SIZE: f32 = GRID_SIZE * 0.6;
 pub const MIN_TEXT_EDGE_LENGTH: f32 = GRID_SIZE * 4.0;
 
-pub fn snap_to_grip(pos: Pos2) -> Pos2 {
+pub fn snap_to_grid(pos: Pos2) -> Pos2 {
     Pos2::new(round_to_grid(pos.x), round_to_grid(pos.y))
 }
 
@@ -22,14 +22,14 @@ pub fn round_to_grid(value: f32) -> f32 {
 
 pub fn snap(rect: Rect) -> Rect {
     Rect::from_min_max(
-        snap_to_grip(pos2(rect.min.x, rect.min.y)),
-        snap_to_grip(pos2(rect.max.x, rect.max.y)),
+        snap_to_grid(pos2(rect.min.x, rect.min.y)),
+        snap_to_grid(pos2(rect.max.x, rect.max.y)),
     )
 }
 
 pub fn grid_rect(rect: Rect) -> Rect {
     Rect::from_min_max(
-        snap_to_grip(pos2(rect.min.x, rect.min.y)),
-        snap_to_grip(pos2(rect.max.x, rect.max.y)),
+        snap_to_grid(pos2(rect.min.x, rect.min.y)),
+        snap_to_grid(pos2(rect.max.x, rect.max.y)),
     )
 }
