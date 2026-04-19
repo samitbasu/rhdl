@@ -995,12 +995,25 @@ impl RouterNG {
                 .collect()
         })
     }
+    fn path_find_with_fallback(
+        &mut self,
+        start: impl Into<Point>,
+        end: impl Into<Point>,
+    ) -> Vec<Point> {
+        let start: Point = start.into();
+        let end: Point = end.into();
+        if let Some(path) = self.path_find(start, end) {
+            return path;
+        }
+        // Couldn't find a path. so just connect the two points with a horizontal and vertical segment.
+        vec![start, point(end.x, start.y), end]
+    }
     pub fn waypoint_path<T>(
         &mut self,
         start: T,
         waypoints: &[Waypoint],
         head: T,
-    ) -> Option<Vec<TaggedPoint>>
+    ) -> Vec<TaggedPoint>
     where
         T: Into<Point> + Copy,
     {
@@ -1008,7 +1021,7 @@ impl RouterNG {
         self.seed_channels(start, COST_ZERO);
         if let Some(first_wp) = waypoints.first() {
             self.seed_channels(first_wp.pos, COST_ZERO);
-            let subpath = self.path_find(start, first_wp.pos)?;
+            let subpath = self.path_find_with_fallback(start, first_wp.pos);
             path.extend(subpath.into_iter().map(|point| TaggedPoint {
                 pos: point,
                 segment: SegmentKind::StartToWaypoint(first_wp.id),
@@ -1017,7 +1030,7 @@ impl RouterNG {
                 let wp_start = windows[0];
                 let wp_end = windows[1];
                 self.seed_channels(wp_end.pos, COST_ZERO);
-                let subpath = self.path_find(wp_start, wp_end)?;
+                let subpath = self.path_find_with_fallback(wp_start, wp_end);
                 path.extend(subpath.into_iter().map(|point| TaggedPoint {
                     segment: SegmentKind::WaypointToWaypoint(wp_start.id, wp_end.id),
                     pos: point,
@@ -1025,24 +1038,22 @@ impl RouterNG {
             }
             let last_wp = waypoints.last().unwrap_or(first_wp);
             self.seed_channels(head, COST_ZERO);
-            let subpath = self.path_find(last_wp.pos, head)?;
+            let subpath = self.path_find_with_fallback(last_wp.pos, head);
             path.extend(subpath.into_iter().map(|point| TaggedPoint {
                 pos: point,
                 segment: SegmentKind::WaypointToEnd(last_wp.id),
             }));
-            Some(path)
+            path
         } else {
             self.seed_channels(head, COST_ZERO);
-            let subpath = self.path_find(start, head)?;
-            Some(
-                subpath
-                    .into_iter()
-                    .map(|point| TaggedPoint {
-                        pos: point,
-                        segment: SegmentKind::StartToEnd,
-                    })
-                    .collect(),
-            )
+            let subpath = self.path_find_with_fallback(start, head);
+            subpath
+                .into_iter()
+                .map(|point| TaggedPoint {
+                    pos: point,
+                    segment: SegmentKind::StartToEnd,
+                })
+                .collect()
         }
     }
 }
@@ -1053,6 +1064,12 @@ pub enum SegmentKind {
     WaypointToWaypoint(WaypointId, WaypointId),
     WaypointToEnd(WaypointId),
     StartToEnd,
+}
+
+impl SegmentKind {
+    pub fn is_wp_to_wp(&self) -> bool {
+        matches!(self, SegmentKind::WaypointToWaypoint(_, _))
+    }
 }
 
 #[derive(Copy, Clone)]

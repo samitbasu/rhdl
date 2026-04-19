@@ -1,7 +1,7 @@
 use egui::{CursorIcon, Pos2, Vec2, pos2, vec2};
 
 use crate::{
-    grid::{LINE_RADIUS, MIN_TEXT_EDGE_LENGTH, ROUTE_TEXT_SIZE, SHIM, snap_to_grid},
+    grid::{GRID_SIZE, LINE_RADIUS, MIN_TEXT_EDGE_LENGTH, ROUTE_TEXT_SIZE, SHIM, snap_to_grid},
     label::LabelId,
     rectbox::{LineAnchor, RectId},
     router_ng::{Point, SegmentKind, TaggedPoint},
@@ -197,7 +197,9 @@ pub struct EditingName {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct RouteEdgeDragged {
     pub id: RouteId,
-    pub edge_index: EdgeId,
+    pub direction: RouteDirection,
+    pub start_waypoint: WaypointId,
+    pub end_waypoint: WaypointId,
     pub delta_pos: Vec2,
 }
 
@@ -236,7 +238,7 @@ pub struct RouteLabelHovered {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct EditingRouteLabelText {
     pub id: RouteId,
-    pub edge_index: EdgeId,
+    pub waypoint_id: WaypointId,
     pub label_id: WireLabelId,
 }
 
@@ -325,16 +327,33 @@ impl RouteEdge {
     }
     pub fn text_anchor(&self) -> Option<Pos2> {
         if self.direction() == RouteDirection::Horizontal && self.length() >= MIN_TEXT_EDGE_LENGTH {
-            Some(pos2(
-                (self.start.x + self.end.x) / 2.0,
-                self.start.y - SHIM / 2.0,
-            ))
+            Some(pos2((self.start.x + self.end.x) / 2.0, self.start.y - SHIM))
         } else {
             None
         }
     }
     pub fn center(&self) -> Pos2 {
         self.start + (self.end - self.start) * 0.5
+    }
+    pub fn waypoint_position_start(&self) -> Pos2 {
+        // Avoid the routing gutters.
+        let dir = (self.end - self.start).normalized();
+        match self.kind {
+            SegmentKind::WaypointToWaypoint(_, _) => self.start,
+            SegmentKind::StartToWaypoint(_) | SegmentKind::StartToEnd => {
+                self.start + dir * GRID_SIZE
+            }
+            SegmentKind::WaypointToEnd(_) => self.start,
+        }
+    }
+    pub fn waypoint_position_end(&self) -> Pos2 {
+        // Avoid the routing gutters.
+        let dir = (self.end - self.start).normalized();
+        match self.kind {
+            SegmentKind::WaypointToWaypoint(_, _) => self.end,
+            SegmentKind::StartToWaypoint(_) => self.end,
+            SegmentKind::WaypointToEnd(_) | SegmentKind::StartToEnd => self.end - dir * GRID_SIZE,
+        }
     }
 }
 
@@ -386,8 +405,6 @@ impl RouteId {
 #[derive(Clone, PartialEq, Debug)]
 pub struct RouteHovered {
     pub id: RouteId,
-    pub pos: Pos2,
-    pub edge_index: EdgeId,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -414,6 +431,16 @@ pub struct Waypoint {
     pub pos: Pos2,
     pub id: WaypointId,
     pub label: Option<WireLabelId>,
+    pub locked: bool,
+}
+
+impl Waypoint {
+    pub fn unlock(&mut self) {
+        self.locked = false;
+    }
+    pub fn is_locked(&self) -> bool {
+        self.locked
+    }
 }
 
 impl From<Waypoint> for Point {
@@ -449,29 +476,72 @@ fn next_edge_id(edges: &[RouteEdge]) -> EdgeId {
 }
 
 impl AutoRoute {
-    pub fn add_waypoint(&mut self, pos: Pos2, segment: SegmentKind) -> WaypointId {
+    // Calculate the distance along the route to reach point closest to the provided
+    // position.
+    fn distance_along_route(&self, pos: Pos2) -> f32 {
+        let mut distance = 0.0;
+        for edge in &self.edges {
+            let edge_distance = edge.distance(pos);
+            if edge_distance <= LINE_RADIUS {
+                // The point is close enough to this edge, so we calculate the distance along the route to this point.
+                let start_to_pos = (pos - edge.start).length();
+                let start_to_end = (edge.end - edge.start).length();
+                if start_to_end > 0.0 {
+                    distance += start_to_pos.min(start_to_end);
+                }
+                break;
+            } else {
+                // The point is not close to this edge, so we add the full length of this edge to the distance and continue.
+                distance += edge.length();
+            }
+        }
+        distance
+    }
+    pub fn alloc_wp(&self, pos: Pos2) -> Waypoint {
         let waypoint_id = next_waypoint_id(&self.waypoints);
-        let wp = Waypoint {
+        Waypoint {
             id: waypoint_id,
             pos,
             label: None,
-        };
-        match segment {
-            SegmentKind::WaypointToEnd(_) | SegmentKind::StartToEnd => {
-                self.waypoints.push(wp);
-            }
-            SegmentKind::StartToWaypoint(_) => {
-                self.waypoints.insert(0, wp);
-            }
-            SegmentKind::WaypointToWaypoint(wp_before, _) => {
-                if let Some(index) = self.waypoints.iter().position(|wp| wp.id == wp_before) {
-                    self.waypoints.insert(index + 1, wp);
-                } else {
-                    self.waypoints.push(wp);
-                }
-            }
+            locked: false,
         }
-        waypoint_id
+    }
+    pub fn add_waypoint(&mut self, pos: Pos2) -> WaypointId {
+        if let Some(wp) = self.hit_waypoint(pos, GRID_SIZE * 0.5) {
+            return wp;
+        }
+        let wp = self.alloc_wp(pos);
+        self.waypoints.push(wp);
+        self.reorder_waypoints();
+        wp.id
+    }
+    pub fn lock_waypoint(&mut self, id: WaypointId) {
+        if let Some(wp) = self.waypoint_mut(id) {
+            wp.locked = true;
+        }
+    }
+    fn reorder_waypoints(&mut self) {
+        let mut waypoints = self
+            .waypoints
+            .iter()
+            .map(|wp| (self.distance_along_route(wp.pos), wp))
+            .collect::<Vec<_>>();
+        waypoints.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        self.waypoints = waypoints.into_iter().map(|(_, wp)| wp.clone()).collect();
+    }
+    pub fn allocate_label(&mut self) -> WireLabelId {
+        let label_id = self
+            .labels
+            .iter()
+            .map(|label| label.id)
+            .max()
+            .map(|id| WireLabelId(id.0 + 1))
+            .unwrap_or(WireLabelId(0));
+        self.labels.push(WireLabel {
+            id: label_id,
+            text: String::new(),
+        });
+        label_id
     }
     pub fn label(&self, label_id: WireLabelId) -> Option<&WireLabel> {
         self.labels.iter().find(|label| label.id == label_id)
