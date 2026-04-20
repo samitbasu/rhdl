@@ -279,6 +279,12 @@ pub struct EdgeId(usize);
 #[derive(Clone, PartialEq, Eq, Hash, Copy, Debug, PartialOrd, Ord)]
 pub struct WaypointId(usize);
 
+impl From<usize> for WaypointId {
+    fn from(x: usize) -> Self {
+        Self(x)
+    }
+}
+
 impl std::fmt::Display for WaypointId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "w{}", self.0)
@@ -395,6 +401,12 @@ pub struct WaypointDragged {
 
 #[derive(Clone, PartialEq, Hash, Copy, Debug, Eq, PartialOrd, Ord, Default)]
 pub struct RouteId(usize);
+
+impl From<usize> for RouteId {
+    fn from(x: usize) -> Self {
+        Self(x)
+    }
+}
 
 impl RouteId {
     pub fn next(&self) -> Self {
@@ -670,6 +682,7 @@ impl AutoRoute {
         finish: LineAnchor,
         points: &[TaggedPoint],
         waypoints: &[Waypoint],
+        labels: &[WireLabel],
     ) -> Self {
         // Scan through the set of points, and create a set of edges.
         // Each edge should be either horizontal or vertical,
@@ -726,7 +739,7 @@ impl AutoRoute {
             start_pos,
             end_pos,
             waypoints: waypoints.to_vec(),
-            labels: Vec::new(),
+            labels: labels.to_vec(),
         }
     }
     pub fn hit_text_anchor(&self, hover_pos: Pos2) -> Option<EdgeId> {

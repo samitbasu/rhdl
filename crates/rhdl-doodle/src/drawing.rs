@@ -6,8 +6,8 @@ use egui::{
 
 use crate::{
     grid::{
-        GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, ROUTE_TEXT_SIZE, grid_rect, round_to_grid,
-        snap_to_grid,
+        GRID_SIZE, MOVE_HOVER_DISTANCE, PORT_RADIUS, ROUTE_TEXT_SIZE, SHIM, grid_rect,
+        round_to_grid, snap_to_grid,
     },
     label::{LabelId, LabelSide},
     rectbox::{LineAnchor, RectBox, RectId, control_corner, resize_rect},
@@ -15,14 +15,14 @@ use crate::{
         FocusResult, estimate_bbox_for_label, get_control_pin_bbox, get_hamburger_rect,
         render_path_with_chamfered_corners, render_rect_box,
     },
-    router_ng::{COST_ZERO, Point, RouterNGBuilder, SegmentKind, TaggedPoint, WIRE_COST},
+    router_ng::{COST_ZERO, Point, RouterNG, RouterNGBuilder, SegmentKind, TaggedPoint, WIRE_COST},
     state::{
         AddTextButtonHovered, AddingRect, AutoRoute, EditingLabelText, EditingName,
         EditingRouteLabelText, InProgressAutoRoute, MovingRect, PortDragged, PortLabelGripHovered,
         PortLabelHovered, PortPinHovered, PotentialResize, ProposedAutoRoute, ResizeMode,
         ResizingRect, RouteCornerHovered, RouteDirection, RouteEdgeDragged, RouteEdgeHovered,
         RouteHovered, RouteId, RouteLabelHovered, RouteSelected, Selected, State, Waypoint,
-        WaypointDragged, WaypointHovered, next_waypoint_id,
+        WaypointDragged, WaypointHovered, WaypointId, next_waypoint_id,
     },
     turtle::Mark,
 };
@@ -53,6 +53,12 @@ pub struct Drawing {
     reroute: bool,
     ripup_set: Vec<RouteId>,
     route_id: RouteId,
+}
+
+enum RouteRenderMode {
+    Normal,
+    Highlighted,
+    Selected,
 }
 
 impl Drawing {
@@ -155,6 +161,60 @@ impl Drawing {
                 .map(move |anchor| (anchor, self.anchor(anchor)))
         })
     }
+    fn render_route(&self, ui: &mut Ui, route: &AutoRoute, mode: RouteRenderMode) {
+        let route_stroke = match mode {
+            RouteRenderMode::Normal => (1.7, Color32::DARK_GREEN),
+            RouteRenderMode::Highlighted => (2.5, Color32::LIGHT_GREEN.gamma_multiply(0.3)),
+            RouteRenderMode::Selected => (2.5, Color32::LIGHT_GREEN),
+        };
+        let points = render_path_with_chamfered_corners(&route.points());
+        points.render(ui, route_stroke);
+        let text_color = match mode {
+            RouteRenderMode::Normal => Color32::DARK_GREEN,
+            RouteRenderMode::Highlighted => Color32::LIGHT_GREEN.gamma_multiply(0.3),
+            RouteRenderMode::Selected => Color32::LIGHT_GREEN,
+        };
+        for wp in &route.waypoints {
+            if let Some(label_id) = wp.label
+                && let Some(label) = route.label(label_id)
+            {
+                ui.painter().text(
+                    wp.pos + vec2(0.0, -SHIM / 4.0),
+                    egui::Align2::CENTER_BOTTOM,
+                    &label.text,
+                    egui::FontId::monospace(ROUTE_TEXT_SIZE),
+                    text_color,
+                );
+            }
+        }
+        if matches!(mode, RouteRenderMode::Selected) {
+            for wp in &route.waypoints {
+                ui.painter().circle(
+                    wp.pos,
+                    PORT_RADIUS,
+                    Color32::LIGHT_GREEN.linear_multiply(0.5),
+                    (0.5, Color32::BLACK),
+                );
+            }
+            for tp in &route.text_anchors() {
+                // Draw a T in a box to indicate that this is a text anchor.
+                ui.painter().text(
+                    *tp,
+                    egui::Align2::CENTER_CENTER,
+                    "T",
+                    egui::FontId::monospace(ROUTE_TEXT_SIZE),
+                    Color32::LIGHT_GREEN,
+                );
+                ui.painter().rect(
+                    Rect::from_center_size(*tp, vec2(ROUTE_TEXT_SIZE, ROUTE_TEXT_SIZE)),
+                    3.0,
+                    Color32::TRANSPARENT,
+                    (0.5, Color32::LIGHT_GREEN),
+                    StrokeKind::Middle,
+                );
+            }
+        }
+    }
     pub fn render(&mut self, ui: &mut Ui) {
         ui.output_mut(|o| o.cursor_icon = self.state.cursor());
         (-100..=100).map(|y| y as f32 * GRID_SIZE).for_each(|h| {
@@ -172,22 +232,7 @@ impl Drawing {
             );
         });
         for route in self.auto_routes.values() {
-            let points = render_path_with_chamfered_corners(&route.points());
-            points.render(ui, (1.0, Color32::DARK_GREEN));
-            // for edge in &route.edges {
-            //     let label_pos: Pos2 = edge.center();
-            //     if let Some(label_id) = &edge.label
-            //         && let Some(label) = route.label(*label_id)
-            //     {
-            //         ui.painter().text(
-            //             label_pos,
-            //             egui::Align2::CENTER_BOTTOM,
-            //             &label.text,
-            //             egui::FontId::monospace(ROUTE_TEXT_SIZE),
-            //             Color32::LIGHT_GREEN,
-            //         );
-            //     }
-            // }
+            self.render_route(ui, &route, RouteRenderMode::Normal);
         }
         for rect_box in self.rect_boxes.iter_mut() {
             if render_rect_box(rect_box, &self.state, ui) == FocusResult::LostFocus {
@@ -254,84 +299,15 @@ impl Drawing {
         }
         if let State::RouteHovered(target) = &self.state {
             let route = &self.auto_routes[&target.id];
-            let points = render_path_with_chamfered_corners(&route.points());
-            points.render(ui, (2.5, Color32::DARK_GREEN));
-            // ui.painter().circle(
-            //     target.pos,
-            //     PORT_RADIUS,
-            //     Color32::LIGHT_GRAY.linear_multiply(0.5),
-            //     (0.5, Color32::BLACK),
-            // );
-            // for tp in route.text_anchors() {
-            //     // Draw a T in a box to indicate that this is a text anchor.
-            //     ui.painter().text(
-            //         tp,
-            //         egui::Align2::CENTER_CENTER,
-            //         "T",
-            //         egui::FontId::monospace(ROUTE_TEXT_SIZE),
-            //         Color32::LIGHT_GREEN,
-            //     );
-            //     ui.painter().rect(
-            //         Rect::from_center_size(tp, vec2(ROUTE_TEXT_SIZE, ROUTE_TEXT_SIZE)),
-            //         3.0,
-            //         Color32::TRANSPARENT,
-            //         (0.5, Color32::LIGHT_GREEN),
-            //         StrokeKind::Middle,
-            //     );
-            // }
+            self.render_route(ui, route, RouteRenderMode::Highlighted);
         }
         if let State::RouteSelected(target) = &self.state {
             let route = &self.auto_routes[&target.id];
-            let points = render_path_with_chamfered_corners(&route.points());
-            points.render(ui, (2.5, Color32::LIGHT_GREEN));
-            for wp in &route.waypoints {
-                ui.painter().circle(
-                    wp.pos,
-                    PORT_RADIUS,
-                    Color32::LIGHT_GREEN.linear_multiply(0.5),
-                    (0.5, Color32::BLACK),
-                );
-            }
-            for tp in &route.text_anchors() {
-                // Draw a T in a box to indicate that this is a text anchor.
-                ui.painter().text(
-                    *tp,
-                    egui::Align2::CENTER_CENTER,
-                    "T",
-                    egui::FontId::monospace(ROUTE_TEXT_SIZE),
-                    Color32::LIGHT_GREEN,
-                );
-                ui.painter().rect(
-                    Rect::from_center_size(*tp, vec2(ROUTE_TEXT_SIZE, ROUTE_TEXT_SIZE)),
-                    3.0,
-                    Color32::TRANSPARENT,
-                    (0.5, Color32::LIGHT_GREEN),
-                    StrokeKind::Middle,
-                );
-            }
+            self.render_route(ui, route, RouteRenderMode::Selected);
         }
         if let State::RouteEdgeHovered(target) = &self.state {
             let route = &self.auto_routes[&target.id];
-            let points = render_path_with_chamfered_corners(&route.points());
-            points.render(ui, (2.5, Color32::LIGHT_GREEN.gamma_multiply(0.2)));
-            for wp in &route.waypoints {
-                ui.painter().circle(
-                    wp.pos,
-                    PORT_RADIUS,
-                    Color32::LIGHT_GREEN
-                        .linear_multiply(0.5)
-                        .gamma_multiply(0.5),
-                    (0.5, Color32::BLACK),
-                );
-            }
-            for wp in &route.waypoints {
-                ui.painter().circle(
-                    wp.pos,
-                    PORT_RADIUS,
-                    Color32::LIGHT_GREEN.linear_multiply(0.5),
-                    (0.5, Color32::BLACK),
-                );
-            }
+            self.render_route(ui, route, RouteRenderMode::Highlighted);
             if let Some(edge) = route.edge(target.edge_index) {
                 let edge_start: Pos2 = edge.start;
                 let edge_end: Pos2 = edge.end;
@@ -346,14 +322,7 @@ impl Drawing {
         }
         if let State::RouteCornerHovered(target) = &self.state {
             let route = &self.auto_routes[&target.id];
-            for wp in &route.waypoints {
-                ui.painter().circle(
-                    wp.pos,
-                    PORT_RADIUS,
-                    Color32::LIGHT_GREEN.linear_multiply(0.5),
-                    (0.5, Color32::BLACK),
-                );
-            }
+            self.render_route(ui, route, RouteRenderMode::Highlighted);
             if let Some(edge_1) = route.edge(target.edge_1) {
                 let edge_1_end: Pos2 = edge_1.end;
                 ui.painter().circle(
@@ -375,8 +344,7 @@ impl Drawing {
         }
         if let State::WaypointHovered(target) = &self.state {
             let route = &self.auto_routes[&target.route];
-            let points = render_path_with_chamfered_corners(&route.points());
-            points.render(ui, (2.5, Color32::DARK_GREEN));
+            self.render_route(ui, route, RouteRenderMode::Highlighted);
             if let Some(wp) = route.waypoint(target.waypoint) {
                 ui.painter().circle(
                     wp.pos,
@@ -388,8 +356,7 @@ impl Drawing {
         }
         if let State::AddTextButtonHovered(target) = &self.state {
             let route = &self.auto_routes[&target.route];
-            let points = render_path_with_chamfered_corners(&route.points());
-            points.render(ui, (2.5, Color32::DARK_GREEN));
+            self.render_route(ui, route, RouteRenderMode::Highlighted);
             if let Some(tp) = route.text_anchor(target.edge_id) {
                 // Draw a T in a box to indicate that this is a text anchor.
                 ui.painter().rect(
@@ -411,8 +378,7 @@ impl Drawing {
         if let State::WaypointDragged(target) = &self.state {
             let route = &self.auto_routes[&target.route];
             if let Some(wp) = route.waypoint(target.waypoint) {
-                let points = render_path_with_chamfered_corners(&route.points());
-                points.render(ui, (2.5, Color32::DARK_GREEN));
+                self.render_route(ui, route, RouteRenderMode::Selected);
                 ui.painter().circle(
                     wp.pos,
                     PORT_RADIUS,
@@ -423,12 +389,12 @@ impl Drawing {
         }
         if let State::EditingRouteLabelText(target) = &self.state
             && let Some(route) = self.auto_routes.get_mut(&target.id)
-            && let Some(edge) = route.edge_mut(target.edge_index)
+            && let Some(waypoint) = route.waypoint(target.waypoint_id)
         {
-            let edge_center: Pos2 = edge.center();
+            let label_center: Pos2 = waypoint.pos;
             let editor_width = 25.0;
             let editor_position =
-                Rect::from_center_size(edge_center, vec2(editor_width, ROUTE_TEXT_SIZE));
+                Rect::from_center_size(label_center, vec2(editor_width, ROUTE_TEXT_SIZE));
             if let Some(wire_label) = route.label_mut(target.label_id) {
                 let response = ui.place(
                     editor_position,
@@ -785,7 +751,7 @@ impl Drawing {
                 wp.label = Some(label);
                 return EditingRouteLabelText {
                     id: inner.route,
-                    edge_index: inner.edge_id,
+                    waypoint_id: wp_id,
                     label_id: label,
                 }
                 .into();
@@ -1019,6 +985,7 @@ impl Drawing {
                 proposed_route.finish,
                 &self.auto_route,
                 &waypoints,
+                &[],
             );
             route.update_waypoints();
             self.auto_routes.insert(id, route);
@@ -1132,7 +1099,7 @@ impl Drawing {
             self.update_graph();
         }
     }
-    fn update_graph(&mut self) {
+    fn build_router(&self) -> RouterNG {
         let mut builder = RouterNGBuilder::default();
         for rect_box in &self.rect_boxes {
             let effective_rect = self.routing_box(rect_box.id());
@@ -1146,7 +1113,10 @@ impl Drawing {
                 builder.add_h_channel(anchor_pos, COST_ZERO);
             }
         }
-        let mut router = builder.build();
+        builder.build()
+    }
+    fn update_graph(&mut self) {
+        let mut router = self.build_router();
         // First all routes that haven't changed
         let mut routes = std::mem::take(&mut self.auto_routes);
         for (id, route) in routes.iter_mut() {
@@ -1174,7 +1144,8 @@ impl Drawing {
                     }
                 }
                 let path = router.waypoint_path(anchor_start, &waypoints, anchor_end);
-                *route = AutoRoute::build(route.start, route.finish, &path, &waypoints);
+                *route =
+                    AutoRoute::build(route.start, route.finish, &path, &waypoints, &route.labels);
                 route.update_waypoints();
                 route.start_pos = anchor_start;
                 route.end_pos = anchor_end;
@@ -1202,30 +1173,81 @@ impl Drawing {
 
 pub fn demo_drawing() -> Drawing {
     let mut drawing = Drawing::default();
-    let origin_1 = pos2(300.0, 300.0);
+    let origin_1 = pos2(330.0, 300.0);
     let size = vec2(200.0, 200.0);
     let box1 = drawing.add_rect_box(origin_1, origin_1 + size);
-    box1.add_label(
+    let box1_anchor1 = box1.add_label(
         "i.1.write_logic".to_string(),
         LabelSide::West,
         GRID_SIZE * 1.0,
     );
-    box1.add_label(
+    let box1_anchor2 = box1.add_label(
         "i.0.write_logic".to_string(),
         LabelSide::West,
         GRID_SIZE * 2.0,
     );
     let origin_2 = pos2(0.0, 0.0);
     let box2 = drawing.add_rect_box(origin_2, origin_2 + size);
-    box2.add_label(
+    let box2_anchor1 = box2.add_label(
         "o.1.read_logic".to_string(),
         LabelSide::East,
         GRID_SIZE * 1.0,
     );
-    box2.add_label(
+    let box2_anchor2 = box2.add_label(
         "o.0.read_logic".to_string(),
         LabelSide::East,
         GRID_SIZE * 2.0,
     );
+    // Create a route
+    /*
+     *
+     * ProposedAutoRoute(ProposedAutoRoute { start: LineAnchor { rect: RectId(0), label: LabelId(0) }, waypoints: [Waypoint { pos: [-285.0 240.0], id: WaypointId(0), label: None, locked: true }, Waypoint { pos: [-285.0 -90.0], id: WaypointId(1), label: None, locked: true }, Waypoint { pos: [210.0 -90.0], id: WaypointId(2), label: None, locked: true }, Waypoint { pos: [210.0 15.0], id: WaypointId(3), label: None, locked: true }], finish: LineAnchor { rect: RectId(1), label: LabelId(0) } })
+     *
+     */
+    let waypoints = [
+        Waypoint {
+            pos: pos2(-240.0, 240.0),
+            id: 0.into(),
+            label: None,
+            locked: true,
+        },
+        Waypoint {
+            pos: pos2(-240.0, -90.0),
+            id: 1.into(),
+            label: None,
+            locked: true,
+        },
+        Waypoint {
+            pos: pos2(255.0, -90.0),
+            id: 2.into(),
+            label: None,
+            locked: true,
+        },
+        Waypoint {
+            pos: pos2(255.0, 15.0),
+            id: 3.into(),
+            label: None,
+            locked: true,
+        },
+    ];
+    let mut router = drawing.build_router();
+    let start = drawing.anchor(box1_anchor1);
+    let finish = drawing.anchor(box2_anchor1);
+    let path = router.waypoint_path(start, &waypoints, finish);
+    let mut route = AutoRoute::build(box1_anchor1, box2_anchor1, &path, &waypoints, &[]);
+    route.update_waypoints();
+    route.start_pos = start;
+    route.end_pos = finish;
+    drawing.auto_routes.insert(0.into(), route);
+    let mut router = drawing.build_router();
+    let start = drawing.anchor(box1_anchor2);
+    let finish = drawing.anchor(box2_anchor2);
+    let path = router.waypoint_path(start, &[], finish);
+    let mut route = AutoRoute::build(box1_anchor2, box2_anchor2, &path, &[], &[]);
+    route.update_waypoints();
+    route.start_pos = start;
+    route.end_pos = finish;
+    drawing.auto_routes.insert(1.into(), route);
+    drawing.route_id = 2.into();
     drawing
 }
