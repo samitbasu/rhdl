@@ -213,20 +213,12 @@ impl Drawing {
                     (0.5, Color32::BLACK),
                 );
             }
-            for tp in &route.text_anchors() {
-                // Draw a T in a box to indicate that this is a text anchor.
-                ui.painter().text(
-                    *tp,
-                    egui::Align2::CENTER_CENTER,
-                    "T",
-                    egui::FontId::monospace(ROUTE_TEXT_SIZE),
-                    Color32::LIGHT_GREEN,
-                );
+            for dh in route.drag_handles() {
                 ui.painter().rect(
-                    Rect::from_center_size(*tp, vec2(ROUTE_TEXT_SIZE, ROUTE_TEXT_SIZE)),
-                    3.0,
-                    Color32::TRANSPARENT,
-                    (0.5, Color32::LIGHT_GREEN),
+                    Rect::from_center_size(dh, vec2(PORT_RADIUS * 2.0, PORT_RADIUS * 2.0)),
+                    PORT_RADIUS / 4.0,
+                    Color32::LIGHT_GREEN.linear_multiply(0.5),
+                    (0.5, Color32::BLACK),
                     StrokeKind::Middle,
                 );
             }
@@ -441,6 +433,7 @@ impl Drawing {
             }
             if let Some(edge_id) = route.hovered_edge(hover_pos)
                 && let Some(edge) = route.edge(edge_id)
+                && hover_pos.distance(edge.center()) <= PORT_RADIUS * 1.5
             {
                 return RouteEdgeHovered {
                     id,

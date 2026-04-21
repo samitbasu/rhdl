@@ -477,7 +477,7 @@ impl From<Waypoint> for Point {
 #[derive(Clone, PartialEq, Debug)]
 pub struct WireLabel {
     pub id: WireLabelId,
-    pub position: f32,
+    pub position: Pos2,
     pub text: String,
 }
 
@@ -509,9 +509,11 @@ pub struct LocAndDirection {
 impl AutoRoute {
     // Convert a distance along the route to a point on the route.  This is the inverse
     // of distance_along_route.  If the distance is out of range, take the end anchor.
-    pub fn map_position(&self, position: f32) -> LocAndDirection {
+    pub fn map_position(&self, position: Pos2) -> LocAndDirection {
+        let frac_length = self.distance_along_route(position);
         let total_distance = self.edges.iter().map(|edge| edge.length()).sum::<f32>();
-        let mut distance = position * total_distance;
+        let length = frac_length * total_distance;
+        let mut distance = length;
         for edge in &self.edges {
             if edge.length() < distance {
                 distance -= edge.length();
@@ -591,7 +593,7 @@ impl AutoRoute {
             .unwrap_or(WireLabelId(0));
         self.labels.push(WireLabel {
             id: label_id,
-            position: self.distance_along_route(pos),
+            position: self.map_position(pos).location,
             text: String::new(),
         });
         label_id
@@ -604,9 +606,8 @@ impl AutoRoute {
     }
     pub fn label_edit_details(&mut self, label_id: WireLabelId) -> Option<(Pos2, &mut WireLabel)> {
         let position = self.label(label_id)?.position;
-        let pos = self.map_position(position).location;
         let label = self.label_mut(label_id)?;
-        Some((pos, label))
+        Some((position, label))
     }
     pub fn waypoint(&self, waypoint_id: WaypointId) -> Option<&Waypoint> {
         self.waypoints.iter().find(|wp| wp.id == waypoint_id)
@@ -619,6 +620,9 @@ impl AutoRoute {
             .iter()
             .find(|wp| wp.pos.distance(pos) <= tolerance)
             .map(|wp| wp.id)
+    }
+    pub fn drag_handles(&self) -> Vec<Pos2> {
+        self.edges.iter().map(|edge| edge.center()).collect()
     }
     pub fn points(&self) -> Vec<Pos2> {
         // We do not want the start and end points duplicated for internal edges.
@@ -695,7 +699,13 @@ impl AutoRoute {
         // Drop all waypoints that are no longer on the path.
         self.update_waypoints();
     }
-    pub fn update_waypoints(&mut self) {}
+    pub fn update_waypoints(&mut self) {
+        let mut labels = std::mem::take(&mut self.labels);
+        labels.iter_mut().for_each(|label| {
+            label.position = self.map_position(label.position).location;
+        });
+        self.labels = labels;
+    }
     pub fn grid_points(&self) -> Vec<Point> {
         self.points().into_iter().map(|pos| pos.into()).collect()
     }
