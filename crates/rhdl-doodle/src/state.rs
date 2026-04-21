@@ -19,9 +19,11 @@ pub enum ResizeMode {
 
 #[derive(Clone, PartialEq, Default, Debug)]
 pub enum State {
-    #[default]
     Idle,
     Panning,
+    #[default]
+    AddText,
+    AddTextHoveredRoute(AddTextHoveredRoute),
     AddingRect(AddingRect),
     MovingRect(MovingRect),
     Selected(Selected),
@@ -166,6 +168,12 @@ impl From<AddTextButtonHovered> for State {
     }
 }
 
+impl From<AddTextHoveredRoute> for State {
+    fn from(value: AddTextHoveredRoute) -> Self {
+        State::AddTextHoveredRoute(value)
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Default, Debug)]
 pub struct AddingRect {
     pub start_pos: Pos2,
@@ -238,7 +246,6 @@ pub struct RouteLabelHovered {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct EditingRouteLabelText {
     pub id: RouteId,
-    pub waypoint_id: WaypointId,
     pub label_id: WireLabelId,
 }
 
@@ -271,6 +278,13 @@ pub struct ResizingRect {
 pub struct AddTextButtonHovered {
     pub route: RouteId,
     pub edge_id: EdgeId,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct AddTextHoveredRoute {
+    pub route: RouteId,
+    pub edge_id: EdgeId,
+    pub pos: Pos2,
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Copy, Debug, PartialOrd, Ord)]
@@ -442,7 +456,6 @@ pub struct RouteCornerHovered {
 pub struct Waypoint {
     pub pos: Pos2,
     pub id: WaypointId,
-    pub label: Option<WireLabelId>,
     pub locked: bool,
 }
 
@@ -464,6 +477,7 @@ impl From<Waypoint> for Point {
 #[derive(Clone, PartialEq, Debug)]
 pub struct WireLabel {
     pub id: WireLabelId,
+    pub position: f32,
     pub text: String,
 }
 
@@ -487,10 +501,37 @@ fn next_edge_id(edges: &[RouteEdge]) -> EdgeId {
         .unwrap_or(EdgeId(0))
 }
 
+pub struct LocAndDirection {
+    pub location: Pos2,
+    pub direction: RouteDirection,
+}
+
 impl AutoRoute {
+    // Convert a distance along the route to a point on the route.  This is the inverse
+    // of distance_along_route.  If the distance is out of range, take the end anchor.
+    pub fn map_position(&self, position: f32) -> LocAndDirection {
+        let total_distance = self.edges.iter().map(|edge| edge.length()).sum::<f32>();
+        let mut distance = position * total_distance;
+        for edge in &self.edges {
+            if edge.length() < distance {
+                distance -= edge.length();
+            } else {
+                let frac = distance / edge.length();
+                return LocAndDirection {
+                    location: edge.start + frac * (edge.end - edge.start),
+                    direction: edge.direction(),
+                };
+            }
+        }
+        LocAndDirection {
+            location: self.end_pos,
+            direction: RouteDirection::Horizontal,
+        }
+    }
     // Calculate the distance along the route to reach point closest to the provided
     // position.
     fn distance_along_route(&self, pos: Pos2) -> f32 {
+        let total_distance = self.edges.iter().map(|edge| edge.length()).sum::<f32>();
         let mut distance = 0.0;
         for edge in &self.edges {
             let edge_distance = edge.distance(pos);
@@ -507,14 +548,13 @@ impl AutoRoute {
                 distance += edge.length();
             }
         }
-        distance
+        distance / total_distance
     }
     pub fn alloc_wp(&self, pos: Pos2) -> Waypoint {
         let waypoint_id = next_waypoint_id(&self.waypoints);
         Waypoint {
             id: waypoint_id,
             pos,
-            label: None,
             locked: false,
         }
     }
@@ -541,7 +581,7 @@ impl AutoRoute {
         waypoints.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
         self.waypoints = waypoints.into_iter().map(|(_, wp)| wp.clone()).collect();
     }
-    pub fn allocate_label(&mut self) -> WireLabelId {
+    pub fn allocate_label(&mut self, pos: Pos2) -> WireLabelId {
         let label_id = self
             .labels
             .iter()
@@ -551,6 +591,7 @@ impl AutoRoute {
             .unwrap_or(WireLabelId(0));
         self.labels.push(WireLabel {
             id: label_id,
+            position: self.distance_along_route(pos),
             text: String::new(),
         });
         label_id
@@ -560,6 +601,12 @@ impl AutoRoute {
     }
     pub fn label_mut(&mut self, label_id: WireLabelId) -> Option<&mut WireLabel> {
         self.labels.iter_mut().find(|label| label.id == label_id)
+    }
+    pub fn label_edit_details(&mut self, label_id: WireLabelId) -> Option<(Pos2, &mut WireLabel)> {
+        let position = self.label(label_id)?.position;
+        let pos = self.map_position(position).location;
+        let label = self.label_mut(label_id)?;
+        Some((pos, label))
     }
     pub fn waypoint(&self, waypoint_id: WaypointId) -> Option<&Waypoint> {
         self.waypoints.iter().find(|wp| wp.id == waypoint_id)
@@ -764,7 +811,10 @@ impl State {
                 ResizeMode::RightTop | ResizeMode::LeftBottom => CursorIcon::ResizeNeSw,
                 ResizeMode::CenterTop | ResizeMode::CenterBottom => CursorIcon::ResizeVertical,
             },
-            State::PortLabelHovered { .. } | State::RouteLabelHovered { .. } => CursorIcon::Text,
+            State::PortLabelHovered { .. }
+            | State::RouteLabelHovered { .. }
+            | State::AddText
+            | State::AddTextHoveredRoute { .. } => CursorIcon::Text,
             State::PortLabelGripHovered { .. } => CursorIcon::Grab,
             State::PortPinHovered { .. } => CursorIcon::Crosshair,
             State::PortDragged { .. } => CursorIcon::Grabbing,

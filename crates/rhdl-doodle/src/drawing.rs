@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
 use egui::{
-    Color32, PointerButton, Pos2, Rect, Response, StrokeKind, TextEdit, Ui, Vec2, pos2, vec2,
+    Align2, Color32, PointerButton, Pos2, Rect, Response, StrokeKind, TextEdit, Ui, Vec2,
+    epaint::TextShape, pos2, vec2,
 };
 
 use crate::{
@@ -17,12 +18,12 @@ use crate::{
     },
     router_ng::{COST_ZERO, Point, RouterNG, RouterNGBuilder, SegmentKind, TaggedPoint, WIRE_COST},
     state::{
-        AddTextButtonHovered, AddingRect, AutoRoute, EditingLabelText, EditingName,
-        EditingRouteLabelText, InProgressAutoRoute, MovingRect, PortDragged, PortLabelGripHovered,
-        PortLabelHovered, PortPinHovered, PotentialResize, ProposedAutoRoute, ResizeMode,
-        ResizingRect, RouteCornerHovered, RouteDirection, RouteEdgeDragged, RouteEdgeHovered,
-        RouteHovered, RouteId, RouteLabelHovered, RouteSelected, Selected, State, Waypoint,
-        WaypointDragged, WaypointHovered, WaypointId, next_waypoint_id,
+        AddTextButtonHovered, AddTextHoveredRoute, AddingRect, AutoRoute, EditingLabelText,
+        EditingName, EditingRouteLabelText, InProgressAutoRoute, MovingRect, PortDragged,
+        PortLabelGripHovered, PortLabelHovered, PortPinHovered, PotentialResize, ProposedAutoRoute,
+        ResizeMode, ResizingRect, RouteCornerHovered, RouteDirection, RouteEdgeDragged,
+        RouteEdgeHovered, RouteHovered, RouteId, RouteLabelHovered, RouteSelected, Selected, State,
+        Waypoint, WaypointDragged, WaypointHovered, WaypointId, next_waypoint_id,
     },
     turtle::Mark,
 };
@@ -174,17 +175,33 @@ impl Drawing {
             RouteRenderMode::Highlighted => Color32::LIGHT_GREEN.gamma_multiply(0.3),
             RouteRenderMode::Selected => Color32::LIGHT_GREEN,
         };
-        for wp in &route.waypoints {
-            if let Some(label_id) = wp.label
-                && let Some(label) = route.label(label_id)
-            {
-                ui.painter().text(
-                    wp.pos + vec2(0.0, -SHIM / 4.0),
-                    egui::Align2::CENTER_BOTTOM,
-                    &label.text,
-                    egui::FontId::monospace(ROUTE_TEXT_SIZE),
-                    text_color,
-                );
+        for label in &route.labels {
+            let loc_and_direction = route.map_position(label.position);
+            let pos = loc_and_direction.location;
+            match loc_and_direction.direction {
+                RouteDirection::Horizontal => {
+                    ui.painter().text(
+                        pos + vec2(0.0, -SHIM / 4.0),
+                        egui::Align2::CENTER_BOTTOM,
+                        &label.text,
+                        egui::FontId::monospace(ROUTE_TEXT_SIZE),
+                        text_color,
+                    );
+                }
+                RouteDirection::Vertical => {
+                    // Rotate the text by 90 degrees
+                    // TODO - save the galley for reuse
+                    let galley = ui.ctx().fonts_mut(|fv| {
+                        fv.layout_no_wrap(
+                            label.text.clone(),
+                            egui::FontId::monospace(ROUTE_TEXT_SIZE),
+                            text_color,
+                        )
+                    });
+                    let text = TextShape::new(pos, galley, Color32::WHITE)
+                        .with_angle_and_anchor(std::f32::consts::FRAC_PI_2, Align2::LEFT_BOTTOM);
+                    ui.painter().add(text);
+                }
             }
         }
         if matches!(mode, RouteRenderMode::Selected) {
@@ -389,22 +406,20 @@ impl Drawing {
         }
         if let State::EditingRouteLabelText(target) = &self.state
             && let Some(route) = self.auto_routes.get_mut(&target.id)
-            && let Some(waypoint) = route.waypoint(target.waypoint_id)
+            && let Some((label_center, label)) = route.label_edit_details(target.label_id)
         {
-            let label_center: Pos2 = waypoint.pos;
             let editor_width = 25.0;
             let editor_position =
                 Rect::from_center_size(label_center, vec2(editor_width, ROUTE_TEXT_SIZE));
-            if let Some(wire_label) = route.label_mut(target.label_id) {
-                let response = ui.place(
-                    editor_position,
-                    TextEdit::singleline(&mut wire_label.text)
-                        .font(egui::FontId::monospace(ROUTE_TEXT_SIZE))
-                        .desired_width(f32::INFINITY),
-                );
-                if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                    // Do something.
-                }
+            eprintln!("Editor position: {}", editor_position);
+            let response = ui.place(
+                editor_position,
+                TextEdit::singleline(&mut label.text)
+                    .font(egui::FontId::monospace(ROUTE_TEXT_SIZE))
+                    .desired_width(f32::INFINITY),
+            );
+            if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                // Do something.
             }
         }
     }
@@ -439,6 +454,50 @@ impl Drawing {
             }
         }
         RouteSelected { id }.into()
+    }
+    fn handle_add_text(&self, response: Response) -> State {
+        if let Some(pos) = response.hover_pos() {
+            for (id, route) in &self.auto_routes {
+                if let Some(edge_id) = route.hovered_edge(pos) {
+                    return AddTextHoveredRoute {
+                        route: *id,
+                        edge_id,
+                        pos,
+                    }
+                    .into();
+                }
+            }
+        }
+        State::AddText
+    }
+    fn handle_add_text_hovered_route(
+        &mut self,
+        inner: AddTextHoveredRoute,
+        response: Response,
+    ) -> State {
+        if response.clicked_by(PointerButton::Primary)
+            && let Some(pos) = response.interact_pointer_pos()
+            && let Some(route) = self.auto_routes.get_mut(&inner.route)
+        {
+            let label = route.allocate_label(pos);
+            return EditingRouteLabelText {
+                id: inner.route,
+                label_id: label,
+            }
+            .into();
+        }
+        if let Some(route) = self.auto_routes.get(&inner.route)
+            && let Some(pos) = response.hover_pos()
+            && let Some(edge) = route.hovered_edge(pos)
+        {
+            return AddTextHoveredRoute {
+                route: inner.route,
+                edge_id: edge,
+                pos: pos,
+            }
+            .into();
+        }
+        State::AddText
     }
     fn handle_idle_state(&self, response: Response) -> State {
         if response.drag_started_by(egui::PointerButton::Primary)
@@ -737,26 +796,6 @@ impl Drawing {
         inner: AddTextButtonHovered,
         response: Response,
     ) -> State {
-        if response.clicked_by(egui::PointerButton::Primary)
-            && let Some(route) = self.auto_routes.get_mut(&inner.route)
-            && let Some(edge) = route.edge(inner.edge_id)
-        {
-            let center = edge.center();
-            let wp_id = route.add_waypoint(center);
-            route.lock_waypoint(wp_id);
-            self.reroute = true;
-            self.ripup_set.push(inner.route);
-            let label = route.allocate_label();
-            if let Some(wp) = route.waypoint_mut(wp_id) {
-                wp.label = Some(label);
-                return EditingRouteLabelText {
-                    id: inner.route,
-                    waypoint_id: wp_id,
-                    label_id: label,
-                }
-                .into();
-            }
-        }
         self.handle_route_hover_check(inner.route, response)
     }
     fn handle_waypoint_hovered(&mut self, inner: WaypointHovered, response: Response) -> State {
@@ -948,7 +987,6 @@ impl Drawing {
             auto_route.waypoints.push(Waypoint {
                 pos: snap_to_grid(pos),
                 id,
-                label: None,
                 locked: true,
             });
             return auto_route.into();
@@ -1020,6 +1058,10 @@ impl Drawing {
         self.reroute = false;
         self.state = match old_state {
             State::Idle => self.handle_idle_state(response),
+            State::AddText => self.handle_add_text(response),
+            State::AddTextHoveredRoute(inner) => {
+                self.handle_add_text_hovered_route(inner, response)
+            }
             State::RouteHovered(route) => self.handle_route_hovered(route, response),
             State::RouteSelected(route) => self.handle_route_selected(route, response),
             State::RouteLabelHovered(inner) => self.handle_route_label_hovered(inner, response),
@@ -1208,25 +1250,21 @@ pub fn demo_drawing() -> Drawing {
         Waypoint {
             pos: pos2(-240.0, 240.0),
             id: 0.into(),
-            label: None,
             locked: true,
         },
         Waypoint {
             pos: pos2(-240.0, -90.0),
             id: 1.into(),
-            label: None,
             locked: true,
         },
         Waypoint {
             pos: pos2(255.0, -90.0),
             id: 2.into(),
-            label: None,
             locked: true,
         },
         Waypoint {
             pos: pos2(255.0, 15.0),
             id: 3.into(),
-            label: None,
             locked: true,
         },
     ];
