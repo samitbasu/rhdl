@@ -31,6 +31,31 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: DTMF (Dual-Tone Multi-Frequency) generator (#49)
+
+**Path:** `crates/rhdl-fpga/src/audio/dtmf_generator.rs`, `examples/dtmf_generator.rs`, `doc/dtmf_generator.md`, `vcd/dtmf_generator/`
+
+**Why this, why now:** DTMF is the in-band touch-tone signalling used on every wireline telephone since 1963 — sum of one *row* and one *column* sinusoid per key.  The frequency-content side is straightforward (two phase accumulators); the *waveform* side (true sine) needs a lookup table and is deferred to v2.  Ships the square-wave-summed staircase v1 because it has correct DTMF spectrum for AC-coupled / lowpass-filtered downstream.  Pairs with `audio_pwm` for sigma-delta DAC output.
+
+**Design decisions:**
+- **Two independent phase accumulators** — `row_phase` and `col_phase`, both `Bits<N>`.  Each advances by its own `phase_inc` per sample tick.  No FSM — the widget is pure "accumulator + MSB extract".
+- **MSB-only output**, summed as `Bits<2>` — gives a 4-level staircase (values 0/1/2 only, since 1+1=2).  The downstream DAC / lowpass filter recovers the underlying sine spectrum.
+- **`phase_inc` is host-computed** (`freq_hz × 2^N / sample_rate_hz`).  The widget knows nothing about Hz — it just adds.  This decouples it from any specific FPGA clock and any specific audio sample rate.
+- **`enable` strobe drives the sample tick** — once per audio sample.  Between strobes the accumulators hold.  Lets the host's audio-clock divider drive the rate.
+- **No FSM derive** — the widget has no enum-typed state register, exactly the negative case described in `doc/book/src/fsm/derive.md`.  Two DFFs, one combinational MSB extract; nothing to FSM-tag.
+
+**Surprises and gotchas:**
+- **Output is `Bits<2>` even though only 0/1/2 ever appear**, never 3.  Two MSBs each in {0,1} sum to {0,1,2}.  Used `Bits<2>` for type cleanliness rather than introducing a `Bits<3>`-rounded width.
+
+**Validation:** All five tiers.  Tier-1: idle holds phase, single-tone produces 0/1 swing, two-tone produces 0/1/2 staircase with all three values observed.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.
+
+**Follow-ups:**
+- **True sine via small lookup table** — 16-entry quarter-cycle table with mirror+invert for the other three quadrants.  Increases output to `Bits<8>` (signed) and removes the harmonic content.  Maybe 100 LOC; deferred until a downstream consumer needs it.
+- **DTMF *detector*** — Goertzel filter: 8 single-bin DFTs (one per row + col frequency).  Substantially more involved than the generator; probably its own widget rather than a v2 of this one.
+- **Generic two-tone wrapper** — once a sine LUT exists, this is just "two phase accumulators" — the DTMF table of frequencies is host-side data.
+
+---
+
 ## 2026-04-29 — Tier-3 widget: NAND flash controller (ONFI 1.x async, primitive-cycle) (#54)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/nand_flash_async.rs`, `examples/nand_flash_async.rs`, `doc/nand_flash_async.md`, `doc/nand_flash_async_fsm.md`, `vcd/nand_flash_async/`

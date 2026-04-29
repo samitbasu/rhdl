@@ -13,3 +13,4 @@
 //! family.  When MIDI grows a synth / sequencer companion, that
 //! companion belongs here.
 pub mod audio_pwm;
+pub mod dtmf_generator;
