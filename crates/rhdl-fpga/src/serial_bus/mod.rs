@@ -15,6 +15,7 @@
 //! `tristate::simple` at the pad.  The `core::tristate` family is
 //! the canonical way to expose a true bidirectional bus to the
 //! I/O pads.
+pub mod battery_monitor;
 pub mod can_master;
 pub mod dht22;
 pub mod epaper_ssd16xx;

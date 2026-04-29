@@ -31,6 +31,32 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: Battery-management single-register poller (TI HDQ) (#46)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/battery_monitor.rs`, `examples/battery_monitor.rs`, `doc/battery_monitor.md`, `doc/battery_monitor_fsm.md`, `vcd/battery_monitor/`
+
+**Why this, why now:** First *composing* widget — built directly on top of `TiHdqMaster` to demonstrate the layering story.  Periodically issues the canonical 3-step HDQ read sequence (Break → WriteByte(addr) → ReadByte) and exposes the latest register byte plus a `valid` strobe.  The smallest useful battery-management surface; everything more elaborate (multi-register polling, charger-control FSM, threshold alarms) layers on top of this primitive.
+
+**Design decisions:**
+- **7-state polling FSM** — `Wait / IssueBreak / WaitBreak / IssueAddr / WaitAddr / IssueRead / WaitRead`.  Each `Issue*` state strobes the HDQ master's `start` for one cycle (via the `start_pulse` register, which is read by the next cycle's HDQ input fan-out); the matching `Wait*` state spins until `q.hdq.done` fires.
+- **Composes `TiHdqMaster`** — the wire protocol is delegated entirely.  This widget knows nothing about bit timings, break pulses, or read-bit slot widths.  Validates the HDQ widget's compositional API: a higher-level FSM strobes `start` and waits on `done`, exactly as documented.
+- **`reg_addr.resize()`** — the 7-bit address zero-extends naturally into `Bits<8>`, automatically setting the read-direction bit (MSB = 0) per HDQ convention.  Avoided manual masking, which would have required `.raw()` (kernel-illegal).
+- **One-cycle delay between `Issue*` and HDQ start** — the `start_pulse` register fans out next cycle.  Adds one cycle to each Issue→HDQ-busy transition; immaterial against the hundreds of cycles the HDQ takes per byte.
+- **Two const generics** `T_W` (HDQ tick width) and `I_W` (poll-interval width) — keeps the test runs fast while leaving the inter-poll period configurable for production use (35 ms × FPGA clock at 100 MHz needs `I_W = 22`).
+
+**Surprises and gotchas:**
+- **First attempt used `bits::<8>(i.reg_addr.raw() & 0x7F)` to construct the address byte.**  `.raw()` is not a kernel-callable method — it's a host-side accessor.  The fix is `i.reg_addr.resize::<8>()`, which zero-extends.  The error message ("These two types are not compatible") was decipherable but non-obvious; recorded here so the next widget that needs to widen `Bits<N>` reaches for `.resize()` first.
+
+**Validation:** All five tiers.  Tier-1: idle-busy-low and polling-eventually-completes (sees ≥1 valid pulse in a 4000-sample run).  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.  FSM descriptor confirms 7 variants and `Wait` initial.
+
+**Follow-ups:**
+- **Multi-register polling** — same FSM extended with a small register-address ROM and a per-poll counter.  One byte per slot, indexed by an enum of register names (`Voltage`, `Current`, `Temperature`, `StateOfCharge`).
+- **SMBus / SBS variant** — same polling shape over `SmbusHost` instead of `TiHdqMaster`.  Most of the FSM is identical; the protocol-specific cycles differ.
+- **Charger-control state machine** — consumes the polled values, drives a constant-current / constant-voltage stage transition based on voltage threshold + current threshold + temperature limit.
+- **Threshold-alarm output** — combinational `out_of_range` flag based on `data_out` versus a host-supplied threshold.  Trivial to add.
+
+---
+
 ## 2026-04-29 — Tier-3 widget: DTMF (Dual-Tone Multi-Frequency) generator (#49)
 
 **Path:** `crates/rhdl-fpga/src/audio/dtmf_generator.rs`, `examples/dtmf_generator.rs`, `doc/dtmf_generator.md`, `vcd/dtmf_generator/`
