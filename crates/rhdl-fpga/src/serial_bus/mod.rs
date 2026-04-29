@@ -30,6 +30,7 @@ pub mod rs485_master;
 pub mod sent_rx;
 pub mod spi_master;
 pub mod spi_slave;
+pub mod ti_hdq;
 pub mod uart;
 pub mod uart_16550;
 pub mod uart_rx;

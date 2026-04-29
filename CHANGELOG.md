@@ -31,6 +31,31 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: TI HDQ single-wire master (#45)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/ti_hdq.rs`, `examples/ti_hdq.rs`, `doc/ti_hdq.md`, `doc/ti_hdq_fsm.md`, `vcd/ti_hdq/`
+
+**Why this, why now:** TI's proprietary single-wire bus for the `bq2018x`/`bq3xxx` fuel-gauge ICs that ship in nearly every laptop and smartphone battery.  Structurally similar to 1-Wire (open-drain, time-encoded bits) but with different framing — every transaction starts with a *break* pulse instead of 1-Wire's reset-with-presence-detect handshake.  Built next-to-1-Wire deliberately so the differences show up cleanly side-by-side; future battery-management-system widgets (#46) will compose this.
+
+**Design decisions:**
+- **Three primitive ops** — `Break`, `WriteByte`, `ReadByte`.  The host sequences them: `Break → WriteByte (addr w/ MSB=R/W) → WriteByte (data)` for a write; `Break → WriteByte (addr) → ReadByte` for a read.  Mirrors the 1-Wire master's `Reset/WriteByte/ReadByte` shape so users moving between the two see one mental model.
+- **Timings as `TiHdqTimings<T_W>` struct in *FPGA cycles*** — same convention as 1-Wire / I²C / DHT22.  Doc table covers both standard and HDQ16 (fast) modes.
+- **8-state FSM** — `Idle / BreakLow / BreakRecover / WriteBitLow / WriteBitWait / ReadBitLow / ReadBitSample / Stop`.  `#[derive(Fsm, FsmWidget)]` from the start; `FSM_TRANSITIONS` const + `write_fsm_diagram_as_markdown` + rustdoc include per CLAUDE.md §12 rule 14.
+- **Open-drain output pair** `(bus_oe, bus_out)` — identical contract to `OneWireMaster`.  Host wraps with `tristate::simple` at the pad.
+- **Multi-byte transactions deferred to v2** — the host is responsible for sequencing `Break → addr → data`.  Rationale: the framing is trivial enough that a wrapper can sit on top of this primitive without touching the FSM.
+
+**Surprises and gotchas:**
+- **No 1-Wire-style presence latch.**  HDQ has no presence-pulse equivalent — the slave starts shifting bits immediately after the break, no separate handshake.  Removing the `presence_ok` register from the 1-Wire template made the `BreakLow → BreakRecover → Stop` path simpler than 1-Wire's `ResetLow → ResetSample → Stop`.
+
+**Validation:** All five tiers per the contract.  Tier-1 unit tests (4): idle releases bus, Break completes, WriteByte completes, ReadByte captures expected zero pattern.  Tier-3 HDL snapshot length (14 776 chars) and Tier-5 VCD digest blessed.  Tier-4 `iverilog` round-trip passes.  FSM descriptor round-trip test confirms 8 variants and `Idle` as the initial state.
+
+**Follow-ups:**
+- **`TiHdqTransaction` wrapper widget** that takes `(addr, data, op_kind)` and handles the Break/WriteByte/[ReadByte | WriteByte] sequence on a single `start` strobe.  Drops user-facing complexity to one strobe per register access.
+- **Multi-byte block-mode transactions** (HDQ supports back-to-back addr/data without re-break in fast mode) — only relevant once a real `bq` host driver lands.
+- **Battery-management state machine** (#46) is the natural composer; this widget is its physical-layer dependency.
+
+---
+
 ## 2026-04-29 — Complete the FSM-derive migration sweep across remaining serial_bus widgets
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/{half_spi_master,ws2812,dht22,lin_master,sent_rx}.rs` + matching examples + new `doc/<name>_fsm.md` files
