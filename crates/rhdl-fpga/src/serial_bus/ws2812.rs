@@ -71,7 +71,7 @@ bool |                        | bool
 #![doc = include_str!("../../doc/ws2812.md")]
 use rhdl::prelude::*;
 
-use super::{constant::Constant, dff};
+use crate::core::{constant::Constant, dff};
 
 /// Driver state.
 #[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]

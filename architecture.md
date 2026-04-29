@@ -282,7 +282,21 @@ crates/rhdl-fpga/
 │   │   ├── mod.rs                      # `pub mod counter; pub mod dff; ...`
 │   │   ├── counter.rs / dff.rs / delay.rs / option.rs / slice.rs / constant.rs
 │   │   ├── edge_detector.rs / pulse_stretcher.rs / priority_encoder.rs / ...
+│   │   ├── pwm.rs / crc.rs / mac.rs / divider.rs / barrel_shifter.rs / ...
 │   │   └── ram/                        # RAM family (sync, async, option-wrapped)
+│   ├── audio/                          # audio output / audio-protocol widgets
+│   │   └── audio_pwm.rs                # PWM / sigma-delta stereo audio
+│   ├── serial_bus/                     # protocol-PHY and serial-bus widgets
+│   │   ├── uart.rs / uart_tx.rs / uart_rx.rs / bus_uart.rs
+│   │   ├── spi_master.rs / spi_slave.rs / half_spi_master.rs
+│   │   ├── i2c_master.rs / can_master.rs / lin_master.rs
+│   │   ├── one_wire_master.rs / dht22.rs / sent_rx.rs / ir_nec_rx.rs
+│   │   ├── midi.rs / ws2812.rs
+│   │   └── ...
+│   ├── video/                          # raster-display timing + format encoders
+│   │   ├── video_timing.rs             # generic H/V counters + sync generator
+│   │   ├── cga_rgbi.rs                 # IBM CGA digital RGBI
+│   │   └── ntsc_composite.rs           # NTSC monochrome composite encoder
 │   ├── cdc/                            # clock-domain crossing
 │   ├── fifo/                           # synchronous and asynchronous FIFOs
 │   ├── gray/                           # gray-code encoders/decoders
@@ -309,7 +323,7 @@ crates/rhdl-fpga/
 
 Conventions enforced:
 
-- **Categories already exist; reuse them.** `core`, `cdc`, `fifo`, `gray`, `lid`, `pipe`, `reset`, `rng`, `dsp`, `stream`, `axi4lite`, `tristate`. A new category requires a strong reason — the widget doesn't fit any existing category, and at least two related widgets motivate the new top-level module.
+- **Categories already exist; reuse them.** `core`, `audio`, `serial_bus`, `video`, `cdc`, `fifo`, `gray`, `lid`, `pipe`, `reset`, `rng`, `dsp`, `stream`, `axi4lite`, `tristate`. A new category requires a strong reason — the widget doesn't fit any existing category, and at least two related widgets motivate the new top-level module.  Foundation primitives (registers, RAMs, counters, arithmetic, control widgets) live in `core/`; off-chip-facing protocol PHYs live in `serial_bus/`; raster-display widgets live in `video/`; audio-output / audio-protocol widgets live in `audio/`.  When a `serial_bus/` or `video/` widget needs a `dff` / `constant` / `pwm` / `edge_detector` / `pulse_stretcher` from `core/`, it imports via `use crate::core::{dff, constant};` rather than `use super::*;` (sibling-only `super::` references are reserved for intra-category composition such as `serial_bus::midi → serial_bus::uart::Uart`).
 - **One widget per file.** Group related widgets under a `mod.rs` (see `src/fifo/`, `src/stream/`).
 - **Every widget has the four companion artifacts** in their canonical locations: `src/<cat>/<name>.rs`, `examples/<name>.rs`, `doc/<name>.md`, `vcd/<name>/<name>.vcd`. See CLAUDE.md §3 for the file-anatomy template.
 - **Internal sub-modules in a category get registered in the category's `mod.rs` and do not become public unless they have a separate user-facing surface.** `fifo::write_logic` and `fifo::read_logic` are public because users may want to compose them; `fifo::testing::*` is a `#[cfg(test)]`-friendly helper module.

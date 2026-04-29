@@ -75,7 +75,7 @@ bool |                     |
 #![doc = include_str!("../../doc/can_master.md")]
 use rhdl::prelude::*;
 
-use super::{constant::Constant, dff};
+use crate::core::{constant::Constant, dff};
 
 /// Aggregate state for the CAN bit-stuffer.
 ///

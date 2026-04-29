@@ -1,10 +1,14 @@
 #![warn(missing_docs)]
-//! Core components (RAMs, DFF, constants, etc)
-pub mod audio_pwm;
+//! Foundation primitives: registers, RAMs, counters, constants,
+//! arithmetic / combinational helpers, and small control-flow
+//! widgets that compose into larger circuits.
+//!
+//! Anything in this module is meant to be a *building block* —
+//! generic, reusable, with no off-chip-specific behaviour.
+//! Protocol PHYs, video formatters, and other off-chip-facing
+//! widgets live in dedicated category modules at the workspace
+//! level (`serial_bus`, `video`, `axi4lite`, etc.).
 pub mod barrel_shifter;
-pub mod bus_uart;
-pub mod can_master;
-pub mod cga_rgbi;
 pub mod comparator;
 pub mod constant;
 pub mod counter;
@@ -12,19 +16,11 @@ pub mod crc;
 pub mod debouncer;
 pub mod delay;
 pub mod dff;
-pub mod dht22;
 pub mod divider;
 pub mod edge_detector;
-pub mod half_spi_master;
-pub mod i2c_master;
-pub mod ir_nec_rx;
 pub mod leading_zeros;
-pub mod lin_master;
 pub mod mac;
-pub mod midi;
-pub mod ntsc_composite;
 pub mod one_hot;
-pub mod one_wire_master;
 pub mod option;
 pub mod popcount;
 pub mod priority_encoder;
@@ -33,13 +29,5 @@ pub mod pwm;
 pub mod ram;
 pub mod register_file;
 pub mod round_robin_arbiter;
-pub mod sent_rx;
 pub mod slice;
-pub mod spi_master;
-pub mod spi_slave;
 pub mod strict_priority_arbiter;
-pub mod uart;
-pub mod uart_rx;
-pub mod uart_tx;
-pub mod video_timing;
-pub mod ws2812;

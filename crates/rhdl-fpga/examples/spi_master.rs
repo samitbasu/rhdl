@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    core::spi_master::{In, SpiMaster},
+    serial_bus::spi_master::{In, SpiMaster},
     doc::write_svg_as_markdown,
 };
 

@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    core::one_wire_master::{In, OneWireMaster, OneWireOp, OneWireTimings},
+    serial_bus::one_wire_master::{In, OneWireMaster, OneWireOp, OneWireTimings},
     doc::write_svg_as_markdown,
 };
 

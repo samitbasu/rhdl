@@ -54,7 +54,8 @@ bool |                     | bool
 #![doc = include_str!("../../doc/lin_master.md")]
 use rhdl::prelude::*;
 
-use super::{constant::Constant, dff, uart_tx::UartTx};
+use crate::core::{constant::Constant, dff};
+use super::uart_tx::UartTx;
 
 #[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
 #[doc(hidden)]

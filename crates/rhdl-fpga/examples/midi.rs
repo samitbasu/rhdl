@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    core::midi::{In, MidiInterface},
+    serial_bus::midi::{In, MidiInterface},
     doc::write_svg_as_markdown,
 };
 

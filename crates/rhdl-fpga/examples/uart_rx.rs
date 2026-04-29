@@ -1,5 +1,5 @@
 use rhdl::prelude::*;
-use rhdl_fpga::{core::uart_rx::UartRx, doc::write_svg_as_markdown};
+use rhdl_fpga::{serial_bus::uart_rx::UartRx, doc::write_svg_as_markdown};
 
 /// Encode a byte as a UART frame at the given divisor: idle, start, 8 LSB-first data, stop, idle.
 fn encode_frame(byte: u128, divisor: usize) -> Vec<bool> {

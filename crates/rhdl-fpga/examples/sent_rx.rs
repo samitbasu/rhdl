@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    core::sent_rx::{In, SentRx, SentTimings},
+    serial_bus::sent_rx::{In, SentRx, SentTimings},
     doc::write_svg_as_markdown,
 };
 

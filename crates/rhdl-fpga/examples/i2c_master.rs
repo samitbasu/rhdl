@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    core::i2c_master::{I2cMaster, In},
+    serial_bus::i2c_master::{I2cMaster, In},
     doc::write_svg_as_markdown,
 };
 

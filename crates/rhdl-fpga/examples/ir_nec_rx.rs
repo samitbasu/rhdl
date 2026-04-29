@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    core::ir_nec_rx::{In, IrNecRx, NecTimings},
+    serial_bus::ir_nec_rx::{In, IrNecRx, NecTimings},
     doc::write_svg_as_markdown,
 };
 

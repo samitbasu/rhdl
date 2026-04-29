@@ -51,7 +51,7 @@ bool |                       | B<16>
 #![doc = include_str!("../../doc/dht22.md")]
 use rhdl::prelude::*;
 
-use super::{constant::Constant, dff};
+use crate::core::{constant::Constant, dff};
 
 /// State of the DHT22 reader.
 #[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]

@@ -91,7 +91,7 @@ bool |                      | B<T_W>
 #![doc = include_str!("../../doc/sent_rx.md")]
 use rhdl::prelude::*;
 
-use super::{constant::Constant, dff};
+use crate::core::{constant::Constant, dff};
 
 /// State machine.
 #[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]

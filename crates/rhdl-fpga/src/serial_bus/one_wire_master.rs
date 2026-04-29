@@ -93,7 +93,7 @@ bool |                             | bool
 #![doc = include_str!("../../doc/one_wire_master.md")]
 use rhdl::prelude::*;
 
-use super::{constant::Constant, dff};
+use crate::core::{constant::Constant, dff};
 
 /// Operation to perform.
 #[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]

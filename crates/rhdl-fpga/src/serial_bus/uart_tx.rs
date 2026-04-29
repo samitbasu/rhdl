@@ -63,7 +63,7 @@ bool |                  | bool
 #![doc = include_str!("../../doc/uart_tx.md")]
 use rhdl::prelude::*;
 
-use super::{constant::Constant, dff};
+use crate::core::{constant::Constant, dff};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 #[rhdl(dq_no_prefix)]

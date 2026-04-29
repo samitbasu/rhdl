@@ -70,7 +70,7 @@ B<W> |                    | bool
 #![doc = include_str!("../../doc/spi_slave.md")]
 use rhdl::prelude::*;
 
-use super::dff;
+use crate::core::dff;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 #[rhdl(dq_no_prefix)]

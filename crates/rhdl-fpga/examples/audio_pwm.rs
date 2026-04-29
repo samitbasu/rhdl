@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    core::audio_pwm::{In, StereoAudioPwm},
+    audio::audio_pwm::{In, StereoAudioPwm},
     doc::write_svg_as_markdown,
 };
 

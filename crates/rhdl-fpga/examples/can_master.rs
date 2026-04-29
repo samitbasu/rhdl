@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    core::can_master::{CanMaster, In},
+    serial_bus::can_master::{CanMaster, In},
     doc::write_svg_as_markdown,
 };
 

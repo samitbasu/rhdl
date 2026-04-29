@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    core::uart::{In, Uart},
+    serial_bus::uart::{In, Uart},
     doc::write_svg_as_markdown,
 };
 

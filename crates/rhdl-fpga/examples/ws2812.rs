@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    core::ws2812::{In, Ws2812Driver},
+    serial_bus::ws2812::{In, Ws2812Driver},
     doc::write_svg_as_markdown,
 };
 

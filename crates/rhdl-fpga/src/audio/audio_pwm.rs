@@ -64,7 +64,7 @@ bool |                          | bool
 #![doc = include_str!("../../doc/audio_pwm.md")]
 use rhdl::prelude::*;
 
-use super::{constant::Constant, dff, pwm::PwmGenerator};
+use crate::core::{constant::Constant, dff, pwm::PwmGenerator};
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 #[rhdl(dq_no_prefix)]

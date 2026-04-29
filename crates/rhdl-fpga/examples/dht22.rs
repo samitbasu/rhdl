@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    core::dht22::{Dht22Reader, In},
+    serial_bus::dht22::{Dht22Reader, In},
     doc::write_svg_as_markdown,
 };
 

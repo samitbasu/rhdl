@@ -1,6 +1,6 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    core::ntsc_composite::{In, NtscComposite},
+    video::ntsc_composite::{In, NtscComposite},
     doc::write_svg_as_markdown,
 };
 

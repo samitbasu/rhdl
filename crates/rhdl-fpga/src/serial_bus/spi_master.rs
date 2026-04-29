@@ -65,7 +65,7 @@ bool |                     | bool
 #![doc = include_str!("../../doc/spi_master.md")]
 use rhdl::prelude::*;
 
-use super::dff;
+use crate::core::dff;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
 #[rhdl(dq_no_prefix)]

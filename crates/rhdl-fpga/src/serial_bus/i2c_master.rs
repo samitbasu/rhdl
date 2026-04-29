@@ -72,7 +72,7 @@ bool |                         | bool
 #![doc = include_str!("../../doc/i2c_master.md")]
 use rhdl::prelude::*;
 
-use super::{constant::Constant, dff};
+use crate::core::{constant::Constant, dff};
 
 /// State of the I2C transaction.
 ///

@@ -87,7 +87,7 @@ bool |                          | bool
 #![doc = include_str!("../../doc/half_spi_master.md")]
 use rhdl::prelude::*;
 
-use super::dff;
+use crate::core::dff;
 
 /// State of the half-duplex SPI master.
 #[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
