@@ -23,6 +23,7 @@ pub mod i2c_master;
 pub mod ir_nec_rx;
 pub mod lin_master;
 pub mod midi;
+pub mod mipi_dbi_type_c;
 pub mod one_wire_master;
 pub mod rs485_master;
 pub mod sent_rx;
