@@ -23,6 +23,7 @@ pub mod hd44780;
 pub mod i2c_master;
 pub mod ir_nec_rx;
 pub mod lin_master;
+pub mod mfm_encoder;
 pub mod midi;
 pub mod mipi_dbi_type_b;
 pub mod mipi_dbi_type_c;

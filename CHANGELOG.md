@@ -31,6 +31,31 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: MFM (Modified Frequency Modulation) encoder (#51)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/mfm_encoder.rs`, `examples/mfm_encoder.rs`, `doc/mfm_encoder.md`, `doc/mfm_encoder_fsm.md`, `vcd/mfm_encoder/`
+
+**Why this, why now:** MFM is the line-level encoding used by every floppy controller (NEC µPD765 / Intel 8272 / WD1772) and early PC ATA/IDE drives.  Foundational for the eventual floppy-disk-controller widget (#52) and a clean small-FSM teaching example for the FSM-derive track.  The decoder needs a PLL for clock recovery — non-trivial — so v1 ships encoder-only with the decoder as v2.
+
+**Design decisions:**
+- **Three-state FSM** — `Idle / EmitClock / EmitData`.  `EmitClock` and `EmitData` ping-pong while bits remain; `EmitData → Idle` is the last-bit transition.  Tagged with `#[derive(Fsm, FsmWidget)]`.
+- **Encoding rule expressed in two lines** — `cell_out = !cur_bit && !q.prev_data` for the clock cell, `cell_out = cur_bit` for the data cell.  Matches the spec table in the rustdoc verbatim.
+- **`prev_data` reset to 0 on every fresh byte** — matches the convention PC floppy controllers use when a host strobes a fresh byte after an address-mark gap (the gap fills with `0x00`s, so prev_data is `0`).
+- **One cell per cycle, with `cell_valid` strobe** — keeps the widget simple and lets the host drive the wire-cell rate via clock division.  An NRZI register or polarity flip-flop downstream converts cells to wire transitions.
+- **`Default` derive on the widget** — no construction parameters needed; uses `MfmEncoder::default()`.
+
+**Surprises and gotchas:**
+- **The encoding rule is inverted from how some textbooks describe it.**  Many older references state "data bit `1` ⇒ transition mid-cell, data bit `0` ⇒ transition at start unless preceded by `1`."  The widget instead exposes the *raw cells* (clock followed by data), letting the host's NRZI register convert cell `1`s to transitions.  This is cleaner for cross-validation against a Rust reference implementation (which is part of the test suite as `ref_encode`) and it lets the user emit non-MFM cell patterns (address marks, SYNC bytes) without fighting the encoder.
+
+**Validation:** All five tiers.  Tier-1: cell pattern matches a Rust reference implementation for `0xA5`, `0x00` (clock-cells-on pattern `1010 1010 1010 1010`), and `0xFF` (data-cells-on pattern `0101 0101 0101 0101`).  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.  FSM descriptor confirms 3 variants and `Idle` initial.
+
+**Follow-ups:**
+- **MFM decoder** — needs a PLL (or a fixed-rate "we-know-the-cell-clock" simplification) plus address-mark detection (the special clock-rule-violating sync bytes `0xA1` and `0xC2`).  Decoder is the larger piece of work; encoder ships now to unblock the floppy-formatter follow-up.
+- **Address-mark generator** — short widget that emits `0xA1` (or `0xC2`) with one or three deliberate clock-cell omissions.  Composes the encoder.
+- **Floppy disk controller (#52)** is the natural composer; this widget is the primary dependency.
+
+---
+
 ## 2026-04-29 — Tier-3 widget: SMBus / SBS host (timeout-enforced I²C wrapper) (#44)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/smbus_host.rs`, `examples/smbus_host.rs`, `doc/smbus_host.md`, `vcd/smbus_host/`
