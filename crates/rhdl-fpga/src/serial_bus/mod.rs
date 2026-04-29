@@ -31,6 +31,7 @@ pub mod mipi_dbi_type_c;
 pub mod nand_flash_async;
 pub mod one_wire_master;
 pub mod ps2_keyboard;
+pub mod ps2_mouse;
 pub mod rs485_master;
 pub mod sent_rx;
 pub mod smbus_host;

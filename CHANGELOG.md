@@ -41,6 +41,30 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: PS/2 mouse receiver (#57)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/ps2_mouse.rs`, `examples/ps2_mouse.rs`, `doc/ps2_mouse.md`, `doc/ps2_mouse_fsm.md`, `vcd/ps2_mouse/`
+
+**Why this, why now:** Composes `Ps2Keyboard` directly to demonstrate the layering: the wire-level PS/2 protocol is *one* widget; the keyboard scan-code stream and the mouse 3-byte packet stream are *separate* widgets that delegate to it.  Validates that the PS/2 widget design is reusable rather than keyboard-specific.
+
+**Design decisions:**
+- **3-state packet FSM** — `Byte0 / Byte1 / Byte2`.  On every keyboard `valid` pulse, advance one state.  `Byte0` checks the *sync bit* (always 1 in a valid status byte); a `0` sync bit pulses `frame_err` and stays in `Byte0`.
+- **Composes `Ps2Keyboard`** — the wire decoder, framing validator, and parity check are all delegated.  This widget owns the packet assembler only.
+- **Forwards keyboard-level errors** — when the inner `Ps2Keyboard` pulses `frame_err`, this widget pulses `frame_err` too.  Single error stream for the host.
+- **`buttons / x_delta / y_delta` are sticky** — refreshed only on a complete valid packet; bad packets leave them alone.
+- **3-byte packet only** — the Microsoft IntelliMouse extension (4-byte with scroll wheel) needs the host-to-mouse transmit path, which is itself v2 of the keyboard widget.
+
+**Surprises and gotchas:**
+- **Sync-bit failure stays in `Byte0`** — re-evaluates the *next* byte against the sync rule, which is exactly the resync semantics the spec expects.  Doesn't try to resynchronise mid-frame; the keyboard's own framing on the wire eventually re-aligns.
+
+**Validation:** All five tiers.  Tier-1 (3 tests): idle-no-valid, full 3-byte packet (`0x29 0x10 0xFB` — left button, X=+16, Y=−5) round-trips with correct latched values, sync-bit-zero pulses `frame_err` and never produces a valid packet.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.  FSM descriptor confirms 3 variants and `Byte0` initial.
+
+**Follow-ups:**
+- **IntelliMouse 4-byte packet** — extends `MouseByte` to a 4th state (`Byte3` with Z scroll + buttons 4/5).  Activated only after the host has sent the magic "Set Sample Rate to 200/100/80" handshake — which requires the v2 host-to-mouse transmit path.
+- **Per-button edge detection** — emit `pressed_left`, `released_left` (etc.) one-cycle pulses in addition to the latched `buttons` byte.  Trivial host-side composition.
+
+---
+
 ## 2026-04-29 — Tier-3 widget: PS/2 keyboard receiver (#56)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/ps2_keyboard.rs`, `examples/ps2_keyboard.rs`, `doc/ps2_keyboard.md`, `doc/ps2_keyboard_fsm.md`, `vcd/ps2_keyboard/`
