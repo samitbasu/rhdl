@@ -41,6 +41,31 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: IEEE 1284 / Centronics parallel-port transmitter (#68)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/parallel_port_centronics.rs`, `examples/parallel_port_centronics.rs`, `doc/parallel_port_centronics.md`, `doc/parallel_port_centronics_fsm.md`, `vcd/parallel_port_centronics/`
+
+**Why this, why now:** The IBM PC parallel port — drove every printer from the early 1980s through the mid-2000s and still alive on industrial PCs and lab instrumentation (oscilloscopes, plotters, GPIB-to-parallel bridges).  V1 ships the original Centronics output handshake; the IEEE 1284 negotiation, Nibble reverse channel, and EPP/ECP modes layer on top in v2/v3/v4 without touching the wire-level FSM.
+
+**Design decisions:**
+- **4-state FSM** — `Idle / Setup / StrobeLow / WaitAck`.  Setup gives data time to propagate before STROBE_n falls; StrobeLow holds the active strobe; WaitAck spins on the ACK_n falling edge or a configurable timeout.  Tagged with `#[derive(Fsm, FsmWidget)]`.
+- **`t_ack_timeout = 0` means wait-forever** — defensive default that gives the host an explicit knob.  Real printers always ACK eventually; the timeout is for hung devices.
+- **`busy_passthru` output** — passes the device's BUSY line straight through so the host can gate the next `send` strobe at the system level without doubling the FSM.  Cleaner than an internal "external_busy" check.
+- **`byte_taken` output** — pulses on the ACK falling edge (regardless of state) for hosts that want to count throughput separately from the `done` cycle.
+
+**Surprises and gotchas:**
+- **`busy_passthru` is *not* gated to FSM-busy.**  Even when the widget is Idle the device might be holding BUSY high (for example, the printer is processing a previous batch).  Keeping the passthrough always-on lets the host see the real device state regardless of internal FSM phase.
+
+**Validation:** All five tiers.  Tier-1 (4 tests): idle-strobe-high, byte completes when device ACKs, byte completes via timeout when ACK is missing, BUSY passthrough.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.  FSM descriptor confirms 4 variants and `Idle` initial.
+
+**Follow-ups:**
+- **IEEE 1284 mode-select handshake** — the magic bus-state sequence that negotiates Nibble / Byte / EPP / ECP mode with the device.  Pure handshake; no new FSM states beyond what's here.
+- **Nibble reverse channel** — uses the status lines (PE, SLCT, BUSY, ERROR_n) as a 4-bit reverse channel.  Adds a receive FSM next to the transmit one.
+- **EPP** — true bidirectional 2 MB/s data bus.  Needs `tristate::simple` on the data pad and a separate read/write FSM.
+- **ECP** — same as EPP plus an FIFO and an RLE encoder/decoder.  ~400 LOC additional, but each piece is a standalone widget.
+
+---
+
 ## 2026-04-29 — Tier-3 widget: I²S transmitter (master mode, left-justified) (#66)
 
 **Path:** `crates/rhdl-fpga/src/audio/i2s_tx.rs`, `examples/i2s_tx.rs`, `doc/i2s_tx.md`, `doc/i2s_tx_fsm.md`, `vcd/i2s_tx/`
