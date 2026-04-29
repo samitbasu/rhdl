@@ -28,6 +28,7 @@ pub mod pulse_stretcher;
 pub mod pwm;
 pub mod ram;
 pub mod register_file;
+pub mod rle_encoder;
 pub mod round_robin_arbiter;
 pub mod slice;
 pub mod strict_priority_arbiter;

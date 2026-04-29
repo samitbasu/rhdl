@@ -41,6 +41,29 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Reusable widget: streaming RLE encoder (`core::rle_encoder`)
+
+**Path:** `crates/rhdl-fpga/src/core/rle_encoder.rs`, `examples/rle_encoder.rs`, `doc/rle_encoder.md`, `doc/rle_encoder_fsm.md`, `vcd/rle_encoder/`
+
+**Why this, why now:** First piece of the user-requested IEEE 1284 ECP/EPP parallel-port expansion.  The user explicitly asked for the RLE encoder to be a reusable widget composed by ECP, not buried inside it.  Lives in `core::` because it's protocol-agnostic — useful for storage prefilters, low-rate compressed framing, simple compressed video buffering, anything wanting streaming run-length compression.
+
+**Design decisions:**
+- **ECP-compatible encoding** — output beats are tagged `(out_data, out_is_count)`.  For runs of 2..=128 bytes, two beats are emitted: count byte (with `out_is_count=true`, value = `count - 1`) followed by data byte (with `out_is_count=false`).  Single bytes emit as a single literal beat.  The `is_count` flag maps directly onto ECP's wire-level RLE-cycle-type bit.
+- **3-state FSM** — `Idle / EmitCount / EmitData`.  Idle accumulates input runs; EmitCount and EmitData drain to the consumer, gated by `out_ready` for back-pressure.
+- **Saturation at 128** — when a run would hit count=129, the encoder forces emission of the current saturated run (count=128 → wire byte 127) and starts a fresh run with the new byte.  Matches the wire-level limit.
+- **`flush` strobe** — host pulses to push the in-progress run when the input stream ends.  Without flush, the final run sits in `prev_byte`/`run_count` indefinitely (which is correct: the encoder doesn't know when input is done).
+
+**Surprises and gotchas:**
+- **First test failures came from the test harness, not the kernel.**  My drive helper held `out_ready=false` during the trailing settle cycles after `flush`, so the FSM emitted into EmitData but the consumer never advanced.  Fixed by keeping `out_ready=true` throughout the trailing settle.  This is the testbench-design lesson for any encoder that buffers internally: drain-cycle `out_ready` matters as much as `in_valid`.
+
+**Validation:** All five tiers.  Tier-1 (6 tests): idle-no-output, single-literal-byte, two-distinct-bytes, run-of-three, run-then-literal, long-run-saturates-at-128 (130 input bytes → 128-byte run + 2-byte run, two emit pairs).  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.  FSM descriptor confirms 3 variants and `Idle` initial.
+
+**Follow-ups:**
+- **`core::rle_decoder`** — symmetric inverse: consumes `(in_data, in_is_count)` beats, emits a flat byte stream.  Standalone widget; pairs with this one to round-trip ECP traffic.
+- **ECP master widget** (`serial_bus::parallel_port_ecp`) — composes this RLE encoder + a 16-byte FIFO + the bidirectional ECP wire-level FSM + the IEEE 1284 negotiation handshake.  This RLE widget is the first puzzle piece; ECP is the assembled picture.
+
+---
+
 ## 2026-04-29 — Tier-3 widget: Modbus RTU master (FC 0x03 v1) (#69)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/modbus_rtu_master.rs`, `examples/modbus_rtu_master.rs`, `doc/modbus_rtu_master.md`, `doc/modbus_rtu_master_fsm.md`, `vcd/modbus_rtu_master/`
