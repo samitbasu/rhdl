@@ -41,6 +41,16 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 roadmap entry added: Modbus master / slave (RTU + ASCII + TCP) (#69)
+
+**Path:** `widget-roadmap.md`
+
+**Why this, why now:** User-requested addition.  Modbus is the single most-installed industrial fieldbus protocol — every PLC, HVAC controller, solar inverter, water-treatment supervisory system, and factory-automation cell speaks it.  RTU over RS-485 is what `serial_bus::rs485_master` is most commonly used for in the field, so the widget pairs naturally with the already-shipped RS-485 master.
+
+**Roadmap entry:** #69, with the standard "v1 / v2 / v3 / v4 / composes / ~LOC / references" framing.  v1 is RTU master with FC 0x03 (read holding registers) and 0x06 (write single register); v2 expands to all standard function codes plus the symmetric slave; v3 adds ASCII framing; v4 adds Modbus TCP (depends on future Ethernet MAC).
+
+---
+
 ## 2026-04-29 — Tier-3 widget: IEEE 1284 / Centronics parallel-port transmitter (#68)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/parallel_port_centronics.rs`, `examples/parallel_port_centronics.rs`, `doc/parallel_port_centronics.md`, `doc/parallel_port_centronics_fsm.md`, `vcd/parallel_port_centronics/`
