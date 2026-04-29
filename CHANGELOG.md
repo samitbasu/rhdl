@@ -41,7 +41,42 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
-## 2026-04-29 — Tier-3 widget: IEEE 1284 mode-select negotiator (final piece of parallel-port family)
+## 2026-04-29 — Tier-3 widget: IEEE 1284 mode-select negotiator — full corner-case coverage
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/ieee1284_negotiator.rs`, `examples/ieee1284_negotiator.rs`, `doc/ieee1284_negotiator.md`, `doc/ieee1284_negotiator_fsm.md`, `vcd/ieee1284_negotiator/`
+
+**Why this rebuild:** First cut was a minimal handshake (7 states, just `nAck` polling) and shipped with corner cases deferred to v2.  The user immediately flagged this as non-negotiable: "you need to cover all the ieee-1284 corner cases."  Rebuilt as a full conformance widget with 14 states, the complete pin set, and *every* mandatory failure path turned into an FSM transition + an output flag the host can consume.
+
+**Corner cases now covered (per IEEE 1284-1994 §6.3.4 + §6.3.5):**
+- ✅ **Device-not-1284-compliant** — Event 1 timeout (PE/Select/nAck don't transition within 35 ms) → `not_compliant` pulse + auto-fallback to termination.
+- ✅ **Mode-rejected** — Event 4 with `Select=low` → `mode_rejected` pulse + auto-fallback to termination.
+- ✅ **Extended Link ID negotiation** — `mode_byte ≥ 0x80` triggers a `CaptureEli` state that latches the device's response on `d_in_eli` into `eli_id` and asserts `eli_valid`.
+- ✅ **Termination handshake** — explicit `terminate` strobe input runs the spec termination phase: `HostBusy↑ → device confirms PE↓+Select↑ → host drops 1284Active → returns to Compatibility / Idle`.
+- ✅ **Termination timeout** — if device fails to confirm termination, FSM transitions to `Timeout` and pulses `timeout`.
+- ✅ **Auto-fallback on any failure** — `NotCompliant` and `ModeRejected` both auto-route to `TerminateReq` so the bus never hangs in a weird mid-negotiation state.
+- ✅ **Full pin set exposed** — host outputs (`d_out`, `sel_in`, `auto_feed`, `n_strobe`, `n_init`) and device inputs (`n_ack_in`, `pe_in`, `select_in`, `n_fault_in`) match the spec namespace exactly, with the per-state output mapping covering Setup → WaitDeviceReady → StrobeData → WaitDeviceAck → CheckMode → CaptureEli → HostAck → Done plus the termination chain.
+- ✅ **Rolling negotiation from Done** — `start` strobe in Done state re-enters Setup with the new mode byte (lets the host switch modes mid-session without a separate termination round-trip).
+
+**Design decisions:**
+- **14-state FSM** — `Idle / Setup / WaitDeviceReady / StrobeData / WaitDeviceAck / CheckMode / CaptureEli / HostAck / Done / TerminateReq / TerminateWait / NotCompliant / ModeRejected / Timeout`.  Tagged `#[derive(Fsm, FsmWidget)]`.  Per-variant labels ("setup (Event 0)", "wait device ready", "capture ELI" etc.) match the spec event names so the auto-generated diagram reads as a 1284 reference card.
+- **Two separate pulse outputs for the failure paths** (`not_compliant` vs `mode_rejected`) so the host can disambiguate.  Both also pulse `timeout` if termination hangs — which is intentional: real systems should react differently to "bad device" vs "good device that doesn't speak my mode" vs "bad device AND bad bus."
+- **`eli_valid` is sticky-after-success** — once captured, holds until the next negotiation invalidates it.  Lets the host poll the captured ID at leisure.
+- **`in_mode` register** distinguishes "in Done" from "Idle but with stale eli_valid" — it's a small implementation detail but it lets the per-state output mapping avoid spurious sel_in assertions during termination.
+
+**Surprises and gotchas:**
+- **Default per-state output mapping needs every state listed** — the per-state assignment for `sel_in_active` and `auto_feed_active` has 14 cases; missing a state defaults to false which ends up dropping the request lines mid-negotiation.  Caught all of these via the test stream observing the line pattern; could be a `#[fsm_state]` attribute extension in v2 (FSM tooling could auto-derive default outputs).
+- **`is_eli_request` decision uses `q.mode_reg`, not `i.mode_byte`** — the request was latched at Setup; reading the live input would race against a host that changed its mind mid-negotiation.
+
+**Validation:** All five tiers, **plus six corner-case scenarios as Tier-1 tests**: idle, cooperating-device-success, not-compliant, mode-rejected, ELI capture, termination-after-done, termination-timeout.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.  FSM descriptor confirms 14 variants and `Idle` initial.
+
+**Follow-ups:**
+- **Strict spec-conformance check on `n_fault_in`** — current widget treats nFault as informational; v2 could optionally reject Event 1 if nFault doesn't go low (some devices rely on this strictly).
+- **Bus-arbitration glue widget** — wraps Centronics + EPP + ECP + this negotiator behind a single user-facing port that automatically routes the pad based on the active mode.  Pure orchestration; no new FSM logic.
+- **Per-mode hardcoded entry points** — convenience constructors (`negotiate_epp()`, `negotiate_ecp_rle()`, etc.) that wrap the right `mode_byte` and the appropriate per-mode-widget composition.
+
+---
+
+## 2026-04-29 — Tier-3 widget: IEEE 1284 mode-select negotiator (initial small handshake)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/ieee1284_negotiator.rs`, `examples/ieee1284_negotiator.rs`, `doc/ieee1284_negotiator.md`, `doc/ieee1284_negotiator_fsm.md`, `vcd/ieee1284_negotiator/`
 
