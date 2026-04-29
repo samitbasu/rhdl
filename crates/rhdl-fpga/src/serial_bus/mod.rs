@@ -22,6 +22,7 @@ pub mod epaper_ssd16xx;
 pub mod half_spi_master;
 pub mod hd44780;
 pub mod i2c_master;
+pub mod ieee1284_negotiator;
 pub mod ir_nec_rx;
 pub mod lin_master;
 pub mod mfm_encoder;

@@ -41,6 +41,32 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: IEEE 1284 mode-select negotiator (final piece of parallel-port family)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/ieee1284_negotiator.rs`, `examples/ieee1284_negotiator.rs`, `doc/ieee1284_negotiator.md`, `doc/ieee1284_negotiator_fsm.md`, `vcd/ieee1284_negotiator/`
+
+**Why this, why now:** Final piece of the parallel-port family.  IEEE 1284 negotiation is the load-bearing handshake that lets a single physical pad carry multiple protocols (Compatibility, Nibble, Byte, EPP, ECP) — the host runs negotiation first to tell the device which mode to switch to, then the appropriate per-mode widget takes over the pad.  Without this widget the per-mode widgets (Centronics / EPP / ECP) work in isolation but can't share the bus.  Closes the modular-architecture loop the user requested.
+
+**Design decisions:**
+- **7-state FSM** — `Idle / DriveMode / WaitAckLow / StrobeLow / WaitAckHigh / Timeout / Done`.  Two timeout edges (DriveMode → Timeout, WaitAckHigh → Timeout) cover the two device-refusal paths.  Tagged `#[derive(Fsm, FsmWidget)]`.
+- **Standard mode-byte enum *not* exposed** — host passes `mode_byte: Bits<8>` directly so users can pick any value (including extended-link IDs once those land in v2).  The doc table lists the canonical IEEE 1284-1994 Table 2 values.
+- **Sticky state changes via the request lines** — `sel_in` and `auto_feed` are high during the active-negotiation states (DriveMode through WaitAckHigh) and low otherwise.  Matches the spec's "1284 request" pattern where both lines being high signals "I want to negotiate".
+- **`timeout` and `done` are *separate* one-cycle pulses** — the host can wire them to different downstream consumers (a retry FSM watches `timeout`, the per-mode widget gates on `done`).
+- **Configurable timeout via `NegTimings.t_response_timeout`** — defensive against hung devices.  V1's t_response_timeout is small for fast simulation; production FPGAs use the spec's 35 ms maximum scaled to the FPGA clock.
+
+**Surprises and gotchas:**
+- **The IEEE 1284 negotiation has many corner cases** I deliberately deferred to v2: extended-link IDs, the device's "echoed mode byte" check on `nSelect`, the ECP-specific reverse-channel-direction confirmation, the bus-timeout recovery (the spec's "fall back to Compatibility on any timeout" requirement).  V1 is the *handshake*; the corner cases are protocol-conformance work that can layer on without touching the wire FSM.
+
+**Validation:** All five tiers.  Tier-1 (3 tests): idle request lines low, full negotiation succeeds with cooperating device (mode 0xC0 = EPP, ack low at cycle 4, ack release after 12 cycles), timeout fires when device never responds.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.  FSM descriptor confirms 7 variants and `Idle` initial.
+
+**Follow-ups:**
+- **Bus-arbitration glue widget** that owns the physical pad and routes it to the negotiator at startup, then to the per-mode widget after `done`.  Top-level wrapper that turns "five separate parallel-port widgets" into "one user-facing parallel-port port."
+- **Extended-link ID negotiation** — the protocol for picking device-specific feature variants within a mode (e.g., "use 24-bit color in ECP").  Layers on top of the basic mode-select.
+- **Per-mode-byte response validation** — verify the device echoed the mode byte on `nSelect` correctly (a strict-1284 conformance check).
+- **Reverse-channel-direction confirmation** for ECP (the negotiator drives nReverseRequest after `done`).
+
+---
+
 ## 2026-04-29 — Tier-3 widget: IEEE 1284 ECP forward channel (composes RleEncoder)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/parallel_port_ecp.rs`, `examples/parallel_port_ecp.rs`, `doc/parallel_port_ecp.md`, `doc/parallel_port_ecp_fsm.md`, `vcd/parallel_port_ecp/`

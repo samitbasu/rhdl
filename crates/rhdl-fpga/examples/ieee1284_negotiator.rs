@@ -1,0 +1,51 @@
+use rhdl::prelude::*;
+use rhdl_fpga::{
+    doc::{write_fsm_diagram_as_markdown, write_svg_as_markdown},
+    serial_bus::ieee1284_negotiator::{FSM_TRANSITIONS, Ieee1284Negotiator, In, NegTimings},
+};
+
+fn main() -> Result<(), RHDLError> {
+    write_fsm_diagram_as_markdown::<Ieee1284Negotiator<8>>(
+        FSM_TRANSITIONS,
+        "ieee1284_negotiator_fsm.md",
+    )?;
+
+    let timings = NegTimings::<8> {
+        t_strobe_low: bits(4),
+        t_response_timeout: bits(40),
+    };
+    let uut = Ieee1284Negotiator::<8>::new(timings);
+    let mut stream_in: Vec<In> = vec![In {
+        mode_byte: bits(0xC0), // EPP mode select
+        start: true,
+        n_ack_in: true,
+    }];
+    for _ in 0..4 {
+        stream_in.push(In {
+            mode_byte: bits(0),
+            start: false,
+            n_ack_in: true,
+        });
+    }
+    for _ in 0..12 {
+        stream_in.push(In {
+            mode_byte: bits(0),
+            start: false,
+            n_ack_in: false,
+        });
+    }
+    for _ in 0..30 {
+        stream_in.push(In {
+            mode_byte: bits(0),
+            start: false,
+            n_ack_in: true,
+        });
+    }
+    let stream = stream_in.into_iter().with_reset(1).clock_pos_edge(100);
+    let vcd = uut.run(stream).collect::<SvgFile>();
+    let options = SvgOptions::default()
+        .with_filter("(^top.input.*)|(^top.output.*)|(^top.clock.*)|(^top.reset.*)")
+        .with_label_width(20);
+    write_svg_as_markdown(vcd, "ieee1284_negotiator.md", options)?;
+    Ok(())
+}
