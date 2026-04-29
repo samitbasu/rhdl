@@ -73,9 +73,107 @@ bool |                     |
 //!
 //! The trace below demonstrates the result.
 #![doc = include_str!("../../doc/can_master.md")]
+//!
+//! And the auto-generated FSM diagram for the CAN frame walk:
+#![doc = include_str!("../../doc/can_master_fsm.md")]
+use rhdl::core::fsm::analysis::Transition;
 use rhdl::prelude::*;
 
 use crate::core::{constant::Constant, dff};
+
+/// Author-curated transition graph for the CAN frame-walk FSM.
+///
+/// Required by CLAUDE.md §12 rule 14: every `#[derive(FsmWidget)]`
+/// widget records its transitions here so the build can render an
+/// FSM diagram into rustdoc.  Indices match `CanField` declaration
+/// order (Sof=0, Id=1, Rtr=2, Ide=3, R0=4, Dlc=5, Data=6, Crc=7,
+/// CrcDelim=8, AckSlot=9, AckDelim=10, Eof=11, Ifs=12).
+pub const FSM_TRANSITIONS: &[Transition] = &[
+    // Linear progression through every field, with self-loops on
+    // the multi-bit fields (Id, Dlc, Data, Crc) since the kernel
+    // stays in those states across multiple bit indices, plus the
+    // wrap from Ifs back to Sof at end-of-frame.
+    Transition {
+        source_index: 0,
+        target_index: 1,
+    }, // Sof → Id
+    Transition {
+        source_index: 1,
+        target_index: 1,
+    }, // Id self-loop
+    Transition {
+        source_index: 1,
+        target_index: 2,
+    }, // Id → Rtr
+    Transition {
+        source_index: 2,
+        target_index: 3,
+    }, // Rtr → Ide
+    Transition {
+        source_index: 3,
+        target_index: 4,
+    }, // Ide → R0
+    Transition {
+        source_index: 4,
+        target_index: 5,
+    }, // R0 → Dlc
+    Transition {
+        source_index: 5,
+        target_index: 5,
+    }, // Dlc self-loop
+    Transition {
+        source_index: 5,
+        target_index: 6,
+    }, // Dlc → Data (DLC > 0)
+    Transition {
+        source_index: 5,
+        target_index: 7,
+    }, // Dlc → Crc  (DLC = 0)
+    Transition {
+        source_index: 6,
+        target_index: 6,
+    }, // Data self-loop
+    Transition {
+        source_index: 6,
+        target_index: 7,
+    }, // Data → Crc
+    Transition {
+        source_index: 7,
+        target_index: 7,
+    }, // Crc self-loop
+    Transition {
+        source_index: 7,
+        target_index: 8,
+    }, // Crc → CrcDelim
+    Transition {
+        source_index: 8,
+        target_index: 9,
+    }, // CrcDelim → AckSlot
+    Transition {
+        source_index: 9,
+        target_index: 10,
+    }, // AckSlot → AckDelim
+    Transition {
+        source_index: 10,
+        target_index: 11,
+    }, // AckDelim → Eof
+    Transition {
+        source_index: 11,
+        target_index: 11,
+    }, // Eof self-loop
+    Transition {
+        source_index: 11,
+        target_index: 12,
+    }, // Eof → Ifs
+    Transition {
+        source_index: 12,
+        target_index: 12,
+    }, // Ifs self-loop
+    Transition {
+        source_index: 12,
+        target_index: 0,
+    }, // Ifs → Sof (next frame)
+];
 
 /// Aggregate state for the CAN bit-stuffer.
 ///
@@ -240,11 +338,7 @@ where
 
 #[kernel]
 /// Kernel for [CanMaster].
-pub fn can_master<const DIV_W: usize>(
-    cr: ClockReset,
-    i: In,
-    q: Q<DIV_W>,
-) -> (Out, D<DIV_W>)
+pub fn can_master<const DIV_W: usize>(cr: ClockReset, i: In, q: Q<DIV_W>) -> (Out, D<DIV_W>)
 where
     rhdl::bits::W<DIV_W>: BitWidth,
 {
@@ -617,7 +711,10 @@ mod tests {
             .collect();
         // Look for the first cycle where tx goes low; that's the start of SOF.
         let sof_idx = outputs.iter().position(|s| !s.output.tx);
-        assert!(sof_idx.is_some(), "tx never went dominant — no SOF detected");
+        assert!(
+            sof_idx.is_some(),
+            "tx never went dominant — no SOF detected"
+        );
         Ok(())
     }
 

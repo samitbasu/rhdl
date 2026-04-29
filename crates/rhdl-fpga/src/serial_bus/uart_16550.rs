@@ -98,8 +98,8 @@ bool |                         |
 #![doc = include_str!("../../doc/uart_16550.md")]
 use rhdl::prelude::*;
 
+use super::uart::{uart as uart_kernel, Uart};
 use crate::core::dff;
-use super::uart::{Uart, uart as uart_kernel};
 
 #[allow(unused_imports)]
 use uart_kernel as _;
@@ -376,13 +376,11 @@ where
     //   4. Modem Status             (bits 1-3 = 0b000, ID = 0x0)
     //   None pending                (bit 0 = 1)
     let ier = q.ier;
-    let line_status_pending = ((ier & bits::<8>(0x04)) != bits::<8>(0))
-        && ((lsr & bits::<8>(0x9E)) != bits::<8>(0));
+    let line_status_pending =
+        ((ier & bits::<8>(0x04)) != bits::<8>(0)) && ((lsr & bits::<8>(0x9E)) != bits::<8>(0));
     let rx_pending = ((ier & bits::<8>(IER_ERBFI)) != bits::<8>(0)) && rx_valid;
-    let tx_pending =
-        ((ier & bits::<8>(IER_ETBEI)) != bits::<8>(0)) && !q.uart.tx_full;
-    let modem_pending = ((ier & bits::<8>(0x08)) != bits::<8>(0))
-        && (dcts || ddsr || teri || ddcd);
+    let tx_pending = ((ier & bits::<8>(IER_ETBEI)) != bits::<8>(0)) && !q.uart.tx_full;
+    let modem_pending = ((ier & bits::<8>(0x08)) != bits::<8>(0)) && (dcts || ddsr || teri || ddcd);
     let any_pending = line_status_pending || rx_pending || tx_pending || modem_pending;
 
     let iir = if line_status_pending {
@@ -627,11 +625,11 @@ mod tests {
         // read them back.  Verify DLL/DLM hold the written values.
         let uut = Uart16550::<6, 4>::new(bits(8));
         let mut stream_in: Vec<In> = vec![
-            write_reg(ADDR_LCR, LCR_DLAB),  // set DLAB
-            write_reg(ADDR_DATA, 0x42),     // DLL = 0x42
-            write_reg(ADDR_IER, 0x13),      // DLM = 0x13
-            read_reg(ADDR_DATA),            // read DLL
-            read_reg(ADDR_IER),             // read DLM
+            write_reg(ADDR_LCR, LCR_DLAB), // set DLAB
+            write_reg(ADDR_DATA, 0x42),    // DLL = 0x42
+            write_reg(ADDR_IER, 0x13),     // DLM = 0x13
+            read_reg(ADDR_DATA),           // read DLL
+            read_reg(ADDR_IER),            // read DLM
         ];
         for _ in 0..16 {
             stream_in.push(idle_in());
@@ -834,8 +832,15 @@ mod tests {
             iir & 0xC0 == 0xC0,
             "FIFO state bits should be 0b11 in IIR: got 0x{iir:02x}"
         );
-        assert!(iir & 0x01 == 0, "interrupt pending (bit 0 = 0): got 0x{iir:02x}");
-        assert_eq!(iir & 0x0E, 0x04, "source ID should be RX-data: got 0x{iir:02x}");
+        assert!(
+            iir & 0x01 == 0,
+            "interrupt pending (bit 0 = 0): got 0x{iir:02x}"
+        );
+        assert_eq!(
+            iir & 0x0E,
+            0x04,
+            "source ID should be RX-data: got 0x{iir:02x}"
+        );
         Ok(())
     }
 

@@ -1,7 +1,7 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    serial_bus::lin_master::{In, LinMaster},
     doc::write_svg_as_markdown,
+    serial_bus::lin_master::{In, LinMaster},
 };
 
 fn main() -> Result<(), RHDLError> {

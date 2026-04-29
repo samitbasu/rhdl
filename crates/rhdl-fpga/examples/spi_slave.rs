@@ -1,7 +1,7 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    serial_bus::spi_slave::{In, SpiSlave},
     doc::write_svg_as_markdown,
+    serial_bus::spi_slave::{In, SpiSlave},
 };
 
 fn drive_byte(byte: u128, tx: u128) -> Vec<In<8>> {

@@ -81,7 +81,7 @@ B<2> |                         | B<2>
 #![doc = include_str!("../../doc/ntsc_composite.md")]
 use rhdl::prelude::*;
 
-use super::video_timing::{VideoTimingCore, video_timing as video_timing_kernel};
+use super::video_timing::{video_timing as video_timing_kernel, VideoTimingCore};
 
 #[allow(unused_imports)]
 use video_timing_kernel as _;
@@ -276,7 +276,10 @@ mod tests {
             .filter(|s| !s.input.0.reset.any())
             .filter(|s| s.output.hsync || s.output.vsync)
             .any(|s| s.output.composite.raw() != 0);
-        assert!(!any_bad, "composite must be 00 (sync tip) during HSYNC/VSYNC");
+        assert!(
+            !any_bad,
+            "composite must be 00 (sync tip) during HSYNC/VSYNC"
+        );
         Ok(())
     }
 
@@ -292,7 +295,10 @@ mod tests {
             .filter(|s| !s.input.0.reset.any())
             .filter(|s| !s.output.active && !s.output.hsync && !s.output.vsync)
             .any(|s| s.output.composite.raw() != 1);
-        assert!(!any_bad, "composite must be 01 (blanking) outside sync and active");
+        assert!(
+            !any_bad,
+            "composite must be 01 (blanking) outside sync and active"
+        );
         Ok(())
     }
 
@@ -301,9 +307,14 @@ mod tests {
         let uut = mini();
         // Drive pic_sample = 3 (white) throughout.  In active region we expect
         // composite = 11 (white).
-        let stream = std::iter::repeat_n(In { pic_sample: bits(3) }, 256)
-            .with_reset(1)
-            .clock_pos_edge(100);
+        let stream = std::iter::repeat_n(
+            In {
+                pic_sample: bits(3),
+            },
+            256,
+        )
+        .with_reset(1)
+        .clock_pos_edge(100);
         let active_samples: Vec<_> = uut
             .run(stream)
             .synchronous_sample()
@@ -323,16 +334,24 @@ mod tests {
     fn test_pic_sample_zero_gates_to_black() -> miette::Result<()> {
         // pic_sample = 0 should be gated to 01 (blanking) in active region.
         let uut = mini();
-        let stream = std::iter::repeat_n(In { pic_sample: bits(0) }, 256)
-            .with_reset(1)
-            .clock_pos_edge(100);
+        let stream = std::iter::repeat_n(
+            In {
+                pic_sample: bits(0),
+            },
+            256,
+        )
+        .with_reset(1)
+        .clock_pos_edge(100);
         let any_zero_active = uut
             .run(stream)
             .synchronous_sample()
             .filter(|s| !s.input.0.reset.any())
             .filter(|s| s.output.active)
             .any(|s| s.output.composite.raw() == 0);
-        assert!(!any_zero_active, "pic_sample=0 must gate to 01, never 00 (sync tip)");
+        assert!(
+            !any_zero_active,
+            "pic_sample=0 must gate to 01, never 00 (sync tip)"
+        );
         Ok(())
     }
 

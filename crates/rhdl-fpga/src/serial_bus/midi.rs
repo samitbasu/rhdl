@@ -53,8 +53,8 @@ bool |                    | B<8>
 #![doc = include_str!("../../doc/midi.md")]
 use rhdl::prelude::*;
 
-use crate::core::dff;
 use super::uart::Uart;
+use crate::core::dff;
 
 #[derive(Clone, Debug, Synchronous, SynchronousDQ)]
 #[rhdl(dq_no_prefix)]

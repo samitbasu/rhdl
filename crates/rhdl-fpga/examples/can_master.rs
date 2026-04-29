@@ -1,10 +1,14 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    serial_bus::can_master::{CanMaster, In},
-    doc::write_svg_as_markdown,
+    doc::{write_fsm_diagram_as_markdown, write_svg_as_markdown},
+    serial_bus::can_master::{CanMaster, In, FSM_TRANSITIONS},
 };
 
 fn main() -> Result<(), RHDLError> {
+    // Emit the FSM diagram first — required by CLAUDE.md §12 rule 14
+    // for every #[derive(FsmWidget)] widget.
+    write_fsm_diagram_as_markdown::<CanMaster<5>>(FSM_TRANSITIONS, "can_master_fsm.md")?;
+
     let uut = CanMaster::<5>::new(bits(4));
     let mut stream_in: Vec<In> = vec![In {
         id: bits(0x123),

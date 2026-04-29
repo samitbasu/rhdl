@@ -91,9 +91,75 @@ bool |                             | bool
 //!
 //! The trace below demonstrates the result.
 #![doc = include_str!("../../doc/one_wire_master.md")]
+//!
+//! And the auto-generated FSM diagram for the slot-walking machine:
+#![doc = include_str!("../../doc/one_wire_master_fsm.md")]
+use rhdl::core::fsm::analysis::Transition;
 use rhdl::prelude::*;
 
 use crate::core::{constant::Constant, dff};
+
+/// Author-curated transition graph for the 1-Wire slot-walking FSM.
+///
+/// Required by CLAUDE.md §12 rule 14.  Indices match `OneWireState`
+/// declaration order (Idle=0, ResetLow=1, ResetSample=2,
+/// WriteBitLow=3, WriteBitWait=4, ReadBitLow=5, ReadBitSample=6,
+/// Stop=7).
+pub const FSM_TRANSITIONS: &[Transition] = &[
+    // Idle dispatches to the first state of each operation.
+    Transition {
+        source_index: 0,
+        target_index: 1,
+    }, // Idle → ResetLow (Reset op)
+    Transition {
+        source_index: 0,
+        target_index: 3,
+    }, // Idle → WriteBitLow (Write op)
+    Transition {
+        source_index: 0,
+        target_index: 5,
+    }, // Idle → ReadBitLow (Read op)
+    // Reset path.
+    Transition {
+        source_index: 1,
+        target_index: 2,
+    }, // ResetLow → ResetSample
+    Transition {
+        source_index: 2,
+        target_index: 7,
+    }, // ResetSample → Stop
+    // Write-bit path.
+    Transition {
+        source_index: 3,
+        target_index: 4,
+    }, // WriteBitLow → WriteBitWait
+    Transition {
+        source_index: 4,
+        target_index: 3,
+    }, // WriteBitWait → WriteBitLow (next bit)
+    Transition {
+        source_index: 4,
+        target_index: 7,
+    }, // WriteBitWait → Stop (last bit)
+    // Read-bit path.
+    Transition {
+        source_index: 5,
+        target_index: 6,
+    }, // ReadBitLow → ReadBitSample
+    Transition {
+        source_index: 6,
+        target_index: 5,
+    }, // ReadBitSample → ReadBitLow (next bit)
+    Transition {
+        source_index: 6,
+        target_index: 7,
+    }, // ReadBitSample → Stop (last bit)
+    // Stop returns to Idle.
+    Transition {
+        source_index: 7,
+        target_index: 0,
+    }, // Stop → Idle
+];
 
 /// Operation to perform.
 #[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
@@ -262,11 +328,7 @@ where
 
 #[kernel]
 /// Kernel for [OneWireMaster].
-pub fn one_wire_master<const T_W: usize>(
-    cr: ClockReset,
-    i: In,
-    q: Q<T_W>,
-) -> (Out, D<T_W>)
+pub fn one_wire_master<const T_W: usize>(cr: ClockReset, i: In, q: Q<T_W>) -> (Out, D<T_W>)
 where
     rhdl::bits::W<T_W>: BitWidth,
 {
@@ -363,7 +425,11 @@ where
         OneWireState::ReadBitSample => {
             // Sample once at t_read_sample, capturing into MSB (bit 7) of data_reg.
             if q.tick == t.t_read_sample {
-                let bit_in = if i.bus_in { bits::<8>(0x80) } else { bits::<8>(0) };
+                let bit_in = if i.bus_in {
+                    bits::<8>(0x80)
+                } else {
+                    bits::<8>(0)
+                };
                 // Replace MSB: clear bit 7 then set it from sample.
                 let cleared = q.data_reg & bits::<8>(0x7F);
                 d.data_reg = cleared | bit_in;
@@ -534,7 +600,10 @@ mod tests {
             .synchronous_sample()
             .filter(|s| !s.input.0.reset.any())
             .collect();
-        let final_presence = outputs.last().map(|s| s.output.presence_ok).unwrap_or(false);
+        let final_presence = outputs
+            .last()
+            .map(|s| s.output.presence_ok)
+            .unwrap_or(false);
         assert!(final_presence, "presence_ok was not latched after reset");
         Ok(())
     }
@@ -557,7 +626,10 @@ mod tests {
             .synchronous_sample()
             .filter(|s| !s.input.0.reset.any())
             .collect();
-        assert!(outputs.iter().any(|s| s.output.done), "no done pulse from WriteByte");
+        assert!(
+            outputs.iter().any(|s| s.output.done),
+            "no done pulse from WriteByte"
+        );
         Ok(())
     }
 
@@ -591,7 +663,10 @@ mod tests {
         let done_idx = outputs.iter().position(|s| s.output.done).unwrap();
         // After done, data_out should be 0 (slave held line low for every sample).
         let final_data = outputs[done_idx].output.data_out.raw();
-        assert_eq!(final_data, 0x00, "all-zero read byte mismatch: got 0x{final_data:02x}");
+        assert_eq!(
+            final_data, 0x00,
+            "all-zero read byte mismatch: got 0x{final_data:02x}"
+        );
         Ok(())
     }
 

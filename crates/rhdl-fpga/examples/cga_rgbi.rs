@@ -1,5 +1,5 @@
 use rhdl::prelude::*;
-use rhdl_fpga::{video::cga_rgbi::CgaRgbi, doc::write_svg_as_markdown};
+use rhdl_fpga::{doc::write_svg_as_markdown, video::cga_rgbi::CgaRgbi};
 
 fn main() -> Result<(), RHDLError> {
     // Mini-mode for the example trace: a 64×8 frame so the full pattern

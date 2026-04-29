@@ -70,27 +70,89 @@ bool |                         | bool
 //!
 //! The trace below demonstrates the result.
 #![doc = include_str!("../../doc/i2c_master.md")]
+//!
+//! And the auto-generated FSM diagram for the I2C transaction:
+#![doc = include_str!("../../doc/i2c_master_fsm.md")]
 use rhdl::prelude::*;
+
+use rhdl::core::fsm::analysis::Transition;
 
 use crate::core::{constant::Constant, dff};
 
 /// State of the I2C transaction.
 ///
 /// Encoded as a 3-bit `Digital` enum so it fits in a tight DFF.
-#[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy, Default, Fsm)]
 pub enum I2cState {
+    /// Bus idle.  Both lines released to the pull-up.
     #[default]
+    #[fsm_state(label = "idle")]
     Idle,
+    /// Driving SDA low while SCL is high — the START condition.
+    #[fsm_state(label = "START")]
     Start,
+    /// Shifting out the 7-bit address + R/W bit, MSB-first.
     Addr,
+    /// Released SDA, sampling for slave's address-ACK.
+    #[fsm_state(label = "ACK addr")]
     AckAddr,
+    /// Shifting out the 8-bit data byte, MSB-first.
     Data,
+    /// Released SDA, sampling for slave's data-ACK.
+    #[fsm_state(label = "ACK data")]
     AckData,
+    /// Driving SDA low while raising SCL, then releasing — the STOP condition.
+    #[fsm_state(label = "STOP")]
     Stop,
 }
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+/// Author-curated transition graph for the I2C transaction FSM.
+///
+/// Required by CLAUDE.md §12 rule 14.  Indices match `I2cState`
+/// declaration order (Idle=0, Start=1, Addr=2, AckAddr=3, Data=4,
+/// AckData=5, Stop=6).
+pub const FSM_TRANSITIONS: &[Transition] = &[
+    Transition {
+        source_index: 0,
+        target_index: 1,
+    }, // Idle → Start (on `start` strobe)
+    Transition {
+        source_index: 1,
+        target_index: 2,
+    }, // Start → Addr
+    Transition {
+        source_index: 2,
+        target_index: 2,
+    }, // Addr self-loop (per bit)
+    Transition {
+        source_index: 2,
+        target_index: 3,
+    }, // Addr → AckAddr (after 8 bits)
+    Transition {
+        source_index: 3,
+        target_index: 4,
+    }, // AckAddr → Data
+    Transition {
+        source_index: 4,
+        target_index: 4,
+    }, // Data self-loop (per bit)
+    Transition {
+        source_index: 4,
+        target_index: 5,
+    }, // Data → AckData
+    Transition {
+        source_index: 5,
+        target_index: 6,
+    }, // AckData → Stop
+    Transition {
+        source_index: 6,
+        target_index: 0,
+    }, // Stop → Idle
+];
+
+#[derive(Clone, Debug, Synchronous, SynchronousDQ, FsmWidget)]
 #[rhdl(dq_no_prefix)]
+#[fsm(state_field = "state", state_enum = I2cState)]
 /// I2C master (write-only, single-byte v1).
 pub struct I2cMaster<const DIV_W: usize>
 where
@@ -209,12 +271,13 @@ where
     // — Idle takes 0; everything else does.
     let in_byte_phase = match q.state {
         I2cState::Idle => false,
-        I2cState::Start => true,
-        I2cState::Addr => true,
-        I2cState::AckAddr => true,
-        I2cState::Data => true,
-        I2cState::AckData => true,
-        I2cState::Stop => true,
+        // Every non-Idle state takes one bit time (4 phases).
+        I2cState::Start
+        | I2cState::Addr
+        | I2cState::AckAddr
+        | I2cState::Data
+        | I2cState::AckData
+        | I2cState::Stop => true,
     };
 
     if !in_byte_phase {
@@ -354,13 +417,9 @@ where
                 sda_drive_low = true;
             }
         }
-        I2cState::AckAddr => {
-            // SCL same as data phases; SDA released (slave drives).
-            if q.phase == zero_b2 || q.phase == three_b2 {
-                scl_drive_low = true;
-            }
-        }
-        I2cState::AckData => {
+        // ACK slots: SCL toggles like the data phases; SDA stays
+        // released so the addressed slave can drive it low.
+        I2cState::AckAddr | I2cState::AckData => {
             if q.phase == zero_b2 || q.phase == three_b2 {
                 scl_drive_low = true;
             }

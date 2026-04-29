@@ -1,7 +1,7 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    serial_bus::midi::{In, MidiInterface},
     doc::write_svg_as_markdown,
+    serial_bus::midi::{In, MidiInterface},
 };
 
 fn encode_frame(byte: u128, divisor: usize) -> Vec<bool> {

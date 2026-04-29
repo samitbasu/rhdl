@@ -81,7 +81,7 @@
 #![doc = include_str!("../../doc/cga_rgbi.md")]
 use rhdl::prelude::*;
 
-use super::video_timing::{VideoTimingCore, video_timing as video_timing_kernel};
+use super::video_timing::{video_timing as video_timing_kernel, VideoTimingCore};
 
 // Re-export the kernel function so it's visible inside the kernel macro
 // expansion (the macro generates code that references super::video_timing
@@ -275,7 +275,8 @@ mod tests {
             .filter(|s| s.output.active)
         {
             let o = s.output;
-            let code = (o.i as usize) << 3 | (o.r as usize) << 2 | (o.g as usize) << 1 | (o.b as usize);
+            let code =
+                (o.i as usize) << 3 | (o.r as usize) << 2 | (o.g as usize) << 1 | (o.b as usize);
             seen[code] = true;
         }
         let missing: Vec<_> = (0..16).filter(|&i| !seen[i]).collect();

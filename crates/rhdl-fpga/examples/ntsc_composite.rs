@@ -1,7 +1,7 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    video::ntsc_composite::{In, NtscComposite},
     doc::write_svg_as_markdown,
+    video::ntsc_composite::{In, NtscComposite},
 };
 
 fn main() -> Result<(), RHDLError> {
@@ -15,9 +15,14 @@ fn main() -> Result<(), RHDLError> {
         bits(5),  // v_sync_start
         bits(6),  // v_sync_end
     );
-    let stream = std::iter::repeat_n(In { pic_sample: bits(2) }, 256)
-        .with_reset(1)
-        .clock_pos_edge(100);
+    let stream = std::iter::repeat_n(
+        In {
+            pic_sample: bits(2),
+        },
+        256,
+    )
+    .with_reset(1)
+    .clock_pos_edge(100);
     let vcd = uut.run(stream).collect::<SvgFile>();
     let options = SvgOptions::default()
         .with_filter("(^top.input.*)|(^top.output.*)|(^top.clock.*)|(^top.reset.*)")

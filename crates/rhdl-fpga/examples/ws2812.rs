@@ -1,7 +1,7 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    serial_bus::ws2812::{In, Ws2812Driver},
     doc::write_svg_as_markdown,
+    serial_bus::ws2812::{In, Ws2812Driver},
 };
 
 fn main() -> Result<(), RHDLError> {

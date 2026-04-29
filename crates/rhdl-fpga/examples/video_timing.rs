@@ -1,5 +1,5 @@
 use rhdl::prelude::*;
-use rhdl_fpga::{video::video_timing::VideoTimingCore, doc::write_svg_as_markdown};
+use rhdl_fpga::{doc::write_svg_as_markdown, video::video_timing::VideoTimingCore};
 
 fn main() -> Result<(), RHDLError> {
     // Mini test mode for a compact trace.

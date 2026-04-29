@@ -1,7 +1,7 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    serial_bus::dht22::{Dht22Reader, In},
     doc::write_svg_as_markdown,
+    serial_bus::dht22::{Dht22Reader, In},
 };
 
 fn build(frame: u128) -> Vec<In> {

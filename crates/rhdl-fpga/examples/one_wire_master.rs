@@ -1,10 +1,13 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    serial_bus::one_wire_master::{In, OneWireMaster, OneWireOp, OneWireTimings},
-    doc::write_svg_as_markdown,
+    doc::{write_fsm_diagram_as_markdown, write_svg_as_markdown},
+    serial_bus::one_wire_master::{In, OneWireMaster, OneWireOp, OneWireTimings, FSM_TRANSITIONS},
 };
 
 fn main() -> Result<(), RHDLError> {
+    // Emit the FSM diagram first — required by CLAUDE.md §12 rule 14.
+    write_fsm_diagram_as_markdown::<OneWireMaster<10>>(FSM_TRANSITIONS, "one_wire_master_fsm.md")?;
+
     // Compact test timings — every duration small enough that the full trace
     // fits in a few hundred FPGA cycles.
     let timings = OneWireTimings::<10> {

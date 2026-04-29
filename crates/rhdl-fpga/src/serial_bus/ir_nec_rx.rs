@@ -76,26 +76,84 @@ bool |                       | B<32>
 //!
 //! The trace below demonstrates the result.
 #![doc = include_str!("../../doc/ir_nec_rx.md")]
+//!
+//! And the auto-generated FSM diagram for the NEC receive walk:
+#![doc = include_str!("../../doc/ir_nec_rx_fsm.md")]
+use rhdl::core::fsm::analysis::Transition;
 use rhdl::prelude::*;
 
 use crate::core::{constant::Constant, dff};
 
 /// State machine.
-#[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy, Default, Fsm)]
 pub enum NecState {
     #[default]
+    #[fsm_state(label = "idle")]
     Idle,
     /// Line is low; we're measuring the leading-burst duration.
+    #[fsm_state(label = "lead burst")]
     LeadingBurst,
     /// Line is high; we're measuring the leading-space duration.
+    #[fsm_state(label = "lead space")]
     LeadingSpace,
     /// Line is low; mid-frame data-bit burst.
+    #[fsm_state(label = "bit burst")]
     DataBurst,
     /// Line is high; mid-frame data-bit space (duration → 0/1).
+    #[fsm_state(label = "bit space")]
     DataSpace,
     /// Line is low; final stop-bit burst after the 32nd data bit.
+    #[fsm_state(label = "stop burst")]
     FinalBurst,
 }
+
+/// Author-curated transition graph for the NEC receive FSM.
+///
+/// Required by CLAUDE.md §12 rule 14.  Indices match `NecState`
+/// declaration order (Idle=0, LeadingBurst=1, LeadingSpace=2,
+/// DataBurst=3, DataSpace=4, FinalBurst=5).
+pub const FSM_TRANSITIONS: &[Transition] = &[
+    Transition {
+        source_index: 0,
+        target_index: 1,
+    }, // Idle → LeadingBurst (falling edge)
+    Transition {
+        source_index: 1,
+        target_index: 0,
+    }, // LeadingBurst → Idle (too short / timeout)
+    Transition {
+        source_index: 1,
+        target_index: 2,
+    }, // LeadingBurst → LeadingSpace
+    Transition {
+        source_index: 2,
+        target_index: 0,
+    }, // LeadingSpace → Idle (timeout / repeat)
+    Transition {
+        source_index: 2,
+        target_index: 3,
+    }, // LeadingSpace → DataBurst (data frame)
+    Transition {
+        source_index: 3,
+        target_index: 4,
+    }, // DataBurst → DataSpace
+    Transition {
+        source_index: 4,
+        target_index: 0,
+    }, // DataSpace → Idle (timeout)
+    Transition {
+        source_index: 4,
+        target_index: 3,
+    }, // DataSpace → DataBurst (next bit)
+    Transition {
+        source_index: 4,
+        target_index: 5,
+    }, // DataSpace → FinalBurst (last bit)
+    Transition {
+        source_index: 5,
+        target_index: 0,
+    }, // FinalBurst → Idle (frame done)
+];
 
 /// Bus-timing parameters, all in *FPGA cycles*.
 ///
@@ -136,8 +194,9 @@ where
     pub t_data_space_max: Bits<T_W>,
 }
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ, FsmWidget)]
 #[rhdl(dq_no_prefix)]
+#[fsm(state_field = "state", state_enum = NecState)]
 /// NEC IR remote receiver (v1).
 pub struct IrNecRx<const T_W: usize>
 where
@@ -210,11 +269,7 @@ where
 
 #[kernel]
 /// Kernel for [IrNecRx].
-pub fn ir_nec_rx<const T_W: usize>(
-    cr: ClockReset,
-    i: In,
-    q: Q<T_W>,
-) -> (Out, D<T_W>)
+pub fn ir_nec_rx<const T_W: usize>(cr: ClockReset, i: In, q: Q<T_W>) -> (Out, D<T_W>)
 where
     rhdl::bits::W<T_W>: BitWidth,
 {
@@ -293,7 +348,11 @@ where
             if falling_edge {
                 // Decode bit value from high duration.
                 let bit_val = q.tick >= t.t_data_zero_one_threshold;
-                let bit_bits = if bit_val { bits::<32>(1) } else { bits::<32>(0) };
+                let bit_bits = if bit_val {
+                    bits::<32>(1)
+                } else {
+                    bits::<32>(0)
+                };
                 // Shift bit into LSB (so after 32 shifts the first received bit is
                 // at MSB — matching the on-the-wire MSB-first NEC convention).
                 d.code_reg = (q.code_reg << 1) | bit_bits;
@@ -354,12 +413,12 @@ mod tests {
     /// fits in a few hundred FPGA cycles.  Standard NEC ratios are preserved.
     fn test_timings() -> NecTimings<14> {
         NecTimings {
-            t_lead_burst_min: bits(80),       // ~8 ms in scaled units
-            t_lead_burst_max: bits(120),      // ~12 ms
-            t_lead_data_threshold: bits(35),  // midpoint of 22 (repeat) and 45 (data)
-            t_lead_space_max: bits(60),       // ~6 ms
+            t_lead_burst_min: bits(80),          // ~8 ms in scaled units
+            t_lead_burst_max: bits(120),         // ~12 ms
+            t_lead_data_threshold: bits(35),     // midpoint of 22 (repeat) and 45 (data)
+            t_lead_space_max: bits(60),          // ~6 ms
             t_data_zero_one_threshold: bits(11), // midpoint of 6 and 17
-            t_data_space_max: bits(30),       // give the FinalBurst timeout some slack
+            t_data_space_max: bits(30),          // give the FinalBurst timeout some slack
         }
     }
 
@@ -488,7 +547,10 @@ mod tests {
         let any_repeat = outputs.iter().any(|s| s.output.repeat);
         let any_valid = outputs.iter().any(|s| s.output.valid);
         assert!(any_repeat, "expected a repeat pulse");
-        assert!(!any_valid, "repeat-code waveform should not emit a data valid pulse");
+        assert!(
+            !any_valid,
+            "repeat-code waveform should not emit a data valid pulse"
+        );
         Ok(())
     }
 

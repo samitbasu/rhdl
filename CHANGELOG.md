@@ -31,6 +31,39 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — CRITICAL: every FSM-tagged widget must emit + include its FSM diagram (CLAUDE.md §12 rule 14); migrate `i2c_master` and `ir_nec_rx`
+
+**Path:** `CLAUDE.md` §12 (new rule 14), `crates/rhdl-fpga/src/doc.rs` (new `write_fsm_diagram_as_markdown` helper), `crates/rhdl-fpga/src/serial_bus/{can_master,one_wire_master,i2c_master,ir_nec_rx}.rs`, the four matching examples + `doc/<name>_fsm.md` files, `doc/book/src/fsm/derive.md`
+
+**Why this, why now:** the FSM derive shipped in PR #2 is metadata-only — the *diagram* is the user-visible payoff.  Without a contractual requirement to emit and include it, widgets can carry the derive without surfacing the diagram, defeating the entire FSM track.  The new CLAUDE.md §12 rule 14 closes this: every `#[derive(FsmWidget)]` widget MUST author-curate a `FSM_TRANSITIONS` const, the example MUST call `write_fsm_diagram_as_markdown`, and the source MUST `include_str!` the resulting `doc/<name>_fsm.md` in its rustdoc.  This entry catches up the four widgets that already use the derive.
+
+**Design decisions:**
+- **Helper in `rhdl_fpga::doc`** — `write_fsm_diagram_as_markdown::<W: FsmWidget>(transitions, filename)` and `render_fsm_diagram_markdown<W>(transitions) -> String`.  Layered on top of the existing `rhdl::core::fsm::diagram::{build_fsm_diagram, render_fsm_svg}` infrastructure from PR #2.  Produces a self-contained `<p><svg>...</svg></p>` markdown fragment that drops directly into rustdoc via `include_str!`.
+- **Author-curated `FSM_TRANSITIONS: &[Transition]` const** in each widget — until Layer 2's RHIF-extraction pass is wired into the rustdoc emission pipeline, the author records the transitions explicitly.  Indices match the source enum's declaration order.
+- **Per-variant labels for diagram readability** — `#[fsm_state(label = "...")]` is added on every variant whose Rust identifier doesn't match the canonical spec terminology (e.g., `Sof` → `"SOF"`, `CrcDelim` → `"CRCDelim"`, `AckSlot` → `"ACK"`, `LeadingBurst` → `"lead burst"`).
+- **Stub `doc/<name>_fsm.md` committed** — the source's `include_str!` requires the file to exist at build time, before the example regenerates it.
+- **Or-pattern collapse where opportunity exists** — `i2c_master`'s `in_byte_phase` 7-arm match collapses to 2 arms; the AckAddr/AckData output paths share an arm.  These are textbook or-pattern wins per `kernel-language-extensions.md` §2.2 (PR #3).
+- **Book chapter expansion** — `doc/book/src/fsm/derive.md` now opens with a "Why use the FSM macros at all?" section and a "When NOT to use the FSM macros" section.  The five reasons (auto-diagram, static analysis, SVA surface, LLM workflows, vocabulary consistency) and the three negative cases (not-a-state-machine, unbounded state space, non-canonical update logic) are the rationale future contributors / agents read first.
+
+**Surprises and gotchas:**
+- **`rhdl_fpga` can't depend on `rhdl_core` directly.**  Per `architecture.md` §2, widgets pull through the meta-crate.  The `Transition` and diagram types are imported as `rhdl::core::fsm::analysis::Transition` (since `rhdl::core` is the re-export of `rhdl_core`).  First batch of code that needed this path; recorded for future widget authors.
+- **`include_str!` evaluates at build time, not at example-run time.**  Stubs first, regenerate later.  Same pattern as the existing `doc/<name>.md` waveform-trace files.
+
+**Migration coverage:**
+- ✅ `serial_bus::can_master` — 13-variant CanField FSM, 20 transitions including 4 self-loops, 7 tests pass.
+- ✅ `serial_bus::one_wire_master` — 8-variant OneWireState, 12 transitions, 10 tests pass.
+- ✅ `serial_bus::i2c_master` — 7-variant I2cState, 9 transitions, or-pattern collapse on `in_byte_phase` (7 arms → 2) and the AckAddr/AckData output arm (2 arms → 1), 5 tests pass.
+- ✅ `serial_bus::ir_nec_rx` — 6-variant NecState, 10 transitions, 7 tests pass.
+
+**Validation:** Full lib sweep passes (429+ tests).  HDL emission length and VCD digest unchanged for every migrated widget — proof that adding the derives + the or-pattern collapse is byte-identical at the IR level.
+
+**Follow-ups:**
+- **Migrate the remaining FSM-shaped Tier-3 widgets** as separate small batches: `dht22`, `half_spi_master`, `lin_master`, `sent_rx`, `spi_master`, `spi_slave`, `uart_rx`, `ws2812`.  Each is a self-contained mini-PR following the same template.  `half_spi_master` has the largest pending or-pattern win (14 collapsible arm RHSes).  `i2c_master`'s prior CHANGELOG entry explicitly noted "match with or-patterns is forbidden in `#[kernel]`" — that note is now historical.
+- **Wire the RHIF extraction pass** so `FSM_TRANSITIONS` becomes derivable rather than author-curated.  Layer 2 is shipped (PR #2); the integration into the rustdoc emission pipeline is the missing piece.  Until then, the hand-rolled `FSM_TRANSITIONS` is the contract.
+- **Auto-include FSM diagrams in `Descriptor::hdl_for(target).rustdoc()`** so the `#![doc = include_str!(...)]` boilerplate isn't needed in every widget source.  Touches the rustdoc machinery; orthogonal to the widget-by-widget migration.
+
+---
+
 ## 2026-04-29 — Reorganise widget directories: `serial_bus/`, `video/`, `audio/`
 
 **Path:** `crates/rhdl-fpga/src/{audio,serial_bus,video}/` (new), `crates/rhdl-fpga/src/core/` (slimmed), `architecture.md` (§4 update)
