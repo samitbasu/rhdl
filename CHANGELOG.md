@@ -31,7 +31,7 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
-## 2026-04-29 — Tier-3 widgets added to roadmap: PS/2 keyboard (#56), PS/2 mouse (#57), I²S TX (#58), ISA bus target (#59)
+## 2026-04-29 — Tier-3 widgets added to roadmap: PS/2 keyboard (#64), PS/2 mouse (#65), I²S TX (#66), ISA bus target (#67)
 
 **Path:** `widget-roadmap.md` (4 new entries appended to Tier 3)
 
@@ -41,7 +41,34 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
-## 2026-04-29 — Tier-3 widget: PS/2 mouse receiver (#57)
+## 2026-04-29 — Tier-3 widget: I²S transmitter (master mode, left-justified) (#66)
+
+**Path:** `crates/rhdl-fpga/src/audio/i2s_tx.rs`, `examples/i2s_tx.rs`, `doc/i2s_tx.md`, `doc/i2s_tx_fsm.md`, `vcd/i2s_tx/`
+
+**Why this, why now:** The universal chip-to-chip digital-audio link.  Every modern audio codec (CS43L22 / WM8731 / ES9038 / AK4490 and a thousand others) accepts I²S — getting it shipped means RHDL designs can drive an audio output without going through PWM-only paths.  Lives in `audio/`, joining `audio_pwm` and `dtmf_generator`.
+
+**Design decisions:**
+- **Master mode + left-justified framing in v1** — LJ is what most codecs default to or accept as an option.  Strict Philips I²S (one-BCLK-delayed first data bit) is a v2 mode-switch.
+- **Two-state half-cell FSM** — `BclkLow / BclkHigh`.  Each `bclk_tick` (host-driven) advances by one half-period.  The bit-position counter `bit_idx` ticks on the falling-edge half-cell; LRCK toggles when `bit_idx` rolls over the per-channel boundary.
+- **Host-driven `bclk_tick`** — same decoupling pattern as `SmpteLtcEncoder`.  Gives the host control of BCLK rate via clock division.
+- **`sample_load` independent of frame timing** — host can refresh the latched stereo sample at any time; the widget uses the latest values when it reloads at LRCK transition.  `sample_taken` pulses to nudge the host.
+- **16-bit fixed in v1** — generic-bit-width is a straightforward extension.
+
+**Surprises and gotchas:**
+- **Mid-frame `bit_idx == 15` LRCK transition.**  In LJ framing the LRCK toggles at the *start* of each channel slot, not at the end.  Captured in the FSM by checking `bit_idx == 15` separately from `== 31`.
+- **`SignedBits<16>.as_unsigned()`** for shift-register reuse — bit-pattern reinterpretation, no data loss.
+
+**Validation:** All five tiers.  Tier-1 (3 tests): idle no-bclk-toggles, full frame yields ≥ 2 LRCK transitions, `sample_taken` pulses at LRCK boundary.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.
+
+**Follow-ups:**
+- **Strict Philips I²S framing** (one-BCLK-delayed first bit) — adds `mode_lj` config input.
+- **24-bit / generic sample width.**
+- **I²S RX** — symmetric FSM walking BCLK falling edges; pairs with `cdc::synchronizer_chain` if the codec is BCLK master.
+- **TDM 4 / 8 / 16 channel** — separate widget; LRCK becomes a frame-sync pulse.
+
+---
+
+## 2026-04-29 — Tier-3 widget: PS/2 mouse receiver (#65)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/ps2_mouse.rs`, `examples/ps2_mouse.rs`, `doc/ps2_mouse.md`, `doc/ps2_mouse_fsm.md`, `vcd/ps2_mouse/`
 
@@ -65,11 +92,11 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
-## 2026-04-29 — Tier-3 widget: PS/2 keyboard receiver (#56)
+## 2026-04-29 — Tier-3 widget: PS/2 keyboard receiver (#64)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/ps2_keyboard.rs`, `examples/ps2_keyboard.rs`, `doc/ps2_keyboard.md`, `doc/ps2_keyboard_fsm.md`, `vcd/ps2_keyboard/`
 
-**Why this, why now:** First widget in the new PS/2 / I²S / ISA group surfaced by the user.  Receive-only v1 — the keyboard-side wire protocol is the load-bearing piece; bidirectional (host→keyboard) is a small extension that defers to v2.  The mouse widget (#57) builds directly on this as a packet-byte assembler.
+**Why this, why now:** First widget in the new PS/2 / I²S / ISA group surfaced by the user.  Receive-only v1 — the keyboard-side wire protocol is the load-bearing piece; bidirectional (host→keyboard) is a small extension that defers to v2.  The mouse widget (#65) builds directly on this as a packet-byte assembler.
 
 **Design decisions:**
 - **Two-state FSM** — `Idle / Shift`.  Falling edge on `clk_in` triggers shift-into-LSB-position-bit_idx; after 11 bits the frame is validated and the FSM returns to Idle.  Tagged with `#[derive(Fsm, FsmWidget)]`.
@@ -86,7 +113,7 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 **Follow-ups:**
 - **Bidirectional v2** — host pulls CLK low ≥ 100 µs to claim the bus, then drives DATA while the keyboard clocks.  Adds a transmit-side FSM with a request-to-send dance.  ~80 LOC additional.
 - **Scan-code-set decoder** — a separate widget that translates Set 2 (the modern default) into ASCII or USB HID page 7 codes.  Higher-level layer; doesn't change this widget.
-- **PS/2 mouse (#57)** is the natural composer; reuses the byte-receiver and adds a 3-byte packet assembler.
+- **PS/2 mouse (#65)** is the natural composer; reuses the byte-receiver and adds a 3-byte packet assembler.
 
 ---
 

@@ -14,3 +14,4 @@
 //! companion belongs here.
 pub mod audio_pwm;
 pub mod dtmf_generator;
+pub mod i2s_tx;
