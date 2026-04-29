@@ -32,6 +32,7 @@ pub mod modbus_rtu_master;
 pub mod nand_flash_async;
 pub mod one_wire_master;
 pub mod parallel_port_centronics;
+pub mod parallel_port_epp;
 pub mod ps2_keyboard;
 pub mod ps2_mouse;
 pub mod rs485_master;

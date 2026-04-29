@@ -41,6 +41,31 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: IEEE 1284 EPP (Enhanced Parallel Port) master
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/parallel_port_epp.rs`, `examples/parallel_port_epp.rs`, `doc/parallel_port_epp.md`, `doc/parallel_port_epp_fsm.md`, `vcd/parallel_port_epp/`
+
+**Why this, why now:** Second piece of the IEEE 1284 ECP/EPP parallel-port expansion the user requested.  EPP is mode 4 — bidirectional, fast, interlocked-handshake — and is where the parallel port goes from "printer-only" to "addressable peripheral bus".  Sits beside `parallel_port_centronics` so users can pick: Centronics for legacy printer compatibility, EPP for general-purpose 2 MB/s peripheral I/O.
+
+**Design decisions:**
+- **6-state cycle FSM** — `Idle / AssertStrobe / WaitForLow / ReleaseStrobe / WaitForHigh / Stop`.  Same FSM handles all four cycle types (`AddrWrite`, `AddrRead`, `DataWrite`, `DataRead`); the cycle type only changes which strobe asserts (data vs. addr) and which direction `nWRITE` indicates.  Tagged `#[derive(Fsm, FsmWidget)]`.
+- **Bidirectional bus exposed as `(d_oe, d_out, d_in)` triplet** — same convention as 1-Wire, I²C, NAND, half-SPI.  Host wraps with `tristate::simple` at the pad.
+- **Interlocked `nWAIT` handshake**, not pulse-timed — the spec says EPP is a fully-interlocked protocol with no fixed timing.  `WaitForLow` spins until the device asserts `nWAIT` low; `WaitForHigh` spins until it releases.  V1 has no timeout — a misbehaving device hangs the FSM.  V2 will add a configurable timeout (matching the SMBus / NAND pattern).
+- **Single `op` enum input** — replaces having four separate `start_*` strobes.  Keeps the I/O surface tight and matches the NAND widget's design.
+
+**Surprises and gotchas:**
+- **`AssertStrobe` is a single-cycle setup state** rather than a tick-counted one.  The spec doesn't mandate a setup-time longer than one bit-clock; a strict implementation would parameterise it like the Centronics widget's `t_setup`.  Kept simple in v1; if real silicon needs a setup window the change is a one-counter addition.
+
+**Validation:** All five tiers.  Tier-1 (4 tests): idle strobes high, address-write completes with correct strobe + direction + d_oe, data-read captures `d_in` to `data_out` while keeping `d_oe` low, address-vs-data strobe selection.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.  FSM descriptor confirms 6 variants and `Idle` initial.
+
+**Follow-ups:**
+- **`nWAIT` timeout** — configurable via a `TimingsT_W` const generic and `t_wait_max` field, matching the SMBus pattern.  Hangs that exceed the timeout pulse `done` with a separate `timeout` flag.
+- **ECP master** (`serial_bus::parallel_port_ecp`) — composes the EPP-style handshake with `core::rle_encoder` for compression, an internal FIFO for buffering, and additional address/data distinction.  EPP is the structural template; ECP adds the compression/FIFO layer.
+- **IEEE 1284 mode-select negotiation** — separate widget that runs the magic bus-state sequence to negotiate between Compatibility / Nibble / Byte / EPP / ECP modes.  Kicks off before the per-mode widget takes over the bus.
+- **Reverse-channel widget** — the symmetric inverse of EPP / ECP for slave mode.
+
+---
+
 ## 2026-04-29 — Reusable widget: streaming RLE encoder (`core::rle_encoder`)
 
 **Path:** `crates/rhdl-fpga/src/core/rle_encoder.rs`, `examples/rle_encoder.rs`, `doc/rle_encoder.md`, `doc/rle_encoder_fsm.md`, `vcd/rle_encoder/`
