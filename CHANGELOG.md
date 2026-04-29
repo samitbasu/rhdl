@@ -31,6 +31,33 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: SMBus / SBS host (timeout-enforced I²C wrapper) (#44)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/smbus_host.rs`, `examples/smbus_host.rs`, `doc/smbus_host.md`, `vcd/smbus_host/`
+
+**Why this, why now:** SMBus is electrically I²C with extra discipline rules — the most important being a 35 ms transaction-level timeout that lets a hung slave or stuck wire be detected and recovered.  Smart-battery-system (SBS) hosts (laptop / smartphone fuel-gauge stacks) require this watchdog or they wedge.  Building it as a thin shim over `I2cMaster` proves the composition story: protocol-discipline layers stack on top of physical-layer widgets without modification.
+
+**Design decisions:**
+- **Thin wrapper around `I2cMaster`** — no new bit-level FSM.  The widget owns a tick counter, an `in_flight` latch, and a `timed_out` latch; the I²C master owns the wire.  Clean separation.
+- **Two const generics** — `DIV_W` (passed through to the inner I²C) and `T_W` (timeout-counter width).  At 100 MHz, 35 ms = 3.5 M cycles → `T_W = 22`.  Tests use `T_W = 16` for fast simulation.
+- **Sticky `timeout` flag** — once set, stays high until the next `start`.  The host reads it with the next sample after `done`.
+- **No FSM derive** — the state machinery is all in the inner `I2cMaster`.  The shim has only one boolean (`in_flight`) — promoting it to an enum + FSM derive would add ceremony without insight, exactly the negative case described in `doc/book/src/fsm/derive.md`.
+- **`done` pulses on either normal completion or timeout** — gives the host a single edge to act on.  The `timeout` flag disambiguates.
+
+**Surprises and gotchas:**
+- **The inner I²C `done` and the outer `done_pulse` register are one cycle apart.**  When `q.i2c.done` fires, we clear `in_flight` and pulse `done_pulse` *next* cycle.  Tests inspect for `done` anywhere in the trace, not at a specific cycle, so this is invisible to the contract.
+- **`q.tick >= t_max` is correct, `q.tick == t_max` would also be correct.**  Used `>=` so the timeout still fires if `t_max` is set very small relative to the I²C transaction length — defensive against operator error.
+
+**Validation:** All five tiers.  Tier-1: idle no activity, normal-transaction-completes-without-timeout, timeout-fires-when-T_max-exceeded.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.
+
+**Follow-ups:**
+- **Clock-low timeout (`t_LOW:SEXT` = 25 ms)** — separate counter that ticks only while `scl_drive_low == false && sda_in == false` (slave holding SCL).  Mostly a copy of the existing tick counter with an extra gate.
+- **PEC byte (CRC8 over the transaction)** — wraps the data byte through a CRC8 engine, appends the result.  `core::crc` already exists; needs polynomial parameterization.
+- **SBS block-read protocol layer** — multi-byte transactions with length prefix.  Higher-level widget that strobes `start` repeatedly with auto-incremented register addresses.
+- **Battery management state machine (#46)** is the natural composer.
+
+---
+
 ## 2026-04-29 — Tier-3 widget: MIPI DBI Type B (8080 parallel) display driver (#43)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/mipi_dbi_type_b.rs`, `examples/mipi_dbi_type_b.rs`, `doc/mipi_dbi_type_b.md`, `doc/mipi_dbi_type_b_fsm.md`, `vcd/mipi_dbi_type_b/`

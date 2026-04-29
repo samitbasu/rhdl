@@ -29,6 +29,7 @@ pub mod mipi_dbi_type_c;
 pub mod one_wire_master;
 pub mod rs485_master;
 pub mod sent_rx;
+pub mod smbus_host;
 pub mod spi_master;
 pub mod spi_slave;
 pub mod ti_hdq;
