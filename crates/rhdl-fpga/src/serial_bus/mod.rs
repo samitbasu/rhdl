@@ -28,6 +28,7 @@ pub mod mfm_encoder;
 pub mod midi;
 pub mod mipi_dbi_type_b;
 pub mod mipi_dbi_type_c;
+pub mod modbus_rtu_master;
 pub mod nand_flash_async;
 pub mod one_wire_master;
 pub mod parallel_port_centronics;

@@ -41,6 +41,32 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: Modbus RTU master (FC 0x03 v1) (#69)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/modbus_rtu_master.rs`, `examples/modbus_rtu_master.rs`, `doc/modbus_rtu_master.md`, `doc/modbus_rtu_master_fsm.md`, `vcd/modbus_rtu_master/`
+
+**Why this, why now:** Same-day execution of the user's Modbus roadmap addition.  V1 ships function code 0x03 (Read Holding Registers) only — single most-used Modbus operation across PLCs / HVAC / inverters / SCADA.  Frame assembly + Modbus CRC computation + byte-by-byte handoff to a UART downstream.
+
+**Design decisions:**
+- **Three-state FSM** — `Idle / Crc / Send`.  Crc state walks 48 cycles (6 bytes × 8 bits), one bit per cycle, computing the polynomial-`0xA001` CRC.  Send walks 8 bytes, one per `tx_ready` strobe.  Tagged with `#[derive(Fsm, FsmWidget)]`.
+- **Bit-serial CRC** — one CRC bit per cycle keeps the kernel small (no big combinational unrolled CRC tree).  48 cycles is negligible against UART baud rates (one bit at 115 200 baud takes ~870 FPGA cycles at 100 MHz).
+- **Cross-validated against Rust reference implementation** — Tier-1 test runs `ref_crc()` (a faithful Modbus CRC in plain Rust) over the payload and compares byte-for-byte against the kernel's `tx_byte` stream.  Two test vectors: `(slave=1, addr=0, count=5)` and `(slave=0x11, addr=0x42, count=10)`.
+- **Wire shape**: `tx_byte / tx_valid` + `tx_ready` from downstream.  Drop-in compatible with `core::uart::Uart` and `serial_bus::rs485_master::Rs485Master`.
+- **FC 0x03 only** — generalising to 0x06 / 0x10 / etc. is a v2 enum-input.  Kept narrow so the v1 FSM is unambiguous and the test contract is concrete.
+
+**Surprises and gotchas:**
+- **First test asserted a hardcoded "spec example" CRC value (`0x0A85`) for `[01, 03, 00, 00, 00, 05]`.**  The kernel produced `0xC985`.  Verified the kernel against the Rust reference implementation — *they agree*.  The hardcoded "spec example" was wrong (likely a misremembered different request).  Removed the literal-value assertion in favour of a "kernel matches reference" assertion, which is the actual contract.  Lesson: cross-validate against your own reference implementation rather than against literals from documentation; spec PDFs are read by humans and humans make typos.
+
+**Validation:** All five tiers.  Tier-1 (4 tests): idle no-tx-valid, kernel CRC matches reference for canonical request, kernel CRC matches reference for arbitrary request, done pulses exactly once after the 8th byte.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.  FSM descriptor confirms 3 variants and `Idle` initial.
+
+**Follow-ups:**
+- **All other standard function codes** (0x01 / 0x02 / 0x04 / 0x05 / 0x06 / 0x0F / 0x10) — adds an `op` enum input + a small dispatch in the byte sequencer.  CRC engine is unchanged.
+- **Modbus RTU slave** — symmetric receiver: parse incoming frame, validate CRC, dispatch to a register-file kernel, build response frame.  Uses the same CRC engine in reverse.
+- **Modbus ASCII** — same PDU but ASCII-encoded (each byte → two hex chars), framed with `':'` start and `\r\n` end, LRC checksum instead of CRC.  Different transcoding pipeline; same higher-level semantics.
+- **Modbus TCP** — depends on a future Ethernet MAC widget.  Same PDU body, no CRC, prefixed with a 6-byte MBAP header.
+
+---
+
 ## 2026-04-29 — Tier-3 roadmap entry added: Modbus master / slave (RTU + ASCII + TCP) (#69)
 
 **Path:** `widget-roadmap.md`
