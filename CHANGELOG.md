@@ -31,6 +31,32 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: MIPI DBI Type B (8080 parallel) display driver (#43)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/mipi_dbi_type_b.rs`, `examples/mipi_dbi_type_b.rs`, `doc/mipi_dbi_type_b.md`, `doc/mipi_dbi_type_b_fsm.md`, `vcd/mipi_dbi_type_b/`
+
+**Why this, why now:** The parallel sibling of DBI Type C — same controllers (ST7735/ST7789/ILI9341/ILI9488/SSD1351/RA8875), same command sets, but byte-per-`/WR`-pulse instead of 8-SPI-clocks-per-byte.  Faster at the cost of 8 extra data pins; ships with the Type C widget so users can pick on a per-target basis.
+
+**Design decisions:**
+- **4-state FSM** — `Idle / Setup / WrLow / WrHigh`.  Setup gives data + D/C# time to settle before `/WR` falls; WrLow holds the active strobe; WrHigh enforces minimum pulse-high before the next byte may begin.  Tagged with `#[derive(Fsm, FsmWidget)]` from the start.
+- **Strobe timings as `DbiBTimings<T_W>` struct** — three knobs (`t_setup`, `t_wr_pulse_low`, `t_wr_pulse_high`).  Same FPGA-cycle convention as every other timing-parameterized widget.
+- **8-bit only, write-only** — covers ~95% of real-world use.  16-bit bus (`/WR` + `D[15:0]`) and the `/RD` read path deferred to v2.
+- **`/RD` held high in v1** — exposed as an output so the host can wire it through; keeps the pad assignment stable when v2 ships.
+- **No SPI master composed** — DBI-B is structurally different from DBI-C.  This is a fresh tiny FSM, not a shim over [`SpiMaster`].
+
+**Surprises and gotchas:**
+- **Data must be valid *before* `/WR` falls**, not coincident with it.  That's what the `Setup` state enforces — first cycle's `Idle → Setup` latches `data_reg` and `dc_n_reg`, then `t_setup` cycles pass before the strobe goes low.  Skipping `Setup` would violate setup-time on real silicon.
+- **`busy` is computed combinationally** from `state != Idle`, the same trick as `MipiDbiTypeC`.  Saves a register without losing 1-cycle latency.
+
+**Validation:** All five tiers.  Tier-1: idle releases strobes, byte completes, data appears on bus, command drives D/C# low, /WR pulse goes low then back high.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.  FSM descriptor round-trip test confirms 4 variants and `Idle` as initial.
+
+**Follow-ups:**
+- **16-bit bus mode** — change `data_reg` to `Bits<16>`, expose `d_o: Bits<16>`.  Mostly a generic-parameter change.
+- **`/RD` read path** for controllers that support memory readback (parameter readout, status query).
+- **Multi-byte autoincrement burst mode** — assert `/WR` once per byte while keeping `/CS` low across N bytes.  Useful for pixel-stream bursts; pairs naturally with a `fifo::synchronous` upstream.
+
+---
+
 ## 2026-04-29 — Tier-3 widget: TI HDQ single-wire master (#45)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/ti_hdq.rs`, `examples/ti_hdq.rs`, `doc/ti_hdq.md`, `doc/ti_hdq_fsm.md`, `vcd/ti_hdq/`
