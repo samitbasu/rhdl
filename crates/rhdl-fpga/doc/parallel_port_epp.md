@@ -1,90 +1,90 @@
 
 
 <p>
-<svg viewBox="0 0 2010 440" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 2010 460" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <clipPath id="clip">
-<rect height="440" width="2010" x="0" y="0"/>
+<rect height="460" width="2010" x="0" y="0"/>
 </clipPath>
 </defs>
-<rect fill="#0B151D" height="440" stroke="darkblue" width="2010" x="0" y="0"/>
-<line stroke="#333333" stroke-width="1" x1="160" x2="160" y1="0" y2="440"/>
+<rect fill="#0B151D" height="460" stroke="darkblue" width="2010" x="0" y="0"/>
+<line stroke="#333333" stroke-width="1" x1="160" x2="160" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="160" y="10">
 0
 </text>
-<line stroke="#333333" stroke-width="1" x1="260" x2="260" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="260" x2="260" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="260" y="10">
 100
 </text>
-<line stroke="#333333" stroke-width="1" x1="360" x2="360" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="360" x2="360" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="360" y="10">
 200
 </text>
-<line stroke="#333333" stroke-width="1" x1="460" x2="460" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="460" x2="460" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="460" y="10">
 300
 </text>
-<line stroke="#333333" stroke-width="1" x1="560" x2="560" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="560" x2="560" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="560" y="10">
 400
 </text>
-<line stroke="#333333" stroke-width="1" x1="660" x2="660" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="660" x2="660" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="660" y="10">
 500
 </text>
-<line stroke="#333333" stroke-width="1" x1="760" x2="760" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="760" x2="760" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="760" y="10">
 600
 </text>
-<line stroke="#333333" stroke-width="1" x1="860" x2="860" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="860" x2="860" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="860" y="10">
 700
 </text>
-<line stroke="#333333" stroke-width="1" x1="960" x2="960" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="960" x2="960" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="960" y="10">
 800
 </text>
-<line stroke="#333333" stroke-width="1" x1="1060" x2="1060" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="1060" x2="1060" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1060" y="10">
 900
 </text>
-<line stroke="#333333" stroke-width="1" x1="1160" x2="1160" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="1160" x2="1160" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1160" y="10">
 1000
 </text>
-<line stroke="#333333" stroke-width="1" x1="1260" x2="1260" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="1260" x2="1260" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1260" y="10">
 1100
 </text>
-<line stroke="#333333" stroke-width="1" x1="1360" x2="1360" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="1360" x2="1360" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1360" y="10">
 1200
 </text>
-<line stroke="#333333" stroke-width="1" x1="1460" x2="1460" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="1460" x2="1460" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1460" y="10">
 1300
 </text>
-<line stroke="#333333" stroke-width="1" x1="1560" x2="1560" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="1560" x2="1560" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1560" y="10">
 1400
 </text>
-<line stroke="#333333" stroke-width="1" x1="1660" x2="1660" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="1660" x2="1660" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1660" y="10">
 1500
 </text>
-<line stroke="#333333" stroke-width="1" x1="1760" x2="1760" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="1760" x2="1760" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1760" y="10">
 1600
 </text>
-<line stroke="#333333" stroke-width="1" x1="1860" x2="1860" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="1860" x2="1860" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1860" y="10">
 1700
 </text>
-<line stroke="#333333" stroke-width="1" x1="1960" x2="1960" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="1960" x2="1960" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1960" y="10">
 1800
 </text>
-<line stroke="#333333" stroke-width="1" x1="2060" x2="2060" y1="0" y2="440"/>
+<line stroke="#333333" stroke-width="1" x1="2060" x2="2060" y1="0" y2="460"/>
 <text clip-path="url(#clip)" dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="end" x="2060" y="10">
 1900
 </text>
@@ -262,27 +262,27 @@ AddrWrite
 <path d="M 160 250 L 163 243 L 307 243 L 310 250 L 307 257 L 163 257 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="235" xml:space="preserve" y="250">
 {data_stb: 1...
-<title>{data_stb: 1, addr_stb: 1, wr_n: 0, d_oe: 0, d_out: 00, data_out: 00, busy: 0, done: 0}</title>
+<title>{data_stb: 1, addr_stb: 1, wr_n: 0, d_oe: 0, d_out: 00, data_out: 00, busy: 0, done: 0, timeout: 0}</title>
 </text>
 <path d="M 310 250 L 313 243 L 707 243 L 710 250 L 707 257 L 313 257 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="510" xml:space="preserve" y="250">
 {data_stb: 1, addr_stb: 0, wr_n: 0, d...
-<title>{data_stb: 1, addr_stb: 0, wr_n: 0, d_oe: 1, d_out: 42, data_out: 00, busy: 1, done: 0}</title>
+<title>{data_stb: 1, addr_stb: 0, wr_n: 0, d_oe: 1, d_out: 42, data_out: 00, busy: 1, done: 0, timeout: 0}</title>
 </text>
 <path d="M 710 250 L 713 243 L 1107 243 L 1110 250 L 1107 257 L 713 257 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="910" xml:space="preserve" y="250">
 {data_stb: 1, addr_stb: 1, wr_n: 0, d...
-<title>{data_stb: 1, addr_stb: 1, wr_n: 0, d_oe: 1, d_out: 42, data_out: 00, busy: 1, done: 0}</title>
+<title>{data_stb: 1, addr_stb: 1, wr_n: 0, d_oe: 1, d_out: 42, data_out: 00, busy: 1, done: 0, timeout: 0}</title>
 </text>
 <path d="M 1110 250 L 1113 243 L 1207 243 L 1210 250 L 1207 257 L 1113 257 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1160" xml:space="preserve" y="250">
 {data_s...
-<title>{data_stb: 1, addr_stb: 1, wr_n: 0, d_oe: 0, d_out: 42, data_out: 00, busy: 0, done: 1}</title>
+<title>{data_stb: 1, addr_stb: 1, wr_n: 0, d_oe: 0, d_out: 42, data_out: 00, busy: 0, done: 1, timeout: 0}</title>
 </text>
 <path d="M 1210 250 L 1213 243 L 2007 243 L 2010 250 L 2007 257 L 1213 257 Z" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="middle" x="1610" xml:space="preserve" y="250">
 {data_stb: 1, addr_stb: 1, wr_n: 0, d_oe: 0, d_out: 42, data_out: 00, busy: 0...
-<title>{data_stb: 1, addr_stb: 1, wr_n: 0, d_oe: 0, d_out: 42, data_out: 00, busy: 0, done: 0}</title>
+<title>{data_stb: 1, addr_stb: 1, wr_n: 0, d_oe: 0, d_out: 42, data_out: 00, busy: 0, done: 0, timeout: 0}</title>
 </text>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="270">
    .data_stb
@@ -352,11 +352,16 @@ AddrWrite
 <path d="M 1110 410 L 1110 403 L 1210 403 L 1210 410" fill="none" stroke="#56C126" stroke-width="1"/>
 <path d="M 1210 410 L 1210 417 L 2010 417 L 2010 410" fill="none" stroke="#56C126" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="430">
+   .timeout
+<title>top.outputs.timeout</title>
+</text>
+<path d="M 160 430 L 160 437 L 2010 437 L 2010 430" fill="none" stroke="#56C126" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#D4D4D4" font-family="monospace" font-size="10px" text-anchor="start" x="3" xml:space="preserve" y="450">
 .reset
 <title>top.reset</title>
 </text>
-<rect fill="#1C400C" height="14" stroke="none" width="49" x="161" y="423"/>
-<path d="M 160 430 L 160 423 L 211 423 L 211 430" fill="none" stroke="#56C126" stroke-width="1"/>
-<path d="M 211 430 L 211 437 L 2010 437 L 2010 430" fill="none" stroke="#56C126" stroke-width="1"/>
+<rect fill="#1C400C" height="14" stroke="none" width="49" x="161" y="443"/>
+<path d="M 160 450 L 160 443 L 211 443 L 211 450" fill="none" stroke="#56C126" stroke-width="1"/>
+<path d="M 211 450 L 211 457 L 2010 457 L 2010 450" fill="none" stroke="#56C126" stroke-width="1"/>
 </svg>
 </p>

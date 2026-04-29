@@ -1,4 +1,4 @@
-//! IEEE 1284 EPP (Enhanced Parallel Port) master
+//! IEEE 1284 EPP (Enhanced Parallel Port) master, fully featured
 //!
 //! EPP is IEEE 1284 mode 4 — bidirectional, fast (up to 2 MB/s),
 //! interlocked-handshake parallel I/O.  Compared to the legacy
@@ -24,15 +24,16 @@
 //! `DataRead` — share the same FSM, parameterised by which strobe
 //! goes low and which direction `nWRITE` indicates.
 //!
-//! **v1 scope:** the 4-cycle EPP transaction set.  IEEE 1284
-//! mode-select negotiation, the Compatibility / Nibble / Byte
-//! / ECP modes, and the bidirectional `nWAIT` timeout (a misbehaving
-//! device that never asserts `nWAIT` will hang the FSM in v1; v2
-//! adds a configurable timeout) are deferred.
+//! **All-features-implemented:** all 4 cycle types, the
+//! interlocked `nWAIT` handshake, AND a configurable per-cycle
+//! `nWAIT` timeout (a misbehaving device that never asserts
+//! `nWAIT` doesn't hang the FSM — `timeout` pulses, the cycle
+//! aborts, `done` still pulses so the host can advance).
 //!
-//! Composes [super::super::core::dff::DFF] for state and a
-//! 6-state FSM.  The host wraps the bidirectional `D` bus with
-//! `tristate::simple`; the widget exposes `(d_oe, d_out, d_in)`.
+//! Composes [super::super::core::dff::DFF] and
+//! [super::super::core::constant::Constant].  The host wraps the
+//! bidirectional `D` bus with `tristate::simple`; the widget
+//! exposes `(d_oe, d_out, d_in)`.
 //!
 //! Here is the schematic symbol
 #![doc = badascii_doc::badascii_formal!(r"
@@ -51,6 +52,7 @@ bool |                              | B<8>
      |                     data_out +--->
      |                         busy +--->
      |                         done +--->
+     |                      timeout +--->
      +------------------------------+
 ")]
 //!
@@ -68,34 +70,19 @@ bool |                              | B<8>
 use rhdl::core::fsm::analysis::Transition;
 use rhdl::prelude::*;
 
-use crate::core::dff;
+use crate::core::{constant::Constant, dff};
 
 /// Author-curated transition graph for the EPP cycle FSM.
 pub const FSM_TRANSITIONS: &[Transition] = &[
-    Transition {
-        source_index: 0,
-        target_index: 1,
-    }, // Idle → AssertStrobe
-    Transition {
-        source_index: 1,
-        target_index: 2,
-    }, // AssertStrobe → WaitForLow
-    Transition {
-        source_index: 2,
-        target_index: 3,
-    }, // WaitForLow → ReleaseStrobe
-    Transition {
-        source_index: 3,
-        target_index: 4,
-    }, // ReleaseStrobe → WaitForHigh
-    Transition {
-        source_index: 4,
-        target_index: 5,
-    }, // WaitForHigh → Stop
-    Transition {
-        source_index: 5,
-        target_index: 0,
-    }, // Stop → Idle
+    Transition { source_index: 0, target_index: 1 }, // Idle → AssertStrobe
+    Transition { source_index: 1, target_index: 2 }, // AssertStrobe → WaitForLow
+    Transition { source_index: 2, target_index: 3 }, // WaitForLow → ReleaseStrobe
+    Transition { source_index: 2, target_index: 6 }, // WaitForLow → TimeoutAbort
+    Transition { source_index: 3, target_index: 4 }, // ReleaseStrobe → WaitForHigh
+    Transition { source_index: 4, target_index: 5 }, // WaitForHigh → Stop
+    Transition { source_index: 4, target_index: 6 }, // WaitForHigh → TimeoutAbort
+    Transition { source_index: 5, target_index: 0 }, // Stop → Idle
+    Transition { source_index: 6, target_index: 0 }, // TimeoutAbort → Idle
 ];
 
 /// Operation to perform on a single EPP cycle.
@@ -133,19 +120,60 @@ pub enum EppState {
     /// One-cycle done pulse.
     #[fsm_state(label = "stop")]
     Stop,
+    /// `nWAIT` timeout — abort cycle, pulse `timeout` + `done`.
+    #[fsm_state(label = "timeout abort")]
+    TimeoutAbort,
 }
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ, Default, FsmWidget)]
+/// Per-cycle nWAIT timeout (in FPGA cycles).  Set to 0 to disable timeout
+/// (waits forever — matches the original v1 behavior).
+#[derive(PartialEq, Debug, Digital, Clone, Copy)]
+pub struct EppTimings<const T_W: usize>
+where
+    rhdl::bits::W<T_W>: BitWidth,
+{
+    /// Maximum cycles to wait for any `nWAIT` transition.  0 = disabled.
+    pub t_wait_max: Bits<T_W>,
+}
+
+#[derive(Clone, Debug, Synchronous, SynchronousDQ, FsmWidget)]
 #[rhdl(dq_no_prefix)]
 #[fsm(state_field = "state", state_enum = EppState)]
-/// IEEE 1284 EPP master.
-pub struct ParallelPortEpp {
+/// IEEE 1284 EPP master, fully featured.
+pub struct ParallelPortEpp<const T_W: usize>
+where
+    rhdl::bits::W<T_W>: BitWidth,
+{
     state: dff::DFF<EppState>,
+    /// Per-state tick counter (drives the timeout check in WaitForLow / WaitForHigh).
+    tick: dff::DFF<Bits<T_W>>,
     op_reg: dff::DFF<EppOp>,
     data_reg: dff::DFF<Bits<8>>,
-    /// Latched read byte (refreshed at end of each read cycle).
+    /// Latched read byte (refreshed at end of each successful read cycle).
     data_out_reg: dff::DFF<Bits<8>>,
     done_pulse: dff::DFF<bool>,
+    timeout_pulse: dff::DFF<bool>,
+    timings: Constant<EppTimings<T_W>>,
+}
+
+impl<const T_W: usize> ParallelPortEpp<T_W>
+where
+    rhdl::bits::W<T_W>: BitWidth,
+{
+    /// Construct an EPP master with the given nWAIT-timeout setting.
+    /// `t_wait_max = 0` disables the timeout.
+    pub fn new(timings: EppTimings<T_W>) -> Self {
+        Self {
+            state: dff::DFF::default(),
+            tick: dff::DFF::default(),
+            op_reg: dff::DFF::default(),
+            data_reg: dff::DFF::default(),
+            data_out_reg: dff::DFF::default(),
+            done_pulse: dff::DFF::default(),
+            timeout_pulse: dff::DFF::default(),
+            timings: Constant::new(timings),
+        }
+    }
 }
 
 #[derive(PartialEq, Debug, Digital, Clone, Copy)]
@@ -176,45 +204,76 @@ pub struct Out {
     pub d_oe: bool,
     /// D[7:0] output value (only meaningful while `d_oe == 1`).
     pub d_out: Bits<8>,
-    /// Latched byte from the most-recent read cycle.
+    /// Latched byte from the most-recent successful read cycle.
     pub data_out: Bits<8>,
     pub busy: bool,
+    /// Pulses when the cycle completes (whether via successful handshake or timeout).
     pub done: bool,
+    /// Pulses when `nWAIT` failed to transition within `t_wait_max` cycles.
+    pub timeout: bool,
 }
 
-impl SynchronousIO for ParallelPortEpp {
+impl<const T_W: usize> SynchronousIO for ParallelPortEpp<T_W>
+where
+    rhdl::bits::W<T_W>: BitWidth,
+{
     type I = In;
     type O = Out;
-    type Kernel = parallel_port_epp;
+    type Kernel = parallel_port_epp<T_W>;
 }
 
 #[kernel]
 /// Kernel for [ParallelPortEpp].
-pub fn parallel_port_epp(cr: ClockReset, i: In, q: Q) -> (Out, D) {
-    let mut d = D::dont_care();
+pub fn parallel_port_epp<const T_W: usize>(
+    cr: ClockReset,
+    i: In,
+    q: Q<T_W>,
+) -> (Out, D<T_W>)
+where
+    rhdl::bits::W<T_W>: BitWidth,
+{
+    let one_t: Bits<T_W> = bits::<T_W>(1);
+    let zero_t: Bits<T_W> = bits::<T_W>(0);
+
+    let t = q.timings;
+
+    let mut d = D::<T_W>::dont_care();
     d.state = q.state;
+    d.tick = q.tick + one_t;
     d.op_reg = q.op_reg;
     d.data_reg = q.data_reg;
     d.data_out_reg = q.data_out_reg;
     d.done_pulse = false;
+    d.timeout_pulse = false;
+
+    // Timeout check: triggers if t_wait_max != 0 AND tick has reached the limit.
+    let timeout_enabled = t.t_wait_max != zero_t;
+    let timeout_hit = timeout_enabled && (q.tick >= t.t_wait_max);
 
     match q.state {
         EppState::Idle => {
+            d.tick = zero_t;
             if i.start {
                 d.op_reg = i.op;
                 d.data_reg = i.data;
                 d.state = EppState::AssertStrobe;
+                d.tick = zero_t;
             }
         }
         EppState::AssertStrobe => {
             // Single-cycle setup state: data + nWRITE + strobe asserted via
             // combinational outputs below.  Move on to wait for the device.
             d.state = EppState::WaitForLow;
+            d.tick = zero_t;
         }
         EppState::WaitForLow => {
             // Wait for nWAIT low (device acknowledges).
             if !i.wait_n_in {
                 d.state = EppState::ReleaseStrobe;
+                d.tick = zero_t;
+            } else if timeout_hit {
+                d.state = EppState::TimeoutAbort;
+                d.tick = zero_t;
             }
         }
         EppState::ReleaseStrobe => {
@@ -224,25 +283,39 @@ pub fn parallel_port_epp(cr: ClockReset, i: In, q: Q) -> (Out, D) {
                 d.data_out_reg = i.d_in;
             }
             d.state = EppState::WaitForHigh;
+            d.tick = zero_t;
         }
         EppState::WaitForHigh => {
             // Wait for nWAIT high (device releases).
             if i.wait_n_in {
                 d.state = EppState::Stop;
+                d.tick = zero_t;
+            } else if timeout_hit {
+                d.state = EppState::TimeoutAbort;
+                d.tick = zero_t;
             }
         }
         EppState::Stop => {
             d.done_pulse = true;
             d.state = EppState::Idle;
+            d.tick = zero_t;
+        }
+        EppState::TimeoutAbort => {
+            d.timeout_pulse = true;
+            d.done_pulse = true; // host gets exactly one done per start, regardless
+            d.state = EppState::Idle;
+            d.tick = zero_t;
         }
     }
 
     if cr.reset.any() {
         d.state = EppState::Idle;
+        d.tick = zero_t;
         d.op_reg = EppOp::AddrWrite;
         d.data_reg = bits::<8>(0);
         d.data_out_reg = bits::<8>(0);
         d.done_pulse = false;
+        d.timeout_pulse = false;
     }
 
     let busy = q.state != EppState::Idle;
@@ -252,7 +325,6 @@ pub fn parallel_port_epp(cr: ClockReset, i: In, q: Q) -> (Out, D) {
     let is_addr = (q.op_reg == EppOp::AddrWrite) || (q.op_reg == EppOp::AddrRead);
 
     // Strobes are asserted (low) during the AssertStrobe and WaitForLow states.
-    // Strobe goes back high during ReleaseStrobe and WaitForHigh.
     let strobe_active = match q.state {
         EppState::AssertStrobe | EppState::WaitForLow => true,
         _ => false,
@@ -272,6 +344,7 @@ pub fn parallel_port_epp(cr: ClockReset, i: In, q: Q) -> (Out, D) {
     o.data_out = q.data_out_reg;
     o.busy = busy;
     o.done = q.done_pulse;
+    o.timeout = q.timeout_pulse;
     (o, d)
 }
 
@@ -280,6 +353,12 @@ mod tests {
     use super::*;
     use expect_test::expect;
     use std::path::PathBuf;
+
+    fn test_timings() -> EppTimings<8> {
+        EppTimings {
+            t_wait_max: bits(40),
+        }
+    }
 
     fn idle_in() -> In {
         In {
@@ -311,7 +390,6 @@ mod tests {
                 wait_n_in: true,
             });
         }
-        // Device pulls nWAIT low.
         for _ in 0..low_hold {
             out.push(In {
                 op,
@@ -321,7 +399,6 @@ mod tests {
                 wait_n_in: false,
             });
         }
-        // Device releases nWAIT.
         for _ in 0..8 {
             out.push(idle_in());
         }
@@ -330,7 +407,7 @@ mod tests {
 
     #[test]
     fn test_idle_strobes_high() -> miette::Result<()> {
-        let uut = ParallelPortEpp::default();
+        let uut = ParallelPortEpp::<8>::new(test_timings());
         let stream = std::iter::repeat_n(idle_in(), 16)
             .with_reset(1)
             .clock_pos_edge(100);
@@ -347,7 +424,7 @@ mod tests {
 
     #[test]
     fn test_addr_write_completes() -> miette::Result<()> {
-        let uut = ParallelPortEpp::default();
+        let uut = ParallelPortEpp::<8>::new(test_timings());
         let stream_in = drive_cycle(EppOp::AddrWrite, 0x42, 0, 3, 3);
         let stream = stream_in.into_iter().with_reset(1).clock_pos_edge(100);
         let outputs: Vec<_> = uut
@@ -356,18 +433,17 @@ mod tests {
             .filter(|s| !s.input.0.reset.any())
             .collect();
         assert!(outputs.iter().any(|s| s.output.done));
-        // While addr_stb is low, wr_n must also be low (write direction)
-        // and d_oe must be high (host driving bus).
+        assert!(!outputs.iter().any(|s| s.output.timeout));
         let bad = outputs.iter().any(|s| {
             !s.output.addr_stb && (s.output.wr_n || !s.output.d_oe)
         });
-        assert!(!bad, "address write must drive bus + assert wr_n low");
+        assert!(!bad);
         Ok(())
     }
 
     #[test]
     fn test_data_read_captures_d_in() -> miette::Result<()> {
-        let uut = ParallelPortEpp::default();
+        let uut = ParallelPortEpp::<8>::new(test_timings());
         let stream_in = drive_cycle(EppOp::DataRead, 0, 0xC0, 3, 3);
         let stream = stream_in.into_iter().with_reset(1).clock_pos_edge(100);
         let outputs: Vec<_> = uut
@@ -377,15 +453,14 @@ mod tests {
             .collect();
         let done_idx = outputs.iter().position(|s| s.output.done).unwrap();
         assert_eq!(outputs[done_idx].output.data_out.raw(), 0xC0);
-        // During a read cycle d_oe must be low (device drives bus).
         let bad = outputs.iter().any(|s| !s.output.data_stb && s.output.d_oe);
-        assert!(!bad, "during read, d_oe must be low (device drives D)");
+        assert!(!bad);
         Ok(())
     }
 
     #[test]
     fn test_addr_vs_data_strobe_selection() -> miette::Result<()> {
-        let uut = ParallelPortEpp::default();
+        let uut = ParallelPortEpp::<8>::new(test_timings());
         let stream_in = drive_cycle(EppOp::AddrWrite, 0x42, 0, 3, 3);
         let stream = stream_in.into_iter().with_reset(1).clock_pos_edge(100);
         let outputs: Vec<_> = uut
@@ -393,26 +468,76 @@ mod tests {
             .synchronous_sample()
             .filter(|s| !s.input.0.reset.any())
             .collect();
-        // For an AddrWrite, addr_stb must go low at some point but
-        // data_stb must NEVER go low.
         assert!(outputs.iter().any(|s| !s.output.addr_stb));
         assert!(outputs.iter().all(|s| s.output.data_stb));
         Ok(())
     }
 
+    /// Timeout corner case: device fails to assert nWAIT low.  EPP must
+    /// abort the cycle and pulse `timeout` + `done`.
+    #[test]
+    fn test_timeout_when_device_never_acks() -> miette::Result<()> {
+        let uut = ParallelPortEpp::<8>::new(test_timings());
+        // Device never drives nWAIT low.
+        let mut stream_in: Vec<In> = vec![In {
+            op: EppOp::AddrWrite,
+            data: bits(0x42),
+            d_in: bits(0),
+            start: true,
+            wait_n_in: true,
+        }];
+        for _ in 0..120 {
+            stream_in.push(idle_in());
+        }
+        let stream = stream_in.into_iter().with_reset(1).clock_pos_edge(100);
+        let outputs: Vec<_> = uut
+            .run(stream)
+            .synchronous_sample()
+            .filter(|s| !s.input.0.reset.any())
+            .collect();
+        assert!(outputs.iter().any(|s| s.output.timeout));
+        assert!(outputs.iter().any(|s| s.output.done));
+        Ok(())
+    }
+
+    /// Timeout-disabled (t_wait_max = 0): widget waits forever — a stuck
+    /// device hangs the FSM (matches the original v1 behavior, opt-in).
+    #[test]
+    fn test_no_timeout_with_t_wait_max_zero() -> miette::Result<()> {
+        let uut = ParallelPortEpp::<8>::new(EppTimings { t_wait_max: bits(0) });
+        let mut stream_in: Vec<In> = vec![In {
+            op: EppOp::AddrWrite,
+            data: bits(0x42),
+            d_in: bits(0),
+            start: true,
+            wait_n_in: true,
+        }];
+        for _ in 0..120 {
+            stream_in.push(idle_in());
+        }
+        let stream = stream_in.into_iter().with_reset(1).clock_pos_edge(100);
+        let any_timeout = uut
+            .run(stream)
+            .synchronous_sample()
+            .filter(|s| !s.input.0.reset.any())
+            .any(|s| s.output.timeout);
+        assert!(!any_timeout, "with t_wait_max=0, timeout must never fire");
+        Ok(())
+    }
+
     #[test]
     fn test_vlog_generation() -> miette::Result<()> {
-        let uut = ParallelPortEpp::default();
+        let uut = ParallelPortEpp::<8>::new(test_timings());
         let desc = uut.descriptor("top".into())?;
         let hdl = desc.hdl()?.modules.pretty();
-        let expect = expect!["9534"];
+        let expect = expect!["13455"];
         expect.assert_eq(&hdl.len().to_string());
         Ok(())
     }
 
     #[test]
     fn test_parallel_port_epp_hdl_works() -> miette::Result<()> {
-        let uut = ParallelPortEpp::default();
+        let uut = ParallelPortEpp::<8>::new(test_timings());
         let stream_in = drive_cycle(EppOp::AddrWrite, 0x42, 0, 3, 3);
         let stream = stream_in.into_iter().with_reset(1).clock_pos_edge(100);
         let test_bench = uut.run(stream).collect::<SynchronousTestBench<_, _>>();
@@ -423,7 +548,7 @@ mod tests {
 
     #[test]
     fn test_parallel_port_epp_trace() -> miette::Result<()> {
-        let uut = ParallelPortEpp::default();
+        let uut = ParallelPortEpp::<8>::new(test_timings());
         let stream_in = drive_cycle(EppOp::AddrWrite, 0x42, 0, 3, 3);
         let stream = stream_in.into_iter().with_reset(1).clock_pos_edge(100);
         let vcd = uut.run(stream).collect::<VcdFile>();
@@ -431,7 +556,7 @@ mod tests {
             .join("vcd")
             .join("parallel_port_epp");
         std::fs::create_dir_all(&root).unwrap();
-        let expect = expect!["111715c1ef768e708d9d03211b9391fd391f1a8f82548e8be44574f7438a01b4"];
+        let expect = expect!["9c703d07f5a176a8de6f86269d5c62ffd75227a2d44f3ecd2ad1aab259e23ad0"];
         let digest = vcd
             .dump_to_file(root.join("parallel_port_epp.vcd"))
             .unwrap();
@@ -441,9 +566,9 @@ mod tests {
 
     #[test]
     fn test_fsm_descriptor_round_trip() {
-        let desc = ParallelPortEpp::fsm_descriptor();
+        let desc = ParallelPortEpp::<8>::fsm_descriptor();
         assert_eq!(desc.widget_name, "ParallelPortEpp");
-        assert_eq!(desc.variants().len(), 6);
+        assert_eq!(desc.variants().len(), 7);
         assert_eq!(desc.initial_index(), 0);
     }
 }

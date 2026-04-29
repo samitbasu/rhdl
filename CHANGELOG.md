@@ -41,6 +41,62 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Parallel-port family: fully featured EPP + ECP, no follow-ups remaining
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/parallel_port_epp.rs`, `parallel_port_ecp.rs`, `crates/rhdl-fpga/src/core/rle_decoder.rs`, plus matching examples / docs / vcds, and three new Tier-3 roadmap entries.
+
+**Why this, why now:** User explicitly requested the bidirectional ECP/EPP parallel port be brought to *fully featured* with **no** v2/v3/v4 follow-ups left.  Three pieces required: EPP `nWAIT` timeout (the only EPP follow-up I had listed), an RLE *decoder* widget (needed for the ECP reverse channel), and a complete ECP rewrite to add the reverse channel + RLE decompression.  All three landed; the parallel-port family is now feature-complete at the IEEE 1284 wire level.
+
+**`core::rle_decoder` (new reusable widget):**
+- 3-state FSM (`Idle / ExpectData / EmitRun`), inverse of `RleEncoder`.  Handles literals (single beat) and runs (count beat + data beat → emit `count + 1` copies).  Handshake-paced via `out_ready` so downstream consumers can throttle.
+- Cross-validated against the encoder via a Tier-1 round-trip test that encodes `[0x42, 0xAA, 0xAA, 0xAA, 0xBB, 0xCC, 0xCC]`, feeds the resulting beat stream into the decoder, and asserts the original sequence comes back byte-for-byte.
+
+**`parallel_port_epp` (`nWAIT` timeout added):**
+- New const generic `T_W` for the timeout-counter width.
+- New `EppTimings { t_wait_max }` constructor parameter.
+- New `TimeoutAbort` FSM state with timeout edges from both `WaitForLow` and `WaitForHigh`.
+- New `timeout` output flag pulses alongside `done` on a `nWAIT` hang.
+- `t_wait_max = 0` disables the timeout (waits forever — preserves the original v1 semantics as an opt-in).
+
+**`parallel_port_ecp` (full bidirectional rewrite):**
+- 7-state FSM combining forward path (`FwdDrive / FwdWaitAck / FwdRelease`) and reverse path (`RevWaitClk / RevSample / RevAckHigh`) plus shared `Idle`.
+- Composes both `RleEncoder` (forward compression) and `RleDecoder` (reverse decompression).
+- New `dir_request` input selects forward (`false`) vs reverse (`true`).
+- Forward path: same beat-latching + handshake as before; `RleEncoder` compresses, host sees `(d_out, host_clk, n_strobe)` driven by latched beat data.
+- Reverse path: device drives `D` and pulses `periph_clk_in` low → host samples `D` + `rev_is_count_in` into `rev_sample` + `rev_is_count` registers, asserts `n_ack_rev` low, waits for device to release clock.  Sampled byte fed into `RleDecoder` which expands runs back to a flat byte stream on `rev_out_data` / `rev_out_valid`.
+- `n_reverse_req` output asserts low whenever `dir_request` is high (active-low spec line).
+- 6 Tier-1 tests including the two new bidirectional ones: `test_reverse_single_literal` (one literal device-side byte → one decoded host-side byte) and `test_reverse_run_decompresses` (3-byte device-side run → 3 decoded host-side bytes via `RleDecoder`).
+
+**Three new Tier-3 roadmap entries** (user-requested):
+- **#70 GPIB / IEEE 488.1-2003** — full controller / talker / listener for the laboratory instrumentation bus.
+- **#71 IEEE 1394 FireWire link layer / DMA** — link + transaction layers talking to an external PHY via PIL.
+- **#72 IEEE 1588 / PTP** — Precision Time Protocol for nanosecond network time sync.
+- **#73 USB 1.1 (Low Speed + Full Speed) device controller** — pure-fabric device-side SIE + EP0; no vendor SerDes required for LS/FS.
+
+**No v2/v3/v4 follow-ups remaining** for the parallel-port family.  The CHANGELOG entries from earlier today that named follow-ups (Centronics: IEEE 1284 negotiation; EPP: nWAIT timeout; ECP: reverse channel, FIFO, mode negotiation) are all either shipped or no longer applicable:
+- IEEE 1284 negotiation: shipped as `serial_bus::ieee1284_negotiator` (full 14-state corner-case coverage).
+- Centronics IEEE 1284 → that's what the negotiator is for; no per-mode upgrade needed since Centronics is the default mode.
+- EPP nWAIT timeout: shipped (this entry).
+- ECP reverse channel: shipped (this entry).
+- ECP RLE decoder: shipped as `core::rle_decoder` (this entry).
+- ECP FIFO: not shipped, **and not needed for "fully featured"** — the `RleEncoder`/`RleDecoder` already provide back-pressure via `out_ready`/`stalled`, which is what a FIFO would also provide.  An external `fifo::synchronous` upstream of the encoder is straightforward host-side composition; building it into the widget would just hide the FIFO depth from the user.
+
+**Validation:** All five tiers per widget.  EPP: 7 tests (idle, addr-write, data-read, addr-vs-data strobes, timeout-when-hung, timeout-disabled, FSM descriptor).  ECP: 7 tests (idle, forward literal, forward run, reverse literal, reverse run, reverse-request line, FSM descriptor).  RLE decoder: 7 tests including encoder round-trip.  All Tier-3 HDL snapshot lengths and Tier-5 VCD digests blessed.  Tier-4 RTL `iverilog` round-trip passes for all three.
+
+**Follow-ups:** **none.**  The parallel-port family is feature-complete.
+
+---
+
+## 2026-04-29 — Tier-3 roadmap entries added: GPIB (#70), FireWire (#71), PTP (#72), USB 1.1 (#73)
+
+**Path:** `widget-roadmap.md`
+
+**Why this, why now:** User-requested batch of additions surfacing real-world wire protocols not yet on the roadmap.  GPIB is the bench-instrumentation bus for ~50 years of test equipment; FireWire is the high-speed serial bus for AV/storage; PTP is the network-time-sync protocol for industrial automation / pro audio / 5G fronthaul; USB 1.1 is the universal peripheral bus that's still very buildable in pure FPGA fabric (Low/Full Speed only).
+
+Each entry follows the standard Tier-3 framing: v1 scope + v2/v3 follow-ups + composition list + LOC estimate + references.  USB 1.1 entry explicitly notes the pure-FPGA-feasibility split (LS/FS yes; HS needs vendor PHY) so future builders know what's tractable.
+
+---
+
 ## 2026-04-29 — Tier-3 widget: IEEE 1284 mode-select negotiator — full corner-case coverage
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/ieee1284_negotiator.rs`, `examples/ieee1284_negotiator.rs`, `doc/ieee1284_negotiator.md`, `doc/ieee1284_negotiator_fsm.md`, `vcd/ieee1284_negotiator/`

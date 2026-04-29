@@ -9,19 +9,55 @@ fn main() -> Result<(), RHDLError> {
 
     let uut = ParallelPortEcp::default();
     let mut stream_in: Vec<In> = Vec::new();
+    // Forward direction: stream a literal + a 3-byte run.
     for &b in &[0x42u8, 0xAA, 0xAA, 0xAA] {
         stream_in.push(In {
             in_data: bits(b as u128),
             in_valid: true,
             flush: false,
             periph_ack_in: false,
+            d_in_rev: bits(0),
+            periph_clk_in: true,
+            rev_out_ready: false,
+            dir_request: false,
+            rev_is_count_in: false,
         });
-        for _ in 0..6 {
+        stream_in.push(In {
+            in_data: bits(0),
+            in_valid: false,
+            flush: false,
+            periph_ack_in: false,
+            d_in_rev: bits(0),
+            periph_clk_in: true,
+            rev_out_ready: false,
+            dir_request: false,
+            rev_is_count_in: false,
+        });
+    }
+    stream_in.push(In {
+        in_data: bits(0),
+        in_valid: false,
+        flush: true,
+        periph_ack_in: false,
+        d_in_rev: bits(0),
+        periph_clk_in: true,
+        rev_out_ready: false,
+        dir_request: false,
+        rev_is_count_in: false,
+    });
+    // Drain (alternating idle/ack to walk the forward handshake).
+    for _ in 0..40 {
+        for _ in 0..2 {
             stream_in.push(In {
                 in_data: bits(0),
                 in_valid: false,
                 flush: false,
                 periph_ack_in: false,
+                d_in_rev: bits(0),
+                periph_clk_in: true,
+                rev_out_ready: false,
+                dir_request: false,
+                rev_is_count_in: false,
             });
         }
         for _ in 0..2 {
@@ -30,29 +66,23 @@ fn main() -> Result<(), RHDLError> {
                 in_valid: false,
                 flush: false,
                 periph_ack_in: true,
+                d_in_rev: bits(0),
+                periph_clk_in: true,
+                rev_out_ready: false,
+                dir_request: false,
+                rev_is_count_in: false,
             });
         }
-        for _ in 0..6 {
-            stream_in.push(In {
-                in_data: bits(0),
-                in_valid: false,
-                flush: false,
-                periph_ack_in: false,
-            });
-        }
-    }
-    stream_in.push(In {
-        in_data: bits(0),
-        in_valid: false,
-        flush: true,
-        periph_ack_in: false,
-    });
-    for _ in 0..40 {
         stream_in.push(In {
             in_data: bits(0),
             in_valid: false,
             flush: false,
             periph_ack_in: false,
+            d_in_rev: bits(0),
+            periph_clk_in: true,
+            rev_out_ready: false,
+            dir_request: false,
+            rev_is_count_in: false,
         });
     }
     let stream = stream_in.into_iter().with_reset(1).clock_pos_edge(100);
