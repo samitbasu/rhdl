@@ -18,11 +18,13 @@
 pub mod can_master;
 pub mod dht22;
 pub mod half_spi_master;
+pub mod hd44780;
 pub mod i2c_master;
 pub mod ir_nec_rx;
 pub mod lin_master;
 pub mod midi;
 pub mod one_wire_master;
+pub mod rs485_master;
 pub mod sent_rx;
 pub mod spi_master;
 pub mod spi_slave;
