@@ -31,6 +31,33 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: NAND flash controller (ONFI 1.x async, primitive-cycle) (#54)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/nand_flash_async.rs`, `examples/nand_flash_async.rs`, `doc/nand_flash_async.md`, `doc/nand_flash_async_fsm.md`, `vcd/nand_flash_async/`
+
+**Why this, why now:** Raw NAND flash is the foundational storage primitive for embedded systems — every SD card, USB stick, and SSD is NAND under a controller.  ONFI 1.x async parallel mode is the legacy interface that doesn't require DDR I/O primitives, making it portable across every FPGA target.  Ships as a *primitive-cycle* widget (one byte = one strobe sequence) so the page-read / page-program / block-erase command sequencers and the BCH ECC pipeline (#55) can layer on top without re-doing wire-level timing.
+
+**Design decisions:**
+- **Four-op surface** — `SendCommand` / `SendAddress` / `SendData` / `ReadData`.  Maps 1:1 onto ONFI 1.0's CLE / ALE / data / read distinction.  The command-set sequencers are stateless from this widget's perspective; they're `for byte in cmd_seq { fire(byte, op); wait_done(); }` loops.
+- **Six-state FSM** — `Idle / SetupWrite / WeLow / ReadLow / ReadSample / Stop`.  Two paths through (write vs. read) joining at `Stop`.  `#[derive(Fsm, FsmWidget)]`.
+- **Bidirectional `D` bus exposed as `(d_oe, d_out, d_in)` triplet** — same convention as 1-Wire / I²C / half-SPI.  Host wraps with `tristate::simple` at the pad.
+- **`CE_n` always low in v1** — simplifies the cycle FSM.  Multi-chip-select boards add an external gating layer or upgrade to a v2 widget that multiplexes CE.
+- **`R_B_n` is a passthrough output** — the host samples it between high-level operations to know when a programming/erase finished.  No internal polling FSM in v1; that lives in the per-command sequencers.
+
+**Surprises and gotchas:**
+- **`ReadSample` is a one-cycle state, not a tick-counted one.**  After `RE_n` has been low for `t_re_low` cycles the data on the chip's bus is valid (within the spec's tDH/tREA window); we sample on the very next cycle and immediately move to Stop.  Adding a configurable hold time would just slow the cycle without value — the sample point is determined by the chip's spec, not the host's preference.
+
+**Validation:** All five tiers.  Tier-1 (six tests): idle strobes high, send-command asserts CLE only, send-address asserts ALE only, send-data asserts neither, read-data captures `d_in` to `data_out` and keeps `d_oe` low, R/B# passthrough.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.
+
+**Follow-ups:**
+- **Page-read sequencer** — composes 6 cycles: SendCommand(0x00), SendAddress×5 (column low/high + row low/mid/high), SendCommand(0x30), then poll R/B#, then ReadData × 2K (page size).
+- **Page-program sequencer** — SendCommand(0x80), SendAddress×5, SendData × 2K, SendCommand(0x10), poll R/B#, then ReadData(status) to verify success.
+- **Block-erase sequencer** — SendCommand(0x60), SendAddress×3 (row only), SendCommand(0xD0), poll R/B#.
+- **BCH ECC pipeline (#55)** — interpose between the page sequencer and the host's data path; encoder on writes, decoder + correct on reads.
+- **Multi-chip-select / CE multiplexing** — straightforward extension once two chips share the bus.
+
+---
+
 ## 2026-04-29 — Tier-3 widget: SMPTE LTC bit-level biphase mark encoder (#47)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/smpte_ltc_encoder.rs`, `examples/smpte_ltc_encoder.rs`, `doc/smpte_ltc_encoder.md`, `doc/smpte_ltc_encoder_fsm.md`, `vcd/smpte_ltc_encoder/`
