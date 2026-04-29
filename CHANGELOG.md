@@ -31,6 +31,41 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widgets added to roadmap: PS/2 keyboard (#56), PS/2 mouse (#57), I²S TX (#58), ISA bus target (#59)
+
+**Path:** `widget-roadmap.md` (4 new entries appended to Tier 3)
+
+**Why this, why now:** User-requested additions surfacing real-world demand: PS/2 (industrial PCs, retro hardware, USB-keyboard fallback), I²S (every modern audio codec), ISA bus (industrial computers, retro builds, the entire vintage ISA card ecosystem).  Each is a reasonable Tier-3 widget — well-defined wire protocol, useful as a teaching example, and a natural composer for higher-level widgets (multi-codec audio mixers, ISA-card emulation, USB-HID PS/2 bridges).
+
+**Roadmap entries:** entries 56–59, each with the standard "v1 scope / v2 follow-ups / composes / ~LOC / references" framing matching the existing Tier-3 entries.
+
+---
+
+## 2026-04-29 — Tier-3 widget: PS/2 keyboard receiver (#56)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/ps2_keyboard.rs`, `examples/ps2_keyboard.rs`, `doc/ps2_keyboard.md`, `doc/ps2_keyboard_fsm.md`, `vcd/ps2_keyboard/`
+
+**Why this, why now:** First widget in the new PS/2 / I²S / ISA group surfaced by the user.  Receive-only v1 — the keyboard-side wire protocol is the load-bearing piece; bidirectional (host→keyboard) is a small extension that defers to v2.  The mouse widget (#57) builds directly on this as a packet-byte assembler.
+
+**Design decisions:**
+- **Two-state FSM** — `Idle / Shift`.  Falling edge on `clk_in` triggers shift-into-LSB-position-bit_idx; after 11 bits the frame is validated and the FSM returns to Idle.  Tagged with `#[derive(Fsm, FsmWidget)]`.
+- **Per-bit popcount inline** — 8 single-bit additions over the data byte, then odd-parity check `(ones + parity_bit) & 1 == 1`.  Could compose `core::popcount::popcount` but the inline loop is 4 lines and avoids pulling a generic into a fixed-width context.
+- **Caller is responsible for synchronizer chain** — both `clk_in` and `data_in` must already be in the FPGA clock domain.  The widget assumes synchronous inputs and just edge-detects via a 1-cycle history register.  Composing the synchronizer chain inline would be overreach; the host wraps with `cdc::synchronizer_chain::BitSyncChain` per their I/O policy.
+- **`scan_code` is sticky** — refreshed only on a successful frame; bad frames pulse `frame_err` and leave the previous code.  Matches what every PC keyboard driver does (a corrupted byte is dropped, not surfaced as garbage).
+
+**Surprises and gotchas:**
+- **`.raw()` is host-only, not kernel-callable.**  First attempt used `q.bit_idx.raw()` for the shift amount and `data_field.raw()` for the byte conversion.  Kernel rejected both with a width-mismatch error.  Fix: use `Bits<N>` directly as the shift amount (`new_shift = q.shift | (one << q.bit_idx)`) and use `.resize::<8>()` to narrow `Bits<11>` down to `Bits<8>`.  Recorded in CLAUDE.md follow-ups; this is now the second widget that hit it (battery_monitor was the first).
+- **Bit-shift on `Bits` accepts a `Bits`-typed shift amount.**  Tried `(k as u128)` for the loop iterator — works for the popcount inner loop where `k` is a literal `usize`, but not for the bit-position case where I had a registered `Bits<4>`.  The kernel-language `<<` is overloaded for both forms.
+
+**Validation:** All five tiers.  Tier-1 (4 tests): idle no-valid, receive 0x55 (alternating-bits), receive 0x1C ('A' on Set 2), bad-parity → frame_err not valid.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.  FSM descriptor confirms 2 variants and `Idle` initial.
+
+**Follow-ups:**
+- **Bidirectional v2** — host pulls CLK low ≥ 100 µs to claim the bus, then drives DATA while the keyboard clocks.  Adds a transmit-side FSM with a request-to-send dance.  ~80 LOC additional.
+- **Scan-code-set decoder** — a separate widget that translates Set 2 (the modern default) into ASCII or USB HID page 7 codes.  Higher-level layer; doesn't change this widget.
+- **PS/2 mouse (#57)** is the natural composer; reuses the byte-receiver and adds a 3-byte packet assembler.
+
+---
+
 ## 2026-04-29 — Tier-3 widget: Battery-management single-register poller (TI HDQ) (#46)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/battery_monitor.rs`, `examples/battery_monitor.rs`, `doc/battery_monitor.md`, `doc/battery_monitor_fsm.md`, `vcd/battery_monitor/`
