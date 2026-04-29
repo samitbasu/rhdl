@@ -120,26 +120,44 @@ pub enum CanState {
 
 /// Sub-state within a transmit frame.  Each variant corresponds
 /// to a CAN field.
-#[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy, Default, Fsm)]
 pub enum CanField {
+    /// Start-of-frame: a single dominant bit that begins every frame.
     #[default]
+    #[fsm_state(label = "SOF")]
     Sof,
+    /// 11-bit standard identifier, MSB-first.
     Id,
+    /// Remote transmission request bit (always dominant for data frames).
     Rtr,
+    /// Identifier extension bit (dominant for standard ID, recessive for extended).
     Ide,
+    /// Reserved bit r0 (always dominant).
     R0,
+    /// 4-bit data length code.
     Dlc,
+    /// 0..=64 data bits (8 × DLC), MSB-first.
     Data,
+    /// 15-bit CRC, polynomial 0x4599, MSB-first.
     Crc,
+    /// CRC delimiter — single recessive bit.
+    #[fsm_state(label = "CRCDelim")]
     CrcDelim,
+    /// ACK slot — driven recessive by master; receivers respond by going dominant.
+    #[fsm_state(label = "ACK")]
     AckSlot,
+    /// ACK delimiter — single recessive bit.
+    #[fsm_state(label = "ACKDelim")]
     AckDelim,
+    /// 7 recessive bits marking end-of-frame.
     Eof,
+    /// 3 recessive bits of inter-frame spacing.
     Ifs,
 }
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ, FsmWidget)]
 #[rhdl(dq_no_prefix)]
+#[fsm(state_field = "field", state_enum = CanField)]
 /// CAN master core (TX-only v1).
 pub struct CanMaster<const DIV_W: usize>
 where
@@ -256,15 +274,14 @@ where
     // and we rely on the generic `Shr<Bits<M>> for Bits<N>` impl rather
     // than converting the index to the register's width.
     let raw_bit = match q.field {
-        CanField::Sof => false, // SOF is dominant.
+        // SOF + RTR (data frame) + IDE (standard ID) + r0 (reserved) all
+        // emit a dominant bit.
+        CanField::Sof | CanField::Rtr | CanField::Ide | CanField::R0 => false,
         CanField::Id => {
             // id MSB-first: bit_idx 0 → id[10], bit_idx 10 → id[0].
             let pos = bits::<7>(10) - q.field_bit_idx;
             ((q.id_reg >> pos) & bits::<11>(1)) != bits::<11>(0)
         }
-        CanField::Rtr => false, // data frame
-        CanField::Ide => false, // standard ID
-        CanField::R0 => false,  // reserved dominant
         CanField::Dlc => {
             // dlc MSB-first: bit_idx 0 → dlc[3], bit_idx 3 → dlc[0].
             let pos = bits::<7>(3) - q.field_bit_idx;
@@ -280,11 +297,13 @@ where
             let pos = bits::<7>(14) - q.field_bit_idx;
             ((q.crc_reg >> pos) & bits::<15>(1)) != bits::<15>(0)
         }
-        CanField::CrcDelim => true,  // recessive
-        CanField::AckSlot => true,   // we drive recessive; receivers ack by going dominant
-        CanField::AckDelim => true,  // recessive
-        CanField::Eof => true,       // recessive
-        CanField::Ifs => true,       // recessive
+        // CRC delim, ACK slot (we drive recessive; receivers ack by going
+        // dominant), ACK delim, EOF, and IFS are all recessive.
+        CanField::CrcDelim
+        | CanField::AckSlot
+        | CanField::AckDelim
+        | CanField::Eof
+        | CanField::Ifs => true,
     };
 
     // The wire bit: stuff bit if pending, else raw_bit.
@@ -296,14 +315,14 @@ where
 
     // Stuffing applies in fields SOF through CRC inclusive.
     let in_stuff_zone = match q.field {
-        CanField::Sof => true,
-        CanField::Id => true,
-        CanField::Rtr => true,
-        CanField::Ide => true,
-        CanField::R0 => true,
-        CanField::Dlc => true,
-        CanField::Data => true,
-        CanField::Crc => true,
+        CanField::Sof
+        | CanField::Id
+        | CanField::Rtr
+        | CanField::Ide
+        | CanField::R0
+        | CanField::Dlc
+        | CanField::Data
+        | CanField::Crc => true,
         _ => false,
     };
 
@@ -312,13 +331,13 @@ where
     // bit (per CAN bit period), so we need to know if this commit is happening
     // *now* — we update at the same edge as the bit advance.
     let crc_input_active = match q.field {
-        CanField::Sof => true,
-        CanField::Id => true,
-        CanField::Rtr => true,
-        CanField::Ide => true,
-        CanField::R0 => true,
-        CanField::Dlc => true,
-        CanField::Data => true,
+        CanField::Sof
+        | CanField::Id
+        | CanField::Rtr
+        | CanField::Ide
+        | CanField::R0
+        | CanField::Dlc
+        | CanField::Data => true,
         _ => false,
     };
 
@@ -656,5 +675,25 @@ mod tests {
         let digest = vcd.dump_to_file(root.join("can_master.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
+    }
+
+    // -----------------------------------------------------------
+    // FSM-tooling validation: the #[derive(Fsm)] + #[derive(FsmWidget)]
+    // metadata is well-formed and lines up with the source enum.
+    // -----------------------------------------------------------
+
+    #[test]
+    fn test_fsm_descriptor_round_trip() {
+        let desc = CanMaster::<5>::fsm_descriptor();
+        assert_eq!(desc.widget_name, "CanMaster");
+        assert_eq!(desc.widget.state_field, "field");
+        assert_eq!(desc.kernel.state_var, "q.field");
+        let variants = desc.variants();
+        assert_eq!(variants.len(), 13);
+        assert_eq!(variants[0].name, "Sof");
+        assert_eq!(variants[0].label, Some("SOF"));
+        assert_eq!(variants[12].name, "Ifs");
+        // Sof is the #[default] — initial index is 0.
+        assert_eq!(desc.initial_index(), 0);
     }
 }

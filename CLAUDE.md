@@ -228,6 +228,7 @@ Key invariants:
 - `Option<T>`. `Result<T, E>`.
 - Arithmetic, bitwise, comparison, shift operators. Note `Bits<N>` operations wrap (2's complement, no panic).
 - `if`/`else` as statements *and* expressions. `match` (must be exhaustive). `let` bindings (including `let mut`). Re-assignment of `mut` locals. `let-else` is currently NOT supported across the board — prefer `match`.
+- **Top-level or-patterns** in match arms — `Foo::A | Foo::B => ...` desugars to one arm per alternative. Nested or-patterns inside tuple/struct/slice patterns (e.g. `(A | B, C)`) are rejected with a specific diagnostic; rewrite to manually distributed form (`(A, C) | (B, C)`). See `doc/book/src/kernels/match.md`.
 - Loops with constant bounds: `for i in 0..N { ... }` where `N` is a constant or const-generic. No `while`, no `loop`, no break-with-value.
 - Calls to other `#[kernel]` functions, calls to `signal()`, `bits()`, `signed()`, `clock()`, `reset()`, etc.
 - `dont_care()` constructors for any `Digital` type.

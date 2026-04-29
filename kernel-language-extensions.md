@@ -33,7 +33,7 @@ let x = match optional { Some(v) => v, None => return default };
 **Lowering.** Pure AST transformation in the macro layer.
 **Acceptance.** Existing kernel that uses `match Some/None`-then-bind works identically when rewritten with `let-else`. Test in `crates/rhdl/tests/binding.rs`.
 
-### 2.2 Or-patterns in match arms
+### 2.2 ~~Or-patterns in match arms~~ — shipped 2026-04-29 (PR #3)
 
 ```rust
 match state {
@@ -42,7 +42,9 @@ match state {
 }
 ```
 
-Currently each variant requires a separate arm. The desugaring expands to multiple arms with the same RHS, or — better — lowers to a discriminant-OR check in the existing `Case` opcode.
+**Shipped:** `crates/rhdl-macro-core/src/kernel.rs::match_ex` flat-maps top-level or-patterns into one arm per alternative before the rest of the lowering pipeline runs.  Macro-layer transformation only; no IR change.  Emitted Verilog is byte-identical to the hand-written multi-arm form because RHIF `Case`'s `table: Vec<(CaseArgument, Slot)>` already permits multiple entries pointing at the same Slot.  Nested or-patterns inside tuple/struct/slice patterns (`(A | B, C)`) are caught by `pattern_has_nested_or` and rejected with a specific diagnostic that points at the manual distribution rewrite (`(A, C) | (B, C)`).  See `doc/book/src/kernels/match.md` for the user-facing documentation.
+
+Original entry follows: currently each variant requires a separate arm. The desugaring expands to multiple arms with the same RHS, or — better — lowers to a discriminant-OR check in the existing `Case` opcode.
 
 **Lowering.** RHIF `Case` already supports multiple discriminant values per branch (see `rhdl-core/src/rhif/spec.rs`). The macro layer needs to recognize the syntax and emit the corresponding `Case` arm with a multi-discriminant key. If the IR doesn't yet accept multi-discriminant keys, that's a small, well-isolated extension.
 **Acceptance.** A state-machine kernel that previously required N redundant arms collapses to one arm with N alternatives, with byte-identical emitted Verilog.

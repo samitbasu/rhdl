@@ -108,23 +108,31 @@ pub enum OneWireOp {
 }
 
 /// Internal state machine.
-#[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy, Default, Fsm)]
 pub enum OneWireState {
     #[default]
+    #[fsm_state(label = "idle")]
     Idle,
     /// Driving the bus low for the reset pulse.
+    #[fsm_state(label = "Reset (low)")]
     ResetLow,
     /// Released after reset, sampling for presence pulse.
+    #[fsm_state(label = "Reset (sample)")]
     ResetSample,
     /// Driving the bus low at the start of a write bit slot.
+    #[fsm_state(label = "Write (low)")]
     WriteBitLow,
     /// Released after write low pulse, waiting for end of slot.
+    #[fsm_state(label = "Write (wait)")]
     WriteBitWait,
     /// Driving the bus low at the start of a read bit slot.
+    #[fsm_state(label = "Read (low)")]
     ReadBitLow,
     /// Released after read low pulse, will sample at `t_read_sample`.
+    #[fsm_state(label = "Read (sample)")]
     ReadBitSample,
     /// One-cycle done pulse.
+    #[fsm_state(label = "stop")]
     Stop,
 }
 
@@ -169,8 +177,9 @@ where
     pub t_slot: Bits<T_W>,
 }
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ, FsmWidget)]
 #[rhdl(dq_no_prefix)]
+#[fsm(state_field = "state", state_enum = OneWireState)]
 /// 1-Wire master (single-byte / single-reset v1).
 pub struct OneWireMaster<const T_W: usize>
 where
@@ -380,9 +389,7 @@ where
 
     // Bus drive: low whenever we are in any *Low state.
     let bus_oe = match q.state {
-        OneWireState::ResetLow => true,
-        OneWireState::WriteBitLow => true,
-        OneWireState::ReadBitLow => true,
+        OneWireState::ResetLow | OneWireState::WriteBitLow | OneWireState::ReadBitLow => true,
         _ => false,
     };
 
@@ -642,5 +649,30 @@ mod tests {
         let digest = vcd.dump_to_file(root.join("one_wire_master.vcd")).unwrap();
         expect.assert_eq(&digest);
         Ok(())
+    }
+
+    // -----------------------------------------------------------
+    // FSM-tooling validation: the #[derive(Fsm)] + #[derive(FsmWidget)]
+    // metadata is well-formed and lines up with the source enum.
+    // -----------------------------------------------------------
+
+    #[test]
+    fn test_fsm_descriptor_round_trip() {
+        let desc = OneWireMaster::<10>::fsm_descriptor();
+        assert_eq!(desc.widget_name, "OneWireMaster");
+        assert_eq!(desc.widget.state_field, "state");
+        assert_eq!(desc.kernel.state_var, "q.state");
+        let variants = desc.variants();
+        assert_eq!(variants.len(), 8);
+        // Spot-check the per-variant labels — these are the human-readable
+        // strings the diagram renderer uses in place of the bare variant name.
+        assert_eq!(variants[0].name, "Idle");
+        assert_eq!(variants[0].label, Some("idle"));
+        assert_eq!(variants[1].name, "ResetLow");
+        assert_eq!(variants[1].label, Some("Reset (low)"));
+        assert_eq!(variants[7].name, "Stop");
+        assert_eq!(variants[7].label, Some("stop"));
+        // Idle is the #[default] — initial index is 0.
+        assert_eq!(desc.initial_index(), 0);
     }
 }

@@ -31,6 +31,101 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Refactor `core::can_master` and `core::one_wire_master` to use FSM macros + or-patterns
+
+**Path:** `crates/rhdl-fpga/src/core/can_master.rs`, `crates/rhdl-fpga/src/core/one_wire_master.rs`
+
+**Why this, why now:** First two widget rewrites that opt into the FSM derives (PR #2) and the new top-level or-pattern syntax (PR #3).  The point of the refactor isn't behavioural — emitted Verilog is byte-identical to before — it's to validate that the new tooling holds up against real Tier-3 widgets and to demonstrate the readability win.
+
+**Design decisions:**
+
+- **`can_master`** — picked CanField (the 13-variant frame-walking enum) as the FSM-tagged enum, not CanState (the 2-variant Idle/Tx).  CanField is what the kernel matches on extensively; CanState is essentially a boolean.  The widget can only carry one FSM tag, so the choice is between "useful diagram + analysis on the field-walk" vs "trivial diagram on Idle/Tx".  The first wins easily.  Per-variant labels are added on the variants whose source name doesn't match the canonical CAN spec terminology — `Sof` → `"SOF"`, `CrcDelim` → `"CRCDelim"`, `AckSlot` → `"ACK"`, etc.
+- **`one_wire_master`** — only one state DFF, so the choice is forced.  Per-variant labels expose the natural human-readable phase names (`"Reset (low)"`, `"Reset (sample)"`, `"Write (low)"`, `"Read (sample)"`) instead of the camel-case Rust identifiers.  This is exactly the case `#[fsm_state(label = "...")]` was designed for.
+- **Or-pattern collapse — `can_master`.**  Three matches collapse:
+  - `raw_bit`: 13 arms → 6 arms (4 dominant variants share one arm, 5 recessive variants share another, 4 keep their own arm because each computes a per-bit-index value).
+  - `in_stuff_zone`: 9 arms (8 + wild) → 2 arms.
+  - `crc_input_active`: 8 arms (7 + wild) → 2 arms.
+  Net delete: ~25 lines of redundant arm boilerplate.
+- **Or-pattern collapse — `one_wire_master`.**  `bus_oe` match: 4 arms (3 + wild) → 2 arms.  Smaller win in absolute terms but the kernel reads as "drive low whenever we're in any *Low state, else release," which is much closer to the actual semantics than the three-line per-arm form.
+- **HDL snapshots not re-blessed.**  The `test_vlog_generation` length checks and `test_*_trace` VCD digests are unchanged — proof that the desugaring is byte-identical at the IR level.
+- **Two new tests per widget** (`test_fsm_descriptor_round_trip`).  Walks the variant table emitted by `#[derive(Fsm)]` + `#[derive(FsmWidget)]` and verifies widget name, state-field name, state-var binding, variant count, per-variant labels, and initial-index — i.e., that the metadata the analysis pass and diagram renderer will read is exactly what the source enum says.
+
+**Surprises and gotchas:**
+
+- **Or-patterns inside the kernel feel natural** — once the syntax is allowed, the `Sof | Rtr | Ide | R0 => false` form reads better than the four separate arms ever did.  This wasn't a surprise so much as a confirmation of the original §2.2 motivation.
+- **The 12-tuple ceiling for `Synchronous` derive** still bites here.  `can_master` is at 11 sub-circuit fields after the StuffState consolidation; if the FSM derive ever gains a `&'static [FsmDescriptor]` field on the widget itself (rather than the current associated-function form), the ceiling becomes load-bearing.  Tracked as a follow-up; the current associated-function design avoids the issue by not adding any DFF or sub-circuit.
+- **The widget-name string the macro emits** uses the bare ident (`"CanMaster"`), not the fully-qualified path (`"rhdl_fpga::core::can_master::CanMaster"`).  Confirmed working via the round-trip test.  If two widgets ever share a name, the descriptor's widget_name field will collide; tracked as a future-iteration concern in `fsm-architecture.md` §10.
+
+**Validation:**
+- `can_master`: 7 tests pass (6 original + 1 new fsm-descriptor round-trip).  HDL emission length 26937 chars — unchanged from pre-refactor.  VCD digest unchanged.  iverilog RTL clean.
+- `one_wire_master`: 10 tests pass (9 original + 1 new fsm-descriptor round-trip).  HDL emission length 16431 chars — unchanged.  VCD digest unchanged.  iverilog RTL clean.
+
+**Follow-ups:**
+- **Apply the same refactor to the rest of the FSM-shaped widget corpus.**  Top candidates: `i2c_master` (already documented as wanting or-patterns in its CHANGELOG entry), `lin_master`, `spi_master`, `spi_slave`, `sent_rx`, `ir_nec_rx`, `bus_uart`, `dht22`, `audio_pwm`, `midi`.  Each is a self-contained mini-PR.
+- **Wire `cargo rhdl prove` through these widgets** once Phase 4b ships — the metadata is now in place to drive SymbiYosys against the can_master frame structure (e.g. "after a `start` strobe in `Idle`, the FSM eventually reaches `Stop`") and the one_wire_master timing invariants.
+- **Auto-generated diagrams in the rustdoc.**  The diagram renderer is shipped (PR #2 Layer 3); the next step is wiring `Descriptor::fsm_diagram_svg()` into the existing rustdoc emission pipeline so a widget's docs page automatically shows its state diagram.  Tracked separately because it touches the rustdoc machinery.
+
+---
+
+## 2026-04-29 — FSM macro family + analysis + diagram + SVA-property surface (PR #2)
+
+**Path:** `crates/rhdl-core/src/fsm/`, `crates/rhdl-macro-core/src/{fsm.rs,fsm_widget.rs,fsm_properties.rs}`, `crates/rhdl-macro/src/lib.rs`, `crates/rhdl/src/prelude.rs`, `crates/rhdl/tests/fsm.rs`, `doc/book/src/fsm/*.md`
+
+**Why this, why now:** Lands the four-layer FSM design from `fsm-architecture.md` in one upstream-clean PR (intentionally skipping fork-local docs — this entry catches them up).  Strictly additive: no widget HDL snapshots perturbed, no IR layer or pass-trait family added, no kernel-as-pure-fn invariant relaxed.
+
+**Design decisions:**
+- **Metadata, not new syntax.**  `#[derive(Fsm)]` plus `#[fsm(...)]` / `#[fsm_state(...)]` helper attributes record metadata trait impls; the kernel body is unchanged.  Decision recorded in `fsm-architecture.md` §13 — keeps rust-analyzer working, keeps LLM-generated kernels portable.
+- **`FsmWidget` is the second derive, not a generic.**  Tagging a widget struct with the state field + state enum produces an `FsmDescriptor`-returning helper, decoupling analysis/diagram tooling from the widget's concrete state-enum type.
+- **Pure-function leaf for analysis.**  `fsm/analysis.rs` consumes a transition list + descriptor and emits diagnostics; `fsm/extraction.rs` walks RHIF and produces the transition list.  Two-stage architecture means the analysis is unit-testable without spinning up the compiler.
+- **Three diagram formats from one layout pass.**  Inline SVG (rustdoc-friendly, no Graphviz dep), Graphviz `dot` (external tooling), structured JSON (LLM workflows).  Layered BFS layout from the initial variant.
+- **Single `#[fsm_properties(...)]` attribute, not four.**  Composes `invariant`, `liveness`, `cover`, `assume` declarations in one place with named-call syntax.  Less surface area than four separate attribute macros while keeping the same expressive power.
+- **Cargo subcommand deferred.**  The `cargo rhdl prove` driver that hands SVA off to SymbiYosys is Phase 4b — the metadata surface (this PR) ships now so any tooling can be built against it.
+
+**What guarantee is preserved.**  Kernel-as-pure-fn (no kernel-body changes); type-safe matching (the analysis reads RHIF, doesn't transform it); the existing `Pass` trait architecture (no new passes registered into stage drivers — analysis is a leaf the user invokes explicitly).
+
+**Surprises and gotchas:**
+- **The 12-tuple ceiling for `Synchronous` derive** that bit `can_master` is now load-bearing for FSM widgets too — `FsmWidget` doesn't add fields, but a widget with an FSM is more likely to have many DFFs.  No fix this PR; tracked as a follow-up in `widget-roadmap.md`.
+- **Raw-string delimiter conflict in SVG output** (`r#"...fill="#444"..."#`).  Bumped to `r##"..."##` because `"#` would otherwise close the raw-string early.  Worth a note for any future SVG-emitting code in the tree.
+- **`TypedBits` discriminant decoding** (in `fsm/extraction.rs`) had to walk the bit slice manually since the public API doesn't expose the integer value directly for arbitrary kinds.  Sign-extension handled for both `Kind::Signed` and signed-discriminant `Kind::Enum`.
+
+**Validation:** All 5 tiers, 62 tests pass — 23 unit tests in `rhdl-core::fsm::*`, 22 macro-snapshot tests in `rhdl-macro-core`, 17 end-to-end integration tests in `crates/rhdl/tests/fsm.rs`.  Existing widget HDL snapshots untouched (verified by spot-checking `core::dff`, `core::counter`, `core::pwm`).
+
+**Follow-ups:**
+- **Widget rewrites** — opt-in `#[derive(Fsm)]` and `#[derive(FsmWidget)]` on the FSM-shaped widget corpus.  First two land in `refactor/use-fsm-and-or-patterns` (`can_master`, `one_wire_master`); the rest follow as separate batches.
+- **`cargo rhdl prove`** — the SymbiYosys driver subcommand that compiles the widget Verilog with SVA included, generates a `.sby` config, runs `sby`, and structures the counterexample trace.  Phase 4b in `fsm-architecture.md`.
+- **In-kernel BMC** — Phase 5.  Aspirational; symbolic execution of the kernel function over `(state, input)` for K cycles via z3/boolector bindings.  6+ months of work; not committed.
+- **Pattern-distribution for nested or-patterns inside state-construction** — orthogonal but the FSM analysis becomes richer once that lands (see `kernel-language-extensions.md` §2.2 follow-up).
+- **Widget snapshot regression** — the FSM derives are zero-cost on existing widgets (no fields added), but if `Synchronous` derive ever changes its tuple layout, the FSM macros need to track it.
+- **The 12-tuple ceiling for `Synchronous` derive** noted above — when the macro emits a real generated struct instead of a raw tuple, FSM widgets benefit too.
+
+---
+
+## 2026-04-29 — Top-level or-patterns in `#[kernel]` match arms (PR #3)
+
+**Path:** `crates/rhdl-macro-core/src/kernel.rs` (`match_ex`, `pattern_has_nested_or`, `pat()`), `crates/rhdl-macro-core/src/expect/match_or_pattern.expect`, `crates/rhdl/tests/match_or.rs`, `doc/book/src/kernels/match.md`
+
+**Why this, why now:** Lands `kernel-language-extensions.md` §2.2 — the first item from Phase 1 of the kernel-language-extensions plan.  Or-patterns are by far the highest-frequency pattern friction in FSM-style kernels (every protocol PHY has clusters of variants with the same body — see the `can_master::raw_bit` / `in_stuff_zone` / `crc_input_active` matches that this PR's companion refactor collapses).
+
+**Design decisions:**
+- **Macro-layer flat-map, not IR change.**  RHIF `Case`'s `table: Vec<(CaseArgument, Slot)>` already permits multiple entries pointing at the same Slot — the macro just emits one entry per alternative with the same target slot.  Equivalent Verilog at zero IR cost.
+- **Top-level only.**  Nested or-patterns inside tuple/struct/slice patterns (`(A | B, C)`) are caught by `pattern_has_nested_or` and rejected with a specific diagnostic that points the user at the manual distribution rewrite (`(A, C) | (B, C)`).  Same restriction Spade and Bluespec ship with.
+- **Existing helpers anticipated this.**  Three of the macro-layer pattern helpers (`pattern_has_bindings`, `rewrite_pattern_to_use_dont_care_for_bindings`, `add_scoped_binding`) already handled `Pat::Or` recursively from prior groundwork.  Only the dispatcher (`match_ex`) and the diagnostic in `pat()` needed updating.
+
+**What guarantee is preserved.**  Kernel-as-pure-fn (purely a macro-layer transformation, no kernel-body semantics change); type-safe matching (Rust's own checker enforces same-bindings-same-types across alternatives before our macro sees the AST); exhaustiveness (the desugared form preserves arm coverage).
+
+**Surprises and gotchas:**
+- **`arm()` shortcut-routing for no-binding patterns.**  Patterns without bindings get routed through `rewrite_pattern_as_typed_bits`, which would silently emit invalid Rust for nested or-patterns like `(A | B, C)`.  The recursive `pattern_has_nested_or` check in `match_ex` catches this case before it reaches `arm()`.
+- **The "Surprise" line in the `i2c_master` CHANGELOG entry** (saying or-patterns aren't supported) is now historical — kept as-is to record the prior state, but the surrounding context has shifted.
+
+**Validation:** 54 macro-core tests pass (52 original + 2 new: `test_match_or_pattern` snapshot + `test_match_nested_or_pattern_rejected` negative).  5 integration tests in `crates/rhdl/tests/match_or.rs` covering enum or-patterns, three-alternative groups, and literal-value alternatives — each runs through both VM and iverilog round-trip.
+
+**Follow-ups:**
+- **IR-level multi-discriminant `CaseArgument`** — would compile each or-pattern to a single `Case` arm with `CaseArgument::Slots(Vec<Slot>)` instead of N arms with the same target.  More efficient but requires extending the RHIF spec; the macro-layer flat-map is fine for v1.
+- **Nested or-patterns via pattern distribution.**  Tractable but combinatorial-explosion-prone at depth; not on the near-term roadmap.
+- **Other Phase-1 pattern desugarings** from `kernel-language-extensions.md` §2.1–2.9 — `let-else`, range patterns, match guards, `@` bindings, array destructuring, `?` on Option, `for x in array`, compile-time `assert!`.  Each ships as its own PR per CLAUDE.md §11.1.
+
+---
+
 ## 2026-04-29 — Bus-attached UART (16550A-style register interface, v1)
 
 **Path:** `crates/rhdl-fpga/src/core/bus_uart.rs` (+ example, doc, vcd)

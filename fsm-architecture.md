@@ -399,15 +399,18 @@ Specific test requirements per layer:
 
 ## 11 — Phasing summary
 
-| Phase | Deliverable | Effort | Depends on |
+| Phase | Deliverable | Status | Depends on |
 |---|---|---|---|
-| 1 | `#[derive(Fsm)]` macro + 3 widget rewrites | ~2 weeks | Nothing |
-| 2 | Static reachability + dead-state pass | ~4 weeks | Phase 1 |
-| 3 | Auto-generated state diagrams in rustdoc | ~2 weeks | Phase 1, 2 |
-| 4 | Invariants + SymbiYosys flow + corpus proofs | ~6 weeks | Phase 1, 2 |
-| 5 | Built-in bounded model checker | ~6 months | Phase 4 (validates approach) |
+| 1 | `#[derive(Fsm)]` macro + `#[derive(FsmWidget)]` | **shipped 2026-04-29 (PR #2)** | Nothing |
+| 2 | Static reachability + dead-state pass | **shipped 2026-04-29 (PR #2)** | Phase 1 |
+| 3 | Auto-generated state diagrams (SVG + dot + JSON) | **shipped 2026-04-29 (PR #2)** | Phase 1, 2 |
+| 4 | `#[fsm_properties(...)]` + SVA emission | **shipped 2026-04-29 (PR #2)** | Phase 1, 2 |
+| 4b | `cargo rhdl prove` SymbiYosys driver + corpus proofs | not yet shipped | Phase 4 |
+| 5 | Built-in bounded model checker | not yet shipped (research-grade) | Phase 4b (validates approach) |
 
-Phases 1+2+3 ship together as one roadmap track ("FSM ergonomics + analysis"). Phase 4 is its own track. Phase 5 is research-grade, not committed.
+Phases 1–4 shipped together as a single PR (`feat/fsm-architecture`).  The metadata surface is in place; the cargo subcommand that drives SymbiYosys end-to-end (Phase 4b) and the in-house BMC (Phase 5) remain as future tracks.
+
+The first widget rewrites that opt into the FSM derives ship in `refactor/use-fsm-and-or-patterns` (post-merge of PR #2 and PR #3): `core::can_master` (CanField as the FSM enum, plus or-pattern collapse of three field-classification matches) and `core::one_wire_master` (OneWireState).  See the relevant CHANGELOG entries for the detailed before/after.
 
 ---
 
