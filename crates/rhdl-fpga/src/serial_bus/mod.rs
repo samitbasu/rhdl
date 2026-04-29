@@ -17,6 +17,7 @@
 //! I/O pads.
 pub mod can_master;
 pub mod dht22;
+pub mod epaper_ssd16xx;
 pub mod half_spi_master;
 pub mod hd44780;
 pub mod i2c_master;
