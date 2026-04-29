@@ -31,6 +31,30 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: SMPTE LTC bit-level biphase mark encoder (#47)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/smpte_ltc_encoder.rs`, `examples/smpte_ltc_encoder.rs`, `doc/smpte_ltc_encoder.md`, `doc/smpte_ltc_encoder_fsm.md`, `vcd/smpte_ltc_encoder/`
+
+**Why this, why now:** SMPTE 12M Linear Timecode is the time-of-day signal every video editor since the 1970s has recorded onto an audio track or dedicated wire.  Encoded as biphase mark (the same line code as AES3 / S/PDIF) — every cell starts with a transition; a `1` bit adds a mid-cell transition.  Self-clocking and polarity-insensitive.  Ships next to the MFM encoder so the two structurally similar bit-level encodings sit side-by-side for comparison.
+
+**Design decisions:**
+- **Three-state FSM** — `Idle / PhaseA / PhaseB`.  `cell_tick` advances; the line toggles on every Idle→PhaseA and PhaseB→PhaseA transition (cell start), and additionally on PhaseA→PhaseB if the latched bit is `1` (mid-cell transition).
+- **Host-driven cell timing** via `cell_tick` — decouples the encoder from any specific bit rate.  LTC's nominal rate is 2400 Hz at 30 fps but ranges from 2000–2400 depending on frame rate; pushing the divider into the host means one widget covers every variant.
+- **Done pulses on PhaseA→PhaseB transition** — this is the exact moment the cell's transition pattern is fully emitted (one toggle for `0`, two for `1`).  After 4 bits = 8 ticks, exactly 4 done pulses fire.  Confirmed with a Tier-1 test.
+- **Bit-level only** — the 80-bit frame structure (hours/minutes/seconds/frame/user-bits/sync `0xBFFC`), drop-frame flag, and audio-band waveform driver are deferred to v2.
+
+**Surprises and gotchas:**
+- **First attempt put `done_pulse` on the PhaseB→PhaseA transition.**  This produced N−1 pulses for N bits because the last bit ends in PhaseB without continuing.  Moved to PhaseA→PhaseB.  The semantic shift is small but the test count matches now.  Recorded in this CHANGELOG so the next "self-clocked encoder" widget gets the convention right on the first try.
+
+**Validation:** All five tiers.  Tier-1: idle no toggles, `0` bit → 1 transition, `1` bit → 2 transitions, 4 bits → 4 done pulses.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.
+
+**Follow-ups:**
+- **80-bit frame builder** — 64 data bits + 16-bit sync word `0xBFFC`, with the drop-frame and color-frame flags placed at the spec-defined bit positions.  Strobes the encoder once per bit at the host's frame rate.
+- **LTC reader** — the inverse: detect cell-start transitions, time-window the next half-cell, classify as `0` (no mid-cell transition) or `1` (mid-cell transition).  Needs PLL for cell-clock recovery, similar to MFM decoder.
+- **AES3 / S/PDIF audio encoder** — same biphase mark code with a different framing (preamble + 24-bit audio + AUX bits + V/U/C/P).  Direct reuse of this widget's FSM, different higher-level frame builder.
+
+---
+
 ## 2026-04-29 — Tier-3 widget: MFM (Modified Frequency Modulation) encoder (#51)
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/mfm_encoder.rs`, `examples/mfm_encoder.rs`, `doc/mfm_encoder.md`, `doc/mfm_encoder_fsm.md`, `vcd/mfm_encoder/`
