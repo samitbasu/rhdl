@@ -89,17 +89,42 @@ bool |                      | B<T_W>
 //!
 //! The trace below demonstrates the result.
 #![doc = include_str!("../../doc/sent_rx.md")]
+//!
+//! And the auto-generated FSM diagram for the sync-detect / collect cycle:
+#![doc = include_str!("../../doc/sent_rx_fsm.md")]
+use rhdl::core::fsm::analysis::Transition;
 use rhdl::prelude::*;
 
 use crate::core::{constant::Constant, dff};
 
+/// Author-curated transition graph for the SENT-receiver FSM.
+///
+/// Required by CLAUDE.md §12 rule 14.  Indices match `SentState`
+/// declaration order (Idle=0, Collecting=1).
+pub const FSM_TRANSITIONS: &[Transition] = &[
+    Transition {
+        source_index: 0,
+        target_index: 1,
+    }, // Idle → Collecting (sync pulse seen)
+    Transition {
+        source_index: 1,
+        target_index: 1,
+    }, // Collecting self-loop (per nibble)
+    Transition {
+        source_index: 1,
+        target_index: 0,
+    }, // Collecting → Idle (frame done / abort)
+];
+
 /// State machine.
-#[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy, Default, Fsm)]
 pub enum SentState {
     /// Looking for the first sync pulse.
     #[default]
+    #[fsm_state(label = "idle")]
     Idle,
     /// Sync seen; collecting the 8 nibbles that follow.
+    #[fsm_state(label = "collecting")]
     Collecting,
 }
 
@@ -130,8 +155,9 @@ where
     pub t_sync_max: Bits<T_W>,
 }
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ, FsmWidget)]
 #[rhdl(dq_no_prefix)]
+#[fsm(state_field = "state", state_enum = SentState)]
 /// SENT receiver (framing-helper v1).
 pub struct SentRx<const T_W: usize>
 where

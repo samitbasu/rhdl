@@ -85,22 +85,67 @@ bool |                          | bool
 //!
 //! The trace below demonstrates the result.
 #![doc = include_str!("../../doc/half_spi_master.md")]
+//!
+//! And the auto-generated FSM diagram for the half-duplex transaction:
+#![doc = include_str!("../../doc/half_spi_master_fsm.md")]
+use rhdl::core::fsm::analysis::Transition;
 use rhdl::prelude::*;
 
 use crate::core::dff;
 
+/// Author-curated transition graph for the half-duplex SPI master.
+///
+/// Required by CLAUDE.md §12 rule 14.  Indices match
+/// `HalfSpiState` declaration order (Idle=0, Write=1, Turnaround=2,
+/// Read=3).
+pub const FSM_TRANSITIONS: &[Transition] = &[
+    Transition {
+        source_index: 0,
+        target_index: 1,
+    }, // Idle → Write (on `start`)
+    Transition {
+        source_index: 1,
+        target_index: 1,
+    }, // Write self-loop (per bit)
+    Transition {
+        source_index: 1,
+        target_index: 2,
+    }, // Write → Turnaround (after write_bits)
+    Transition {
+        source_index: 2,
+        target_index: 2,
+    }, // Turnaround self-loop
+    Transition {
+        source_index: 2,
+        target_index: 3,
+    }, // Turnaround → Read (after turnaround)
+    Transition {
+        source_index: 3,
+        target_index: 3,
+    }, // Read self-loop (per bit)
+    Transition {
+        source_index: 3,
+        target_index: 0,
+    }, // Read → Idle (transaction done)
+];
+
 /// State of the half-duplex SPI master.
-#[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy, Default, Fsm)]
 pub enum HalfSpiState {
     #[default]
+    #[fsm_state(label = "idle")]
     Idle,
+    #[fsm_state(label = "write")]
     Write,
+    #[fsm_state(label = "turnaround")]
     Turnaround,
+    #[fsm_state(label = "read")]
     Read,
 }
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ, Default)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ, Default, FsmWidget)]
 #[rhdl(dq_no_prefix)]
+#[fsm(state_field = "state", state_enum = HalfSpiState)]
 /// Half-duplex / 3-wire SPI master core.
 pub struct HalfSpiMaster<const W: usize, const CW: usize>
 where
@@ -281,24 +326,21 @@ where
         d.done_pulse = false;
     }
 
-    // Outputs derived from current state.
+    // Outputs derived from current state.  Collapse the per-state
+    // arms into or-patterns: the chip-select / busy logic groups by
+    // "is this an active transaction state", and the sclk / sdio_oe
+    // logic groups by "is this state actually clocking bits".
     let cs_n = match q.state {
         HalfSpiState::Idle => true,
-        HalfSpiState::Write => false,
-        HalfSpiState::Turnaround => false,
-        HalfSpiState::Read => false,
+        HalfSpiState::Write | HalfSpiState::Turnaround | HalfSpiState::Read => false,
     };
     let sclk = match q.state {
-        HalfSpiState::Idle => false,
-        HalfSpiState::Write => q.phase,
-        HalfSpiState::Turnaround => false,
-        HalfSpiState::Read => q.phase,
+        HalfSpiState::Idle | HalfSpiState::Turnaround => false,
+        HalfSpiState::Write | HalfSpiState::Read => q.phase,
     };
     let sdio_oe = match q.state {
         HalfSpiState::Write => true,
-        HalfSpiState::Idle => false,
-        HalfSpiState::Turnaround => false,
-        HalfSpiState::Read => false,
+        HalfSpiState::Idle | HalfSpiState::Turnaround | HalfSpiState::Read => false,
     };
     // sdio_out: MSB of shift_tx during Write, otherwise don't-care (set 0).
     let mosi_bit = (q.shift_tx >> ((W - 1) as u128)) & one_w;
@@ -306,9 +348,7 @@ where
 
     let busy = match q.state {
         HalfSpiState::Idle => false,
-        HalfSpiState::Write => true,
-        HalfSpiState::Turnaround => true,
-        HalfSpiState::Read => true,
+        HalfSpiState::Write | HalfSpiState::Turnaround | HalfSpiState::Read => true,
     };
 
     let mut o = Out::<W>::dont_care();

@@ -31,6 +31,38 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Complete the FSM-derive migration sweep across remaining serial_bus widgets
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/{half_spi_master,ws2812,dht22,lin_master,sent_rx}.rs` + matching examples + new `doc/<name>_fsm.md` files
+
+**Why this, why now:** Closes the loop on the CLAUDE.md §12 rule 14 directive — every FSM-shaped widget in the tree now opts in.  Previous batch (PR #23) migrated `can_master`, `one_wire_master`, `i2c_master`, `ir_nec_rx`; this batch finishes with the remaining five FSM-shaped serial-bus widgets, plus an explicit "stays bare-match" decision for the three counter-driven widgets that don't have an enum-typed state register.
+
+**Migrations:**
+
+- ✅ **`half_spi_master`** — 4-state HalfSpiState (Idle / Write / Turnaround / Read), 7 transitions.  **Biggest or-pattern win in the sweep**: four output-mux matches (`cs_n`, `sclk`, `sdio_oe`, `busy`) had 15 redundant arms across them; collapse to 8 arms with or-patterns (`Write | Turnaround | Read => false` for `cs_n`, `Write | Read => q.phase` for `sclk`, etc.).  7 tests pass.
+- ✅ **`ws2812`** — 3-state WsState (Idle / Sending / Latching), 5 transitions.  Two output matches collapse — `data_out` (`Idle | Latching => false`) and `busy` (`Sending | Latching => true`).  5 tests pass.
+- ✅ **`dht22`** — 8-state Dht22State (Idle / StartLow / StartReleaseHigh / StartReleaseLow / AckLow / AckHigh / BitLow / BitHigh), 12 transitions including 4 timeout edges back to Idle.  No or-pattern wins — each state has a unique handler.  5 tests pass.
+- ✅ **`lin_master`** — 10-state LinState (Idle + Break + 4 × {Send, Wait}-pairs), 10 transitions in linear progression.  No or-pattern wins.  4 tests pass.
+- ✅ **`sent_rx`** — 2-state SentState (Idle / Collecting), 3 transitions.  Smallest FSM in the migration — included for completeness, the diagram is essentially "Idle ↔ Collecting".  6 tests pass.
+
+**Explicitly NOT migrated** (correctly):
+- ❌ **`spi_master`**, **`spi_slave`**, **`uart_rx`** — none of these carry an explicit enum-typed state register.  They're driven by phase counters / bit counters / shift registers.  Per the "When NOT to use the FSM macros" guidance in `doc/book/src/fsm/derive.md`, tagging counter-driven widgets as FSMs would produce useless diagrams and zero analysis value.  They stay bare-`match` widgets.
+- ❌ **`uart`**, **`midi`**, **`uart_16550`** — these compose other widgets (the underlying `Uart`, `UartTx`, `UartRx` primitives) and don't have their own state enum.  The state machinery lives in the inner widgets.  `uart_16550` is a register-mapped wrapper — its kernel is a giant address decode mux, not a state walk.
+- ❌ **`uart_tx`** — has 2 internal states but they're encoded as a `bool` (`sending`), not an enum.  Could be promoted to a 2-variant enum + FSM derive, but the readability win is marginal.  Tracked as a future tidy-up.
+
+**Surprises and gotchas:**
+- **The `#[doc(hidden)]` on `LinState`** — the original `LinState` was annotated `#[doc(hidden)]` to keep the public API surface minimal.  After adding `#[derive(Fsm)]` the enum's variants need to be visible enough for the diagram, but the tag is preserved (the macro is metadata, not a public-API reshape).  No conflict.
+- **Per-variant labels for readability**.  Where the Rust identifier doesn't read naturally as a diagram label (e.g., `StartReleaseHigh` → `"start (release H)"`), the `#[fsm_state(label = "...")]` annotation is added.  Consistent across the sweep.
+
+**Validation:** `cargo test --package rhdl-fpga --lib` continues to pass with the same 429+ count.  HDL emission length and VCD digests unchanged for every migrated widget — proof that adding the derives + the or-pattern collapses is byte-identical at the IR level.
+
+**Follow-ups:**
+- **Promote `uart_tx`'s 2-state `sending: bool` register to an `Fsm`-derived enum** as a small tidy-up.  Marginal readability win; not blocking.
+- **Wire the RHIF extraction pass** so `FSM_TRANSITIONS` becomes derivable rather than author-curated.  Layer 2 is shipped (PR #2); the integration into the rustdoc emission pipeline is the missing piece.  Until then, the hand-rolled `FSM_TRANSITIONS` is the contract.
+- **Future Tier-3+ widgets** that ship state machines should be FSM-tagged from day one — saves a re-migration round-trip.
+
+---
+
 ## 2026-04-29 — CRITICAL: every FSM-tagged widget must emit + include its FSM diagram (CLAUDE.md §12 rule 14); migrate `i2c_master` and `ir_nec_rx`
 
 **Path:** `CLAUDE.md` §12 (new rule 14), `crates/rhdl-fpga/src/doc.rs` (new `write_fsm_diagram_as_markdown` helper), `crates/rhdl-fpga/src/serial_bus/{can_master,one_wire_master,i2c_master,ir_nec_rx}.rs`, the four matching examples + `doc/<name>_fsm.md` files, `doc/book/src/fsm/derive.md`

@@ -69,21 +69,59 @@ bool |                        | bool
 //!
 //! The trace below demonstrates the result.
 #![doc = include_str!("../../doc/ws2812.md")]
+//!
+//! And the auto-generated FSM diagram for the per-pixel transmit walk:
+#![doc = include_str!("../../doc/ws2812_fsm.md")]
+use rhdl::core::fsm::analysis::Transition;
 use rhdl::prelude::*;
 
 use crate::core::{constant::Constant, dff};
 
+/// Author-curated transition graph for the WS2812 driver FSM.
+///
+/// Required by CLAUDE.md §12 rule 14.  Indices match `WsState`
+/// declaration order (Idle=0, Sending=1, Latching=2).
+pub const FSM_TRANSITIONS: &[Transition] = &[
+    Transition {
+        source_index: 0,
+        target_index: 1,
+    }, // Idle → Sending (on `send`)
+    Transition {
+        source_index: 1,
+        target_index: 1,
+    }, // Sending self-loop (per cycle / per bit)
+    Transition {
+        source_index: 1,
+        target_index: 2,
+    }, // Sending → Latching (after 24 bits)
+    Transition {
+        source_index: 2,
+        target_index: 2,
+    }, // Latching self-loop (per latch cycle)
+    Transition {
+        source_index: 2,
+        target_index: 0,
+    }, // Latching → Idle (latch period elapsed)
+];
+
 /// Driver state.
-#[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy, Default, Fsm)]
 pub enum WsState {
+    /// No active transmission; output line held low.
     #[default]
+    #[fsm_state(label = "idle")]
     Idle,
+    /// Clocking 24 bits out at the WS2812 timing format.
+    #[fsm_state(label = "sending")]
     Sending,
+    /// Driving the line low for the latch / reset period.
+    #[fsm_state(label = "latching")]
     Latching,
 }
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ, FsmWidget)]
 #[rhdl(dq_no_prefix)]
+#[fsm(state_field = "state", state_enum = WsState)]
 /// WS2812 single-pixel driver.
 pub struct Ws2812Driver<const CW: usize>
 where
@@ -187,9 +225,8 @@ where
     let latch_done = q.cycle_counter == (q.latch_period - one_cw);
 
     let data_out = match q.state {
-        WsState::Idle => false,
+        WsState::Idle | WsState::Latching => false,
         WsState::Sending => in_high,
-        WsState::Latching => false,
     };
 
     match q.state {
@@ -241,8 +278,7 @@ where
 
     let busy = match q.state {
         WsState::Idle => false,
-        WsState::Sending => true,
-        WsState::Latching => true,
+        WsState::Sending | WsState::Latching => true,
     };
 
     let mut o = Out::dont_care();

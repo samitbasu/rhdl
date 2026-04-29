@@ -1,10 +1,13 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    doc::write_svg_as_markdown,
-    serial_bus::lin_master::{In, LinMaster},
+    doc::{write_fsm_diagram_as_markdown, write_svg_as_markdown},
+    serial_bus::lin_master::{In, LinMaster, FSM_TRANSITIONS},
 };
 
 fn main() -> Result<(), RHDLError> {
+    // Emit the FSM diagram first — required by CLAUDE.md §12 rule 14.
+    write_fsm_diagram_as_markdown::<LinMaster<6, 8>>(FSM_TRANSITIONS, "lin_master_fsm.md")?;
+
     let uut = LinMaster::<6, 8>::new(bits(4), bits(52));
     let mut stream_in: Vec<In> = vec![In {
         id: bits(0x12),

@@ -1,7 +1,7 @@
 use rhdl::prelude::*;
 use rhdl_fpga::{
-    doc::write_svg_as_markdown,
-    serial_bus::dht22::{Dht22Reader, In},
+    doc::{write_fsm_diagram_as_markdown, write_svg_as_markdown},
+    serial_bus::dht22::{Dht22Reader, In, FSM_TRANSITIONS},
 };
 
 fn build(frame: u128) -> Vec<In> {
@@ -63,6 +63,9 @@ fn build(frame: u128) -> Vec<In> {
 }
 
 fn main() -> Result<(), RHDLError> {
+    // Emit the FSM diagram first — required by CLAUDE.md §12 rule 14.
+    write_fsm_diagram_as_markdown::<Dht22Reader<10>>(FSM_TRANSITIONS, "dht22_fsm.md")?;
+
     let frame = (0x1234u128 << 24) | (0x5678u128 << 8) | 0xAB;
     let stream = build(frame).into_iter().with_reset(1).clock_pos_edge(100);
     let uut = Dht22Reader::<10>::new(bits(18), bits(5), bits(60));

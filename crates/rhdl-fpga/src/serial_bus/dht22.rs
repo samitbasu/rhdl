@@ -49,28 +49,102 @@ bool |                       | B<16>
 //!
 //! The trace below demonstrates the result.
 #![doc = include_str!("../../doc/dht22.md")]
+//!
+//! And the auto-generated FSM diagram for the read transaction:
+#![doc = include_str!("../../doc/dht22_fsm.md")]
+use rhdl::core::fsm::analysis::Transition;
 use rhdl::prelude::*;
 
 use crate::core::{constant::Constant, dff};
 
+/// Author-curated transition graph for the DHT22 read FSM.
+///
+/// Required by CLAUDE.md §12 rule 14.  Indices match `Dht22State`
+/// declaration order (Idle=0, StartLow=1, StartReleaseHigh=2,
+/// StartReleaseLow=3, AckLow=4, AckHigh=5, BitLow=6, BitHigh=7).
+pub const FSM_TRANSITIONS: &[Transition] = &[
+    Transition {
+        source_index: 0,
+        target_index: 1,
+    }, // Idle → StartLow (on `start`)
+    Transition {
+        source_index: 1,
+        target_index: 2,
+    }, // StartLow → StartReleaseHigh
+    Transition {
+        source_index: 2,
+        target_index: 3,
+    }, // StartReleaseHigh → StartReleaseLow
+    Transition {
+        source_index: 3,
+        target_index: 4,
+    }, // StartReleaseLow → AckLow (sensor pulls low)
+    Transition {
+        source_index: 4,
+        target_index: 5,
+    }, // AckLow → AckHigh
+    Transition {
+        source_index: 5,
+        target_index: 6,
+    }, // AckHigh → BitLow (first data bit)
+    Transition {
+        source_index: 6,
+        target_index: 7,
+    }, // BitLow → BitHigh
+    Transition {
+        source_index: 7,
+        target_index: 6,
+    }, // BitHigh → BitLow (next bit)
+    Transition {
+        source_index: 7,
+        target_index: 0,
+    }, // BitHigh → Idle (40th bit done)
+    Transition {
+        source_index: 3,
+        target_index: 0,
+    }, // StartReleaseLow → Idle (timeout)
+    Transition {
+        source_index: 4,
+        target_index: 0,
+    }, // AckLow → Idle (timeout)
+    Transition {
+        source_index: 5,
+        target_index: 0,
+    }, // AckHigh → Idle (timeout)
+];
+
 /// State of the DHT22 reader.
-#[derive(PartialEq, Debug, Digital, Clone, Copy, Default)]
+#[derive(PartialEq, Debug, Digital, Clone, Copy, Default, Fsm)]
 pub enum Dht22State {
     #[default]
+    #[fsm_state(label = "idle")]
     Idle,
+    /// Master pulls line low to begin a read.
+    #[fsm_state(label = "start (low)")]
     StartLow,
     /// Line released by master; waiting for it to go high (pull-up wins).
+    #[fsm_state(label = "start (release H)")]
     StartReleaseHigh,
     /// Line is high; waiting for sensor to pull it low (ACK begins).
+    #[fsm_state(label = "start (release L)")]
     StartReleaseLow,
+    /// Sensor's ACK low pulse.
+    #[fsm_state(label = "ACK (low)")]
     AckLow,
+    /// Sensor's ACK high pulse.
+    #[fsm_state(label = "ACK (high)")]
     AckHigh,
+    /// Per-bit low phase (~50 µs).
+    #[fsm_state(label = "bit (low)")]
     BitLow,
+    /// Per-bit high phase whose duration encodes 0 or 1.
+    #[fsm_state(label = "bit (high)")]
     BitHigh,
 }
 
-#[derive(Clone, Debug, Synchronous, SynchronousDQ)]
+#[derive(Clone, Debug, Synchronous, SynchronousDQ, FsmWidget)]
 #[rhdl(dq_no_prefix)]
+#[fsm(state_field = "state", state_enum = Dht22State)]
 /// DHT22 reader core.
 pub struct Dht22Reader<const CW: usize>
 where
