@@ -41,6 +41,33 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Tier-3 widget: IEEE 1284 ECP forward channel (composes RleEncoder)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/parallel_port_ecp.rs`, `examples/parallel_port_ecp.rs`, `doc/parallel_port_ecp.md`, `doc/parallel_port_ecp_fsm.md`, `vcd/parallel_port_ecp/`
+
+**Why this, why now:** Third piece of the parallel-port expansion.  Composes the previously-shipped `core::rle_encoder` + a 4-state interlocked handshake FSM.  Demonstrates the modular composition the user explicitly requested — the RLE encoder is a separate widget that ECP wraps, not buried inside it.  Forward channel only in v1; reverse channel + IEEE 1284 negotiation are v2.
+
+**Design decisions:**
+- **Composes `RleEncoder` from `core::`** — the compression layer is a separate, reusable widget.  ECP wires its `(out_data, out_is_count, out_valid)` outputs into its own per-byte handshake FSM and gates `out_ready` on the FSM's Idle state.
+- **4-state handshake FSM** — `Idle / Drive / WaitAck / Release`.  Modeled after the EPP `nWAIT` interlock with ECP-namespace pin names.
+- **Beat is *latched* at Idle → Drive** — `beat_data_reg` and `beat_is_count_reg` snapshot the encoder's current beat so the encoder can advance to the next beat while the handshake is still on this one.  Without this latch the wire output would change mid-handshake as the encoder moved on.
+- **`HostClk` line conveys byte type** — high for count/command, low for data.  Matches the ECP wire-level encoding directly.
+- **`out_ready` pulse, not a level** — held false during the entire handshake window; pulsed true for one cycle at Idle → Drive.  Keeps the encoder in step with the device-paced handshake.
+
+**Surprises and gotchas:**
+- **First implementation didn't latch the beat data**; it read `q.rle.out_data` each cycle.  The wire output then changed as the encoder advanced past the count beat to the data beat — captured outputs were `[(0xAA, false), (0xAA, false)]` instead of `[(2, true), (0xAA, false)]`.  Fix: add `beat_data_reg` and `beat_is_count_reg`, snapshot on Idle → Drive transition, and drive the wire from those latches.  Lesson for any "compose a fast inner widget into a slow outer FSM" pattern: always latch the inner outputs at the moment you start your slow handshake, never read them across multiple cycles.
+- **`out_ready` semantics required care.**  Initially I held `out_ready = (q.state == Idle)` continuously — meaning if the handshake came back to Idle before the encoder produced the next beat, the level was high.  That's actually fine for back-pressure but my problem above was about *latching*, not about the ready signal.  Kept the simpler "pulse at Idle→Drive" formulation since it's clearer about intent.
+
+**Validation:** All five tiers.  Tier-1 (3 tests): idle no-strobe, single literal byte → 1 beat (data, host_clk=false), run of three bytes → 2 beats (count=2 with host_clk=true, then data with host_clk=false) — confirms RLE compression actually compresses.  Tier-3 HDL snapshot length and Tier-5 VCD digest blessed.  Tier-4 RTL `iverilog` round-trip passes.  FSM descriptor confirms 4 variants and `Idle` initial.
+
+**Follow-ups:**
+- **Reverse channel** — symmetric: device drives D, host samples and reverse-RLE-decodes.  Would compose a `core::rle_decoder` (also v2) inside a reverse-handshake FSM.
+- **ECP-A 16-byte FIFO** — between the host's input port and the RLE encoder, so the host can stream-write bursts and the wire-side handshake drains asynchronously.  `fifo::synchronous` already exists; just plumb it.
+- **IEEE 1284 mode-select negotiation** — separate widget that runs the bus-state sequence to select between Compatibility / Nibble / Byte / EPP / ECP modes before this widget takes over.
+- **Bus arbitration with `parallel_port_centronics`/`parallel_port_epp`** — once mode-select exists, all three widgets can share the pad; the negotiator routes ownership to whichever protocol the device supports.
+
+---
+
 ## 2026-04-29 — Tier-3 widget: IEEE 1284 EPP (Enhanced Parallel Port) master
 
 **Path:** `crates/rhdl-fpga/src/serial_bus/parallel_port_epp.rs`, `examples/parallel_port_epp.rs`, `doc/parallel_port_epp.md`, `doc/parallel_port_epp_fsm.md`, `vcd/parallel_port_epp/`
