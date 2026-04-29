@@ -31,6 +31,77 @@ If `git log` answers *what changed and when*, this CHANGELOG answers *what we we
 
 ---
 
+## 2026-04-29 — Reorganise widget directories: `serial_bus/`, `video/`, `audio/`
+
+**Path:** `crates/rhdl-fpga/src/{audio,serial_bus,video}/` (new), `crates/rhdl-fpga/src/core/` (slimmed), `architecture.md` (§4 update)
+
+**Why this, why now:** `core/` had grown to ~40 widgets across heterogeneous domains.  The 24 widgets that are foundation primitives (DFFs, RAMs, counters, arithmetic, control) and the 19 widgets that drive off-chip peripherals (UART family, SPI, I²C, CAN, LIN, 1-Wire, video, audio) were uncomfortably mixed.  Splitting by *what kind of off-chip thing it talks to* makes the directory tree match how contributors think about the library.
+
+**Design decisions:**
+
+- **Three new top-level categories.**  `serial_bus/` (16 widgets), `video/` (3 widgets), `audio/` (1 widget — seedbed).  Per `architecture.md` §4 the threshold for a new category is "two widgets motivate it"; serial_bus and video clear that easily, and audio is added because future I²S / S/PDIF / AC'97 widgets are well-defined enough to anchor the category now.
+- **`midi` lives in `serial_bus/`, not `audio/`.**  Its wire layer is essentially UART at 31250 baud — the structural shape is closer to the protocol-PHY family than to the audio family.  When MIDI grows a synth / sequencer companion, that companion goes in `audio/`.
+- **`core/` keeps the foundation primitives only:** registers, RAMs, counters, control widgets (priority encoders, arbiters, debouncer, edge detector, pulse stretcher), computation (CRC, MAC, divider, popcount, leading_zeros, barrel_shifter, comparator), generic helpers (option, slice, constant, delay, one_hot), and generic output (PWM).  Anything that talks to an off-chip protocol has been moved out.
+- **Cross-directory imports use `crate::core::`, not `super::`.**  For widgets in `serial_bus/` or `video/` that depend on foundation primitives, the import becomes `use crate::core::{dff, constant};`.  Sibling-only `super::` references are reserved for intra-category composition (e.g., `serial_bus::midi → serial_bus::uart::Uart`, `video::cga_rgbi → video::video_timing`).  This convention is documented in `architecture.md` §4.
+
+**Surprises and gotchas:**
+
+- **`git mv` preserves history cleanly when the file content barely changes.**  All 19 moves show as `R100`/`R99` renames in `git log --follow`, so blame and bisect keep working across the reorg.
+- **Brace-form imports vs. path-form imports.**  Both `use rhdl_fpga::core::uart_rx::...;` and `use rhdl_fpga::{core::uart_rx, doc::write_svg_as_markdown};` appear in the example files; the sed rewrite needed both patterns.
+- **The `include_str!` paths in widget rustdoc don't change.**  Each widget's source has `#![doc = include_str!("../../examples/<name>.rs")]` and `#![doc = include_str!("../../doc/<name>.md")]` — those are *two* levels up from `src/core/<name>.rs` and *also* two levels up from `src/serial_bus/<name>.rs` (depth from file to the package root is the same).  The macro paths transparently survive the move.
+
+**Validation:**
+- `cargo build --package rhdl-fpga`: clean (lib + examples + tests).
+- `cargo test --package rhdl-fpga --lib`: 424 passed, 0 failed, 1 ignored — same numbers as before the reorg.  No HDL or VCD snapshot perturbed because no kernel logic changed.
+
+**Follow-ups:**
+- **Promote `tristate/` to be tagged as a co-category of `serial_bus/`** in the docs — it's the natural pairing for any open-drain protocol PHY (I²C, 1-Wire, half-SPI, CAN, LIN).  Not a structural move, just a doc cross-link.
+- **Eventual `sensor/` category** if the corpus of analog-sensor protocols (DHT22, SENT, future SPI-attached IMUs / ADCs) grows beyond what fits naturally in `serial_bus/`.  For now they live in `serial_bus/` because their wire layer is the dominant concern.
+
+---
+
+## 2026-04-29 — Full 16550A register surface (`uart_16550`, supersedes `bus_uart`)
+
+**Path:** `crates/rhdl-fpga/src/serial_bus/uart_16550.rs` (renamed from `bus_uart.rs`), `crates/rhdl-fpga/examples/uart_16550.rs`, `crates/rhdl-fpga/doc/uart_16550.md`, `crates/rhdl-fpga/vcd/uart_16550/`
+
+**Why this, why now:** v1 of this widget shipped as `bus_uart` — a 2-register minimum-viable subset.  This v2 brings it up to the canonical 8-register PC16550D layout, which is what Linux `8250_core`, QEMU `hw/char/serial.c`, and every PC-derived firmware stack expects to talk to.  Software written against a real 16550A can probe-detect, read/write all eight registers in correct banks, route interrupts via IIR, drive RTS / DTR / OUT1 / OUT2, and self-test via loopback — without modification.  The rename ("bus_uart" → "uart_16550") makes the chip-family correspondence explicit so future readers don't have to guess at the layout.
+
+**Design decisions:**
+
+- **8-register layout exactly per the PC16550D datasheet** — RBR/THR (banked with DLL), IER (banked with DLM), IIR/FCR, LCR (with DLAB), MCR, LSR, MSR, SCR.  Bit positions match the datasheet so software is bit-compatible.
+- **DLAB bank-switching implemented in the kernel** via a single decode against `(addr, q.lcr & LCR_DLAB)`.  Tested with `test_dlab_round_trip` writing distinct values to DLL (0x42) and DLM (0x13) and reading them back through the bank.
+- **IIR with priority encoding** per the datasheet table (line-status > RX-data > THR-empty > modem-status > none).  `test_iir_priority_encoding` verifies the bits-1-3 encoding and the always-on `0xC0` FIFO-state field.
+- **Loopback wired in the kernel** (MCR bit 4) — when set, the underlying UART's `tx` line drives its own `rx` input, and the four MCR output bits (DTR/RTS/OUT1/OUT2) drive the four MSR input bits internally.  This lets software self-test the entire data path without external wires.  Verified by `test_loopback_byte` round-tripping 0x5A through THR → loopback → RBR.
+- **Modem-status delta bits** computed against a `prev_modem: dff::DFF<Bits<4>>` register.  CTS/DSR/DCD use straight delta; RI uses trailing-edge per the datasheet (DDCD-style "was set, now clear" semantics).  `test_msr_modem_inputs_visible` exercises the cts_n input pin → MSR.bit4 path.
+- **Active-low modem pins at the I/O.**  Inputs `cts_n`, `dsr_n`, `ri_n`, `dcd_n` and outputs `rts_n`, `dtr_n`, `out1_n`, `out2_n` all carry `_n` in the name, follow the connector convention, and get inverted to active-high "asserted" semantics inside the kernel.
+- **Break control** via LCR bit 6 — when set, the kernel forces the TX line to 0 regardless of what the underlying UART would output.  `test_break_control_drives_tx_low` verifies.
+
+**Scope deferred to v3 (clearly documented in the rustdoc):**
+
+- **Programmable word length / parity / stop bits** — the underlying `UartTx` and `UartRx` are hardcoded 8N1.  LCR's word-length / parity / stop fields are accepted into storage but don't yet alter the wire format.  Wiring them through requires extending the TX / RX primitives.
+- **Programmable baud via DLL/DLM** — the actual divisor is fixed at construction; DLL/DLM are storage-only.  Same root cause: the underlying TX / RX take divisor as a `Constant`, not a runtime input.
+- **Parity / framing / break-interrupt detection** — LSR bits 2/3/4 always read 0 because the underlying RX doesn't surface those error conditions.
+- **FIFO clear on FCR write** — the underlying FIFO doesn't expose a clear input, so FCR.bit1 / .bit2 are accepted-and-ignored for now.
+- **FIFO trigger levels** — FCR bits 6-7 are stored but the underlying FIFO has fixed triggering.
+
+**Surprises and gotchas:**
+
+- **Const-generic disambiguation in test helpers.**  A test helper `fn run_stream<const D: usize, const F: usize>(uut: &Uart16550<D, F>, ...)` compiled fine for the type parameter use, but the `where rhdl::bits::W<D>: BitWidth` bound parsed `D` as a type rather than a const.  Renamed to `DV` / `FW` to disambiguate.  The same pattern probably affects future test helpers parameterised over const-generic widgets.
+- **The `include_str!` paths survived the rename.**  The widget points at `examples/uart_16550.rs` and `doc/uart_16550.md` — those got renamed at the same time, so there's no broken include after the move.
+
+**Validation:** All 5 tiers, **12 tests pass** including 6 register-interface integration tests (DLAB round-trip, MCR drives outputs, MSR sees modem pins, loopback round-trips a byte, RX→RBR, break drives TX low) plus IIR priority encoding, no-irq idle, and the SCR scratchpad round-trip.  Tier 4 iverilog RTL clean.  Tier 5 VCD digest blessed.
+
+**Follow-ups:**
+
+- **Programmable baud rate via DLL/DLM.**  Requires extending `UartTx` and `UartRx` to take divisor as a runtime input rather than a `Constant<Bits<DIV_W>>`.  Probably ~80 LOC of TX/RX changes, then one line in `uart_16550` to wire `((q.dlm.raw() << 8) | q.dll.raw())` to the underlying divisor.
+- **Programmable word length / parity / stop bits.**  Bigger lift — the TX shifter needs to count to a programmable bit count, the RX sampler needs the same, and parity has to be computed both directions.  Probably ~200 LOC across `UartTx` / `UartRx` plus the LCR-decode in `uart_16550`.
+- **Parity / framing / break-interrupt detection.**  Falls out of programmable word length plus an explicit "rx_error: Bits<3>" output on `UartRx` covering parity/framing/break.  LSR bits 2/3/4 then carry these.
+- **FIFO clear hooks.**  `SyncFIFO` needs a `clear` input.  Once that lands, FCR.bit1/.bit2 wire through trivially.
+- **FIFO trigger levels.**  Less urgent — most software uses the default level.  Would require parameterising the underlying FIFO or wrapping it.
+- **Optional: 16-byte FIFO depth at `FIFO_W=4`** is the canonical 16550A; we're already there with the existing `Uart::<DIV_W, 4>` instantiation.
+
+---
+
 ## 2026-04-29 — Refactor `core::can_master` and `core::one_wire_master` to use FSM macros + or-patterns
 
 **Path:** `crates/rhdl-fpga/src/core/can_master.rs`, `crates/rhdl-fpga/src/core/one_wire_master.rs`

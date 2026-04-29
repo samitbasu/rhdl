@@ -287,7 +287,7 @@ crates/rhdl-fpga/
 │   ├── audio/                          # audio output / audio-protocol widgets
 │   │   └── audio_pwm.rs                # PWM / sigma-delta stereo audio
 │   ├── serial_bus/                     # protocol-PHY and serial-bus widgets
-│   │   ├── uart.rs / uart_tx.rs / uart_rx.rs / bus_uart.rs
+│   │   ├── uart.rs / uart_tx.rs / uart_rx.rs / uart_16550.rs
 │   │   ├── spi_master.rs / spi_slave.rs / half_spi_master.rs
 │   │   ├── i2c_master.rs / can_master.rs / lin_master.rs
 │   │   ├── one_wire_master.rs / dht22.rs / sent_rx.rs / ir_nec_rx.rs
