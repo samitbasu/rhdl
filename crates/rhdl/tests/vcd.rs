@@ -199,7 +199,8 @@ fn test_vcd_ng_enum() {
     let manifest_dir = std::env!("CARGO_MANIFEST_DIR");
     let vcd_path = std::path::Path::new(manifest_dir).join("tests/expect/vcd_ng_enum.vcd");
     let hash = vcd.dump_to_file(&vcd_path).unwrap();
-    expect_test::expect!["bc9eb427e230378af8ba06f71a7d722a612c01ccf2ea2a30788839701abd39c3"].assert_eq(&hash);
+    expect_test::expect!["bc9eb427e230378af8ba06f71a7d722a612c01ccf2ea2a30788839701abd39c3"]
+        .assert_eq(&hash);
 }
 
 #[test]
@@ -258,5 +259,6 @@ fn test_vcd_enum() {
     let manifest_dir = std::env!("CARGO_MANIFEST_DIR");
     let vcd_path = std::path::Path::new(manifest_dir).join("tests/expect/vcd_enum.vcd");
     let hash = vcd.dump_to_file(&vcd_path).unwrap();
-    expect_test::expect!["a38b9f0c8075063f5b2b19c99d0a1eec63f2f91898728f543814a3db9c01f997"].assert_eq(&hash);
+    expect_test::expect!["a38b9f0c8075063f5b2b19c99d0a1eec63f2f91898728f543814a3db9c01f997"]
+        .assert_eq(&hash);
 }

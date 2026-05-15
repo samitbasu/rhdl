@@ -187,11 +187,13 @@ mod tests {
             [
                 22..=28,
             ]
-        "#]].assert_debug_eq(&intervals);
+        "#]]
+        .assert_debug_eq(&intervals);
         let intervals = gaps.break_interval_at_gaps(&(35..=39));
         expect_test::expect![[r#"
             []
-        "#]].assert_debug_eq(&intervals);
+        "#]]
+        .assert_debug_eq(&intervals);
     }
 
     #[test]

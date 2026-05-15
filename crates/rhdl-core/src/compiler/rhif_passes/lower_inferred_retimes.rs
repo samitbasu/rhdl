@@ -2,8 +2,8 @@ use crate::{
     compiler::mir::error::ICE,
     error::RHDLError,
     rhif::{
-        spec::{OpCode, Retime},
         Object,
+        spec::{OpCode, Retime},
     },
 };
 
