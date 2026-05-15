@@ -27,6 +27,9 @@ jobs:
       - name: Cache cargo build
         uses: Swatinem/rust-cache@v2
 
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+
       - name: Install external simulator and FPGA toolchain
         run: |
           sudo apt-get update
@@ -39,4 +42,7 @@ jobs:
         run: cargo clippy --workspace --all-targets
 
       - name: Tests
-        run: cargo test --workspace --no-fail-fast
+        run: cargo nextest run --workspace --no-fail-fast
+
+      - name: Doctests
+        run: cargo test --doc --workspace --no-fail-fast

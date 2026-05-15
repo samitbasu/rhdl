@@ -2,8 +2,8 @@
 default:
     @just --list
 
-# Run everything CI runs (fmt-check + clippy + test)
-ci: fmt-check clippy test
+# Run everything CI runs (fmt-check + clippy + test + doctest)
+ci: fmt-check clippy test doctest
 
 # Verify the codebase is formatted (fails if not)
 fmt-check:
@@ -17,6 +17,10 @@ fmt:
 clippy:
     cargo clippy --workspace --all-targets
 
-# Run the full workspace test suite
+# Run the workspace test suite via nextest (faster, parallelizes test binaries)
 test:
-    cargo test --workspace --no-fail-fast
+    cargo nextest run --workspace --no-fail-fast
+
+# Run doctests (nextest does not handle these)
+doctest:
+    cargo test --doc --workspace --no-fail-fast
