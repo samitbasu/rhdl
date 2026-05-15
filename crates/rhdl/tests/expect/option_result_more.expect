@@ -1,6 +1,6 @@
   × RHDL Type Error
   ╰─▶ RHDL Type Error
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/option.rs:372:29]
+     ╭─[crates/rhdl/tests/option.rs:372:29]
  371 │         let d = match resp {
  372 │             Some(Result::Ok(())) => Some(AXI4Error::SLVERR),
      ·                             ─┬

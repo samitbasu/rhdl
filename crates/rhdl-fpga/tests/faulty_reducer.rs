@@ -131,6 +131,22 @@ fn test_no_combinatorial_paths() -> miette::Result<()> {
         miette::GraphicalReportHandler::new_themed(miette::GraphicalTheme::unicode_nocolor());
     let mut msg = String::new();
     handler.render_report(&mut msg, err.as_ref()).unwrap();
+    let msg = strip_workspace_root(&msg);
     expect_test::expect_file!["faulty_reducer_no_combinatorial_paths.expect"].assert_eq(&msg);
     Ok(())
+}
+
+// Removes the absolute workspace-root prefix from any embedded file paths,
+// so snapshot files are stable across checkouts on different machines.
+fn strip_workspace_root(s: &str) -> String {
+    let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(|p| p.parent())
+        .map(|p| p.display().to_string())
+        .unwrap_or_default();
+    if workspace_root.is_empty() {
+        s.to_string()
+    } else {
+        s.replace(&format!("{workspace_root}/"), "")
+    }
 }

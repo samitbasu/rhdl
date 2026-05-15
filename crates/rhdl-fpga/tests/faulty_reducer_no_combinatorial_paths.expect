@@ -1,5 +1,5 @@
   × RHDL Combinatorial Path
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl-fpga/tests/faulty_reducer.rs:85:19]
+     ╭─[crates/rhdl-fpga/tests/faulty_reducer.rs:85:19]
   84 │     let (in_valid, in_data) = unpack::<Bits<DW>>(i.data, bits(0));
   85 │     let stop_in = !i.ready;
      ·                   ────────

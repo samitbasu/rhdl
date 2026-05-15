@@ -1,6 +1,6 @@
   × RHDL Clock Domain Violation
   ╰─▶ RHDL Clock Domain Violation
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/clock.rs:137:43]
+     ╭─[crates/rhdl/tests/clock.rs:137:43]
  136 │     fn do_stuff<C: Domain, D: Domain>(a: Signal<b8, C>, b: Signal<b8, D>) -> Signal<b8, C> {
  137 │         let c = add::<C>(signal(a.val()), signal(b.val()));
      ·                                           ───────┬───────┬┬

@@ -1,6 +1,6 @@
   × RHDL Clock Domain Violation
   ╰─▶ RHDL Clock Domain Violation
-    ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/clock.rs:84:16]
+    ╭─[crates/rhdl/tests/clock.rs:84:16]
  83 │         let c = Foo::<C, D> {
  84 │             a: signal((b + 1).resize()),
     ·                ────────────┬───────────┬┬

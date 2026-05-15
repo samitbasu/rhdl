@@ -1,6 +1,6 @@
   × RHDL Type Error
   ╰─▶ RHDL Type Error
-    ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/binding.rs:31:30]
+    ╭─[crates/rhdl/tests/binding.rs:31:30]
  30 │     fn add(state: Signal<Option<Foo>, Red>) -> Signal<b8, Red> {
  31 │         if let Some(Foo::Red(Bar(x, y))) = state.val() {
     ·                              ────┬────

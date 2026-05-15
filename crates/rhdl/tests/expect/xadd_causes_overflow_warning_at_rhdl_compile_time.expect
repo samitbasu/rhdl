@@ -1,6 +1,6 @@
   × RHDL Type Error
   ╰─▶ RHDL Type Error
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/dyn_bits.rs:252:17]
+     ╭─[crates/rhdl/tests/dyn_bits.rs:252:17]
  251 │         let a2 = a2.val().dyn_bits();
  252 │         let c = a1.xadd(a2);
      ·                 ─────┬─────
