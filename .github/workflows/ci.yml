@@ -27,10 +27,10 @@ jobs:
       - name: Cache cargo build
         uses: Swatinem/rust-cache@v2
 
-      - name: Install IceStorm FPGA toolchain
+      - name: Install external simulator and FPGA toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y yosys nextpnr-ice40 fpga-icestorm
+          sudo apt-get install -y iverilog yosys nextpnr-ice40 fpga-icestorm
 
       - name: Format check
         run: cargo fmt --all -- --check
