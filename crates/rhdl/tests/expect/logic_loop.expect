@@ -1,6 +1,6 @@
   × Logic Loop
   ╰─▶ Design contains a logic loop
-    ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/logic_loop.rs:57:45]
+    ╭─[crates/rhdl/tests/logic_loop.rs:57:45]
  56 │      #[kernel]
  57 │      pub fn logic_loop(_cr: ClockReset, i: bool, q: Q) -> (bool, D) {
     ·                                                  ──┬─┬

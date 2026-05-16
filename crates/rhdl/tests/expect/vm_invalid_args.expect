@@ -1,6 +1,6 @@
   × RHDL ICE
   ╰─▶ RHDL Internal Compile Error
-    ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/vm.rs:30:5]
+    ╭─[crates/rhdl/tests/vm.rs:30:5]
  29 │         #[kernel]
  30 │ ╭─▶     fn pass<C: Domain>(a: Signal<b8, C>) -> Signal<b8, C> {
  31 │ │           a

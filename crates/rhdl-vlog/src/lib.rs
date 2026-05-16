@@ -15,7 +15,7 @@
 //!
 //! ```rust
 //! use rhdl_vlog::*;
-//! use quote::quote;
+//! use syn::parse_quote;
 //!
 //! let module: ModuleDef = parse_quote! {
 //!    module my_module (input wire a, input wire b, output wire c);

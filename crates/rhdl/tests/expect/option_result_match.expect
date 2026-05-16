@@ -1,6 +1,6 @@
   × RHDL Type Error
   ╰─▶ RHDL Type Error
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/option.rs:198:29]
+     ╭─[crates/rhdl/tests/option.rs:198:29]
  197 │         let d = match i.val() {
  198 │             Some(Result::Ok(())) => Some(ResponseCode::OKAY),
      ·                             ─┬

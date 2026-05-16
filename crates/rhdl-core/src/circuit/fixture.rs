@@ -70,14 +70,20 @@ pin y|Driver+------->|7|<------+
 //! It allows you to specify paths on the input and output of the circuit,
 //! and automatically creates the necessary drivers and mount points.
 //!
-//# Example
-//!```rust
+//! # Example
+//!
+//! See [`rhdl::prelude::bind`](../../../rhdl/prelude/macro.bind.html) for a runnable
+//! example. The `#[kernel]` attribute and `bind!` macro live in the `rhdl`
+//! crate, so the doctest itself cannot be exercised from `rhdl-core`. The
+//! sketch below shows the same wiring for reference:
+//!
+//!```ignore
 //!use rhdl::prelude::*;
 //!
 //!#[kernel]
 //!fn adder(a: Signal<(b4, b4), Red>) -> Signal<b4, Red> {
 //!    let (a, b) = a.val();
-//!    signal(a + b) // Return signal with value
+//!    signal(a + b)
 //!}
 //!
 //!let adder = AsyncFunc::new::<adder>()?;
@@ -85,7 +91,7 @@ pin y|Driver+------->|7|<------+
 //!bind!(fixture, a -> input.val().0);
 //!bind!(fixture, b -> input.val().1);
 //!bind!(fixture, sum -> output.val());
-//!let vlog = fixture.module()?;  
+//!let vlog = fixture.module()?;
 //!```
 //!
 //! This example creates a top level fixture that looks like this:

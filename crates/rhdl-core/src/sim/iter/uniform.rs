@@ -56,7 +56,7 @@ where
 ///
 /// ```rust
 /// # use rhdl_bits::alias::b4;
-/// # use rhdl_core::sim::uniform::uniform;
+/// # use rhdl_core::sim::iter::uniform::uniform;
 ///
 /// let samples = vec![b4(1), b4(2), b4(3)];
 /// let uniform_samples = uniform(samples.into_iter(), 100);
@@ -87,7 +87,7 @@ where
 ///
 /// ```rust
 /// # use rhdl_bits::alias::b4;
-/// # use rhdl_core::sim::uniform::UniformExt;
+/// # use rhdl_core::sim::iter::uniform::UniformExt;
 ///
 /// let samples = (1..).take(5).map(b4);
 /// let uniform_samples = samples.uniform(100);

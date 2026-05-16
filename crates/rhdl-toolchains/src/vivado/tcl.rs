@@ -102,12 +102,15 @@ impl CreateIp {
 
 impl std::fmt::Display for CreateIp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "create_ip -name {name} -vendor {vendor} -library {library} -version {version} -module_name {module_name}",
-        name = self.name,
-        vendor = self.vendor,
-        library = self.library,
-        version = self.version,
-        module_name = self.module_name)
+        write!(
+            f,
+            "create_ip -name {name} -vendor {vendor} -library {library} -version {version} -module_name {module_name}",
+            name = self.name,
+            vendor = self.vendor,
+            library = self.library,
+            version = self.version,
+            module_name = self.module_name
+        )
     }
 }
 
@@ -245,7 +248,9 @@ impl std::fmt::Display for Cell {
             )?;
         }
         for connection in &self.pin_connections {
-            writeln!(f, "connect_bd_net [get_bd_pins {name}/{local_port}] [get_bd_pins {remote_node}/{remote_port}]",
+            writeln!(
+                f,
+                "connect_bd_net [get_bd_pins {name}/{local_port}] [get_bd_pins {remote_node}/{remote_port}]",
                 name = self.name,
                 local_port = connection.local_port,
                 remote_node = connection.remote_node,
@@ -253,7 +258,9 @@ impl std::fmt::Display for Cell {
             )?;
         }
         for connection in &self.interface_connections {
-            writeln!(f, "connect_bd_intf_net [get_bd_intf_pins {name}/{local_port}] [get_bd_intf_pins {remote_node}/{remote_port}]",
+            writeln!(
+                f,
+                "connect_bd_intf_net [get_bd_intf_pins {name}/{local_port}] [get_bd_intf_pins {remote_node}/{remote_port}]",
                 name = self.name,
                 local_port = connection.local_port,
                 remote_node = connection.remote_node,

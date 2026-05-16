@@ -1,6 +1,6 @@
   × RHDL Type Check Error
   ╰─▶ RHDL Type Check Error
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/dyn_bits.rs:271:17]
+     ╭─[crates/rhdl/tests/dyn_bits.rs:271:17]
  270 │         let b = b.val().dyn_bits();
  271 │         let c = a.xsub(b);
      ·                 ────┬────┬┬

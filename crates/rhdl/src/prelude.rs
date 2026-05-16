@@ -80,6 +80,7 @@ pub use rhdl_core::circuit::fixture::Fixture;
 pub use rhdl_core::circuit::fixture::MountPoint;
 pub use rhdl_core::circuit::fixture::passthrough_input_driver;
 pub use rhdl_core::circuit::fixture::passthrough_output_driver;
+pub use rhdl_core::circuit::function::asynchronous::AsyncFunc;
 pub use rhdl_core::circuit::scoped_name::ScopedName;
 pub use rhdl_core::const_max;
 pub use rhdl_core::ntl::builder::circuit_black_box;
@@ -133,13 +134,16 @@ pub use rhdl_vlog::parse_quote_miette;
 ///    signal(a + b) // Return signal with value
 ///}
 ///
+///# fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///let adder = AsyncFunc::new::<adder>()?;
 ///let mut fixture = Fixture::new("adder_top", adder);
-///let (input, output) = fixture.io();
+///let (input, output) = fixture.io_dont_care();
 ///bind!(fixture, a -> input.val().0);
 ///bind!(fixture, b -> input.val().1);
 ///bind!(fixture, sum <- output.val());
-///let vlog = fixture.module()?;  
+///let _vlog = fixture.module()?;
+///# Ok(())
+///# }
 ///```
 /// When exported as Verilog, the fixture will look like this:
 ///

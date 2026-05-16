@@ -84,5 +84,20 @@ pub fn miette_report(err: RHDLError) -> String {
         miette::GraphicalReportHandler::new_themed(miette::GraphicalTheme::unicode_nocolor());
     let mut msg = String::new();
     handler.render_report(&mut msg, &err).unwrap();
-    msg
+    strip_workspace_root(&msg)
+}
+
+// Removes the absolute workspace-root prefix from any embedded file paths,
+// so snapshot files are stable across checkouts on different machines.
+pub fn strip_workspace_root(s: &str) -> String {
+    let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(|p| p.parent())
+        .map(|p| p.display().to_string())
+        .unwrap_or_default();
+    if workspace_root.is_empty() {
+        s.to_string()
+    } else {
+        s.replace(&format!("{workspace_root}/"), "")
+    }
 }

@@ -1,6 +1,6 @@
   × RHDL Partial Initialization Error
   ╰─▶ RHDL Partial Initialization Error
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/ast.rs:728:16]
+     ╭─[crates/rhdl/tests/ast.rs:728:16]
  723 │         #[kernel]
  724 │ ╭─▶     fn do_stuff(a: Signal<b4, Red>, b: Signal<b4, Red>) -> Signal<b4, Red> {
  725 │ │           let mut foo = Foo::dont_care();

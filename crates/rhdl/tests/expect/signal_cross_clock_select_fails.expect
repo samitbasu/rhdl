@@ -1,6 +1,6 @@
   × RHDL Clock Domain Violation
   ╰─▶ RHDL Clock Domain Violation
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/clock.rs:154:16]
+     ╭─[crates/rhdl/tests/clock.rs:154:16]
  153 │         let x = x.val();
  154 │         signal(if y.val().any() { x } else { (x + 2).resize() })
      ·                ────────────────────────┬───────────────────────┬┬┬

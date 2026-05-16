@@ -1,6 +1,6 @@
   × RHDL Clock Domain Violation
   ╰─▶ RHDL Clock Domain Violation
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/clock.rs:402:9]
+     ╭─[crates/rhdl/tests/clock.rs:402:9]
  401 │         let z = (x, y);
  402 │         signal(z)
      ·         ────┬────┬┬

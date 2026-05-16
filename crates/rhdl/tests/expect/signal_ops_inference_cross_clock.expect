@@ -1,6 +1,6 @@
   × RHDL Clock Domain Violation
   ╰─▶ RHDL Clock Domain Violation
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/inference.rs:164:18]
+     ╭─[crates/rhdl/tests/inference.rs:164:18]
  163 │         // qq is Illegal!
  164 │         let qq = h + y;
      ·                  ──┬──┬┬┬

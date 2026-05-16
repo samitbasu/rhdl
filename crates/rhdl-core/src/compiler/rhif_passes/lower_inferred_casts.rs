@@ -1,8 +1,8 @@
 use crate::{
     error::RHDLError,
     rhif::{
-        spec::{Cast, OpCode},
         Object,
+        spec::{Cast, OpCode},
     },
 };
 

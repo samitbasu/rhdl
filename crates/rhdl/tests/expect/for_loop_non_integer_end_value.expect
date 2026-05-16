@@ -1,6 +1,6 @@
   × RHDL Syntax Error
   ╰─▶ RHDL Syntax Error
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/ast.rs:691:23]
+     ╭─[crates/rhdl/tests/ast.rs:691:23]
  690 │         let c = 5;
  691 │         for ndx in 0..c {
      ·                       ┬

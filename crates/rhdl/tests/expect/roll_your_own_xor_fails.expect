@@ -1,6 +1,6 @@
   × RHDL Syntax Error
   ╰─▶ RHDL Syntax Error
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/type_rolling.rs:191:17]
+     ╭─[crates/rhdl/tests/type_rolling.rs:191:17]
  190 │         let h = h.val();
  191 │         let j = h.xor();
      ·                 ───┬───

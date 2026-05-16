@@ -1,6 +1,6 @@
   × RHDL Clock Domain Violation
   ╰─▶ RHDL Clock Domain Violation
-     ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/clock.rs:116:9]
+     ╭─[crates/rhdl/tests/clock.rs:116:9]
  115 │         }; // Struct literal
  116 │         signal(d)
      ·         ────┬────┬┬

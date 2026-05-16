@@ -1,6 +1,6 @@
   × RHDL Clock Domain Violation
   ╰─▶ RHDL Clock Domain Violation
-    ╭─[/Users/samitbasu/Devel/rhdl/crates/rhdl/tests/span.rs:24:16]
+    ╭─[crates/rhdl/tests/span.rs:24:16]
  23 │         // Invisible comment
  24 │         signal(a.val() + b.val())
     ·                ────────┬────────┬┬┬

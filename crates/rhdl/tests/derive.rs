@@ -148,7 +148,8 @@ fn test_derive_digital_complex_enum() {
     let manifest_dir = std::env!("CARGO_MANIFEST_DIR");
     let vcd_path = std::path::Path::new(manifest_dir).join("tests/expect/vcd_ng_enum.vcd");
     let hash = vcd_file.dump_to_file(&vcd_path).unwrap();
-    expect_test::expect!["4975c2d1c4c686d797a316de76445703538e2a888ed73bd36a3e88b65ad0140b"].assert_eq(&hash);
+    expect_test::expect!["4975c2d1c4c686d797a316de76445703538e2a888ed73bd36a3e88b65ad0140b"]
+        .assert_eq(&hash);
 }
 
 #[test]
